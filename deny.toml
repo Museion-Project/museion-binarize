@@ -12,9 +12,39 @@ targets = []
 version = 2
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# Fail the check on any known vulnerability. No ignores are configured yet
-# because the workspace currently has almost no third-party dependencies.
+# Fail the check on any known vulnerability.
 yanked = "deny"
+# Temporary allowances only. Every entry below is an "unmaintained" advisory
+# (not a known security vulnerability) pulled in transitively by Tauri 2's
+# own dependency tree, with no safe upgrade currently published. These must
+# be revisited whenever the Tauri dependency is upgraded, and removed as
+# soon as upstream Tauri drops or replaces the offending crate.
+ignore = [
+    # proc-macro-error is unmaintained; pulled in transitively by Tauri's
+    # build/codegen dependency chain.
+    "RUSTSEC-2024-0370",
+    # The gtk-rs 0.18 stack (gdk, gtk, atk, and their -sys crates) is
+    # unmaintained upstream; pulled in transitively via Tauri's Linux
+    # (GTK/WebKitGTK) backend.
+    "RUSTSEC-2024-0411",
+    "RUSTSEC-2024-0412",
+    "RUSTSEC-2024-0413",
+    "RUSTSEC-2024-0414",
+    "RUSTSEC-2024-0415",
+    "RUSTSEC-2024-0416",
+    "RUSTSEC-2024-0417",
+    "RUSTSEC-2024-0418",
+    "RUSTSEC-2024-0419",
+    "RUSTSEC-2024-0420",
+    # The unic-* Unicode crates (part of the unmaintained open-i18n/rust-unic
+    # project) are pulled in transitively via `urlpattern`, a dependency of
+    # tauri-utils.
+    "RUSTSEC-2025-0075",
+    "RUSTSEC-2025-0080",
+    "RUSTSEC-2025-0081",
+    "RUSTSEC-2025-0098",
+    "RUSTSEC-2025-0100",
+]
 
 [licenses]
 version = 2
@@ -32,12 +62,23 @@ allow = [
     "Unicode-3.0",
     "Zlib",
     "CC0-1.0",
+    # MPL-2.0 is file-level (weak) copyleft, not project-level like GPL/AGPL:
+    # combining MPL-2.0 files with MIT/Apache-2.0 code does not require the
+    # combined work to be MPL-licensed. Pulled in transitively via Tauri's
+    # `wry`/webview dependency chain (cssparser, selectors, dtoa-short,
+    # option-ext). Allowed deliberately; GPL/AGPL remain denied.
+    "MPL-2.0",
 ]
 confidence-threshold = 0.8
 
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# In-workspace path dependencies (museion-binarize-core used by the CLI and
+# the desktop backend) intentionally have no version requirement; allow
+# that specific pattern without weakening the "deny" wildcard check for
+# genuine `*` version requirements from external crates.
+allow-wildcard-paths = true
 # No bans are configured yet. Once the processing core and CLI gain real
 # dependencies (image, PDF writing, etc.) this section should list any
 # duplicate or unwanted crates explicitly with a reason.
