@@ -13,3 +13,7 @@ publish.workspace = true
 name = "museion_binarize_core"
 
 [dependencies]
+fax = "0.3"
+image = { version = "0.25", default-features = false, features = ["png"] }
+imageproc = { version = "0.27", default-features = false }
+thiserror = "2"

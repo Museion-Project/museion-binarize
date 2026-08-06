@@ -1,30 +1,32 @@
 # Limitations
 
-## Current state (Milestone 0)
+## Current state (Milestone 1)
 
-This repository, at Milestone 0, is a project scaffold. It establishes the
-Rust workspace, a minimal Tauri 2 + React + TypeScript desktop shell,
-documentation, licensing, and CI — **it does not yet process PDFs in any
-way.**
+This repository has completed Milestone 1: the image-processing core
+(grayscale conversion, Otsu/Sauvola/manual binarization, conservative
+preprocessing, despeckle cleanup, bilevel packing, and CCITT Group 4
+encoding) is implemented and unit-tested in `museion-binarize-core`. **It
+still does not process a PDF file end to end** — there is no PDF
+rasterization or PDF-writing yet; that is Milestone 2.
 
 Specifically, as of this milestone:
 
-- There is no PDF rasterization, thresholding, encoding, or PDF-writing
-  implementation. `museion-binarize-core` exposes only placeholder project
-  metadata (see [`architecture.md`](architecture.md)).
+- `museion-binarize-core` can binarize an in-memory grayscale image and
+  pack/CCITT-encode the result, but has no PDFium binding, no PDF page
+  rendering, and no PDF reconstruction (`docs/pdf-output.md`-equivalent
+  functionality does not exist yet).
 - The CLI (`museion-binarize-cli`) supports `--version`, `--help`, and an
   `info` command only. It does not accept or convert PDF files.
 - The desktop application displays a static "Phase 1 — under development"
   screen and calls one Tauri command to confirm the frontend/backend bridge
   works. Its "Open PDF" control is present but disabled, and does not open
   or process any file.
-- No thresholding algorithm (Otsu, Sauvola, or manual) is implemented.
-- No CCITT Group 4 encoding is implemented.
 - No benchmarking framework or benchmark data exists yet.
 
 Early Phase 1 builds that follow this milestone will incrementally add real
-processing capability per [`roadmap.md`](roadmap.md); this document should
-be updated as that happens so it never overstates what the software does.
+PDF processing capability per [`roadmap.md`](roadmap.md); this document
+should be updated as that happens so it never overstates what the software
+does.
 
 ## Phase 1 non-goals (final, not just "not yet implemented")
 

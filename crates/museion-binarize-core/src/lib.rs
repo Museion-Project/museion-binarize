@@ -1,9 +1,23 @@
 //! Processing core for Museion Binarize.
 //!
 //! This crate must never depend on Tauri or any GUI toolkit; see
-//! `docs/architecture.md` in the workspace root for the rationale. At this
-//! stage (Milestone 0) it contains only honest project scaffolding — no PDF
-//! processing is implemented yet.
+//! `docs/architecture.md` in the workspace root for the rationale.
+//!
+//! As of Milestone 1, this crate implements the image-processing side of
+//! the pipeline (grayscale, binarization, preprocessing, cleanup, bilevel
+//! packing, CCITT Group 4). PDF I/O (PDFium rendering, PDF reconstruction)
+//! is Milestone 2 and is not implemented yet — nothing in this crate reads
+//! or writes a PDF file.
+
+pub mod bilevel;
+pub mod binarization;
+pub mod ccitt;
+pub mod cleanup;
+pub mod error;
+pub mod grayscale;
+pub mod preprocessing;
+pub mod progress;
+pub mod settings;
 
 /// The human-readable project name.
 pub const PROJECT_NAME: &str = "Museion Binarize";

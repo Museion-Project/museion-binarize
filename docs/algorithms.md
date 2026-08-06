@@ -1,10 +1,12 @@
 # Algorithms
 
-**Status: planned.** Nothing described in this document is implemented yet
-in this repository (Milestone 0). This document describes the intended
-Phase 1 algorithms so that design decisions are documented before
-implementation begins, and so contributors and reviewers have a shared
-reference.
+**Status: implemented in the image core, not yet wired to PDF I/O.** As of
+Milestone 1, every algorithm described below is implemented and
+unit-tested in `museion-binarize-core` (`src/binarization/`,
+`src/preprocessing.rs`, `src/cleanup/despeckle.rs`, `src/ccitt.rs`). They
+operate on in-memory grayscale/bilevel images; there is no PDF rendering or
+PDF writing yet (Milestone 2), so none of this is reachable from the CLI or
+desktop UI today.
 
 ## Thresholding methods
 
@@ -27,6 +29,13 @@ deviation of a surrounding window, parameterized by window size and a
 sensitivity constant `k`. Generally more robust than Otsu on scans with
 uneven lighting or degraded paper, at higher computational cost and with
 more parameters that affect output.
+
+Implemented in-house (not via a third-party CV library) using summed-area
+tables (integral images) for the sum and sum-of-squares of pixel values, so
+the local mean and standard deviation for every pixel's window are computed
+in amortized constant time rather than re-scanning the window per pixel.
+The optimized implementation is cross-checked in tests against a
+brute-force reference implementation that recomputes each window directly.
 
 ### Manual
 
@@ -74,6 +83,12 @@ CCITT Group 4 itself introduces no additional information loss beyond
 whatever the thresholding step already committed to. This is why Phase 1
 treats thresholding quality — not the compression step — as the primary
 lever for output fidelity.
+
+Implemented via the pure-Rust `fax` crate (MIT-licensed, part of the
+`pdf-rs` project), wrapped in a project-owned interface (`src/ccitt.rs`) so
+callers never depend on `fax` directly. Round-trip (encode-then-decode)
+correctness is covered by tests, including odd image widths not divisible
+by eight and fully white/black/random-sparse pages.
 
 ## What is intentionally out of scope for Phase 1 algorithms
 
