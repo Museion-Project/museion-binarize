@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/museion-binarize-core",
+    "crates/museion-binarize-cli",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Pei Haoran"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Museion-Project/museion-binarize"
+rust-version = "1.82"
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
