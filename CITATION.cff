@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Museion Binarize"
+type: software
+authors:
+  - family-names: "Pei"
+    given-names: "Haoran"
+repository-code: "https://github.com/Museion-Project/museion-binarize"
+license: "MIT OR Apache-2.0"

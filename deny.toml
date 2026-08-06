@@ -1,0 +1,49 @@
+# cargo-deny configuration for Museion Binarize.
+#
+# This is an initial, conservative baseline for Milestone 0. As dependencies
+# are added (PDF generation, image processing, Tauri, etc.) this file should
+# be revisited and any new allowances explained in a comment next to the
+# allowance itself, not silently added.
+
+[graph]
+targets = []
+
+[advisories]
+version = 2
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Fail the check on any known vulnerability. No ignores are configured yet
+# because the workspace currently has almost no third-party dependencies.
+yanked = "deny"
+
+[licenses]
+version = 2
+# Only permissive, dual-license-compatible licenses are allowed. GPL/AGPL
+# and other copyleft licenses are intentionally excluded because this
+# project is dual-licensed under MIT OR Apache-2.0 and must remain safe to
+# redistribute under either license alone.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "CC0-1.0",
+]
+confidence-threshold = 0.8
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# No bans are configured yet. Once the processing core and CLI gain real
+# dependencies (image, PDF writing, etc.) this section should list any
+# duplicate or unwanted crates explicitly with a reason.
+deny = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
