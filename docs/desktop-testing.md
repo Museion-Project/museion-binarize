@@ -7,6 +7,54 @@ Milestone 4, and — just as importantly — what has not, so this document
 cannot be mistaken for evidence of manual GUI testing that did not
 happen.
 
+## Native macOS acceptance: passed (2026-08-07)
+
+Native desktop acceptance testing has been performed on a provisioned
+Apple Silicon macOS machine, launching the real Tauri application (not
+the browser-only check below) with:
+
+```bash
+MUSEION_PDFIUM_LIBRARY="/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib" \
+  pnpm --dir apps/desktop tauri dev
+```
+
+against the pinned PDFium build recorded in
+`third_party/pdfium/manifest.toml` (verified present and SHA-256-matching
+before this run). The acceptance scenario list in this document (see
+"Native acceptance checklist: result" below) was worked through on the
+running native window, including a real-world long-document conversion:
+
+**Observed baseline (single run, real scholarly scan — not a synthetic
+fixture):**
+
+| | |
+|---|---|
+| Document | 100-page scholarly scanned PDF |
+| Input | 51.8 MB |
+| Output | 6.7 MB |
+| Method | Sauvola |
+| DPI | 400 |
+| Total processing time | ≈ 600 seconds |
+| Per-page time | ≈ 6 seconds/page |
+| Size reduction | ≈ 87.1% |
+| Input/output size ratio | ≈ 7.7 : 1 |
+
+**This is one observed data point on one document on one machine, not a
+general performance or compression guarantee.** Processing time and
+compression ratio both depend heavily on page content (a densely
+inked scan compresses less than a sparse one), page pixel dimensions at
+the chosen DPI, and the host machine's CPU. Do not read "~6s/page" or
+"~87% reduction" as a promise for other documents, and do not cite this
+table as benchmark data — no benchmark methodology exists yet (see
+[`benchmarking.md`](benchmarking.md)); this is a single acceptance-test
+observation, recorded here for traceability, not a measured claim about
+typical performance.
+
+Independently corroborated from the file system (not solely taken on
+report): the reported input and output files exist at the reported
+sizes, and the output reopens successfully via `inspect` reporting
+`page_count: 100` and valid document structure.
+
 ## What has been verified
 
 **Automated, non-PDFium (`cargo test -p museion-binarize-desktop`):**
@@ -63,43 +111,51 @@ real Tauri commands, which only exist inside the actual native webview
 with a provisioned PDFium library — none of that was exercised this way,
 and no other screen was checked.
 
-## What has **not** been verified
+## Native acceptance checklist: result
 
-Concretely, none of the following — all required by the Milestone 4
-specification's manual verification section — has been performed:
+The Milestone 4 specification's manual verification section (§46–47)
+listed the following as required before this milestone could be
+considered done. As of the 2026-08-07 native run recorded above, this
+checklist has been worked through on the real, running native
+application and reported passing by the operator who ran it:
 
-- launching `pnpm --dir apps/desktop tauri dev` (the real native window,
-  not the plain browser check above) and confirming PDFium-backed
-  behavior;
-- opening a real synthetic PDF through the native file dialog and
-  confirming thumbnails, page selection, and preview render correctly
-  on screen;
-- visually confirming Otsu/Sauvola/Manual and 300/400/600 DPI actually
-  look right in the preview pane;
-- the rotation regression (0°/90°/180°/270°, square markers staying
-  square, thumbnail and main preview agreeing) as an on-screen check —
-  only the underlying core geometry tests (unchanged by this milestone)
-  are known to pass;
-- watching a real conversion's progress bar update, confirming the UI
-  stays responsive, and confirming the completion panel renders
-  correctly;
-- cancelling a real job mid-conversion and confirming the UI settles
-  into "Cancelled" with no partial output on disk;
-- the alias-safety manual click-through (`input.pdf` vs `./input.pdf` vs
-  an absolute path vs a symlink chosen via the save dialog);
-- the password-protected-PDF prompt against a real generated encrypted
-  fixture;
-- screenshots of idle / document-loaded / preview / Sauvola settings /
-  processing / completion / error states, and the visual review of them
-  for clipping, overflow, tiny controls, contrast, and spacing;
-- a real 100-page document's sidebar scrolling and memory behavior.
+- launching the real native Tauri window with provisioned PDFium;
+- opening a real PDF through the native file dialog;
+- page count and document metadata;
+- thumbnail rendering and navigation;
+- a long-document sidebar (the 100-page document above);
+- original preview;
+- processed preview;
+- `/Rotate 0/90/180/270` visually, including square/asymmetric
+  orientation markers;
+- Otsu, Sauvola, and Manual-threshold preview;
+- settings changes not letting a stale preview response overwrite a
+  newer one;
+- choosing output through the native save dialog;
+- a real multi-page conversion with live progress, a responsive UI
+  during processing, and a correct completion panel — the 100-page,
+  Sauvola, 400 DPI run recorded above;
+- cancelling a sufficiently long conversion after it has begun, with no
+  partial output or temporary files left behind, and a new job able to
+  start afterward;
+- equivalent input/output path aliases being rejected;
+- the password-protected PDF flow;
+- error-state UI;
+- light mode and dark mode;
+- screenshots of idle / loaded / preview / processing / completion /
+  error states;
+- memory behavior on the 100-page fixture, with no full-resolution
+  eager thumbnail cache.
 
-**Do not mark Milestone 4 "complete" in [`roadmap.md`](roadmap.md) on
-the strength of this document alone.** The automated coverage above is
-real and passing, and it covers the parts of the system that are
-mechanically checkable without a display (state transitions, IPC
-contracts, settings validation, output byte-identity, error structure).
-It is not a substitute for someone actually running the app. Whoever
-next has access to a graphical macOS session should work through the
-scenario list in the Milestone 4 specification (§46–47) before that
-status changes.
+Only the long-document conversion scenario produced a specific
+quantitative result, recorded above; this document does not restate
+per-item screenshots or numeric detail for the other scenarios beyond
+the operator's report that they passed. If a specific one of them needs
+independent re-confirmation later, treat this checklist as the list of
+what to re-run, not as a substitute for doing so.
+
+**Milestone 4 is marked Complete in [`roadmap.md`](roadmap.md)** on the
+strength of this native run together with the automated coverage above.
+If a regression is later found in any of these scenarios, update this
+document with the actual observation and reopen the relevant status
+rather than editing this record silently.

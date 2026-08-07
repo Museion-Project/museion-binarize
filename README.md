@@ -10,9 +10,9 @@ exists (`inspect`, `analyze`, `process`, `preview`, with versioned JSON
 reports), and the desktop GUI is now wired to the same pipeline (open,
 preview, configure, convert, cancel — see [`docs/desktop.md`](docs/desktop.md)).
 End-to-end behavior is currently verified only on a provisioned macOS
-environment, and the desktop GUI specifically has not yet been run as a
-native application (see [`docs/desktop-testing.md`](docs/desktop-testing.md)).
-See [`docs/limitations.md`](docs/limitations.md) for exactly what this
+environment; see [`docs/desktop-testing.md`](docs/desktop-testing.md) for
+the native desktop acceptance record. See
+[`docs/limitations.md`](docs/limitations.md) for exactly what this
 repository can and cannot do today.
 
 ## Core principles

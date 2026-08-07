@@ -40,10 +40,11 @@ input.pdf -> PDFium rasterization -> image-processing core
   through the real pipeline, settings and deterministic presets,
   asynchronous processing with progress events and real cancellation,
   and structured error/completion presentation (see
-  [`desktop.md`](desktop.md)). **Implemented and covered by automated
-  tests, but not yet manually run as a native application** — see
-  [`desktop-testing.md`](desktop-testing.md) for exactly what has and has
-  not been verified.
+  [`desktop.md`](desktop.md)). Covered by automated tests and by native
+  macOS acceptance testing against the real running application — see
+  [`desktop-testing.md`](desktop-testing.md) for the full record,
+  including the one observed real-world processing baseline (not a
+  performance guarantee).
 
 **Not implemented yet:**
 

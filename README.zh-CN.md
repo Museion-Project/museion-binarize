@@ -9,8 +9,8 @@
 （`inspect`、`analyze`、`process`、`preview`，支持带版本号的 JSON 报告），
 桌面 GUI 现已接入同一处理流程（打开、预览、配置、转换、取消——详见
 [`docs/desktop.md`](docs/desktop.md)）。端到端行为目前仅在受控配置的
-macOS 环境中验证过，桌面 GUI 本身尚未作为原生应用实际运行验证（详见
-[`docs/desktop-testing.md`](docs/desktop-testing.md)）。请参阅
+macOS 环境中验证过；桌面 GUI 的原生应用验收记录详见
+[`docs/desktop-testing.md`](docs/desktop-testing.md)。请参阅
 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、
 不能做什么。
 
