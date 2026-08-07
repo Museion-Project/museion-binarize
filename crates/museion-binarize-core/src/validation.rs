@@ -7,9 +7,9 @@
 
 use std::path::Path;
 
+use crate::document_session::{PdfDocumentSession, PdfOpenOptions};
 use crate::error::{CoreError, Result};
 use crate::pdfium_backend::PdfiumConfig;
-use crate::renderer::{PdfOpenOptions, PdfRenderer};
 
 /// How thoroughly a finished output PDF is checked before it is persisted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -53,11 +53,12 @@ pub fn validate_output(
     let options = PdfOpenOptions {
         password: None,
         pdfium: pdfium.clone(),
+        compute_source_hash: false,
     };
-    let renderer = PdfRenderer::open(path, &options).map_err(|e| {
+    let session = PdfDocumentSession::open(path, &options).map_err(|e| {
         CoreError::OutputValidationFailed(format!("the written output could not be reopened: {e}"))
     })?;
-    let info = renderer.info();
+    let info = session.info();
 
     if info.page_count != expected.page_count {
         return Err(CoreError::OutputValidationFailed(format!(
@@ -112,7 +113,7 @@ pub fn validate_output(
     };
 
     for index in pages_to_render {
-        renderer.render_page(index, VALIDATION_DPI).map_err(|e| {
+        session.render_page(index, VALIDATION_DPI).map_err(|e| {
             CoreError::OutputValidationFailed(format!(
                 "output page {} could not be rendered: {e}",
                 index + 1

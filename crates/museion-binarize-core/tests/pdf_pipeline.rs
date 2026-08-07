@@ -22,13 +22,13 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use museion_binarize_core::binarization::SauvolaParams;
 use museion_binarize_core::cleanup::CleanupSettings;
+use museion_binarize_core::document_session::{PdfDocumentSession, PdfOpenOptions};
 use museion_binarize_core::error::CoreError;
 use museion_binarize_core::pdfium_backend::PdfiumConfig;
 use museion_binarize_core::pipeline::{
     self, leftover_temporary_files, PdfProcessingOptions, ProcessingReport,
 };
 use museion_binarize_core::progress::{ProgressEvent, ProgressReporter};
-use museion_binarize_core::renderer::{PdfOpenOptions, PdfRenderer};
 use museion_binarize_core::settings::{
     BinarizationMethod, PreprocessingSettings, ProcessingSettings,
 };
@@ -165,11 +165,12 @@ impl ProgressReporter for RecordingProgress {
 
 /// Renders one page of a PDF to grayscale for pixel assertions.
 fn render_gray(path: &Path, index: u32, dpi: u16, pdfium: &PdfiumConfig) -> image::GrayImage {
-    let renderer = PdfRenderer::open(
+    let renderer = PdfDocumentSession::open(
         path,
         &PdfOpenOptions {
             password: None,
             pdfium: pdfium.clone(),
+            compute_source_hash: false,
         },
     )
     .expect("open for rendering");
@@ -218,6 +219,7 @@ fn opens_and_inspects_a_generated_single_page_pdf() {
         &PdfOpenOptions {
             password: None,
             pdfium: config,
+            compute_source_hash: false,
         },
     )
     .expect("inspect");
@@ -242,11 +244,12 @@ fn renders_at_every_supported_dpi() {
         "a.pdf",
         &test_fixtures::orientation_and_polarity(),
     );
-    let renderer = PdfRenderer::open(
+    let renderer = PdfDocumentSession::open(
         &input,
         &PdfOpenOptions {
             password: None,
             pdfium: config,
+            compute_source_hash: false,
         },
     )
     .expect("open");
@@ -390,6 +393,7 @@ fn preserves_page_count_and_mixed_page_sizes() {
         &PdfOpenOptions {
             password: None,
             pdfium: config,
+            compute_source_hash: false,
         },
     )
     .expect("reopen output");
@@ -532,6 +536,7 @@ fn rotated_pages_report_the_visible_dimensions_required_by_the_fixture() {
         &PdfOpenOptions {
             password: None,
             pdfium: config.clone(),
+            compute_source_hash: false,
         },
     )
     .unwrap();
@@ -603,6 +608,7 @@ fn conversion_keeps_square_markers_square_and_in_opposite_corners() {
         &PdfOpenOptions {
             password: None,
             pdfium: config.clone(),
+            compute_source_hash: false,
         },
     )
     .unwrap();
@@ -881,4 +887,176 @@ fn refuses_to_write_over_the_input_document() {
     .expect_err("must refuse input == output");
     assert!(matches!(err, CoreError::DestinationConflict(_)));
     assert_eq!(std::fs::read(&input).unwrap(), original);
+}
+
+// --- Milestone 3: persistent session, source-mutation policy, analyze ---
+
+/// Proves the open-bytes snapshot policy: once a session is open, later
+/// mutating (here, truncating and overwriting) the file on disk at the
+/// same path must not affect any page rendered from that already-open
+/// session. There is no per-page reopen to be affected by the mutation in
+/// the first place — this test demonstrates the consequence directly,
+/// without needing to synchronize a pause mid-render.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn source_mutation_after_open_does_not_affect_an_in_progress_session() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "a.pdf", &test_fixtures::mixed_page_sizes());
+
+    let session = PdfDocumentSession::open(
+        &input,
+        &PdfOpenOptions {
+            password: None,
+            pdfium: config,
+            compute_source_hash: true,
+        },
+    )
+    .expect("open");
+    assert_eq!(session.info().page_count, 3);
+    let identity_at_open = session.source_identity().clone();
+
+    // Mutate the file on disk after the session is already open: replace
+    // it with a single-page, differently-sized document.
+    let replacement = test_fixtures::orientation_and_polarity();
+    assert_ne!(
+        replacement.len(),
+        identity_at_open.byte_len as usize,
+        "the replacement fixture must actually differ in size to make this a meaningful test"
+    );
+    std::fs::write(&input, &replacement).unwrap();
+
+    // The session still reports the document as it was at open time: 3
+    // pages, not the replacement's 1. Every page renders successfully,
+    // proving the session never went back to disk.
+    assert_eq!(
+        session.info().page_count,
+        3,
+        "an already-open session must not observe a mutation to the source file"
+    );
+    for index in 0..3 {
+        assert!(
+            session.render_page(index, 150).is_ok(),
+            "page {index} must still render from the original in-memory snapshot"
+        );
+    }
+
+    // Identity captured on a fresh open of the now-mutated file must
+    // differ, confirming the mutation was real and detectable — the
+    // *session* simply never performed that fresh open.
+    let bytes_now = std::fs::read(&input).unwrap();
+    assert_ne!(bytes_now.len() as u64, identity_at_open.byte_len);
+}
+
+/// `analyze_pdf` end-to-end: real rendering and binarization, useful
+/// document- and page-level measurements, and — like `process_pdf` — no
+/// reconstructed output file.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn analyze_reports_real_measurements_without_writing_an_output_pdf() {
+    use museion_binarize_core::analysis::DocumentAnalysisReport;
+    use museion_binarize_core::pipeline::AnalysisOptions;
+
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "a.pdf", &test_fixtures::threshold_patterns());
+
+    let options = AnalysisOptions {
+        password: None,
+        pdfium: config,
+        pages: None,
+        encode: true,
+        path_mode: museion_binarize_core::report::PathMode::Basename,
+    };
+    let report: DocumentAnalysisReport = pipeline::analyze_pdf(
+        &input,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options,
+        &RecordingProgress::new(),
+    )
+    .expect("analyze");
+
+    assert_eq!(report.page_count, 1);
+    assert_eq!(report.analyzed_page_count, 1);
+    assert_eq!(report.failed_page_count, 0);
+    assert_eq!(report.source_path.as_deref(), Some("a.pdf"));
+    assert_eq!(report.dpi, 300);
+    assert_eq!(report.method, "otsu");
+
+    let page = &report.pages[0];
+    // `threshold_patterns` draws both light and dark content, so a real
+    // Otsu run over it must select something other than 0 or 255.
+    match page.threshold {
+        museion_binarize_core::image_pipeline::ThresholdInfo::Otsu { threshold } => {
+            assert!(
+                threshold > 0 && threshold < 255,
+                "otsu threshold {threshold} looks unused, not computed"
+            );
+        }
+        other => panic!("expected Otsu threshold info, got {other:?}"),
+    }
+    assert!(
+        page.grayscale.max > page.grayscale.min,
+        "page has real contrast"
+    );
+    assert!(page.ink.black_pixels > 0 && page.ink.white_pixels > 0);
+    assert!(
+        (page.ink.black_pixel_ratio
+            - page.ink.black_pixels as f64
+                / (page.ink.black_pixels + page.ink.white_pixels) as f64)
+            .abs()
+            < 1e-9
+    );
+    assert!(
+        page.ccitt_bytes.is_some(),
+        "--encode must populate ccitt_bytes"
+    );
+    assert!(page.stage_durations.render_us > 0 || page.stage_durations.total_us > 0);
+
+    // No reconstructed output file exists anywhere near the input.
+    let siblings: Vec<_> = std::fs::read_dir(dir.path())
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(siblings, vec![std::ffi::OsString::from("a.pdf")]);
+}
+
+/// `analyze` with an explicit page selection renders only those pages —
+/// end to end, through the real PDFium-backed session, not the mock used
+/// by the ordinary tests in `pipeline.rs`.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn analyze_with_a_page_selection_analyzes_only_the_selected_pages() {
+    use museion_binarize_core::pipeline::AnalysisOptions;
+
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "a.pdf", &test_fixtures::mixed_page_sizes());
+
+    let options = AnalysisOptions {
+        password: None,
+        pdfium: config,
+        pages: Some("1,3".to_string()),
+        encode: false,
+        path_mode: museion_binarize_core::report::PathMode::Omit,
+    };
+    let report = pipeline::analyze_pdf(
+        &input,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options,
+        &RecordingProgress::new(),
+    )
+    .expect("analyze");
+
+    assert_eq!(
+        report.page_count, 3,
+        "the document itself still has 3 pages"
+    );
+    assert_eq!(report.analyzed_page_count, 2);
+    assert_eq!(
+        report.source_path, None,
+        "PathMode::Omit must omit the path"
+    );
+    let reported_numbers: Vec<u32> = report.pages.iter().map(|p| p.page_number).collect();
+    assert_eq!(reported_numbers, vec![1, 3]);
 }

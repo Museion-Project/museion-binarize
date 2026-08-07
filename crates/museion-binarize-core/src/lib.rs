@@ -3,29 +3,37 @@
 //! This crate must never depend on Tauri or any GUI toolkit; see
 //! `docs/architecture.md` in the workspace root for the rationale.
 //!
-//! As of Milestone 1, this crate implements the image-processing side of
-//! the pipeline (grayscale, binarization, preprocessing, cleanup, bilevel
-//! packing, CCITT Group 4). PDF I/O (PDFium rendering, PDF reconstruction)
-//! is Milestone 2 and is not implemented yet — nothing in this crate reads
-//! or writes a PDF file.
+//! As of Milestone 3, this crate implements the full local PDF pipeline
+//! (PDFium rasterization via a persistent, single-open-per-operation
+//! document session; grayscale, binarization, preprocessing, cleanup,
+//! bilevel packing; CCITT Group 4 encoding; deterministic 1-bit PDF
+//! reconstruction and validation) plus document/page analysis and
+//! versioned JSON reporting. See `docs/pdf-pipeline-session.md` for the
+//! document session and source-mutation policy, and `docs/reporting.md`
+//! for the report schemas.
 
+pub mod analysis;
 pub mod bilevel;
 pub mod binarization;
 pub mod ccitt;
 pub mod cleanup;
 pub mod document;
+pub mod document_session;
 pub mod error;
 pub mod grayscale;
 pub mod image_pipeline;
 pub mod page_geometry;
+pub mod page_selection;
 pub mod pdf_writer;
 pub mod pdfium_backend;
 pub mod pipeline;
 pub mod preprocessing;
 pub mod progress;
-pub mod renderer;
+pub mod report;
 pub mod settings;
+pub mod source_identity;
 pub mod test_fixtures;
+pub mod timing;
 pub mod validation;
 
 /// The human-readable project name.
