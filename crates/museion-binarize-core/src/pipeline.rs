@@ -62,9 +62,39 @@ pub struct PdfProcessingOptions {
     pub overwrite: bool,
     pub validation: ValidationMode,
     pub pdfium: PdfiumConfig,
+    /// A prior [`crate::estimation::SizeEstimateReport`]'s central
+    /// estimate and settings fingerprint, if the caller has one and has
+    /// already confirmed it was produced for this same document and
+    /// [`crate::estimation::settings_fingerprint`]. When present *and*
+    /// the fingerprint matches the settings this conversion actually
+    /// runs with, the resulting [`ProcessingReport::estimate_comparison`]
+    /// is filled in; a mismatched fingerprint is silently treated as "no
+    /// estimate available" rather than compared anyway — see
+    /// `docs/size-estimation.md`.
+    pub prior_estimate: Option<PriorEstimate>,
+}
+
+/// The minimum a caller needs to supply for
+/// [`ProcessingReport::estimate_comparison`] to be computed: the
+/// estimate's central byte count and the settings fingerprint it was
+/// computed for. Not the whole [`crate::estimation::SizeEstimateReport`],
+/// so a caller does not have to keep the full report around just to
+/// enable this comparison.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PriorEstimate {
+    pub estimated_output_bytes: u64,
+    pub settings_fingerprint: String,
 }
 
 /// Per-page results.
+///
+/// `compressed_bytes` is the field name this project has always used for
+/// a page's final CCITT Group 4 size (present since Milestone 2); it is
+/// kept rather than renamed to `ccitt_bytes` to match `analyze`'s naming,
+/// since renaming an existing `1.0`-schema field is a breaking change
+/// this milestone does not need to make (see `docs/reporting.md`'s
+/// compatibility policy). Every other field below is new in this
+/// milestone and purely additive.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PageProcessingReport {
     /// One-based page number.
@@ -74,10 +104,39 @@ pub struct PageProcessingReport {
     pub width_points: f32,
     pub height_points: f32,
     pub compressed_bytes: u64,
+    pub pixel_count: u64,
+    pub black_pixel_ratio: f64,
+    /// `compressed_bytes as f64 / pixel_count as f64`.
+    pub bytes_per_pixel: f64,
+    pub render_duration_us: u64,
+    /// Grayscale conversion, contrast, preprocessing, binarization, and
+    /// cleanup combined — see [`crate::timing::StageDurations`] for why
+    /// these are not broken out further.
+    pub processing_duration_us: u64,
+    pub encoding_duration_us: u64,
+    /// Sum of `render_duration_us + processing_duration_us +
+    /// encoding_duration_us` for this page. Does not include time spent
+    /// assembling or persisting the whole output PDF, which is not
+    /// attributable to any one page.
+    pub total_page_duration_us: u64,
+    /// Simple, deterministic, document-relative outlier flags — see
+    /// [`classify_page_outliers`]. Never implies a quality judgement: a
+    /// page flagged here may simply have more ink or more content than
+    /// most of the document, not an error. See `docs/reporting.md`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
+}
+
+/// A page identified by an aggregate extreme (slowest, largest, or
+/// smallest), alongside the value that made it so.
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PageExtreme {
+    pub page_number: u32,
+    pub value: u64,
 }
 
 /// The result of a completed conversion.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProcessingReport {
     pub pages_processed: u32,
     pub original_bytes: u64,
@@ -89,18 +148,55 @@ pub struct ProcessingReport {
     pub page_reports: Vec<PageProcessingReport>,
     /// Human-readable description of the PDFium library that was used.
     pub pdfium_library: String,
+
+    // --- Aggregate metrics, added this milestone (all additive) --------
+    /// `original_bytes.saturating_sub(output_bytes)` — `0` rather than a
+    /// negative number when the output is larger than the input (an
+    /// image-heavy or already-dense source can legitimately not shrink).
+    pub absolute_bytes_saved: u64,
+    /// `1.0 - output_bytes / original_bytes`. `0.871` means the output is
+    /// 87.1% smaller. `None` when `original_bytes` is `0`.
+    pub size_reduction_fraction: Option<f64>,
+    /// `original_bytes / output_bytes`. `None` when `output_bytes` is `0`.
+    /// Do not confuse with `size_reduction_fraction`: this crate always
+    /// uses these two specific names for these two specific, documented
+    /// quantities — see `docs/reporting.md`.
+    pub input_to_output_ratio: Option<f64>,
+    pub total_pixel_count: u64,
+    pub total_black_pixels: u64,
+    /// `total_black_pixels / total_pixel_count`. `0.0` when
+    /// `total_pixel_count` is `0` (never expected in practice, since a
+    /// document always has at least one page).
+    pub overall_black_pixel_ratio: f64,
+    /// Sum of every page's `compressed_bytes`. Distinct from
+    /// `output_bytes`: the completed PDF also has structural/container
+    /// overhead (dictionaries, cross-reference table, metadata), so this
+    /// is normally somewhat less than `output_bytes`.
+    pub total_ccitt_bytes: u64,
+    pub mean_ccitt_bytes_per_page: f64,
+    pub median_ccitt_bytes_per_page: f64,
+    pub min_ccitt_bytes_per_page: u64,
+    pub max_ccitt_bytes_per_page: u64,
+    pub mean_processing_duration_us: f64,
+    pub median_processing_duration_us: f64,
+    pub slowest_page: Option<PageExtreme>,
+    pub largest_encoded_page: Option<PageExtreme>,
+    pub smallest_encoded_page: Option<PageExtreme>,
+    /// Present only when a matching prior [`crate::estimation::SizeEstimateReport`]
+    /// was supplied to [`process_pdf`]/[`process_with_open_session`] via
+    /// [`PdfProcessingOptions::prior_estimate`] — "matching" meaning the
+    /// caller already confirmed the same document and
+    /// [`crate::estimation::settings_fingerprint`]; this module does not
+    /// re-derive that match itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub estimate_comparison: Option<crate::estimation::EstimateComparison>,
 }
 
 impl ProcessingReport {
     /// Size reduction as a percentage of the original, or `None` when the
     /// original size is unknown (zero).
     pub fn reduction_percent(&self) -> Option<f64> {
-        if self.original_bytes == 0 {
-            return None;
-        }
-        let original = self.original_bytes as f64;
-        let output = self.output_bytes as f64;
-        Some((original - output) / original * 100.0)
+        self.size_reduction_fraction.map(|f| f * 100.0)
     }
 
     /// Mean output bytes per page.
@@ -110,6 +206,43 @@ impl ProcessingReport {
         }
         Some(self.output_bytes as f64 / f64::from(self.pages_processed))
     }
+}
+
+/// Simple, deterministic, document-relative outlier classification for
+/// one page. Thresholds are fixed, documented constants, not statistical
+/// inference — see `docs/reporting.md`. Never returns a judgement about
+/// quality: a page with more ink or a larger encoded size is not
+/// necessarily a worse scan.
+fn classify_page_outliers(
+    page: &PageProcessingReport,
+    median_ccitt_bytes: f64,
+    median_duration_us: f64,
+    median_black_ratio: f64,
+) -> Vec<String> {
+    /// A page's encoded size or processing time must be at least this
+    /// many times the document median to be flagged.
+    const OUTLIER_RATIO: f64 = 2.0;
+    /// A page's black-pixel ratio must differ from the document median
+    /// by at least this many absolute percentage points to be flagged.
+    const INK_RATIO_DELTA: f64 = 0.15;
+
+    let mut warnings = Vec::new();
+    if median_ccitt_bytes > 0.0 && page.compressed_bytes as f64 > OUTLIER_RATIO * median_ccitt_bytes
+    {
+        warnings.push("large_output".to_string());
+    }
+    if median_duration_us > 0.0
+        && page.total_page_duration_us as f64 > OUTLIER_RATIO * median_duration_us
+    {
+        warnings.push("slow_processing".to_string());
+    }
+    if page.black_pixel_ratio > median_black_ratio + INK_RATIO_DELTA {
+        warnings.push("high_ink_ratio".to_string());
+    }
+    if page.black_pixel_ratio < median_black_ratio - INK_RATIO_DELTA {
+        warnings.push("low_ink_ratio".to_string());
+    }
+    warnings
 }
 
 /// Opens `input` and reports its structure without processing anything.
@@ -314,7 +447,9 @@ fn process_with_session(
             stage: ProcessingStage::Rendering,
         });
         // Served from the single already-open session: no reopen.
-        let rendered = session.render_page(page_info.index, settings.dpi)?;
+        let (rendered, render_duration_us) =
+            timed(|| session.render_page(page_info.index, settings.dpi));
+        let rendered = rendered?;
 
         if progress.is_cancelled() {
             progress.report(ProgressEvent::Cancelled);
@@ -330,6 +465,10 @@ fn process_with_session(
         // it as soon as processing has produced the bilevel image.
         drop(rendered);
         let bilevel = result.bilevel;
+        let black_pixel_ratio = result.ink_stats.black_pixel_ratio;
+        let processing_duration_us = result.stage_durations.grayscale_prep_us
+            + result.stage_durations.binarization_us
+            + result.stage_durations.cleanup_us;
 
         if progress.is_cancelled() {
             progress.report(ProgressEvent::Cancelled);
@@ -341,7 +480,10 @@ fn process_with_session(
             stage: ProcessingStage::Encoding,
         });
         let (pixel_width, pixel_height) = (bilevel.width, bilevel.height);
-        let encoded = EncodedPage::encode(&bilevel, width_points, height_points)?;
+        let pixel_count = u64::from(pixel_width) * u64::from(pixel_height);
+        let (encoded, encoding_duration_us) =
+            timed(|| EncodedPage::encode(&bilevel, width_points, height_points));
+        let encoded = encoded?;
         drop(bilevel);
 
         if progress.is_cancelled() {
@@ -350,6 +492,13 @@ fn process_with_session(
         }
 
         let compressed_bytes = encoded.compressed_bytes();
+        let bytes_per_pixel = if pixel_count == 0 {
+            0.0
+        } else {
+            compressed_bytes as f64 / pixel_count as f64
+        };
+        let total_page_duration_us =
+            render_duration_us + processing_duration_us + encoding_duration_us;
         progress.report(ProgressEvent::StageChanged {
             page: page_number,
             stage: ProcessingStage::Writing,
@@ -364,6 +513,14 @@ fn process_with_session(
             width_points,
             height_points,
             compressed_bytes,
+            pixel_count,
+            black_pixel_ratio,
+            bytes_per_pixel,
+            render_duration_us,
+            processing_duration_us,
+            encoding_duration_us,
+            total_page_duration_us,
+            warnings: Vec::new(), // filled in once document-wide medians are known, below
         });
         expected_dimensions.push((width_points, height_points));
         progress.report(ProgressEvent::PageFinished {
@@ -400,13 +557,126 @@ fn process_with_session(
     persist(temp, output, options.overwrite)?;
 
     progress.report(ProgressEvent::Finished);
+
+    let original_bytes = info.source_bytes;
+    let absolute_bytes_saved = original_bytes.saturating_sub(output_bytes);
+    let size_reduction_fraction =
+        (original_bytes > 0).then(|| 1.0 - output_bytes as f64 / original_bytes as f64);
+    let input_to_output_ratio =
+        (output_bytes > 0).then(|| original_bytes as f64 / output_bytes as f64);
+
+    let total_pixel_count: u64 = page_reports.iter().map(|p| p.pixel_count).sum();
+    let total_black_pixels: u64 = page_reports
+        .iter()
+        .map(|p| (p.black_pixel_ratio * p.pixel_count as f64).round() as u64)
+        .sum();
+    let overall_black_pixel_ratio = if total_pixel_count == 0 {
+        0.0
+    } else {
+        total_black_pixels as f64 / total_pixel_count as f64
+    };
+
+    let total_ccitt_bytes: u64 = page_reports.iter().map(|p| p.compressed_bytes).sum();
+    let ccitt_values: Vec<f64> = page_reports
+        .iter()
+        .map(|p| p.compressed_bytes as f64)
+        .collect();
+    let duration_values: Vec<f64> = page_reports
+        .iter()
+        .map(|p| p.total_page_duration_us as f64)
+        .collect();
+    let black_ratio_values: Vec<f64> = page_reports.iter().map(|p| p.black_pixel_ratio).collect();
+
+    let ccitt_quartiles = crate::estimation::quartiles(&ccitt_values);
+    let duration_quartiles = crate::estimation::quartiles(&duration_values);
+    let black_ratio_quartiles = crate::estimation::quartiles(&black_ratio_values);
+
+    let mean_ccitt_bytes_per_page = if page_reports.is_empty() {
+        0.0
+    } else {
+        total_ccitt_bytes as f64 / page_reports.len() as f64
+    };
+    let mean_processing_duration_us = if page_reports.is_empty() {
+        0.0
+    } else {
+        duration_values.iter().sum::<f64>() / page_reports.len() as f64
+    };
+
+    let min_ccitt_bytes_per_page = page_reports
+        .iter()
+        .map(|p| p.compressed_bytes)
+        .min()
+        .unwrap_or(0);
+    let max_ccitt_bytes_per_page = page_reports
+        .iter()
+        .map(|p| p.compressed_bytes)
+        .max()
+        .unwrap_or(0);
+
+    let slowest_page = page_reports
+        .iter()
+        .max_by_key(|p| p.total_page_duration_us)
+        .map(|p| PageExtreme {
+            page_number: p.page_number,
+            value: p.total_page_duration_us,
+        });
+    let largest_encoded_page = page_reports
+        .iter()
+        .max_by_key(|p| p.compressed_bytes)
+        .map(|p| PageExtreme {
+            page_number: p.page_number,
+            value: p.compressed_bytes,
+        });
+    let smallest_encoded_page = page_reports
+        .iter()
+        .min_by_key(|p| p.compressed_bytes)
+        .map(|p| PageExtreme {
+            page_number: p.page_number,
+            value: p.compressed_bytes,
+        });
+
+    // Outlier warnings need the document-wide medians computed above, so
+    // this is a second, cheap pass over already-collected data — not a
+    // second render or re-processing of any page.
+    if let (Some(ccitt_q), Some(duration_q), Some(black_ratio_q)) =
+        (ccitt_quartiles, duration_quartiles, black_ratio_quartiles)
+    {
+        for page in &mut page_reports {
+            page.warnings =
+                classify_page_outliers(page, ccitt_q.p50, duration_q.p50, black_ratio_q.p50);
+        }
+    }
+
+    let estimate_comparison = options.prior_estimate.as_ref().and_then(|prior| {
+        (prior.settings_fingerprint == crate::estimation::settings_fingerprint(settings)).then(
+            || crate::estimation::compare_estimate(prior.estimated_output_bytes, output_bytes),
+        )
+    });
+
     Ok(ProcessingReport {
         pages_processed: info.page_count,
-        original_bytes: info.source_bytes,
+        original_bytes,
         output_bytes,
         elapsed_us: duration_to_micros(started.elapsed()),
         page_reports,
         pdfium_library,
+        absolute_bytes_saved,
+        size_reduction_fraction,
+        input_to_output_ratio,
+        total_pixel_count,
+        total_black_pixels,
+        overall_black_pixel_ratio,
+        total_ccitt_bytes,
+        mean_ccitt_bytes_per_page,
+        median_ccitt_bytes_per_page: ccitt_quartiles.map(|q| q.p50).unwrap_or(0.0),
+        min_ccitt_bytes_per_page,
+        max_ccitt_bytes_per_page,
+        mean_processing_duration_us,
+        median_processing_duration_us: duration_quartiles.map(|q| q.p50).unwrap_or(0.0),
+        slowest_page,
+        largest_encoded_page,
+        smallest_encoded_page,
+        estimate_comparison,
     })
 }
 
@@ -487,7 +757,7 @@ fn analyze_with_session(
         }
         progress.report(ProgressEvent::PageStarted { page: page_number });
 
-        match analyze_one_page(session, page_info, settings, options) {
+        match analyze_one_page(session, page_info, settings, options.encode) {
             Ok(page_report) => {
                 total_visible_area_points2 +=
                     f64::from(page_report.width_points) * f64::from(page_report.height_points);
@@ -528,11 +798,16 @@ fn analyze_with_session(
     })
 }
 
+/// Renders, processes, and (if `encode`) CCITT-encodes one page, purely
+/// for measurement — this is the one place that work happens, shared by
+/// `analyze` and by [`estimate_output_size`], so an estimate is never
+/// produced by a second, subtly different page-processing path. Neither
+/// caller writes an output PDF from this function's result.
 fn analyze_one_page(
     session: &impl DocumentSession,
     page_info: &crate::document::PdfPageInfo,
     settings: &ProcessingSettings,
-    options: &AnalysisOptions,
+    encode: bool,
 ) -> Result<PageAnalysisReport> {
     let (rendered, render_us) = timed(|| session.render_page(page_info.index, settings.dpi));
     let rendered = rendered?;
@@ -543,7 +818,7 @@ fn analyze_one_page(
         u64::from(result.bilevel.width) * u64::from(result.bilevel.height) * 3;
     let packed_bilevel_bytes = (result.bilevel.stride * result.bilevel.height as usize) as u64;
 
-    let (ccitt_bytes, ccitt_encode_us) = if options.encode {
+    let (ccitt_bytes, ccitt_encode_us) = if encode {
         let (bytes, us) = timed(|| ccitt::encode_g4(&result.bilevel));
         (Some(bytes.len() as u64), Some(us))
     } else {
@@ -581,6 +856,232 @@ fn analyze_one_page(
         ccitt_bytes_per_pixel,
         stage_durations,
         warnings: Vec::new(),
+    })
+}
+
+/// Options controlling an `estimate` run.
+#[derive(Debug, Clone)]
+pub struct EstimationOptions {
+    pub password: Option<String>,
+    pub pdfium: PdfiumConfig,
+    /// How many pages to sample. Validated and clamped to the document's
+    /// actual page count by [`crate::estimation::resolve_sample_count`].
+    pub samples: u32,
+}
+
+impl Default for EstimationOptions {
+    fn default() -> Self {
+        Self {
+            password: None,
+            pdfium: PdfiumConfig::default(),
+            samples: crate::estimation::DEFAULT_SAMPLE_COUNT,
+        }
+    }
+}
+
+/// Estimates the converted output's size by rendering, processing, and
+/// CCITT-encoding a small, deterministic sample of pages — the exact same
+/// per-page work `process`/`analyze --encode` do, through
+/// [`analyze_one_page`] — and extrapolating from each sampled page's
+/// measured bytes-per-pixel to every page in the document. Never
+/// constructs or validates an output PDF: that is the whole reason
+/// estimation is cheaper than a full conversion. See
+/// `docs/size-estimation.md` for the full methodology.
+///
+/// Opens exactly one [`PdfDocumentSession`] for the whole estimate.
+pub fn estimate_output_size(
+    input: &Path,
+    settings: &ProcessingSettings,
+    options: &EstimationOptions,
+    progress: &dyn ProgressReporter,
+) -> Result<crate::estimation::SizeEstimateReport> {
+    settings.validate()?;
+    let open_options = PdfOpenOptions {
+        password: options.password.clone(),
+        pdfium: options.pdfium.clone(),
+        compute_source_hash: false,
+    };
+    let session = PdfDocumentSession::open(input, &open_options)?;
+    estimate_with_session(&session, settings, options, progress)
+}
+
+/// Estimates through an **already-open** [`DocumentSession`], for exactly
+/// the same reason [`process_with_open_session`] exists: a front end that
+/// keeps one session open for the document's lifetime should not have to
+/// re-read and re-parse the source a second time just to estimate.
+pub fn estimate_with_open_session(
+    session: &impl DocumentSession,
+    settings: &ProcessingSettings,
+    options: &EstimationOptions,
+    progress: &dyn ProgressReporter,
+) -> Result<crate::estimation::SizeEstimateReport> {
+    settings.validate()?;
+    estimate_with_session(session, settings, options, progress)
+}
+
+/// The session-generic implementation shared by [`estimate_output_size`]
+/// and [`estimate_with_open_session`].
+fn estimate_with_session(
+    session: &impl DocumentSession,
+    settings: &ProcessingSettings,
+    options: &EstimationOptions,
+    progress: &dyn ProgressReporter,
+) -> Result<crate::estimation::SizeEstimateReport> {
+    use crate::estimation::{
+        self, EstimationRangeMethod, PageSizeEstimateSample, QUARTILE_MIN_SAMPLES,
+    };
+
+    let started = Instant::now();
+    let info = session.info().clone();
+    let pdfium_library = describe_session_library(session);
+
+    let sample_count = estimation::resolve_sample_count(options.samples, info.page_count)?;
+    let sample_indices = estimation::select_sample_pages(info.page_count, sample_count);
+
+    progress.report(ProgressEvent::Started {
+        total_pages: sample_indices.len() as u32,
+    });
+
+    let mut samples = Vec::with_capacity(sample_indices.len());
+    let mut sample_durations_us = Vec::with_capacity(sample_indices.len());
+
+    for &index in &sample_indices {
+        let page_info = &info.pages[index as usize];
+        let page_number = page_info.page_number();
+
+        if progress.is_cancelled() {
+            progress.report(ProgressEvent::Cancelled);
+            return Err(CoreError::Cancelled);
+        }
+        progress.report(ProgressEvent::PageStarted { page: page_number });
+
+        // Always encode: the estimate is meaningless without a real
+        // measured CCITT byte count for the sampled page.
+        let page_report = analyze_one_page(session, page_info, settings, true)?;
+        let ccitt_bytes = page_report
+            .ccitt_bytes
+            .expect("analyze_one_page(.., encode = true) always sets ccitt_bytes");
+        let bytes_per_pixel = page_report
+            .ccitt_bytes_per_pixel
+            .expect("set alongside ccitt_bytes");
+
+        sample_durations_us.push(page_report.stage_durations.total_us);
+        samples.push(PageSizeEstimateSample {
+            page_number,
+            page_index: index,
+            width_points: page_report.width_points,
+            height_points: page_report.height_points,
+            raster_width: page_report.pixel_width,
+            raster_height: page_report.pixel_height,
+            pixel_count: page_report.pixel_count,
+            black_pixel_ratio: page_report.ink.black_pixel_ratio,
+            packed_bytes: page_report.packed_bilevel_bytes,
+            ccitt_bytes,
+            bytes_per_pixel,
+            processing_duration_us: page_report.stage_durations.total_us,
+        });
+
+        progress.report(ProgressEvent::PageFinished {
+            page: page_number,
+            compressed_bytes: ccitt_bytes,
+        });
+    }
+
+    progress.report(ProgressEvent::Finished);
+
+    if samples.is_empty() {
+        return Err(CoreError::InvalidDocument(
+            "the document contains no pages to sample".to_string(),
+        ));
+    }
+
+    let bytes_per_pixel_values: Vec<f64> = samples.iter().map(|s| s.bytes_per_pixel).collect();
+    let quartiles = estimation::quartiles(&bytes_per_pixel_values)
+        .expect("samples is non-empty, checked above");
+    let min_bytes_per_pixel = bytes_per_pixel_values
+        .iter()
+        .copied()
+        .fold(f64::INFINITY, f64::min);
+    let max_bytes_per_pixel = bytes_per_pixel_values
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let mean_bytes_per_pixel =
+        bytes_per_pixel_values.iter().sum::<f64>() / bytes_per_pixel_values.len() as f64;
+
+    let range_method = if samples.len() < QUARTILE_MIN_SAMPLES {
+        EstimationRangeMethod::MinMax
+    } else {
+        EstimationRangeMethod::Quartiles
+    };
+    let (lower_bpp, upper_bpp) = match range_method {
+        EstimationRangeMethod::Quartiles => (quartiles.p25, quartiles.p75),
+        EstimationRangeMethod::MinMax => (min_bytes_per_pixel, max_bytes_per_pixel),
+    };
+
+    // Total pixel count across *every* document page at the selected DPI
+    // — not just the sampled ones — computed from geometry alone (no
+    // rendering needed for the pages that were not sampled). u128
+    // accumulation: a long, large-page document could otherwise overflow
+    // a 64-bit running sum of pixel products before the final cast.
+    let mut total_pixels: u128 = 0;
+    for page in &info.pages {
+        let (width, height) = page.geometry.pixel_size(settings.dpi)?;
+        total_pixels = total_pixels
+            .checked_add(u128::from(width) * u128::from(height))
+            .ok_or_else(|| {
+                CoreError::ResourceLimitExceeded(
+                    "total document pixel count overflowed while estimating output size"
+                        .to_string(),
+                )
+            })?;
+    }
+
+    let extrapolate = |bytes_per_pixel: f64| -> u64 {
+        let bytes = total_pixels as f64 * bytes_per_pixel.max(0.0);
+        if !bytes.is_finite() || bytes <= 0.0 {
+            0
+        } else {
+            bytes.min(u64::MAX as f64) as u64
+        }
+    };
+
+    let estimated_output_bytes = extrapolate(quartiles.p50);
+    let estimated_lower_bytes = extrapolate(lower_bpp).min(estimated_output_bytes);
+    let estimated_upper_bytes = extrapolate(upper_bpp).max(estimated_output_bytes);
+
+    let sampled_total_encoded_bytes: u64 = samples.iter().map(|s| s.ccitt_bytes).sum();
+
+    let sample_duration_stats = estimation::quartiles(
+        &sample_durations_us
+            .iter()
+            .map(|&us| us as f64)
+            .collect::<Vec<_>>(),
+    )
+    .expect("samples is non-empty, checked above");
+    let mean_sample_duration_us =
+        sample_durations_us.iter().sum::<u64>() as f64 / sample_durations_us.len() as f64;
+
+    Ok(crate::estimation::SizeEstimateReport {
+        document_page_count: info.page_count,
+        sampled_pages: samples,
+        sampled_total_encoded_bytes,
+        min_bytes_per_pixel,
+        mean_bytes_per_pixel,
+        median_bytes_per_pixel: quartiles.p50,
+        max_bytes_per_pixel,
+        range_method,
+        estimated_output_bytes,
+        estimated_lower_bytes,
+        estimated_upper_bytes,
+        dpi: settings.dpi,
+        method: method_name(settings.method),
+        settings_fingerprint: estimation::settings_fingerprint(settings),
+        estimate_total_duration_us: duration_to_micros(started.elapsed()),
+        mean_sample_duration_us,
+        median_sample_duration_us: sample_duration_stats.p50,
+        pdfium_library,
+        experimental: true,
     })
 }
 
@@ -915,6 +1416,8 @@ mod tests {
             elapsed_us: 1_000_000,
             page_reports: Vec::new(),
             pdfium_library: "test".to_string(),
+            size_reduction_fraction: Some(0.75),
+            ..Default::default()
         };
         assert_eq!(report.reduction_percent(), Some(75.0));
         assert_eq!(report.average_bytes_per_page(), Some(62.5));
@@ -929,6 +1432,7 @@ mod tests {
             elapsed_us: 0,
             page_reports: Vec::new(),
             pdfium_library: "test".to_string(),
+            ..Default::default()
         };
         assert_eq!(report.reduction_percent(), None);
         assert_eq!(report.average_bytes_per_page(), None);
@@ -943,8 +1447,24 @@ mod tests {
             elapsed_us: 0,
             page_reports: Vec::new(),
             pdfium_library: "test".to_string(),
+            size_reduction_fraction: Some(-0.5),
+            ..Default::default()
         };
         assert_eq!(report.reduction_percent(), Some(-50.0));
+    }
+
+    #[test]
+    fn size_reduction_fraction_and_ratio_match_the_documented_formulas() {
+        // 51.8 MB -> 6.7 MB is the observed real-document baseline from
+        // the Milestone 4 native acceptance run (docs/desktop-testing.md)
+        // — used here only as a plausible round-number example, not as a
+        // hard-coded expectation of what any future run must produce.
+        let original_bytes = 1_000u64;
+        let output_bytes = 129u64; // ~87.1% reduction, ~7.75:1 ratio
+        let size_reduction_fraction = 1.0 - output_bytes as f64 / original_bytes as f64;
+        let input_to_output_ratio = original_bytes as f64 / output_bytes as f64;
+        assert!((size_reduction_fraction - 0.871).abs() < 0.001);
+        assert!((input_to_output_ratio - 7.75).abs() < 0.01);
     }
 
     #[test]
@@ -1288,5 +1808,356 @@ mod tests {
         assert!(page.ccitt_bytes.is_none());
         assert!(page.ccitt_bytes_per_pixel.is_none());
         assert!(page.stage_durations.ccitt_encode_us.is_none());
+    }
+
+    // --- estimate_with_session ------------------------------------------
+
+    impl MockSession {
+        /// A session whose pages have the given `(width_points,
+        /// height_points)` geometry each — used to prove the estimator's
+        /// extrapolation actually accounts for each page's own declared
+        /// size rather than assuming every page matches the sampled ones.
+        fn with_page_sizes(sizes: &[(f32, f32)]) -> Self {
+            let pages = sizes
+                .iter()
+                .enumerate()
+                .map(|(i, &(w, h))| PdfPageInfo {
+                    index: i as u32,
+                    geometry: PageGeometry::new(w, h).unwrap(),
+                    source_rotation: PageRotation::None,
+                })
+                .collect();
+            Self {
+                info: PdfDocumentInfo {
+                    page_count: sizes.len() as u32,
+                    pages,
+                    metadata: PdfMetadata::default(),
+                    source_bytes: 1_234,
+                },
+                identity: SourceIdentity {
+                    canonical_path: PathBuf::from("/mock/source.pdf"),
+                    byte_len: 1_234,
+                    modified_time: None,
+                    content_sha256: None,
+                },
+                render_calls: AtomicU32::new(0),
+                rendered_indices: Mutex::new(Vec::new()),
+            }
+        }
+    }
+
+    /// A [`ProgressReporter`] that reports cancelled once `report` has
+    /// been called at least `threshold` times — enough to force
+    /// cancellation at a specific point in a loop without needing real
+    /// concurrency.
+    struct CancelAfter {
+        calls: AtomicU32,
+        threshold: u32,
+    }
+
+    impl ProgressReporter for CancelAfter {
+        fn report(&self, _event: ProgressEvent) {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+        }
+        fn is_cancelled(&self) -> bool {
+            self.calls.load(Ordering::SeqCst) >= self.threshold
+        }
+    }
+
+    #[test]
+    fn estimate_uses_exactly_the_deterministic_sample_pages() {
+        let session = MockSession::with_pages(20);
+        let options = EstimationOptions {
+            samples: 8,
+            ..Default::default()
+        };
+        let report = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &options,
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+
+        let expected = crate::estimation::select_sample_pages(20, 8);
+        assert_eq!(*session.rendered_indices.lock().unwrap(), expected);
+        assert_eq!(
+            report
+                .sampled_pages
+                .iter()
+                .map(|s| s.page_index)
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+
+    #[test]
+    fn estimate_central_value_is_between_lower_and_upper() {
+        let session = MockSession::with_pages(20);
+        let report = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &EstimationOptions::default(),
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        assert!(report.estimated_lower_bytes <= report.estimated_output_bytes);
+        assert!(report.estimated_output_bytes <= report.estimated_upper_bytes);
+    }
+
+    #[test]
+    fn estimate_uses_quartiles_for_the_default_sample_count() {
+        let session = MockSession::with_pages(20);
+        let report = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &EstimationOptions::default(), // 8 samples, >= QUARTILE_MIN_SAMPLES
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        assert_eq!(
+            report.range_method,
+            crate::estimation::EstimationRangeMethod::Quartiles
+        );
+    }
+
+    #[test]
+    fn estimate_uses_min_max_for_a_small_sample_count() {
+        let session = MockSession::with_pages(20);
+        let options = EstimationOptions {
+            samples: 2,
+            ..Default::default()
+        };
+        let report = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &options,
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        assert_eq!(
+            report.range_method,
+            crate::estimation::EstimationRangeMethod::MinMax
+        );
+    }
+
+    /// The mock's synthetic rendered content is identical regardless of a
+    /// page's declared geometry (it ignores both `dpi` and the caller's
+    /// page size), so two documents that differ only in page geometry
+    /// must produce *identical* measured bytes-per-pixel but *different*
+    /// estimated totals — proving the extrapolation is driven by each
+    /// page's own real pixel count, not a uniform per-page assumption.
+    #[test]
+    fn estimate_scales_with_true_per_page_pixel_count_for_mixed_page_sizes() {
+        let uniform = MockSession::with_page_sizes(&[(200.0, 150.0); 4]);
+        let mixed = MockSession::with_page_sizes(&[
+            (200.0, 150.0),
+            (200.0, 150.0),
+            (400.0, 300.0), // 4x the area of a uniform page
+            (400.0, 300.0),
+        ]);
+        let options = EstimationOptions {
+            samples: 4, // sample every page, deterministically
+            ..Default::default()
+        };
+        let settings = mock_settings();
+
+        let uniform_report = estimate_with_session(
+            &uniform,
+            &settings,
+            &options,
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        let mixed_report = estimate_with_session(
+            &mixed,
+            &settings,
+            &options,
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+
+        assert_eq!(
+            uniform_report.median_bytes_per_pixel, mixed_report.median_bytes_per_pixel,
+            "identical rendered content must measure identical bytes-per-pixel regardless of declared page size"
+        );
+
+        let expected_uniform_pixels: u128 = (0..4)
+            .map(|_| {
+                let (w, h) = PageGeometry::new(200.0, 150.0)
+                    .unwrap()
+                    .pixel_size(settings.dpi)
+                    .unwrap();
+                u128::from(w) * u128::from(h)
+            })
+            .sum();
+        let expected_mixed_pixels: u128 = [
+            (200.0, 150.0),
+            (200.0, 150.0),
+            (400.0, 300.0),
+            (400.0, 300.0),
+        ]
+        .iter()
+        .map(|&(w, h)| {
+            let (pw, ph) = PageGeometry::new(w, h)
+                .unwrap()
+                .pixel_size(settings.dpi)
+                .unwrap();
+            u128::from(pw) * u128::from(ph)
+        })
+        .sum();
+
+        let expected_ratio = expected_mixed_pixels as f64 / expected_uniform_pixels as f64;
+        let actual_ratio = mixed_report.estimated_output_bytes as f64
+            / uniform_report.estimated_output_bytes as f64;
+        assert!(
+            (actual_ratio - expected_ratio).abs() < 0.01,
+            "expected ratio {expected_ratio}, got {actual_ratio}"
+        );
+    }
+
+    #[test]
+    fn estimate_rejects_an_invalid_sample_count_before_rendering_anything() {
+        let session = MockSession::with_pages(20);
+        let options = EstimationOptions {
+            samples: 0,
+            ..Default::default()
+        };
+        let err = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &options,
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap_err();
+        assert!(matches!(err, CoreError::InvalidParameter(_)));
+        assert_eq!(session.render_call_count(), 0);
+    }
+
+    #[test]
+    fn estimate_report_serializes_without_nan_and_round_trips() {
+        let session = MockSession::with_pages(8);
+        let report = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &EstimationOptions::default(),
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        let json = serde_json::to_string(&report).unwrap();
+        let back: crate::estimation::SizeEstimateReport = serde_json::from_str(&json).unwrap();
+        // Not a full `assert_eq!(report, back)`: a mean computed by
+        // summing floats in a particular order is not guaranteed to
+        // round-trip to a bit-identical f64 through decimal text, even
+        // though JSON itself is not lossy here. Compare structurally
+        // where exactness is meaningful (integers, counts, the sample
+        // list) and approximately for derived floating-point statistics.
+        assert_eq!(report.document_page_count, back.document_page_count);
+        assert_eq!(report.sampled_pages, back.sampled_pages);
+        assert_eq!(report.estimated_output_bytes, back.estimated_output_bytes);
+        assert_eq!(report.estimated_lower_bytes, back.estimated_lower_bytes);
+        assert_eq!(report.estimated_upper_bytes, back.estimated_upper_bytes);
+        assert_eq!(report.range_method, back.range_method);
+        assert_eq!(report.settings_fingerprint, back.settings_fingerprint);
+        for (a, b) in [
+            (report.mean_bytes_per_pixel, back.mean_bytes_per_pixel),
+            (report.median_bytes_per_pixel, back.median_bytes_per_pixel),
+            (report.min_bytes_per_pixel, back.min_bytes_per_pixel),
+            (report.max_bytes_per_pixel, back.max_bytes_per_pixel),
+        ] {
+            assert!((a - b).abs() < 1e-9, "{a} vs {b}");
+        }
+        assert!(report.experimental);
+    }
+
+    #[test]
+    fn estimate_is_deterministic_for_identical_settings_and_samples() {
+        let a = estimate_with_session(
+            &MockSession::with_pages(37),
+            &mock_settings(),
+            &EstimationOptions::default(),
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        let b = estimate_with_session(
+            &MockSession::with_pages(37),
+            &mock_settings(),
+            &EstimationOptions::default(),
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        assert_eq!(
+            a.sampled_pages
+                .iter()
+                .map(|s| s.page_index)
+                .collect::<Vec<_>>(),
+            b.sampled_pages
+                .iter()
+                .map(|s| s.page_index)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(a.estimated_output_bytes, b.estimated_output_bytes);
+        assert_eq!(a.estimated_lower_bytes, b.estimated_lower_bytes);
+        assert_eq!(a.estimated_upper_bytes, b.estimated_upper_bytes);
+    }
+
+    #[test]
+    fn estimate_is_cancelled_before_any_page_renders_when_already_cancelled() {
+        let session = MockSession::with_pages(20);
+        let reporter = CancelAfter {
+            calls: AtomicU32::new(0),
+            threshold: 1, // trips after the initial `Started` report
+        };
+        let err = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &EstimationOptions::default(),
+            &reporter,
+        )
+        .unwrap_err();
+        assert!(matches!(err, CoreError::Cancelled));
+        assert_eq!(session.render_call_count(), 0);
+    }
+
+    #[test]
+    fn estimate_cancellation_mid_run_stops_before_the_next_sample() {
+        let session = MockSession::with_pages(20);
+        // Started(1) + PageStarted(2) + PageFinished(3) for the first
+        // sample, then the loop's next cancellation check trips before a
+        // second page is ever rendered.
+        let reporter = CancelAfter {
+            calls: AtomicU32::new(0),
+            threshold: 3,
+        };
+        let err = estimate_with_session(
+            &session,
+            &mock_settings(),
+            &EstimationOptions::default(),
+            &reporter,
+        )
+        .unwrap_err();
+        assert!(matches!(err, CoreError::Cancelled));
+        assert_eq!(
+            session.render_call_count(),
+            1,
+            "exactly one sample must have rendered before cancellation was observed"
+        );
+    }
+
+    #[test]
+    fn estimate_settings_fingerprint_matches_the_settings_used() {
+        let session = MockSession::with_pages(4);
+        let settings = mock_settings();
+        let report = estimate_with_session(
+            &session,
+            &settings,
+            &EstimationOptions::default(),
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap();
+        assert_eq!(
+            report.settings_fingerprint,
+            crate::estimation::settings_fingerprint(&settings)
+        );
     }
 }

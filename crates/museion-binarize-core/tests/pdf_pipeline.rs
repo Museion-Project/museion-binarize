@@ -116,6 +116,7 @@ fn options(pdfium: PdfiumConfig, validation: ValidationMode) -> PdfProcessingOpt
         overwrite: false,
         validation,
         pdfium,
+        prior_estimate: None,
     }
 }
 
@@ -813,6 +814,241 @@ fn cli_and_gui_entry_points_produce_byte_identical_output_for_identical_settings
         cli_bytes, gui_bytes,
         "the CLI and the desktop app must produce byte-identical output for identical input and settings"
     );
+}
+
+/// Milestone 5: `estimate` reports a real, positive estimate and, like
+/// `analyze`, never writes any output file at all — this is the whole
+/// reason estimation is expected to be cheaper than a full conversion.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn estimate_reports_real_measurements_and_writes_no_output_file() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "mixed.pdf", &test_fixtures::mixed_page_sizes());
+
+    let options = pipeline::EstimationOptions {
+        password: None,
+        pdfium: config,
+        samples: 8,
+    };
+    let report = pipeline::estimate_output_size(
+        &input,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options,
+        &RecordingProgress::new(),
+    )
+    .expect("estimate should succeed");
+
+    assert_eq!(report.document_page_count, 3);
+    assert_eq!(
+        report.sampled_pages.len(),
+        3,
+        "8 requested but only 3 pages exist"
+    );
+    assert!(report.estimated_output_bytes > 0);
+    assert!(report.estimated_lower_bytes <= report.estimated_output_bytes);
+    assert!(report.estimated_output_bytes <= report.estimated_upper_bytes);
+    for sample in &report.sampled_pages {
+        assert!(sample.ccitt_bytes > 0);
+        assert!(sample.pixel_count > 0);
+        assert!(sample.bytes_per_pixel > 0.0);
+        assert!(sample.bytes_per_pixel.is_finite());
+    }
+    assert!(report.experimental);
+
+    // Only the input fixture exists afterward — no output PDF, no
+    // temporary file, nothing else written to the directory.
+    let entries: Vec<_> = std::fs::read_dir(dir.path())
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(entries, vec![std::ffi::OsString::from("mixed.pdf")]);
+}
+
+/// The deterministic sample-selection algorithm must select the same
+/// pages against a real multi-page document as it does in the
+/// PDFium-independent unit tests in `pipeline.rs`.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn estimate_uses_exactly_the_deterministic_sample_pages_against_real_pdfium() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(
+        dir.path(),
+        "rotations.pdf",
+        &test_fixtures::page_rotations(),
+    );
+
+    let options = pipeline::EstimationOptions {
+        password: None,
+        pdfium: config,
+        samples: 2,
+    };
+    let report = pipeline::estimate_output_size(
+        &input,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options,
+        &RecordingProgress::new(),
+    )
+    .expect("estimate should succeed");
+
+    let expected = museion_binarize_core::estimation::select_sample_pages(4, 2);
+    assert_eq!(
+        report
+            .sampled_pages
+            .iter()
+            .map(|s| s.page_index)
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+/// Estimation for each binarization method must succeed and respond to
+/// the method actually chosen — proven by DPI/method round-tripping into
+/// the report, not by a separate approximate algorithm per method.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn estimate_succeeds_for_every_binarization_method() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(
+        dir.path(),
+        "threshold.pdf",
+        &test_fixtures::threshold_patterns(),
+    );
+
+    for method in [
+        BinarizationMethod::Otsu,
+        BinarizationMethod::Manual { threshold: 150 },
+        BinarizationMethod::Sauvola(SauvolaParams::default()),
+    ] {
+        let options = pipeline::EstimationOptions {
+            password: None,
+            pdfium: config.clone(),
+            samples: 4,
+        };
+        let report = pipeline::estimate_output_size(
+            &input,
+            &settings(method, 300),
+            &options,
+            &RecordingProgress::new(),
+        )
+        .unwrap_or_else(|e| panic!("estimate failed for {method:?}: {e}"));
+        assert!(report.estimated_output_bytes > 0);
+    }
+}
+
+/// Cancellation during estimation must behave exactly like cancellation
+/// during a full conversion: it surfaces as `CoreError::Cancelled` and no
+/// further sample pages render after the cancellation is observed.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn estimate_can_be_cancelled_mid_run() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(
+        dir.path(),
+        "rotations.pdf",
+        &test_fixtures::page_rotations(),
+    );
+
+    let options = pipeline::EstimationOptions {
+        password: None,
+        pdfium: config,
+        samples: 4,
+    };
+    // `cancelling_after(0)` reports cancelled once more than 0 pages have
+    // started — i.e. right after the first sample finishes, before a
+    // second one begins.
+    let progress = RecordingProgress::cancelling_after(0);
+    let err = pipeline::estimate_output_size(
+        &input,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options,
+        &progress,
+    )
+    .expect_err("cancellation must surface as an error");
+
+    assert!(matches!(err, CoreError::Cancelled));
+    let events = progress.events();
+    assert!(events.contains(&ProgressEvent::Cancelled));
+    assert!(!events.contains(&ProgressEvent::Finished));
+}
+
+/// A full conversion whose settings match a prior estimate's fingerprint
+/// must report `estimate_comparison`; the richer per-page and aggregate
+/// metrics this milestone adds to `ProcessingReport` must also be
+/// populated with real, sane values.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn process_report_includes_estimate_comparison_and_richer_metrics() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "mixed.pdf", &test_fixtures::mixed_page_sizes());
+    let output = dir.path().join("out.pdf");
+    let chosen_settings = settings(BinarizationMethod::Otsu, 300);
+
+    let estimate_options = pipeline::EstimationOptions {
+        password: None,
+        pdfium: config.clone(),
+        samples: 8,
+    };
+    let estimate = pipeline::estimate_output_size(
+        &input,
+        &chosen_settings,
+        &estimate_options,
+        &RecordingProgress::new(),
+    )
+    .expect("estimate should succeed");
+
+    let mut process_options = options(config, ValidationMode::Structural);
+    process_options.prior_estimate = Some(pipeline::PriorEstimate {
+        estimated_output_bytes: estimate.estimated_output_bytes,
+        settings_fingerprint: estimate.settings_fingerprint.clone(),
+    });
+
+    let report = pipeline::process_pdf(
+        &input,
+        &output,
+        &chosen_settings,
+        &process_options,
+        &RecordingProgress::new(),
+    )
+    .expect("conversion should succeed");
+
+    let comparison = report
+        .estimate_comparison
+        .expect("settings fingerprint matched, so a comparison must be present");
+    assert_eq!(
+        comparison.estimated_output_bytes,
+        estimate.estimated_output_bytes
+    );
+    assert_eq!(comparison.actual_output_bytes, report.output_bytes);
+    assert!(comparison.relative_error_fraction.is_finite());
+    assert!(comparison.relative_error_fraction >= 0.0);
+
+    // Richer aggregate metrics.
+    assert!(report.total_pixel_count > 0);
+    assert!(report.total_ccitt_bytes > 0);
+    assert!(report.mean_ccitt_bytes_per_page > 0.0);
+    assert!(report.median_ccitt_bytes_per_page > 0.0);
+    assert!(report.slowest_page.is_some());
+    assert!(report.largest_encoded_page.is_some());
+    assert!(report.smallest_encoded_page.is_some());
+    assert!(report.overall_black_pixel_ratio >= 0.0 && report.overall_black_pixel_ratio <= 1.0);
+
+    // Richer per-page metrics.
+    for page in &report.page_reports {
+        assert!(page.pixel_count > 0);
+        assert!(page.bytes_per_pixel >= 0.0);
+        assert!(page.total_page_duration_us > 0);
+        assert!(
+            page.total_page_duration_us
+                >= page.render_duration_us
+                    + page.processing_duration_us
+                    + page.encoding_duration_us
+        );
+    }
 }
 
 #[test]

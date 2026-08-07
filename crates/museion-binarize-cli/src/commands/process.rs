@@ -38,6 +38,14 @@ pub fn run(args: ProcessArgs) -> ExitCode {
         overwrite: args.overwrite,
         validation: args.validate.into(),
         pdfium: args.pdfium.to_config(),
+        // The CLI's `process` and `estimate` are separate, stateless
+        // invocations with no shared memory to carry a prior estimate
+        // between them; a caller wanting `estimate_comparison` populated
+        // would need a future `--compare-estimate <report.json>` flag,
+        // out of scope for this milestone. The desktop app, which keeps
+        // an estimate in memory for the open document, wires this
+        // directly — see `apps/desktop/src-tauri/src/worker.rs`.
+        prior_estimate: None,
     };
     let progress = StderrProgress::new(args.output_mode.quiet);
 
