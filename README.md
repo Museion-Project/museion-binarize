@@ -114,6 +114,32 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo run -p museion-binarize-cli -- --help
 ```
 
+### Provide PDFium
+
+PDF rendering needs a PDFium dynamic library. It is not bundled, not committed to this repository, and never downloaded at runtime — you supply it once. See [docs/pdfium.md](docs/pdfium.md).
+
+```bash
+export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
+```
+
+### Command-line usage
+
+```bash
+# Inspect a document: pages, geometry, rotation, render sizes
+museion-binarize inspect input.pdf
+
+# Convert to a bilevel CCITT Group 4 PDF
+museion-binarize process input.pdf --output output.pdf \
+  --method sauvola --dpi 400 --validate render-all
+
+# Save a PNG preview of one processed page (one-based page numbers)
+museion-binarize preview input.pdf --page 12 --output preview.png
+```
+
+Useful options: `--method otsu|sauvola|manual`, `--threshold`, `--sauvola-k`, `--sauvola-window`, `--contrast`, `--median-denoise`, `--background-normalization`, `--despeckle off|conservative|strong`, `--overwrite`, `--pdfium-library`. Progress goes to stderr, the report to stdout.
+
+The source file is never modified, and the destination is only written after a complete, validated document exists.
+
 ### Run the desktop application
 
 ```bash

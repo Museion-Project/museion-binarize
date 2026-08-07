@@ -62,13 +62,54 @@ pub fn normalize_background(image: &GrayImage, radius: u32) -> GrayImage {
     if radius == 0 {
         return image.clone();
     }
-    let background = imageproc::filter::box_filter(image, radius, radius);
+    let background = box_filter(image, radius);
     let (width, height) = image.dimensions();
     ImageBuffer::from_fn(width, height, |x, y| {
         let p = image.get_pixel(x, y)[0] as i32;
         let b = background.get_pixel(x, y)[0] as i32;
         let corrected = p - b + 255;
         Luma([corrected.clamp(0, 255) as u8])
+    })
+}
+
+/// Mean filter over a `(2 * radius + 1)` square window, computed with a
+/// 64-bit summed-area table.
+///
+/// Implemented here rather than via `imageproc::filter::box_filter`,
+/// which builds its integral image with `u32` accumulators and therefore
+/// overflows on a full page at 400-600 DPI (255 * 35 M pixels far exceeds
+/// `u32::MAX`). Windows are clipped at the image border, so edge pixels
+/// average over the available neighbourhood rather than wrapping or
+/// reading out of bounds.
+fn box_filter(image: &GrayImage, radius: u32) -> GrayImage {
+    let (width, height) = image.dimensions();
+    let stride = width as usize + 1;
+    let mut integral = vec![0u64; stride * (height as usize + 1)];
+
+    for y in 0..height {
+        let mut row_sum = 0u64;
+        for x in 0..width {
+            row_sum += u64::from(image.get_pixel(x, y)[0]);
+            let idx = (y as usize + 1) * stride + (x as usize + 1);
+            integral[idx] = integral[idx - stride] + row_sum;
+        }
+    }
+
+    let radius = radius as i64;
+    ImageBuffer::from_fn(width, height, |x, y| {
+        let x0 = (x as i64 - radius).max(0) as usize;
+        let y0 = (y as i64 - radius).max(0) as usize;
+        let x1 = (x as i64 + radius).min(width as i64 - 1) as usize;
+        let y1 = (y as i64 + radius).min(height as i64 - 1) as usize;
+
+        let a = integral[y0 * stride + x0];
+        let b = integral[y0 * stride + x1 + 1];
+        let c = integral[(y1 + 1) * stride + x0];
+        let d = integral[(y1 + 1) * stride + x1 + 1];
+        let sum = d + a - b - c;
+        let count = ((x1 - x0 + 1) * (y1 - y0 + 1)) as u64;
+
+        Luma([(sum / count) as u8])
     })
 }
 
@@ -117,6 +158,30 @@ mod tests {
             (left - right).abs() < 20,
             "expected flattened background, got left={left} right={right}"
         );
+    }
+
+    #[test]
+    fn box_filter_averages_and_handles_borders() {
+        let mut img = GrayImage::from_pixel(5, 5, Luma([0]));
+        img.put_pixel(2, 2, Luma([250]));
+        let out = box_filter(&img, 1);
+        // Centre window is 3x3 = 9 px containing one 250 -> 27.
+        assert_eq!(out.get_pixel(2, 2)[0], 27);
+        // A corner clips to a 2x2 window with no bright pixel -> 0.
+        assert_eq!(out.get_pixel(0, 0)[0], 0);
+        // A uniform image is unchanged.
+        let flat = GrayImage::from_pixel(6, 6, Luma([80]));
+        assert_eq!(box_filter(&flat, 2), flat);
+    }
+
+    #[test]
+    fn box_filter_does_not_overflow_on_a_large_bright_page() {
+        // Regression: imageproc's box_filter builds a u32 integral image,
+        // which overflows past ~16.8 M bright pixels. This is the same
+        // class of bug as the Otsu overflow.
+        let img = GrayImage::from_pixel(5000, 4000, Luma([255]));
+        let out = box_filter(&img, 3);
+        assert_eq!(out.get_pixel(2500, 2000)[0], 255);
     }
 
     #[test]

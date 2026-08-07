@@ -166,3 +166,57 @@ a later milestone (see [`roadmap.md`](roadmap.md)).
   reproducible benchmarking framework described in
   [`benchmarking.md`](benchmarking.md), not by inspection of a handful of
   examples.
+
+
+## The end-to-end PDF pipeline (Milestone 2)
+
+```
+input.pdf
+  │
+  ├─ renderer.rs ........ opens the document ONCE via the PDFium boundary
+  │                        (pdfium_backend.rs), rasterizes page N at the
+  │                        requested DPI onto opaque white, in visible
+  │                        orientation
+  ▼
+  ├─ image_pipeline.rs .. the single orchestrator: grayscale → contrast →
+  │                        preprocessing → binarization → cleanup → pack
+  ▼
+  ├─ ccitt.rs ........... CCITT Group 4 encoding of the packed bilevel page
+  ▼
+  ├─ pdf_writer.rs ...... appends a 1-bit /CCITTFaxDecode image XObject,
+  │                        content stream, and page object
+  ▼
+  ├─ pipeline.rs ........ drives the loop, drops page-N buffers before
+  │                        page N+1, checks cancellation between stages,
+  │                        writes to a temporary file
+  ▼
+  ├─ validation.rs ...... reopens the temporary file with PDFium, checks
+  │                        page count, dimensions, and that pages render
+  ▼
+output.pdf (atomically renamed into place only after validation passes)
+```
+
+### Module responsibilities
+
+| Module | Responsibility |
+|---|---|
+| `page_geometry.rs` | Points↔pixels, rotation semantics, safety limits. Pure arithmetic, no PDFium. |
+| `document.rs` | Museion-owned document/page/metadata types. |
+| `pdfium_backend.rs` | Library resolution and the process-wide PDFium session. |
+| `renderer.rs` | Museion-owned rendering abstraction over a PDFium session. |
+| `image_pipeline.rs` | The one place that defines image-processing stage order. |
+| `pdf_writer.rs` | Deterministic bilevel PDF construction. |
+| `pipeline.rs` | Job orchestration, progress, cancellation, temp files, atomic persist. |
+| `validation.rs` | Reopen-and-render verification, separate from construction. |
+
+PDFium types never escape `pdfium_backend.rs` and `renderer.rs`. The core
+remains free of Tauri, and the CLI and (future) desktop app share exactly
+one implementation.
+
+### Deviations from the originally documented layout
+
+`test_fixtures.rs` lives in the library rather than under `tests/`, so that
+integration tests and the `gen_fixtures` example share one definition of
+each synthetic fixture. PDFium provisioning lives in `third_party/pdfium/`
+(manifest and licenses) with the binary itself in the gitignored
+`target/pdfium/<triple>/`.

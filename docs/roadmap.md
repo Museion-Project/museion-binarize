@@ -30,32 +30,61 @@ phase is scoped or committed to yet.
 
 ## Phase 1 milestones
 
+> **Note on numbering.** Earlier drafts of this document numbered the
+> milestones differently (rasterization as Milestone 1, thresholding as
+> Milestone 2). The list below reflects what was actually built, in the
+> order it was built, and is the authoritative numbering.
+
 - **Milestone 0 — Repository initialization.** Rust workspace, Tauri 2 +
   React + TypeScript desktop scaffold, bilingual documentation, dual
   licensing, citation metadata, contributor guidelines, and initial CI.
-  *(This milestone — no PDF processing yet.)*
-- **Milestone 1 — Core image I/O and rasterization.** Integrate the PDFium
-  boundary; rasterize PDF pages to in-memory images in
-  `museion-binarize-core`, with bounded memory use.
-- **Milestone 2 — Deterministic thresholding.** Implement Otsu, Sauvola, and
-  manual thresholding in the core, with unit tests against known reference
-  outputs.
-- **Milestone 3 — Bilevel PDF reconstruction.** Implement CCITT Group 4
-  encoding and true 1-bit PDF writing, producing a valid, standards-compliant
-  output PDF from thresholded pages.
-- **Milestone 4 — CLI feature completeness.** Wire the core pipeline into
-  `museion-binarize-cli` with a stable command surface suitable for
-  scripting and benchmarking.
-- **Milestone 5 — Desktop GUI feature completeness.** Wire the same pipeline
-  into the Tauri desktop app: file selection, parameter controls, progress
-  reporting, and output preview.
-- **Milestone 6 — Reproducible benchmarking framework.** Implement the
-  metrics and reporting pipeline described in
-  [`benchmarking.md`](benchmarking.md), runnable in CI on non-copyrighted
-  fixtures.
-- **Milestone 7 — Cross-platform packaging and release.** DMG, MSI, and
-  Linux packages (AppImage/deb/rpm), built and signed as appropriate, plus
-  a first tagged release.
+  *(Complete.)*
+- **Milestone 1 — Deterministic image-processing core.** Grayscale
+  conversion and contrast, Otsu / Sauvola / manual thresholding,
+  conservative preprocessing, despeckle cleanup, bilevel packing, and
+  CCITT Group 4 encoding in `museion-binarize-core`, with unit tests.
+  *(Complete.)*
+- **Milestone 2 — End-to-end PDF pipeline.** PDFium rasterization, page
+  inspection and geometry, the single page-processing orchestrator,
+  deterministic 1-bit CCITT Group 4 PDF reconstruction, bounded-memory
+  sequential processing, cancellation, temporary-file and atomic
+  persistence, output validation, and enough CLI wiring (`inspect`,
+  `process`, `preview`) to exercise and verify it. *(Complete; end-to-end
+  behaviour verified only on a provisioned Apple Silicon macOS environment
+  — CI runs the PDFium tests as ignored and verifies nothing about the
+  pipeline. See [`limitations.md`](limitations.md) and
+  [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).)*
+- **Milestone 3 — CLI feature completeness and analysis commands.** The
+  full command surface, including `analyze` and machine-readable JSON
+  reports, suitable for scripting and benchmarking.
+
+  Also scoped into this milestone: **a persistent PDFium document
+  session.** `PdfRenderer` currently reopens and reparses the source file
+  on every `render_page` call, because `PdfDocument` borrows from the
+  `Pdfium` session and holding one in the struct would be
+  self-referential. Two consequences to address:
+  * *Performance* — one full document parse per page, which grows with
+    page count on exactly the long scanned books this tool targets.
+  * *Correctness under mutation* — the file is reopened repeatedly, so a
+    source modified mid-run would be picked up partway through
+    (time-of-check/time-of-use). Deciding the intended behaviour (reject,
+    detect, or tolerate) is part of this work.
+
+  Neither is a defect in Milestone 2's output for an unchanging input
+  file, which is why it was deliberately deferred rather than rushed.
+- **Milestone 4 — Desktop GUI feature completeness.** Wire the same
+  pipeline into the Tauri desktop app: file selection, thumbnails,
+  before/after preview, parameter controls, presets, progress, and
+  cancellation.
+- **Milestone 5 — Size estimation and processing reports.** Sampled output
+  size prediction (clearly labelled experimental) and richer processing
+  reports.
+- **Milestone 6 — Reproducible benchmarking framework.** The metrics and
+  reporting pipeline described in [`benchmarking.md`](benchmarking.md),
+  runnable on non-copyrighted fixtures.
+- **Milestone 7 — Cross-platform packaging and release.** Verified Windows
+  and Linux builds, DMG / MSI / AppImage / deb packaging, PDFium bundling,
+  and a first tagged release.
 
 Milestone boundaries may shift as implementation reveals new constraints;
 this document will be updated accordingly rather than treated as a fixed

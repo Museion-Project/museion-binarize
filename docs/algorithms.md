@@ -1,12 +1,14 @@
 # Algorithms
 
-**Status: implemented in the image core, not yet wired to PDF I/O.** As of
-Milestone 1, every algorithm described below is implemented and
-unit-tested in `museion-binarize-core` (`src/binarization/`,
-`src/preprocessing.rs`, `src/cleanup/despeckle.rs`, `src/ccitt.rs`). They
-operate on in-memory grayscale/bilevel images; there is no PDF rendering or
-PDF writing yet (Milestone 2), so none of this is reachable from the CLI or
-desktop UI today.
+**Status: implemented and wired into the end-to-end PDF pipeline.** Every
+algorithm described below is implemented and unit-tested in
+`museion-binarize-core`, and as of Milestone 2 they run on real rasterized
+PDF pages through a single orchestrator (`image_pipeline.rs`), reachable
+from the CLI. The desktop UI is not connected yet.
+
+The orchestrator applies stages in exactly this order: validate settings →
+grayscale → contrast → background normalization → median denoise →
+binarization → despeckle → bilevel packing.
 
 ## Thresholding methods
 
@@ -17,8 +19,12 @@ each pixel as foreground (ink) or background (page).
 ### Otsu
 
 A global, automatic threshold computed from the page's grayscale histogram,
-minimizing intra-class variance between foreground and background pixel
-populations. Fast and parameter-free, but a single global threshold can
+maximizing between-class variance between foreground and background pixel
+populations. Implemented in-house with 64-bit accumulators: an earlier
+version delegated to `imageproc`, whose implementation accumulates in
+`u32` and panics with an arithmetic overflow on a full page at 600 DPI
+(roughly 35 megapixels). Panicking on user-supplied documents is not
+acceptable, so the algorithm is now this project's own. Fast and parameter-free, but a single global threshold can
 perform poorly on pages with uneven illumination or bleed-through from the
 reverse side — common in scans of older books.
 

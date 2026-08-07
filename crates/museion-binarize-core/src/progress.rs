@@ -5,12 +5,38 @@
 //! `docs/architecture.md`. Defined now so [`crate::settings`] and future
 //! pipeline code can depend on a stable trait.
 
-/// An event describing pipeline progress, emitted at page granularity.
+/// A stage within the processing of a single page. Emitted so front ends
+/// can show what the pipeline is currently doing, not merely how many
+/// pages remain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessingStage {
+    Opening,
+    Rendering,
+    Grayscale,
+    Preprocessing,
+    Binarization,
+    Cleanup,
+    Encoding,
+    Writing,
+    Validating,
+}
+
+/// An event describing pipeline progress.
+///
+/// Page numbers carried by these events are **one-based**, matching what
+/// the user sees, not the zero-based indexes used internally.
+///
+/// Documented ordering: `Started` is emitted once; then for each page a
+/// `PageStarted`, zero or more `StageChanged`, and one `PageFinished`;
+/// then `Validating` before output validation; and finally exactly one
+/// terminal event, either `Finished` or `Cancelled`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProgressEvent {
     Started { total_pages: u32 },
     PageStarted { page: u32 },
-    PageFinished { page: u32 },
+    StageChanged { page: u32, stage: ProcessingStage },
+    PageFinished { page: u32, compressed_bytes: u64 },
+    Validating,
     Finished,
     Cancelled,
 }
@@ -48,7 +74,15 @@ mod tests {
         assert!(!reporter.is_cancelled());
         reporter.report(ProgressEvent::Started { total_pages: 10 });
         reporter.report(ProgressEvent::PageStarted { page: 1 });
-        reporter.report(ProgressEvent::PageFinished { page: 1 });
+        reporter.report(ProgressEvent::StageChanged {
+            page: 1,
+            stage: ProcessingStage::Rendering,
+        });
+        reporter.report(ProgressEvent::PageFinished {
+            page: 1,
+            compressed_bytes: 42,
+        });
+        reporter.report(ProgressEvent::Validating);
         reporter.report(ProgressEvent::Finished);
         assert!(!reporter.is_cancelled());
     }

@@ -47,6 +47,22 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: cargo test
+        # This job does NOT verify the end-to-end PDF pipeline. Every test
+        # that needs a PDFium dynamic library is marked #[ignore], so the
+        # run below reports them as *ignored* — never as passed. There is
+        # deliberately no PDFium job in this workflow: GitHub-hosted
+        # runners have no PDFium, and no automatic download is added here
+        # because an unreviewed binary fetch is exactly what
+        # docs/adr/0001-pdfium-runtime-binding.md rules out.
+        #
+        # The end-to-end tests are currently run on a provisioned local
+        # macOS environment:
+        #
+        #   MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib \
+        #     cargo test --test pdf_pipeline -- --ignored
+        #
+        # See docs/testing-pdf-pipeline.md. Automatic, checksum-verified
+        # provisioning is deferred to the packaging/release milestone.
         run: cargo test --workspace
 
   cargo-deny:

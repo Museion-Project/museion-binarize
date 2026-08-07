@@ -1,0 +1,36 @@
+# PDFium binary provenance for Museion Binarize.
+#
+# PDFium is NOT bundled with pdfium-render and is NOT committed to this
+# repository (see .gitignore and docs/adr/0001-pdfium-runtime-binding.md).
+# This manifest records the binaries that have actually been verified on a
+# developer machine, so a reviewer can reproduce exactly what was run.
+#
+# Every entry below was verified locally: the checksum is the output of
+# `shasum -a 256` on the real file, not a value copied from a release page.
+# Do not add an entry for a platform until its asset has actually been
+# obtained and hashed on that platform.
+
+[[asset]]
+# Upstream C++ project.
+upstream_project = "PDFium"
+upstream_url = "https://pdfium.googlesource.com/pdfium/"
+# The binary-distribution project that builds and publishes PDFium
+# artifacts (PDFium itself ships no official prebuilt binaries).
+distribution_project = "pdfium-binaries"
+distribution_url = "https://github.com/bblanchon/pdfium-binaries"
+# PDFium build identifier, as reported by the distributing package.
+build = "7920"
+version = "151.0.7920.0"
+asset_filename = "libpdfium.dylib"
+target_triple = "aarch64-apple-darwin"
+# How this specific copy reached the verifying machine. It arrived as part
+# of the pypdfium2 5.11.0 wheel installed by Homebrew's `ocrmypdf`
+# formula, which repackages the pdfium-binaries build unmodified.
+source_identifier = "pypdfium2 5.11.0 (bundles pdfium-binaries build 7920)"
+sha256 = "9dee088c663154b142bbab1c20ff4da8b0b180ea21f5df0ad3a79408a522d103"
+size_bytes = 7732992
+pdfium_license = "BSD-3-Clause AND Apache-2.0"
+pdfium_license_file = "LICENSE-PDFIUM"
+distribution_license = "MIT"
+distribution_license_file = "LICENSE-DISTRIBUTION"
+date_verified = "2026-08-07"
