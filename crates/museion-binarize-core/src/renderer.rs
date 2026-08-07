@@ -1,13 +1,23 @@
 //! Museion-owned PDF rendering abstraction.
 //!
-//! [`PdfRenderer`] opens a document **once** and renders pages
-//! sequentially, releasing each page's bitmap as soon as the caller is
-//! done with it. The rest of the pipeline talks to this type, never to
-//! PDFium directly.
+//! [`PdfRenderer`] renders pages sequentially, releasing each page's
+//! bitmap as soon as the caller is done with it. The rest of the pipeline
+//! talks to this type, never to PDFium directly.
 //!
 //! Rendering is deliberately sequential: PDFium's thread-safety story is
 //! not something this milestone measures, so no parallelism is introduced
 //! (see `docs/adr/0001-pdfium-runtime-binding.md`).
+//!
+//! # Known limitation: the input file is reopened per page operation
+//!
+//! `PdfDocument` borrows from the `Pdfium` session, so holding one inside
+//! this struct would make it self-referential. As a result
+//! [`PdfRenderer::render_page`] reopens and reparses the source file on
+//! every call, which costs one document parse per page and leaves a
+//! time-of-check/time-of-use gap: a file mutated mid-run would be picked
+//! up partway through. A persistent document session is deliberately out
+//! of scope for this milestone — see the Milestone 3 entry in
+//! `docs/roadmap.md` for the scoped follow-up.
 
 use std::path::{Path, PathBuf};
 
@@ -127,18 +137,18 @@ impl PdfRenderer {
                 }
             };
 
-            // PDFium reports post-rotation (visible) dimensions, so store
-            // them as the un-rotated pair for a PageGeometry whose
-            // rotation is None; the visible rectangle is what we rebuild.
-            let geometry = PageGeometry::new(width_points, height_points, PageRotation::None)
+            // PDFium's width()/height() already report the page's visible,
+            // post-rotation dimensions, which is exactly the convention
+            // PageGeometry stores. The source /Rotate is kept alongside as
+            // informational metadata only: applying it here as well would
+            // swap the axes a second time and transpose every rotated page.
+            let geometry = PageGeometry::new(width_points, height_points)
                 .map_err(|e| CoreError::InvalidPageGeometry(format!("page {}: {e}", index + 1)))?;
 
             page_infos.push(PdfPageInfo {
                 index,
-                geometry: PageGeometry {
-                    rotation,
-                    ..geometry
-                },
+                geometry,
+                source_rotation: rotation,
             });
         }
 

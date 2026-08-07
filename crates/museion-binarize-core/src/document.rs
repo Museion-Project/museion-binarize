@@ -4,7 +4,7 @@
 //! desktop app) can display document information without linking against
 //! or knowing about the rendering backend.
 
-use crate::page_geometry::PageGeometry;
+use crate::page_geometry::{PageGeometry, PageRotation};
 
 /// Basic document metadata copied from the source PDF where safely
 /// available. Fields absent from the source stay `None` — nothing here is
@@ -58,7 +58,16 @@ fn sanitize_metadata_value(value: &str) -> String {
 pub struct PdfPageInfo {
     /// Zero-based page index. User-facing output adds one.
     pub index: u32,
+    /// The page's **visible** geometry, with any `/Rotate` already
+    /// applied. See [`PageGeometry`] for the convention.
     pub geometry: PageGeometry,
+    /// The `/Rotate` value declared by the source page.
+    ///
+    /// This is **informational only** — it is reported to the user and
+    /// never used to transform `geometry`, which is already visible.
+    /// Rebuilt output pages are always written upright, so this is
+    /// [`PageRotation::None`] for any document this crate produced.
+    pub source_rotation: PageRotation,
 }
 
 impl PdfPageInfo {
@@ -81,13 +90,13 @@ pub struct PdfDocumentInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::page_geometry::PageRotation;
 
     #[test]
     fn page_number_is_one_based() {
         let page = PdfPageInfo {
             index: 0,
-            geometry: PageGeometry::new(595.0, 842.0, PageRotation::None).unwrap(),
+            geometry: PageGeometry::new(595.0, 842.0).unwrap(),
+            source_rotation: PageRotation::None,
         };
         assert_eq!(page.index, 0);
         assert_eq!(page.page_number(), 1);

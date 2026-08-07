@@ -35,6 +35,10 @@ pub enum PageRotation {
 impl PageRotation {
     /// Converts a raw `/Rotate` value into a [`PageRotation`].
     ///
+    /// Note that [`PageGeometry`] stores *visible* dimensions, so a
+    /// `PageRotation` is never used to swap axes anywhere in this crate;
+    /// it is informational metadata about the source page only.
+    ///
     /// The PDF specification requires `/Rotate` to be a multiple of 90;
     /// values may be negative or exceed 360, and are normalized modulo
     /// 360 per those documented semantics. A value that is *not* a
@@ -69,32 +73,37 @@ impl PageRotation {
             PageRotation::Degrees270 => 270,
         }
     }
-
-    /// Whether this rotation swaps the visible width and height.
-    pub fn swaps_axes(self) -> bool {
-        matches!(self, PageRotation::Degrees90 | PageRotation::Degrees270)
-    }
 }
 
-/// The visible physical geometry of one page.
+/// The **visible** physical geometry of one page.
 ///
-/// `width_points`/`height_points` are the dimensions of the selected
-/// visible page box (CropBox when valid, else MediaBox) *before* rotation
-/// is applied. [`PageGeometry::display_width_points`] and
-/// [`PageGeometry::display_height_points`] apply the rotation.
+/// # Convention
+///
+/// `width_points` and `height_points` are always the dimensions of the
+/// page as it is actually seen, i.e. **after** any `/Rotate` has been
+/// applied. A page whose MediaBox is 595x842 with `/Rotate 90` has
+/// `width_points == 842.0` and `height_points == 595.0`.
+///
+/// This type therefore carries **no rotation of its own** and never swaps
+/// axes. Source `/Rotate` is preserved separately as informational
+/// metadata on [`crate::document::PdfPageInfo::source_rotation`]. Applying
+/// a rotation here as well would swap the axes a second time and silently
+/// transpose every rotated page — the defect this convention exists to
+/// prevent.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PageGeometry {
+    /// Visible width in points, after rotation.
     pub width_points: f32,
+    /// Visible height in points, after rotation.
     pub height_points: f32,
-    pub rotation: PageRotation,
 }
 
 impl PageGeometry {
-    pub fn new(width_points: f32, height_points: f32, rotation: PageRotation) -> Result<Self> {
+    /// Builds a geometry from **visible** (post-rotation) dimensions.
+    pub fn new(width_points: f32, height_points: f32) -> Result<Self> {
         let geometry = Self {
             width_points,
             height_points,
-            rotation,
         };
         geometry.validate()?;
         Ok(geometry)
@@ -122,30 +131,12 @@ impl PageGeometry {
         Ok(())
     }
 
-    /// Visible width in points, after rotation.
-    pub fn display_width_points(&self) -> f32 {
-        if self.rotation.swaps_axes() {
-            self.height_points
-        } else {
-            self.width_points
-        }
-    }
-
-    /// Visible height in points, after rotation.
-    pub fn display_height_points(&self) -> f32 {
-        if self.rotation.swaps_axes() {
-            self.width_points
-        } else {
-            self.height_points
-        }
-    }
-
-    /// Pixel dimensions of this page's *visible* orientation when rendered
+    /// Pixel dimensions of this page's visible orientation when rendered
     /// at `dpi`.
     pub fn pixel_size(&self, dpi: u16) -> Result<(u32, u32)> {
         self.validate()?;
-        let width = points_to_pixels(self.display_width_points(), dpi)?;
-        let height = points_to_pixels(self.display_height_points(), dpi)?;
+        let width = points_to_pixels(self.width_points, dpi)?;
+        let height = points_to_pixels(self.height_points, dpi)?;
 
         let total = u64::from(width)
             .checked_mul(u64::from(height))
@@ -234,11 +225,11 @@ mod tests {
 
     #[test]
     fn geometry_rejects_degenerate_and_absurd_pages() {
-        assert!(PageGeometry::new(0.0, 100.0, PageRotation::None).is_err());
-        assert!(PageGeometry::new(100.0, -5.0, PageRotation::None).is_err());
-        assert!(PageGeometry::new(f32::NAN, 100.0, PageRotation::None).is_err());
-        assert!(PageGeometry::new(20_000.0, 100.0, PageRotation::None).is_err());
-        assert!(PageGeometry::new(A4_WIDTH, A4_HEIGHT, PageRotation::None).is_ok());
+        assert!(PageGeometry::new(0.0, 100.0).is_err());
+        assert!(PageGeometry::new(100.0, -5.0).is_err());
+        assert!(PageGeometry::new(f32::NAN, 100.0).is_err());
+        assert!(PageGeometry::new(20_000.0, 100.0).is_err());
+        assert!(PageGeometry::new(A4_WIDTH, A4_HEIGHT).is_ok());
     }
 
     #[test]
@@ -271,59 +262,43 @@ mod tests {
     }
 
     #[test]
-    fn display_dimensions_swap_for_ninety_and_two_seventy() {
-        let portrait = PageGeometry::new(A4_WIDTH, A4_HEIGHT, PageRotation::None).unwrap();
-        assert_eq!(portrait.display_width_points(), A4_WIDTH);
-        assert_eq!(portrait.display_height_points(), A4_HEIGHT);
-
-        let rot90 = PageGeometry::new(A4_WIDTH, A4_HEIGHT, PageRotation::Degrees90).unwrap();
-        assert_eq!(rot90.display_width_points(), A4_HEIGHT);
-        assert_eq!(rot90.display_height_points(), A4_WIDTH);
-
-        let rot180 = PageGeometry::new(A4_WIDTH, A4_HEIGHT, PageRotation::Degrees180).unwrap();
-        assert_eq!(rot180.display_width_points(), A4_WIDTH);
-        assert_eq!(rot180.display_height_points(), A4_HEIGHT);
-
-        let rot270 = PageGeometry::new(A4_WIDTH, A4_HEIGHT, PageRotation::Degrees270).unwrap();
-        assert_eq!(rot270.display_width_points(), A4_HEIGHT);
-        assert_eq!(rot270.display_height_points(), A4_WIDTH);
-    }
-
-    #[test]
     fn pixel_size_at_all_supported_dpis_for_portrait_and_landscape() {
-        let portrait = PageGeometry::new(595.0, 842.0, PageRotation::None).unwrap();
+        let portrait = PageGeometry::new(595.0, 842.0).unwrap();
         assert_eq!(portrait.pixel_size(300).unwrap(), (2479, 3508));
         assert_eq!(portrait.pixel_size(400).unwrap(), (3306, 4678));
         assert_eq!(portrait.pixel_size(600).unwrap(), (4958, 7017));
 
-        let landscape = PageGeometry::new(842.0, 595.0, PageRotation::None).unwrap();
+        let landscape = PageGeometry::new(842.0, 595.0).unwrap();
         assert_eq!(landscape.pixel_size(300).unwrap(), (3508, 2479));
     }
 
+    /// Regression guard for the rotated-page transposition defect: the
+    /// stored dimensions are already visible, so geometry must never
+    /// reinterpret them. A landscape geometry stays landscape in pixels.
     #[test]
-    fn pixel_size_accounts_for_rotation() {
-        let base = PageGeometry::new(595.0, 842.0, PageRotation::None).unwrap();
-        let rotated = PageGeometry::new(595.0, 842.0, PageRotation::Degrees90).unwrap();
-        let (bw, bh) = base.pixel_size(300).unwrap();
-        let (rw, rh) = rotated.pixel_size(300).unwrap();
-        assert_eq!((bw, bh), (rh, rw));
+    fn pixel_size_uses_stored_dimensions_verbatim_and_never_swaps_axes() {
+        // Expected values are computed from the documented formula here,
+        // not by calling any other production geometry helper.
+        let landscape = PageGeometry::new(842.0, 595.0).unwrap();
+        let expected_w = (842.0f64 * 300.0 / 72.0).round() as u32;
+        let expected_h = (595.0f64 * 300.0 / 72.0).round() as u32;
+        assert_eq!(landscape.pixel_size(300).unwrap(), (expected_w, expected_h));
+        assert_eq!((expected_w, expected_h), (3508, 2479));
 
-        for rotation in [
-            PageRotation::None,
-            PageRotation::Degrees90,
-            PageRotation::Degrees180,
-            PageRotation::Degrees270,
-        ] {
-            let g = PageGeometry::new(595.0, 842.0, rotation).unwrap();
-            assert!(g.pixel_size(600).is_ok(), "failed for {rotation:?}");
-        }
+        // Width and height are independent: transposing the input must
+        // transpose the output, and nothing else may.
+        let portrait = PageGeometry::new(595.0, 842.0).unwrap();
+        let (lw, lh) = landscape.pixel_size(300).unwrap();
+        let (pw, ph) = portrait.pixel_size(300).unwrap();
+        assert_eq!((lw, lh), (ph, pw));
+        assert_ne!(lw, lh, "a non-square page must not become square");
     }
 
     #[test]
     fn pixel_size_rejects_pages_over_the_safety_limit() {
         // 14000 x 14000 points at 600 DPI is ~1.36e10 pixels, far over the
         // limit; must be refused rather than attempted.
-        let huge = PageGeometry::new(14_000.0, 14_000.0, PageRotation::None).unwrap();
+        let huge = PageGeometry::new(14_000.0, 14_000.0).unwrap();
         let err = huge.pixel_size(600).unwrap_err();
         assert!(matches!(err, CoreError::ResourceLimitExceeded(_)));
         // The same page at a low DPI is fine.

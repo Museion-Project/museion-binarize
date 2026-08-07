@@ -202,11 +202,12 @@ pub fn process_pdf(
         }
         progress.report(ProgressEvent::PageStarted { page: page_number });
 
-        // Rotation is normalized into the geometry: PDFium renders the
-        // page in its visible orientation, so the rebuilt page uses the
-        // visible rectangle and is written upright.
-        let width_points = page_info.geometry.display_width_points();
-        let height_points = page_info.geometry.display_height_points();
+        // `geometry` already holds the visible, post-rotation rectangle
+        // (see `PageGeometry`), and PDFium renders the page in that same
+        // visible orientation. The rebuilt page therefore uses these
+        // dimensions verbatim and is written upright, with no /Rotate.
+        let width_points = page_info.geometry.width_points;
+        let height_points = page_info.geometry.height_points;
 
         progress.report(ProgressEvent::StageChanged {
             page: page_number,

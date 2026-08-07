@@ -1,9 +1,21 @@
 //! End-to-end PDF pipeline integration tests.
 //!
-//! These tests need a real PDFium dynamic library. Point
-//! `MUSEION_PDFIUM_LIBRARY` at one (see `docs/pdfium.md`); without it every
-//! test here reports that it was skipped rather than failing, so
-//! `cargo test --workspace` stays green on a machine with no PDFium.
+//! Every test in this file needs a real PDFium dynamic library and is
+//! therefore marked `#[ignore]`. Rust's test harness has no dynamic "skip"
+//! result — a test that returns early is recorded as **passed** — so an
+//! unavailable dependency must never be represented by returning. Instead:
+//!
+//! * `cargo test --workspace` reports these as **ignored**, never as
+//!   passed, so ordinary CI cannot appear to have verified the pipeline.
+//! * Running them explicitly requires a library, and its absence or
+//!   failure to load is a hard test failure with an actionable message:
+//!
+//! ```text
+//! MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib \
+//!   cargo test --test pdf_pipeline -- --ignored
+//! ```
+//!
+//! See `docs/testing-pdf-pipeline.md`.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -23,19 +35,35 @@ use museion_binarize_core::settings::{
 use museion_binarize_core::test_fixtures;
 use museion_binarize_core::validation::ValidationMode;
 
-/// Returns the PDFium configuration, or `None` when no library is
-/// configured for this run.
-fn pdfium() -> Option<PdfiumConfig> {
-    let path = std::env::var_os("MUSEION_PDFIUM_LIBRARY")?;
-    let path = PathBuf::from(path);
-    if !path.is_file() {
-        return None;
-    }
-    Some(PdfiumConfig {
+/// Resolves the PDFium configuration for an explicitly-run ignored test.
+///
+/// These tests only execute when someone asked for them by name or with
+/// `--ignored`, so a missing or unusable library is a **failure**, not a
+/// reason to pass quietly. The panic message says exactly how to fix it.
+fn require_pdfium_config() -> PdfiumConfig {
+    let Some(raw) = std::env::var_os(ENV_VAR) else {
+        panic!(
+            "{ENV_VAR} is not set, but this test was run explicitly.\n\
+             These integration tests require a provisioned PDFium library:\n  \
+             {ENV_VAR}=/absolute/path/to/{} \\\n    \
+             cargo test --test pdf_pipeline -- --ignored\n\
+             See docs/pdfium.md for how to obtain one.",
+            museion_binarize_core::pdfium_backend::pdfium_library_file_name()
+        );
+    };
+    let path = PathBuf::from(raw);
+    assert!(
+        path.is_file(),
+        "{ENV_VAR} points at {}, which is not a file. See docs/pdfium.md.",
+        path.display()
+    );
+    PdfiumConfig {
         library_path: Some(path),
         allow_system_library: false,
-    })
+    }
 }
+
+const ENV_VAR: &str = "MUSEION_PDFIUM_LIBRARY";
 
 /// Serializes PDFium use across tests.
 ///
@@ -52,22 +80,17 @@ fn pdfium_guard() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// Skips the calling test (printing why) when PDFium is unavailable.
+/// Acquires the PDFium config and the serialization guard for a test.
+///
+/// Never returns early: a missing library panics with an actionable
+/// message, so an ignored test that is explicitly run can only pass by
+/// actually exercising PDFium.
 macro_rules! require_pdfium {
     () => {{
-        match pdfium() {
-            Some(config) => {
-                // Held for the rest of the test body.
-                let guard = pdfium_guard();
-                (config, guard)
-            }
-            None => {
-                eprintln!(
-                    "SKIPPED: set MUSEION_PDFIUM_LIBRARY to a PDFium dynamic library to run this test"
-                );
-                return;
-            }
-        }
+        let config = require_pdfium_config();
+        // Held for the rest of the test body.
+        let guard = pdfium_guard();
+        (config, guard)
     }};
 }
 
@@ -171,6 +194,7 @@ fn region_mean(image: &image::GrayImage, x0: f32, y0: f32, x1: f32, y1: f32) -> 
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn loads_the_pinned_pdfium_library() {
     let (config, _pdfium_guard) = require_pdfium!();
     let description =
@@ -179,6 +203,7 @@ fn loads_the_pinned_pdfium_library() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn opens_and_inspects_a_generated_single_page_pdf() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -202,12 +227,13 @@ fn opens_and_inspects_a_generated_single_page_pdf() {
     assert_eq!(info.pages[0].index, 0);
     assert_eq!(info.pages[0].page_number(), 1);
     let g = &info.pages[0].geometry;
-    assert!((g.display_width_points() - test_fixtures::A4_PORTRAIT.0).abs() < 0.1);
-    assert!((g.display_height_points() - test_fixtures::A4_PORTRAIT.1).abs() < 0.1);
+    assert!((g.width_points - test_fixtures::A4_PORTRAIT.0).abs() < 0.1);
+    assert!((g.height_points - test_fixtures::A4_PORTRAIT.1).abs() < 0.1);
     assert!(info.source_bytes > 0);
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn renders_at_every_supported_dpi() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -243,6 +269,7 @@ fn renders_at_every_supported_dpi() {
 /// The central correctness test: convert the asymmetric fixture, reopen
 /// the output, and confirm polarity and orientation survived.
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn end_to_end_conversion_preserves_polarity_and_orientation() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -341,6 +368,7 @@ fn end_to_end_conversion_preserves_polarity_and_orientation() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn preserves_page_count_and_mixed_page_sizes() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -373,10 +401,7 @@ fn preserves_page_count_and_mixed_page_sizes() {
         test_fixtures::SMALL,
     ];
     for (page, (ew, eh)) in info.pages.iter().zip(expected) {
-        let (aw, ah) = (
-            page.geometry.display_width_points(),
-            page.geometry.display_height_points(),
-        );
+        let (aw, ah) = (page.geometry.width_points, page.geometry.height_points);
         assert!(
             (aw - ew).abs() < 0.1 && (ah - eh).abs() < 0.1,
             "page {} is {aw}x{ah}, expected {ew}x{eh}",
@@ -385,8 +410,177 @@ fn preserves_page_count_and_mixed_page_sizes() {
     }
 }
 
+/// Independent oracle for the rotation fixture.
+///
+/// These values come from the fixture's own constants and the PDF
+/// specification's `/Rotate` semantics — never from
+/// `PageGeometry`/`points_to_pixels` or any other production geometry
+/// helper, so this test can detect an error in those helpers instead of
+/// inheriting it. The fixture builds four A4-portrait pages carrying
+/// `/Rotate` 0, 90, 180, 270 in that order.
+const ROTATION_FIXTURE_ORDER: [u32; 4] = [0, 90, 180, 270];
+
+/// Expected *visible* page size in points for a source `/Rotate`, derived
+/// straight from the fixture's MediaBox constant.
+fn expected_visible_points(rotate_degrees: u32) -> (f32, f32) {
+    let (media_w, media_h) = test_fixtures::A4_PORTRAIT;
+    match rotate_degrees {
+        90 | 270 => (media_h, media_w),
+        _ => (media_w, media_h),
+    }
+}
+
+/// Pixels for a length in points at a DPI, computed here from the
+/// definition (72 points per inch) rather than by calling production code.
+fn expected_pixels(points: f32, dpi: u32) -> u32 {
+    (f64::from(points) * f64::from(dpi) / 72.0).round() as u32
+}
+
+/// A connected region of dark pixels: bounding box, area, centroid.
+struct Blob {
+    min_x: u32,
+    min_y: u32,
+    max_x: u32,
+    max_y: u32,
+    area: u32,
+}
+
+impl Blob {
+    fn width(&self) -> u32 {
+        self.max_x - self.min_x + 1
+    }
+    fn height(&self) -> u32 {
+        self.max_y - self.min_y + 1
+    }
+    fn aspect(&self) -> f64 {
+        f64::from(self.width()) / f64::from(self.height())
+    }
+    /// Fraction of the bounding box that is actually inked; a solid
+    /// rectangle is ~1.0.
+    fn fill(&self) -> f64 {
+        f64::from(self.area) / (f64::from(self.width()) * f64::from(self.height()))
+    }
+    fn centroid(&self) -> (f64, f64) {
+        (
+            f64::from(self.min_x + self.max_x) / 2.0,
+            f64::from(self.min_y + self.max_y) / 2.0,
+        )
+    }
+}
+
+/// Finds 4-connected dark regions, ignoring specks below `min_area`.
+///
+/// Deliberately a plain flood fill written here in the test, so the
+/// assertions do not depend on any production image-processing code.
+fn find_blobs(image: &image::GrayImage, min_area: u32) -> Vec<Blob> {
+    let (w, h) = (image.width(), image.height());
+    let mut seen = vec![false; (w as usize) * (h as usize)];
+    let mut blobs = Vec::new();
+    let idx = |x: u32, y: u32| (y as usize) * (w as usize) + (x as usize);
+
+    for y0 in 0..h {
+        for x0 in 0..w {
+            if seen[idx(x0, y0)] || image.get_pixel(x0, y0)[0] >= 128 {
+                continue;
+            }
+            let mut stack = vec![(x0, y0)];
+            seen[idx(x0, y0)] = true;
+            let (mut min_x, mut min_y, mut max_x, mut max_y) = (x0, y0, x0, y0);
+            let mut area = 0u32;
+            while let Some((x, y)) = stack.pop() {
+                area += 1;
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+                let neighbours = [
+                    (x.wrapping_sub(1), y),
+                    (x + 1, y),
+                    (x, y.wrapping_sub(1)),
+                    (x, y + 1),
+                ];
+                for (nx, ny) in neighbours {
+                    if nx < w && ny < h && !seen[idx(nx, ny)] && image.get_pixel(nx, ny)[0] < 128 {
+                        seen[idx(nx, ny)] = true;
+                        stack.push((nx, ny));
+                    }
+                }
+            }
+            if area >= min_area {
+                blobs.push(Blob {
+                    min_x,
+                    min_y,
+                    max_x,
+                    max_y,
+                    area,
+                });
+            }
+        }
+    }
+    blobs
+}
+
 #[test]
-fn preserves_visible_geometry_for_rotated_pages() {
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn rotated_pages_report_the_visible_dimensions_required_by_the_fixture() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "rot.pdf", &test_fixtures::page_rotations());
+
+    let source = pipeline::inspect_pdf(
+        &input,
+        &PdfOpenOptions {
+            password: None,
+            pdfium: config.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(source.page_count, 4);
+
+    for (index, rotate) in ROTATION_FIXTURE_ORDER.iter().copied().enumerate() {
+        let page = &source.pages[index];
+        let (want_w, want_h) = expected_visible_points(rotate);
+
+        assert!(
+            (page.geometry.width_points - want_w).abs() < 0.5
+                && (page.geometry.height_points - want_h).abs() < 0.5,
+            "page {} (/Rotate {rotate}) reports {:.2}x{:.2} pt, but its visible size must be \
+             {want_w:.2}x{want_h:.2} pt",
+            index + 1,
+            page.geometry.width_points,
+            page.geometry.height_points
+        );
+
+        // The source rotation is preserved as informational metadata and
+        // must not have been folded into the dimensions a second time.
+        assert_eq!(
+            page.source_rotation.degrees(),
+            rotate,
+            "page {} lost its source /Rotate metadata",
+            index + 1
+        );
+
+        let (px_w, px_h) = page.geometry.pixel_size(300).unwrap();
+        assert_eq!(
+            (px_w, px_h),
+            (expected_pixels(want_w, 300), expected_pixels(want_h, 300)),
+            "page {} (/Rotate {rotate}) rasterizes to the wrong size at 300 DPI",
+            index + 1
+        );
+    }
+
+    // Spelled out explicitly, so a future regression cannot be hidden by a
+    // helper: A4 with /Rotate 90 is 842x595 pt and 3508x2479 px at 300 DPI.
+    assert_eq!(expected_visible_points(90), (842.0, 595.0));
+    assert_eq!(
+        (expected_pixels(842.0, 300), expected_pixels(595.0, 300)),
+        (3508, 2479)
+    );
+}
+
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn conversion_keeps_square_markers_square_and_in_opposite_corners() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
     let input = write_fixture(dir.path(), "rot.pdf", &test_fixtures::page_rotations());
@@ -402,14 +596,8 @@ fn preserves_visible_geometry_for_rotated_pages() {
     .expect("conversion");
     assert_eq!(report.pages_processed, 4);
 
-    let source = pipeline::inspect_pdf(
-        &input,
-        &PdfOpenOptions {
-            password: None,
-            pdfium: config.clone(),
-        },
-    )
-    .unwrap();
+    // The output's own geometry must match the independently derived
+    // visible size of the corresponding source page.
     let out = pipeline::inspect_pdf(
         &output,
         &PdfOpenOptions {
@@ -418,83 +606,96 @@ fn preserves_visible_geometry_for_rotated_pages() {
         },
     )
     .unwrap();
-    assert_eq!(out.page_count, 4);
-
-    for (src, dst) in source.pages.iter().zip(out.pages.iter()) {
-        // The visible rectangle must survive, whatever the source /Rotate.
+    for (index, rotate) in ROTATION_FIXTURE_ORDER.iter().copied().enumerate() {
+        let (want_w, want_h) = expected_visible_points(rotate);
+        let page = &out.pages[index];
         assert!(
-            (src.geometry.display_width_points() - dst.geometry.display_width_points()).abs() < 0.1,
-            "page {} visible width changed",
-            src.page_number()
+            (page.geometry.width_points - want_w).abs() < 0.5
+                && (page.geometry.height_points - want_h).abs() < 0.5,
+            "output page {} (/Rotate {rotate}) is {:.2}x{:.2} pt, expected {want_w:.2}x{want_h:.2}",
+            index + 1,
+            page.geometry.width_points,
+            page.geometry.height_points
         );
-        assert!(
-            (src.geometry.display_height_points() - dst.geometry.display_height_points()).abs()
-                < 0.1,
-            "page {} visible height changed",
-            src.page_number()
-        );
+        assert_eq!(page.source_rotation.degrees(), 0, "output must be upright");
     }
 
-    // The real rotation assertion: for every page, the OUTPUT's visible
-    // rendering must match the SOURCE's visible rendering. A page with
-    // /Rotate 90 legitimately shows its markers in a different corner
-    // than the unrotated page, so comparing against a fixed corner would
-    // be wrong; comparing source against output catches any *extra*
-    // rotation, flip, or mirror introduced by the pipeline.
-    for index in 0..4 {
-        let source_render = render_gray(&input, index, 120, &config);
-        let output_render = render_gray(&output, index, 120, &config);
+    // The fixture draws a large square marker at the visual top-left of
+    // the unrotated page and a small square at the visual bottom-right,
+    // each `unit * 0.20` and `unit * 0.10` points on a side where
+    // `unit = min(MediaBox)`. Under any pure rotation both stay square and
+    // stay diagonally opposite; a transposed or squashed page turns them
+    // into rectangles, and a mirrored page moves them off the diagonal.
+    const PREVIEW_DPI: u16 = 100;
+    let unit = test_fixtures::A4_PORTRAIT
+        .0
+        .min(test_fixtures::A4_PORTRAIT.1);
+    let expected_large_px = expected_pixels(unit * 0.20, u32::from(PREVIEW_DPI));
 
-        let source_grid = coarse_grid(&source_render);
-        let output_grid = coarse_grid(&output_render);
+    for index in 0..4u32 {
+        let rotate = ROTATION_FIXTURE_ORDER[index as usize];
+        let render = render_gray(&output, index, PREVIEW_DPI, &config);
 
-        // Binarization hardens the antialiased edges, so cells are
-        // compared as "mostly dark" vs "mostly light" rather than by
-        // exact luminance.
-        let mismatches = source_grid
-            .iter()
-            .zip(output_grid.iter())
-            .filter(|(a, b)| (**a < 128.0) != (**b < 128.0))
-            .count();
+        // Solid, roughly-square regions are the two markers; the two bars
+        // are long thin rectangles and are excluded by the aspect filter.
+        let mut squares: Vec<Blob> = find_blobs(&render, 64)
+            .into_iter()
+            .filter(|b| (b.aspect() - 1.0).abs() < 0.20 && b.fill() > 0.80)
+            .collect();
+        squares.sort_by_key(|b| std::cmp::Reverse(b.area));
         assert!(
-            mismatches <= 2,
-            "page {} (rotation {}°): output layout differs from the source in {mismatches} of {} \
-             cells; the pipeline introduced an unexpected rotation, flip, or mirror",
+            squares.len() >= 2,
+            "page {} (/Rotate {rotate}): expected two square markers, found {}",
             index + 1,
-            source.pages[index as usize].geometry.rotation.degrees(),
-            source_grid.len()
+            squares.len()
         );
 
-        // And the page must not be blank or fully inked either way.
-        let dark_cells = output_grid.iter().filter(|v| **v < 128.0).count();
+        let large = &squares[0];
+        let small = &squares[1];
+
         assert!(
-            dark_cells > 0 && dark_cells < output_grid.len(),
-            "page {} is uniformly blank or uniformly black",
+            (large.aspect() - 1.0).abs() < 0.06,
+            "page {} (/Rotate {rotate}): the square marker rendered {}x{} px (aspect {:.3}); \
+             a pure rotation must keep it square, so the page was transposed or squashed",
+            index + 1,
+            large.width(),
+            large.height(),
+            large.aspect()
+        );
+        let size_error = (f64::from(large.width()) - f64::from(expected_large_px)).abs()
+            / f64::from(expected_large_px);
+        assert!(
+            size_error < 0.10,
+            "page {} (/Rotate {rotate}): the square marker is {} px wide, but the fixture \
+             constants require about {expected_large_px} px at {PREVIEW_DPI} DPI",
+            index + 1,
+            large.width()
+        );
+        assert!(
+            small.area < large.area,
+            "page {} (/Rotate {rotate}): the two markers must differ in size",
+            index + 1
+        );
+
+        // Diagonally opposite: the markers must sit on opposite sides of
+        // both the vertical and the horizontal midline.
+        let (mid_x, mid_y) = (
+            f64::from(render.width()) / 2.0,
+            f64::from(render.height()) / 2.0,
+        );
+        let (lx, ly) = large.centroid();
+        let (sx, sy) = small.centroid();
+        assert!(
+            (lx < mid_x) != (sx < mid_x) && (ly < mid_y) != (sy < mid_y),
+            "page {} (/Rotate {rotate}): markers at ({lx:.0},{ly:.0}) and ({sx:.0},{sy:.0}) are \
+             not diagonally opposite about ({mid_x:.0},{mid_y:.0}); the page was mirrored or flipped",
             index + 1
         );
     }
 }
 
-/// Reduces an image to a 6x6 grid of mean luminances, so two renderings
-/// can be compared structurally without being pixel-exact.
-fn coarse_grid(image: &image::GrayImage) -> Vec<f64> {
-    const N: usize = 6;
-    let mut cells = Vec::with_capacity(N * N);
-    for row in 0..N {
-        for col in 0..N {
-            cells.push(region_mean(
-                image,
-                col as f32 / N as f32,
-                row as f32 / N as f32,
-                (col + 1) as f32 / N as f32,
-                (row + 1) as f32 / N as f32,
-            ));
-        }
-    }
-    cells
-}
-
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn cancellation_leaves_no_output_and_no_temporary_files() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -526,6 +727,7 @@ fn cancellation_leaves_no_output_and_no_temporary_files() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn repeated_conversions_are_byte_for_byte_identical() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -551,6 +753,7 @@ fn repeated_conversions_are_byte_for_byte_identical() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn refuses_an_existing_destination_without_overwrite_and_honours_it_with() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -592,6 +795,7 @@ fn refuses_an_existing_destination_without_overwrite_and_honours_it_with() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn progress_events_arrive_in_the_documented_order() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -625,6 +829,7 @@ fn progress_events_arrive_in_the_documented_order() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn the_thresholding_algorithms_actually_run_on_grayscale_content() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();
@@ -653,6 +858,7 @@ fn the_thresholding_algorithms_actually_run_on_grayscale_content() {
 }
 
 #[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn refuses_to_write_over_the_input_document() {
     let (config, _pdfium_guard) = require_pdfium!();
     let dir = tempfile::tempdir().unwrap();

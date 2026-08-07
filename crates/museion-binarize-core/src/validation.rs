@@ -70,10 +70,7 @@ pub fn validate_output(
         let page = info.pages.get(index).ok_or_else(|| {
             CoreError::OutputValidationFailed(format!("output is missing page {}", index + 1))
         })?;
-        let actual = (
-            page.geometry.display_width_points(),
-            page.geometry.display_height_points(),
-        );
+        let actual = (page.geometry.width_points, page.geometry.height_points);
         let dw = (actual.0 - expected_size.0).abs();
         let dh = (actual.1 - expected_size.1).abs();
         if dw > DIMENSION_TOLERANCE_POINTS || dh > DIMENSION_TOLERANCE_POINTS {
@@ -88,13 +85,14 @@ pub fn validate_output(
             )));
         }
 
-        // Every output page is written upright; rotation was normalized
-        // into the geometry when the page was rebuilt.
-        if page.geometry.rotation != crate::page_geometry::PageRotation::None {
+        // Rebuilt pages are written upright with no /Rotate, because the
+        // rasterized image already shows the page in its visible
+        // orientation. A rotation here would mean the writer emitted one.
+        if page.source_rotation != crate::page_geometry::PageRotation::None {
             return Err(CoreError::OutputValidationFailed(format!(
                 "page {} unexpectedly carries a {} degree rotation; output pages must be upright",
                 index + 1,
-                page.geometry.rotation.degrees()
+                page.source_rotation.degrees()
             )));
         }
     }

@@ -355,16 +355,18 @@ fn run_inspect(args: InspectArgs) -> Result<(), String> {
     println!();
 
     for page in &info.pages {
+        // Reported dimensions are the page's visible ones, i.e. what the
+        // reader sees after any source /Rotate has been applied.
         let g = &page.geometry;
-        let (w, h) = (g.display_width_points(), g.display_height_points());
+        let (w, h) = (g.width_points, g.height_points);
         println!(
-            "Page {}: {:.2} x {:.2} pt ({:.1} x {:.1} mm), rotation {}°",
+            "Page {}: {:.2} x {:.2} pt ({:.1} x {:.1} mm) visible, source rotation {}°",
             page.page_number(),
             w,
             h,
             w * 25.4 / 72.0,
             h * 25.4 / 72.0,
-            g.rotation.degrees()
+            page.source_rotation.degrees()
         );
         for dpi in SUPPORTED_DPI {
             match (points_to_pixels(w, dpi), points_to_pixels(h, dpi)) {
