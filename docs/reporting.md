@@ -1,0 +1,234 @@
+# JSON reporting
+
+Every JSON document this project emits — to stdout via `--json`, or to a
+file via `--report` — is one `ReportEnvelope` (or, on failure, one
+`ErrorEnvelope`):
+
+```json
+{
+  "schema": "museion-binarize-<kind>",
+  "schema_version": "1.0",
+  "tool": { "name": "Museion Binarize", "version": "0.1.0" },
+  "result": { ... }
+}
+```
+
+`schema` and `schema_version` are always at this same top-level location
+regardless of which command produced the document, so a consumer can
+dispatch on them without knowing the command in advance.
+
+## Compatibility policy
+
+- New fields may be added to `result` in a minor-compatible way (existing
+  consumers ignoring unknown fields are unaffected).
+- Removing or repurposing a field is a breaking change and bumps
+  `schema_version`.
+- `schema` names are stable identifiers, not free text; do not parse them
+  for embedded meaning beyond exact-string matching.
+
+## Determinism
+
+**No report includes a wall-clock timestamp by default.** Two runs over
+identical input and settings would otherwise produce different report
+bytes even though nothing meaningful changed — easy to mistake for
+nondeterminism in the conversion itself. Durations (see below) *are*
+included and *do* vary run to run, so **report bytes are not claimed to be
+deterministic** — only the converted output PDF is (see
+[`pdf-output.md`](pdf-output.md)). This was verified directly: converting
+the same input twice with `--report` produces different report files (due
+to timing) but byte-identical output PDFs.
+
+## Timing units
+
+Every duration field is named `*_us` and is an integer number of whole
+microseconds (`std::time::Instant`-based), never a floating-point number
+of seconds — so a report contains exact integers with an explicit,
+documented unit rather than a value whose precision looks more meaningful
+than it is.
+
+## Report kinds
+
+### `museion-binarize-info` (`info --json`)
+
+Static project/build information plus, only if `--probe-pdfium` was
+passed, the result of resolving (and attempting to load) a PDFium
+library. `info` never touches PDFium otherwise.
+
+| Field | Meaning |
+|---|---|
+| `name`, `phase`, `version` | Project identity and current development phase. |
+| `build_profile` | `"debug"` or `"release"`. |
+| `target_arch`, `target_os` | `std::env::consts::{ARCH,OS}` — not a formal Rust target triple, which is not reliably available at runtime without a build script. |
+| `supported_dpi` | The DPI values every command accepts (`[300, 400, 600]`). |
+| `report_schemas` | Every schema name/version this binary can produce, including this one. |
+| `pdfium.probed` | Whether `--probe-pdfium` was passed. |
+| `pdfium.resolved` | Description of the bound library, if the probe succeeded. |
+| `pdfium.error` | The probe's error message, if it failed. A failed probe still prints the rest of the report but exits non-zero (exit code 4; see [`cli.md`](cli.md)). |
+| `limitations` | Short, human-readable strings — the same claims made in `limitations.md`, kept in sync by convention, not by generation. |
+
+### `museion-binarize-inspect` (`inspect --json`)
+
+| Field | Meaning |
+|---|---|
+| `source_path` | Rendered per `--path-mode` (`basename` by default); `null` for `omit`. |
+| `source_bytes`, `page_count` | Size and page count of the exact snapshot opened. |
+| `title`, `author`, `subject`, `keywords` | Sanitized source metadata; `null` if absent. |
+| `pdfium_library` | Description of the PDFium library used. |
+| `pages[].width_points`/`height_points` | Visible (post-rotation) page size, in PDF points. |
+| `pages[].source_rotation_degrees` | The source `/Rotate`; informational only — never applied a second time. See [`pdf-output.md`](pdf-output.md). |
+| `pages[].render_sizes[]` | Pixel dimensions at each of `supported_dpi`; `null` width/height for a DPI where the page geometry is out of range. |
+
+### `museion-binarize-analysis` (`analyze --json` / `--report`)
+
+Produced by `analyze` — real rendering and binarization through the same
+pipeline `process` uses, without writing a reconstructed output PDF. Not
+the Milestone 6 benchmarking framework: a low file size or black-pixel
+ratio here is not evidence of preservation quality.
+
+Document level:
+
+| Field | Meaning |
+|---|---|
+| `source_path` | Per `--path-mode`. |
+| `source_bytes`, `page_count` | Of the whole document. |
+| `analyzed_page_count`, `failed_page_count` | How many selected pages were actually measured vs. failed (a page failure does not abort the run; see below). |
+| `total_visible_area_points2` | Sum of analyzed pages' visible area, in square points. |
+| `dpi`, `method` | The settings used. `method` is `"otsu"`, `"sauvola"`, or `"manual"` — the per-page `threshold` field carries the full configuration. |
+| `total_duration_us` | Wall-clock duration of the whole analysis. |
+| `page_duration` | `{min_us, max_us, mean_us, median_us}` over analyzed pages' `total_us`; `null` if no page was analyzed. Median of an even count is the arithmetic mean of the two middle values. |
+| `pdfium_library` | As in `inspect`. |
+| `pages[]` | See below. |
+
+Per page:
+
+| Field | Meaning |
+|---|---|
+| `page_index`, `page_number` | Zero-based / one-based. |
+| `width_points`, `height_points`, `source_rotation_degrees` | As in `inspect`. |
+| `pixel_width`, `pixel_height`, `pixel_count` | Of the rendered raster at the analysis DPI. |
+| `grayscale.{min,max,mean,std_dev,pixel_count}` | Computed once, over the exact buffer binarization reads. `std_dev` is the **population** standard deviation (divide by N, the appropriate convention for a full pixel population, not a sample). |
+| `threshold` | Tagged by `method`: `{"method":"otsu","threshold":128}`, `{"method":"manual","threshold":180}`, or `{"method":"sauvola","window_size":33,"k":0.2,"dynamic_range":128.0}`. Sauvola is local/adaptive — there is deliberately no single scalar threshold reported for it. |
+| `ink.{black_pixels,white_pixels,black_pixel_ratio}` | Counted on the final (post-cleanup) bilevel page. `black_pixel_ratio` is never `NaN`: a zero-pixel page is rejected as a structured error before this could divide by zero. |
+| `raw_raster_bytes_estimate` | `width * height * 3` — an estimate of the raw RGB raster's size, not a measurement of a buffer that was actually retained. |
+| `packed_bilevel_bytes` | Size of the packed (8 px/byte) bilevel raster. |
+| `ccitt_bytes`, `ccitt_bytes_per_pixel` | Present only when `--encode` was passed; CCITT Group 4 encoding is otherwise skipped as unnecessary extra work for `analyze`'s core purpose. |
+| `stage_durations` | `{render_us, grayscale_prep_us, binarization_us, cleanup_us, ccitt_encode_us?, total_us}`. `grayscale_prep_us` combines grayscale conversion, contrast, and preprocessing (they run back-to-back over one buffer with nothing else between them, so separating them would not change any decision this project makes). |
+| `warnings` | Reserved for future per-page notes; currently always empty. |
+
+A page that fails to render or process is **not** included in `pages[]` —
+it is counted in `failed_page_count` instead, and the rest of a long
+document is still analyzed. `process` has the opposite policy (any page
+failure aborts the whole conversion), because a partial output PDF is not
+a valid PDF.
+
+### `museion-binarize-process` (`process --json` / `--report`)
+
+| Field | Meaning |
+|---|---|
+| `pages_processed` | All of them — `process` does not currently support a partial `--pages` selection (see `docs/cli.md`'s narrower-scope note). |
+| `original_bytes`, `output_bytes` | Source and output PDF sizes. |
+| `elapsed_us` | Whole conversion. |
+| `page_reports[].{page_number,pixel_width,pixel_height,width_points,height_points,compressed_bytes}` | Per page. |
+| `pdfium_library` | As above. |
+
+### `museion-binarize-preview` (`preview --json`)
+
+| Field | Meaning |
+|---|---|
+| `output_path` | The PNG that was written. |
+| `page_number` | One-based. |
+| `pixel_width`, `pixel_height` | Of the written PNG. |
+
+## Error envelope
+
+Schema `museion-binarize-error`, version `1.0`:
+
+```json
+{
+  "schema": "museion-binarize-error",
+  "schema_version": "1.0",
+  "error": {
+    "code": "password_required",
+    "message": "the PDF at book.pdf is password-protected ...",
+    "context": { "input": "book.pdf" }
+  }
+}
+```
+
+`code` is a stable, machine-readable identifier — never an internal Rust
+type name or FFI detail. The full mapping from every `CoreError` variant
+to a `code` and an exit-code category lives in
+`crates/museion-binarize-cli/src/errors.rs::classify` and is documented in
+[`cli.md`](cli.md#exit-codes). `context` carries non-secret, caller-supplied
+detail such as the input path; nothing in this envelope can carry a
+password — see the test
+`error_envelope_never_contains_a_password_even_with_context`.
+
+## Privacy: path rendering
+
+Every report that names a source path accepts `--path-mode`:
+
+| Mode | Behaviour |
+|---|---|
+| `basename` (default) | Just the file name — a report intended to be reproducible or shared should not silently embed the local filesystem layout. |
+| `relative` | Relative to the current working directory where possible. |
+| `absolute` | Full canonicalized path. |
+| `omit` | Field is `null`. |
+
+## Sample output
+
+```bash
+$ museion-binarize analyze book.pdf --dpi 300 --method otsu --json --pretty
+```
+
+```json
+{
+  "schema": "museion-binarize-analysis",
+  "schema_version": "1.0",
+  "tool": { "name": "Museion Binarize", "version": "0.1.0" },
+  "result": {
+    "source_path": "book.pdf",
+    "source_bytes": 1321,
+    "page_count": 3,
+    "analyzed_page_count": 3,
+    "failed_page_count": 0,
+    "total_visible_area_points2": 1002305.0,
+    "dpi": 300,
+    "method": "otsu",
+    "total_duration_us": 842103,
+    "page_duration": { "min_us": 210044, "max_us": 320511, "mean_us": 280701.0, "median_us": 311548.0 },
+    "pdfium_library": "/usr/local/lib/libpdfium.dylib (explicit path)",
+    "pages": [
+      {
+        "page_index": 0,
+        "page_number": 1,
+        "width_points": 595.0,
+        "height_points": 842.0,
+        "source_rotation_degrees": 0,
+        "pixel_width": 2479,
+        "pixel_height": 3508,
+        "pixel_count": 8695532,
+        "grayscale": { "min": 12, "max": 250, "mean": 231.4, "std_dev": 48.2, "pixel_count": 8695532 },
+        "threshold": { "method": "otsu", "threshold": 128 },
+        "ink": { "black_pixels": 1885123, "white_pixels": 6810409, "black_pixel_ratio": 0.2168 },
+        "raw_raster_bytes_estimate": 26086596,
+        "packed_bilevel_bytes": 1086850,
+        "stage_durations": { "render_us": 120033, "grayscale_prep_us": 8811, "binarization_us": 4102, "cleanup_us": 0, "total_us": 132946 },
+        "warnings": []
+      }
+    ]
+  }
+}
+```
+
+(Timing values are illustrative, not golden — see Determinism above.)
+
+## No committed sample reports
+
+`test-data/synthetic/reports/` is deliberately not populated with
+committed sample JSON in this milestone: every field above that involves
+timing varies run to run, and a "golden" report file would either need
+those fields stripped (adding a second, undocumented report shape) or
+would be silently stale the first time it was regenerated. The schemas
+and worked example above serve the same documentation purpose without
+that risk.

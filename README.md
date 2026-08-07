@@ -5,8 +5,11 @@ English | [简体中文](README.zh-CN.md)
 **Museion Binarize** is an open-source, cross-platform application for
 converting scanned scholarly books into clean and compact bilevel PDFs.
 
-**Status: Phase 1 — early development.** No PDF processing is implemented
-yet. See [`docs/limitations.md`](docs/limitations.md) for what this
+**Status: Phase 1 — early development.** A complete local CLI pipeline
+exists (`inspect`, `analyze`, `process`, `preview`, with versioned JSON
+reports); the desktop GUI is not connected to it yet. End-to-end behavior
+is currently verified only on a provisioned macOS environment — see
+[`docs/limitations.md`](docs/limitations.md) for exactly what this
 repository can and cannot do today.
 
 ## Core principles
@@ -128,6 +131,10 @@ export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
 # Inspect a document: pages, geometry, rotation, render sizes
 museion-binarize inspect input.pdf
 
+# Measure a document through the real pipeline without writing an output
+# PDF — useful for choosing settings before a full conversion
+museion-binarize analyze input.pdf --dpi 300 --method otsu --json --pretty
+
 # Convert to a bilevel CCITT Group 4 PDF
 museion-binarize process input.pdf --output output.pdf \
   --method sauvola --dpi 400 --validate render-all
@@ -136,7 +143,7 @@ museion-binarize process input.pdf --output output.pdf \
 museion-binarize preview input.pdf --page 12 --output preview.png
 ```
 
-Useful options: `--method otsu|sauvola|manual`, `--threshold`, `--sauvola-k`, `--sauvola-window`, `--contrast`, `--median-denoise`, `--background-normalization`, `--despeckle off|conservative|strong`, `--overwrite`, `--pdfium-library`. Progress goes to stderr, the report to stdout.
+Useful options: `--method otsu|sauvola|manual`, `--threshold`, `--sauvola-k`, `--sauvola-window`, `--contrast`, `--median-denoise`, `--background-normalization`, `--despeckle off|conservative|strong`, `--overwrite`, `--pdfium-library`, `--pages` (`analyze` only, e.g. `1,3,8-12`), `--json`/`--pretty`/`--quiet`/`--report`. Progress goes to stderr; the result (human or `--json`) goes to stdout. See [`docs/cli.md`](docs/cli.md) for the full command surface, exit codes, and stdout/stderr contract, and [`docs/reporting.md`](docs/reporting.md) for JSON report schemas.
 
 The source file is never modified, and the destination is only written after a complete, validated document exists.
 

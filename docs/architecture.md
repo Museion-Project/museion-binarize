@@ -131,11 +131,16 @@ file sizes far smaller than color or grayscale scans.
 
 The core is designed to process one page (or a small, fixed-size window of
 pages) at a time: rasterize, threshold, encode, write, release, move to the
-next page. This keeps peak memory roughly independent of book length, which
-matters for benchmarking (see [`benchmarking.md`](benchmarking.md)) and for
-usability on modest hardware. This is a design goal for the implementation
-milestones that follow Milestone 0; it is not yet enforced by any code in
-this repository.
+next page. This keeps *per-page* memory bounded, which matters for
+benchmarking (see [`benchmarking.md`](benchmarking.md)) and for usability
+on modest hardware.
+
+This is no longer the whole story as of Milestone 3: the persistent
+document session (see [`pdf-pipeline-session.md`](pdf-pipeline-session.md))
+holds the *entire source file's bytes* in memory for the duration of an
+operation, so total memory is not O(1) in source size either. Read
+[`pdf-pipeline-session.md`](pdf-pipeline-session.md) for the honest, current
+bound rather than treating this section as up to date on its own.
 
 ## Cross-platform packaging
 
@@ -168,33 +173,55 @@ a later milestone (see [`roadmap.md`](roadmap.md)).
   examples.
 
 
-## The end-to-end PDF pipeline (Milestone 2)
+## The end-to-end PDF pipeline (Milestone 2, corrected by Milestone 3)
 
 ```
 input.pdf
   │
-  ├─ renderer.rs ........ opens the document ONCE via the PDFium boundary
-  │                        (pdfium_backend.rs), rasterizes page N at the
-  │                        requested DPI onto opaque white, in visible
-  │                        orientation
+  ├─ document_session.rs  opens the document ONCE (a real, single open —
+  │                        see below) via the PDFium boundary
+  │                        (pdfium_backend.rs), then rasterizes page N at
+  │                        the requested DPI onto opaque white, in visible
+  │                        orientation, from that same open session
   ▼
   ├─ image_pipeline.rs .. the single orchestrator: grayscale → contrast →
-  │                        preprocessing → binarization → cleanup → pack
+  │                        preprocessing → binarization → cleanup → pack,
+  │                        also producing the measurements `analyze` and
+  │                        `process` reports are built from
   ▼
   ├─ ccitt.rs ........... CCITT Group 4 encoding of the packed bilevel page
   ▼
   ├─ pdf_writer.rs ...... appends a 1-bit /CCITTFaxDecode image XObject,
-  │                        content stream, and page object
+  │                        content stream, and page object      [process]
   ▼
   ├─ pipeline.rs ........ drives the loop, drops page-N buffers before
   │                        page N+1, checks cancellation between stages,
-  │                        writes to a temporary file
+  │                        writes to a temporary file            [process]
   ▼
-  ├─ validation.rs ...... reopens the temporary file with PDFium, checks
-  │                        page count, dimensions, and that pages render
+  ├─ validation.rs ...... reopens the temporary file as its own, separate
+  │                        document session, checks page count,
+  │                        dimensions, and that pages render     [process]
   ▼
 output.pdf (atomically renamed into place only after validation passes)
 ```
+
+`analyze` follows the same rasterization and image-processing path but
+stops after `image_pipeline.rs`: it never invokes `ccitt.rs`, `pdf_writer.rs`,
+or `validation.rs` (CCITT encoding runs only if `--encode` is passed, and
+even then only to measure its output size — nothing is written).
+
+### A Milestone 2 claim this document previously got wrong
+
+Earlier revisions of this document (and Milestone 2's own module doc
+comments) claimed `renderer.rs` opened the document "ONCE." That was
+false: `PdfRenderer::render_page` actually reopened and reparsed the
+source file from disk on **every call**, once per page, because
+`PdfDocument` was believed to require a self-referential struct to persist
+across calls. Milestone 3 found that belief was wrong (see
+[`pdf-pipeline-session.md`](pdf-pipeline-session.md)) and replaced
+`renderer.rs` with `document_session.rs`'s `PdfDocumentSession`, which
+really does open the source exactly once per operation. This correction —
+not a new claim — is what makes the diagram above accurate.
 
 ### Module responsibilities
 
@@ -202,16 +229,24 @@ output.pdf (atomically renamed into place only after validation passes)
 |---|---|
 | `page_geometry.rs` | Points↔pixels, rotation semantics, safety limits. Pure arithmetic, no PDFium. |
 | `document.rs` | Museion-owned document/page/metadata types. |
+| `source_identity.rs` | What was actually opened: canonical path, byte length, modification time, opt-in content hash. |
 | `pdfium_backend.rs` | Library resolution and the process-wide PDFium session. |
-| `renderer.rs` | Museion-owned rendering abstraction over a PDFium session. |
-| `image_pipeline.rs` | The one place that defines image-processing stage order. |
+| `document_session.rs` | The persistent, single-open-per-operation document session; the `DocumentSession` trait the rest of the pipeline depends on instead of PDFium types directly. |
+| `image_pipeline.rs` | The one place that defines image-processing stage order and produces per-page measurements. |
 | `pdf_writer.rs` | Deterministic bilevel PDF construction. |
-| `pipeline.rs` | Job orchestration, progress, cancellation, temp files, atomic persist. |
+| `pipeline.rs` | `process_pdf`/`analyze_pdf` orchestration, progress, cancellation, temp files, atomic persist. |
 | `validation.rs` | Reopen-and-render verification, separate from construction. |
+| `timing.rs` | Shared stage-duration measurement, used identically by `process` and `analyze`. |
+| `analysis.rs` | Document/page analysis report types and aggregation (min/max/mean/median). |
+| `report.rs` | The versioned `ReportEnvelope`/`ErrorEnvelope` shared by every JSON report; path-rendering modes. |
+| `page_selection.rs` | Parses and validates `--pages` syntax into zero-based indices. |
 
-PDFium types never escape `pdfium_backend.rs` and `renderer.rs`. The core
-remains free of Tauri, and the CLI and (future) desktop app share exactly
-one implementation.
+PDFium types never escape `pdfium_backend.rs` and `document_session.rs`.
+The core remains free of Tauri, and the CLI and (future) desktop app share
+exactly one implementation. See [`pdf-pipeline-session.md`](pdf-pipeline-session.md)
+for the session's lifetime-safety argument and memory model, and
+[`cli.md`](cli.md)/[`reporting.md`](reporting.md) for the CLI and report
+surface built on top of it in Milestone 3.
 
 ### Deviations from the originally documented layout
 

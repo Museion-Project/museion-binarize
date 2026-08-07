@@ -1,13 +1,17 @@
 # Limitations
 
-## Current state (Milestone 2)
+## Current state (Milestone 3)
 
-Museion Binarize can now perform a complete local PDF conversion:
+Museion Binarize can perform a complete local PDF conversion and can
+analyze a PDF without converting it:
 
 ```
 input.pdf -> PDFium rasterization -> image-processing core
           -> true bilevel image -> CCITT Group 4
-          -> rebuilt 1-bit output.pdf -> reopened and validated
+          -> rebuilt 1-bit output.pdf -> reopened and validated   [process]
+
+input.pdf -> PDFium rasterization -> image-processing core
+          -> per-page/document measurements -> JSON report        [analyze]
 ```
 
 **Implemented:**
@@ -17,19 +21,33 @@ input.pdf -> PDFium rasterization -> image-processing core
 - PDF input, page inspection, and rasterization at 300 / 400 / 600 DPI;
 - bilevel PDF reconstruction as true 1-bit `/CCITTFaxDecode` image
   XObjects (see [`pdf-output.md`](pdf-output.md));
-- a minimal CLI that can `inspect`, `process`, and `preview`;
-- bounded-memory sequential page processing, cancellation, safe temporary
-  files with atomic persistence, and output validation that reopens and
-  renders the finished file.
+- a persistent, single-open-per-operation PDFium document session (see
+  [`pdf-pipeline-session.md`](pdf-pipeline-session.md)) — `inspect`,
+  `analyze`, `process`, and `preview` each open the source exactly once,
+  not once per page;
+- a full CLI: `info`, `inspect`, `analyze`, `process`, `preview`, each with
+  human-readable and versioned `--json` output (see
+  [`cli.md`](cli.md) and [`reporting.md`](reporting.md));
+- `analyze`: real rendering and binarization measurements (grayscale
+  statistics, the actual threshold selected, ink ratios, per-stage
+  timing, optional CCITT size) without writing an output PDF;
+- documented, tested exit codes and a stdout/stderr contract that keeps
+  `--json` output free of progress text or prose;
+- cancellation, safe temporary files with atomic persistence, and output
+  validation that reopens and renders the finished file.
 
 **Not implemented yet:**
 
 - **The desktop GUI is not connected to the pipeline.** It still shows a
   static screen with a disabled "Open PDF" control. Use the CLI.
-- The full CLI surface (`analyze`, JSON reports) is Milestone 3.
-- Output size estimation, the benchmarking framework, and release
-  packaging do not exist yet.
+- **`process` does not support a partial page selection** (`--pages` is
+  `analyze`-only in this milestone); see [`cli.md`](cli.md) for the
+  narrower-scope decision and rationale.
+- Output size estimation, the reproducible benchmarking framework, and
+  release packaging do not exist yet (Milestones 5–7).
 - No benchmark data or fixtures beyond synthetic generated ones.
+- No automatic, checksum-verified PDFium provisioning in CI (Milestone 7);
+  the PDFium-dependent tests remain `#[ignore]`d there.
 
 **PDFium must be supplied separately.** It is not bundled with the crate,
 not committed to this repository, and never downloaded at runtime. See
@@ -55,11 +73,21 @@ unlinked immediately before the rename, leaving a narrow window in which
 neither name exists. No cross-platform atomicity is claimed; see
 [`pdf-output.md`](pdf-output.md).
 
-**Memory.** Uncompressed page buffers are bounded — one working page at a
-time. The *compressed* output PDF is assembled in memory, so total usage
-grows with document length. The honest bound is: one uncompressed working
-page + algorithm buffers + the growing compressed output. This is not O(1)
-in page count.
+**Memory.** As of Milestone 3's persistent document session, the *entire
+source file* is held in memory for the duration of an operation (the
+open-bytes snapshot policy — see
+[`pdf-pipeline-session.md`](pdf-pipeline-session.md)), in addition to one
+uncompressed working page, algorithm buffers, and — for `process` — the
+growing compressed output PDF assembled in memory. The honest bound is:
+
+> source PDF bytes + one uncompressed working page
+> + algorithm buffers + the growing compressed output (`process` only)
+
+This is **not** O(1) in either source size or output size. Earlier
+Milestone 2 documentation described only the per-page bound because that
+milestone reopened the source file per page instead of holding it in
+memory; that design no longer exists, and this section has been corrected
+rather than left describing removed behavior.
 
 **What conversion loses.** Output pages are rasterized. Hidden OCR text
 layers, bookmarks, links, annotations, form fields, signatures, layers, and

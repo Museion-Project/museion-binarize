@@ -1,9 +1,20 @@
 # Benchmarking
 
 **Status: planned.** No benchmarking framework or benchmark data exists in
-this repository yet (Milestone 0). This document describes the intended
-reporting framework so that future benchmark work has an agreed structure
-from the start, and so no quality or preservation claim is made without it.
+this repository yet. This document describes the intended reporting
+framework so that future benchmark work has an agreed structure from the
+start, and so no quality or preservation claim is made without it.
+
+**Not to be confused with `analyze` (Milestone 3, implemented).** The
+`analyze` command (see [`cli.md`](cli.md) and [`reporting.md`](reporting.md))
+reports real per-page measurements — grayscale statistics, the actual
+threshold selected, ink pixel ratios, processing time, CCITT byte size —
+from the real pipeline. It is a diagnostic and scripting tool for choosing
+settings and finding difficult pages, not the benchmark described below: it
+has no ground truth, computes none of the fidelity metrics in this
+document (F-measure, PSNR, DRD, ...), and its numbers are not evidence of
+preservation quality on their own. A low `black_pixel_ratio` or small
+output size from `analyze` is not a quality claim.
 
 ## Purpose
 
