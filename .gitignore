@@ -27,8 +27,14 @@ yarn-error.log*
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 # PDFium binaries are supplied through a separate controlled build/fetch
-# process and must never be committed directly to the repository.
+# process and must never be committed directly to the repository. The
+# committed manifest and license texts under third_party/pdfium/ ARE
+# tracked; only the binaries themselves are ignored.
 **/vendor/pdfium/**
+/target/pdfium/
+*.dylib
+*.dll
+*.so
 
 # ---------------------------------------------------------------------------
 # macOS

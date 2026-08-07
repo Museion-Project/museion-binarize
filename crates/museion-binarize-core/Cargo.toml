@@ -15,5 +15,7 @@ name = "museion_binarize_core"
 [dependencies]
 fax = "0.3"
 image = { version = "0.25", default-features = false, features = ["png"] }
-imageproc = { version = "0.27", default-features = false }
+pdf-writer = "0.15"
+pdfium-render = { version = "0.9.3", default-features = false, features = ["pdfium_7881", "image_025", "thread_safe"] }
+tempfile = "3"
 thiserror = "2"
