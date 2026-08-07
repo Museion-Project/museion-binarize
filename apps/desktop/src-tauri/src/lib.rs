@@ -47,6 +47,7 @@ pub fn run() {
             commands::document::close_document,
             commands::document::pdfium_status,
             commands::preview::render_preview,
+            commands::estimate::start_estimate,
             commands::processing::start_processing,
             commands::processing::cancel_processing,
         ])

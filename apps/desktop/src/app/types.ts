@@ -64,6 +64,18 @@ export interface ProcessingProgress {
   fraction: number;
 }
 
+export interface PageExtreme {
+  pageNumber: number;
+  value: number;
+}
+
+export interface EstimateComparison {
+  estimatedOutputBytes: number;
+  actualOutputBytes: number;
+  absoluteErrorBytes: number;
+  relativeErrorFraction: number;
+}
+
 export interface ProcessingCompleted {
   jobId: string;
   outputPath: string;
@@ -72,6 +84,15 @@ export interface ProcessingCompleted {
   outputBytes: number;
   elapsedUs: number;
   pdfiumLibrary: string;
+  absoluteBytesSaved: number;
+  sizeReductionFraction: number | null;
+  inputToOutputRatio: number | null;
+  medianProcessingDurationUs: number;
+  overallBlackPixelRatio: number;
+  slowestPage: PageExtreme | null;
+  largestEncodedPage: PageExtreme | null;
+  smallestEncodedPage: PageExtreme | null;
+  estimateComparison: EstimateComparison | null;
 }
 
 export interface ProcessingCancelled {
@@ -94,4 +115,29 @@ export interface PdfiumStatus {
   resolved: boolean;
   description: string | null;
   error: UiError | null;
+}
+
+export interface PageSizeEstimateSample {
+  pageNumber: number;
+  rasterWidth: number;
+  rasterHeight: number;
+  blackPixelRatio: number;
+  ccittBytes: number;
+  bytesPerPixel: number;
+}
+
+export type EstimationRangeMethod = "quartiles" | "min_max";
+
+export interface EstimateResult {
+  requestId: number;
+  documentPageCount: number;
+  sampledPages: PageSizeEstimateSample[];
+  estimatedOutputBytes: number;
+  estimatedLowerBytes: number;
+  estimatedUpperBytes: number;
+  rangeMethod: EstimationRangeMethod;
+  dpi: number;
+  method: BinarizationMethod;
+  estimateTotalDurationUs: number;
+  experimental: boolean;
 }

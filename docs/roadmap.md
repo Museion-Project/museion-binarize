@@ -100,7 +100,23 @@ phase is scoped or committed to yet.
 - **Milestone 5 — Output size estimation.** Sampled output size prediction
   (clearly labelled experimental, and not to be implemented as if it were
   reliable). Basic process and analysis reports already exist as of
-  Milestone 3; see [`reporting.md`](reporting.md).
+  Milestone 3; see [`reporting.md`](reporting.md). *(Complete. Adds a
+  deterministic, evenly-spaced page sample estimated through the real
+  pipeline (no separate fast/approximate estimator), a
+  `museion-binarize-size-estimate` report schema, an `estimate` CLI
+  command reusing `analyze`/`process`'s own settings parsing, an
+  "Estimate" panel in the desktop app with caching/staleness/cancellation
+  and automatic estimate-vs-actual comparison on the next matching
+  conversion, and richer per-page/aggregate metrics plus simple
+  document-relative outlier flags on `process`'s own report. Central
+  estimate and range methodology, and why they are not called a
+  confidence interval, are documented in
+  [`size-estimation.md`](size-estimation.md). Accuracy against synthetic
+  heterogeneous/homogeneous fixtures meets the milestone's own engineering
+  thresholds (±25%/±15% at the default 8 samples) — engineering
+  acceptance thresholds, not product guarantees about any real document.
+  See [`reporting.md`](reporting.md) for the schema and
+  [`limitations.md`](limitations.md) for what the estimate is not.)*
 - **Milestone 6 — Reproducible benchmarking framework.** The metrics and
   reporting pipeline described in [`benchmarking.md`](benchmarking.md),
   runnable on non-copyrighted fixtures.

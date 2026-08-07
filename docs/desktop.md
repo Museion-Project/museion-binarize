@@ -128,6 +128,42 @@ only applies a `PREVIEW_SUCCEEDED`/`PREVIEW_FAILED` action if its
 an old request can never overwrite what a newer request already
 produced (`hooks/usePreview.ts`, `app/reducer.ts`).
 
+## Size estimation
+
+The "Estimate" panel next to the settings controls calls the same
+sampled, real-pipeline estimator described in
+[`size-estimation.md`](size-estimation.md), via a dedicated `Estimate`
+worker command that (unlike preview) is a direct request/response — an
+estimate is bounded and fast enough not to need the event-based
+progress/cancellation machinery `Process` uses.
+
+- **Manually triggered, not auto-run on every settings change.** Running
+  a real sample through the pipeline on every keystroke would make
+  settings controls feel laggy and would burn CPU nobody asked for; the
+  user clicks "Estimate" (or "Re-estimate").
+- **Never discards the last value.** `EstimateState` is a discriminated
+  union (`idle | running | ready | stale | failed`); when settings change
+  after a successful estimate, the state moves to `stale` — the previous
+  number stays visible (dimmed, labeled "Estimate outdated") instead of
+  disappearing, so the panel is never blank right when the user might
+  want it most.
+- **Never blocks Convert.** A conversion can start with no estimate ever
+  requested; the estimate is informational only.
+- **Cancellable and staleness-guarded.** Each estimate request carries a
+  monotonically increasing id, the same pattern `usePreview` established
+  for preview requests — a slow response to a superseded request can
+  never overwrite a newer one.
+- **Serialized with conversion on the one PDFium worker thread.**
+  Starting a real conversion cancels any in-flight estimate (flips its
+  shared cancellation flag) so a `Convert` click is never stuck behind an
+  estimate; an estimate cannot be started while a conversion is running.
+- **Cached by document + settings.** The backend (`AppState::
+  estimate_cache`) remembers the last successful estimate's document id
+  and settings fingerprint. If a `process` call's settings still match, the
+  resulting `ProcessingCompleted` report's `estimate_comparison` field is
+  populated automatically — the frontend does not need to thread the
+  prior estimate through itself.
+
 ## Image transfer
 
 Preview and thumbnail images cross the IPC boundary as base64-encoded

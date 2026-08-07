@@ -6,12 +6,14 @@ import { CompletionPanel } from "./components/CompletionPanel";
 import { DocumentInfo } from "./components/DocumentInfo";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ErrorPanel } from "./components/ErrorPanel";
+import { EstimatePanel } from "./components/EstimatePanel";
 import { PageSidebar } from "./components/PageSidebar";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { PreviewPane } from "./components/PreviewPane";
 import { ProcessingProgress } from "./components/ProcessingProgress";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Toolbar } from "./components/Toolbar";
+import { useEstimate } from "./hooks/useEstimate";
 import { useProcessingEvents } from "./hooks/useProcessing";
 import { usePreview } from "./hooks/usePreview";
 import { defaultOutputFileName } from "./lib/settings";
@@ -43,6 +45,12 @@ function App() {
   usePreview(
     state.kind === "ready" ? state.document : null,
     state.kind === "ready" ? state.currentPage : 1,
+    state.kind === "ready" ? state.settings : null,
+    dispatch,
+  );
+
+  const runEstimate = useEstimate(
+    state.kind === "ready" ? state.document : null,
     state.kind === "ready" ? state.settings : null,
     dispatch,
   );
@@ -268,12 +276,17 @@ function App() {
             </div>
 
             {state.kind === "ready" && (
-              <SettingsPanel
-                settings={state.settings}
-                preset={state.preset}
-                disabled={false}
-                onChange={(settings, preset) => dispatch({ type: "SET_SETTINGS", settings, preset })}
-              />
+              <div className="settings-column">
+                <SettingsPanel
+                  settings={state.settings}
+                  preset={state.preset}
+                  disabled={false}
+                  onChange={(settings, preset) =>
+                    dispatch({ type: "SET_SETTINGS", settings, preset })
+                  }
+                />
+                <EstimatePanel estimate={state.estimate} disabled={false} onEstimate={runEstimate} />
+              </div>
             )}
           </div>
         )}

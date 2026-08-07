@@ -1,8 +1,8 @@
 //! Command-line interface for Museion Binarize.
 //!
-//! `info`, `inspect`, `analyze`, `process`, `preview` — see `docs/cli.md`
-//! for the full contract: stdout/stderr behaviour, `--json` mode, and the
-//! exit-code table.
+//! `info`, `inspect`, `analyze`, `estimate`, `process`, `preview` — see
+//! `docs/cli.md` for the full contract: stdout/stderr behaviour, `--json`
+//! mode, and the exit-code table.
 
 mod cli;
 mod commands;
@@ -30,6 +30,7 @@ fn main() -> ExitCode {
         Some(Command::Info(args)) => commands::info::run(args),
         Some(Command::Inspect(args)) => commands::inspect::run(args),
         Some(Command::Analyze(args)) => commands::analyze::run(args),
+        Some(Command::Estimate(args)) => commands::estimate::run(args),
         Some(Command::Process(args)) => commands::process::run(args),
         Some(Command::Preview(args)) => commands::preview::run(args),
     }

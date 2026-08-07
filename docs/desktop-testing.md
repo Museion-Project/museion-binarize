@@ -159,3 +159,58 @@ strength of this native run together with the automated coverage above.
 If a regression is later found in any of these scenarios, update this
 document with the actual observation and reopen the relevant status
 rather than editing this record silently.
+
+## Milestone 5 additions
+
+The size-estimation feature (backend estimator, `estimate` CLI command,
+and the desktop "Estimate" panel) has automated coverage but **has not
+been exercised on a live native Tauri window** in this environment, for
+the same reason Milestone 4's own implementation could not be: this
+environment cannot open, click through, or screenshot an actual native
+window. The same verification gap already documented above for Milestone
+4 applies here — it is not a new gap, just an additional feature that
+falls into it.
+
+**What has been verified for Milestone 5:**
+
+- Backend: ordinary (non-PDFium) unit tests for deterministic sampling,
+  quartiles, mixed page-size extrapolation, container-overhead
+  measurement, cancellation, DTO round-tripping, and outlier
+  classification, plus real-PDFium-backed tests for `estimate` against
+  every binarization method, mid-run cancellation, and the two synthetic
+  accuracy fixtures (±25%/±15% thresholds) — see
+  [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md) and
+  [`size-estimation.md`](size-estimation.md) for the accuracy results.
+- Frontend: `reducer.test.ts` covers every `EstimateState` transition
+  (idle → running → ready → stale → failed, including the
+  request-id-staleness guard) as pure unit tests with no Tauri mocking
+  needed. `App.test.tsx` covers the Estimate button triggering a request,
+  the result rendering with its range and experimental label, and a
+  settings change marking a ready estimate stale without discarding the
+  previous value — all with `invoke` mocked, not a real backend.
+
+**What has not been verified:** the Estimate panel has not been clicked
+in a real native window against a real PDFium-provisioned document; the
+"cancel an in-flight estimate by starting a conversion" and "cancel an
+in-flight conversion's prior-estimate cache invalidation" interactions
+have automated coverage at the Rust level (`commands/estimate.rs`,
+`commands/processing.rs`) but not a live-GUI observation; and no new
+100-page real-document estimate-vs-actual comparison has been recorded
+(the Milestone 4 100-page baseline above predates this feature).
+
+To perform that verification, launch the real application the same way
+Milestone 4's acceptance run did:
+
+```bash
+MUSEION_PDFIUM_LIBRARY="/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib" \
+  pnpm --dir apps/desktop tauri dev
+```
+
+and work through: clicking Estimate before any settings change, changing
+a setting afterward and confirming the previous estimate stays visible
+but is labeled outdated, converting without ever requesting an estimate
+(Convert must not be blocked), and converting after a matching estimate
+to confirm the completion report's estimate-vs-actual comparison appears.
+If that is done, record the observation here in the same style as the
+Milestone 4 baseline above, rather than silently assuming this document
+already covers it.

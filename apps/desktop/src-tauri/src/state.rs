@@ -34,10 +34,32 @@ pub struct JobState {
     pub cancelled: Arc<AtomicBool>,
 }
 
+/// The most recently completed size estimate for the open document, kept
+/// only so a matching `process` call can report
+/// `ProcessingReport::estimate_comparison` automatically — never shown to
+/// the frontend directly from here (the frontend keeps its own estimate
+/// display state independently; see `docs/desktop.md`). Matched by
+/// document id and [`museion_binarize_core::estimation::settings_fingerprint`]
+/// at the moment a conversion actually starts, so a stale estimate from a
+/// different document or different settings is never compared against.
+#[derive(Clone)]
+pub struct CachedEstimate {
+    pub document_id: String,
+    pub settings_fingerprint: String,
+    pub estimated_output_bytes: u64,
+}
+
 pub struct AppState {
     pub worker: WorkerHandle,
     pub document: Mutex<Option<OpenDocumentState>>,
     pub job: Mutex<Option<JobState>>,
+    /// A cancellation flag for whichever size estimate is currently
+    /// in-flight on the worker thread, if any. A new estimate request
+    /// flips and replaces this immediately, so a superseded estimate
+    /// (settings changed again before it finished) aborts at its next
+    /// checkpoint instead of running to completion on stale settings.
+    pub estimate_job: Mutex<Option<Arc<AtomicBool>>>,
+    pub estimate_cache: Mutex<Option<CachedEstimate>>,
     next_id: AtomicU64,
 }
 
@@ -47,6 +69,8 @@ impl AppState {
             worker: WorkerHandle::spawn(),
             document: Mutex::new(None),
             job: Mutex::new(None),
+            estimate_job: Mutex::new(None),
+            estimate_cache: Mutex::new(None),
             next_id: AtomicU64::new(1),
         }
     }

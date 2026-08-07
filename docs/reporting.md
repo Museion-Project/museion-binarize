@@ -129,7 +129,76 @@ a valid PDF.
 | `original_bytes`, `output_bytes` | Source and output PDF sizes. |
 | `elapsed_us` | Whole conversion. |
 | `page_reports[].{page_number,pixel_width,pixel_height,width_points,height_points,compressed_bytes}` | Per page. |
+| `page_reports[].pixel_count`, `.black_pixel_ratio`, `.bytes_per_pixel` | Added Milestone 5; `bytes_per_pixel = compressed_bytes / pixel_count`, the same normalized quantity the size estimator uses. |
+| `page_reports[].render_duration_us`, `.processing_duration_us`, `.encoding_duration_us`, `.total_page_duration_us` | Per-page timing breakdown; `processing_duration_us` combines grayscale/contrast/preprocessing/binarization/cleanup for the same reason `analyze`'s `stage_durations` does. |
+| `page_reports[].warnings` | Simple, document-relative outlier flags (see "Outlier flags" below); omitted from JSON when empty. Never a quality judgement. |
 | `pdfium_library` | As above. |
+
+Aggregate metrics, added Milestone 5 (all additive to the `1.0` schema):
+
+| Field | Meaning |
+|---|---|
+| `absolute_bytes_saved` | `original_bytes.saturating_sub(output_bytes)` — `0`, not negative, when the output is larger than the input. |
+| `size_reduction_fraction` | `1.0 - output_bytes / original_bytes`; `0.871` means 87.1% smaller. `null` when `original_bytes` is `0`. |
+| `input_to_output_ratio` | `original_bytes / output_bytes`. `null` when `output_bytes` is `0`. Distinct from `size_reduction_fraction` — this crate always uses these two specific names for these two specific quantities, never ambiguous terms like "compression" or "efficiency." |
+| `total_pixel_count`, `total_black_pixels`, `overall_black_pixel_ratio` | Summed/derived across every processed page. |
+| `total_ccitt_bytes` | Sum of every page's `compressed_bytes`. Normally somewhat less than `output_bytes`, since the completed PDF also carries container/structural overhead (see `docs/size-estimation.md`, "Container overhead"). |
+| `mean_ccitt_bytes_per_page`, `median_ccitt_bytes_per_page`, `min_ccitt_bytes_per_page`, `max_ccitt_bytes_per_page` | Distribution of `compressed_bytes` across pages. |
+| `mean_processing_duration_us`, `median_processing_duration_us` | Distribution of per-page `processing_duration_us`. |
+| `slowest_page`, `largest_encoded_page`, `smallest_encoded_page` | `{page_number, value}` or `null`; the extremes by `total_page_duration_us` / `compressed_bytes` / `compressed_bytes` respectively. |
+| `estimate_comparison` | `{estimated_output_bytes, actual_output_bytes, absolute_error_bytes, relative_error_fraction}`, or `null`. Present only when the caller supplied a prior estimate for the same document and settings (the desktop app does this automatically when a matching estimate was requested before conversion; the CLI does not cache estimates across separate invocations). |
+
+#### Outlier flags
+
+`page_reports[].warnings` entries are simple, document-relative thresholds
+compared against the document's own median, not any absolute or
+cross-document standard:
+
+| Flag | Condition |
+|---|---|
+| `large_output` | `compressed_bytes > 2.0 x median_ccitt_bytes_per_page` |
+| `slow_processing` | `total_page_duration_us > 2.0 x median_processing_duration_us` |
+| `high_ink_ratio` | `black_pixel_ratio > median_black_pixel_ratio + 0.15` |
+| `low_ink_ratio` | `black_pixel_ratio < median_black_pixel_ratio - 0.15` |
+
+These describe *difference from the rest of this document*, nothing more.
+A flagged page may simply contain a full-page illustration or a bold
+diagram; it is not evidence of a scanning problem, and no downstream
+consumer should treat it as one.
+
+### `museion-binarize-size-estimate` (`estimate --json` / `--report`)
+
+Produced by `estimate` (CLI) and the desktop app's "Estimate" action.
+Always `experimental: true` — see `docs/size-estimation.md` for the full
+methodology, including why the central estimate uses the mean rather than
+the median, and why the range is called a "likely range" rather than a
+confidence interval.
+
+| Field | Meaning |
+|---|---|
+| `document_page_count` | Total pages in the document (sampled or not). |
+| `sampled_pages[]` | See below; only the deterministically selected sample was actually rendered. |
+| `sampled_total_encoded_bytes` | Sum of `sampled_pages[].ccitt_bytes` — a real, measured total for the sample itself, not an extrapolation. |
+| `min_bytes_per_pixel`, `mean_bytes_per_pixel`, `median_bytes_per_pixel`, `max_bytes_per_pixel` | Distribution of sampled `bytes_per_pixel`. |
+| `range_method` | `"quartiles"` (4+ samples) or `"min_max"` (fewer). |
+| `estimated_output_bytes` | Central estimate: `mean_bytes_per_pixel` extrapolated over every document page's true pixel count, plus the writer's measured PDF container overhead. |
+| `estimated_lower_bytes`, `estimated_upper_bytes` | Same extrapolation using the range method's lower/upper bound. |
+| `dpi`, `method` | Settings used, matching `analyze`'s convention. |
+| `settings_fingerprint` | Opaque stable string encoding every setting that affects output bytes; not meant to be parsed. |
+| `estimate_total_duration_us`, `mean_sample_duration_us`, `median_sample_duration_us` | Timing of the estimate itself. |
+| `pdfium_library` | As above. |
+| `experimental` | Always `true`. |
+
+Per sampled page:
+
+| Field | Meaning |
+|---|---|
+| `page_number`, `page_index` | One-based / zero-based. |
+| `width_points`, `height_points`, `raster_width`, `raster_height`, `pixel_count` | Geometry at the estimate DPI. |
+| `black_pixel_ratio` | As in `analyze`. |
+| `packed_bytes`, `ccitt_bytes` | Packed bilevel size and CCITT-encoded size, measured (not extrapolated) for this page. |
+| `bytes_per_pixel` | `ccitt_bytes / pixel_count` — the normalized quantity the whole estimate is built from. |
+| `processing_duration_us` | Time to render, binarize, and encode this one sampled page. |
 
 ### `museion-binarize-preview` (`preview --json`)
 

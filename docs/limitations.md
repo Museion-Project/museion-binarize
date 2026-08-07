@@ -1,9 +1,10 @@
 # Limitations
 
-## Current state (Milestone 4)
+## Current state (Milestone 5)
 
-Museion Binarize can perform a complete local PDF conversion and can
-analyze a PDF without converting it:
+Museion Binarize can perform a complete local PDF conversion, can analyze
+a PDF without converting it, and can produce an experimental sampled
+estimate of a conversion's output size before running it:
 
 ```
 input.pdf -> PDFium rasterization -> image-processing core
@@ -12,6 +13,10 @@ input.pdf -> PDFium rasterization -> image-processing core
 
 input.pdf -> PDFium rasterization -> image-processing core
           -> per-page/document measurements -> JSON report        [analyze]
+
+input.pdf -> deterministic page sample -> real pipeline on the sample
+          -> bytes-per-pixel extrapolation + container overhead
+          -> experimental size estimate                           [estimate]
 ```
 
 **Implemented:**
@@ -31,6 +36,12 @@ input.pdf -> PDFium rasterization -> image-processing core
 - `analyze`: real rendering and binarization measurements (grayscale
   statistics, the actual threshold selected, ink ratios, per-stage
   timing, optional CCITT size) without writing an output PDF;
+- `estimate`: an **experimental** sampled output-size estimate — real
+  rendering/binarization/CCITT-encoding of a small, deterministic page
+  sample, extrapolated to the whole document; richer per-page and
+  aggregate metrics and simple document-relative outlier flags on
+  `process`'s own report; see [`size-estimation.md`](size-estimation.md)
+  for the full methodology and its accuracy thresholds;
 - documented, tested exit codes and a stdout/stderr contract that keeps
   `--json` output free of progress text or prose;
 - cancellation, safe temporary files with atomic persistence, and output
@@ -39,20 +50,20 @@ input.pdf -> PDFium rasterization -> image-processing core
   document session, lazily-loaded page thumbnails, before/after preview
   through the real pipeline, settings and deterministic presets,
   asynchronous processing with progress events and real cancellation,
-  and structured error/completion presentation (see
-  [`desktop.md`](desktop.md)). Covered by automated tests and by native
-  macOS acceptance testing against the real running application — see
-  [`desktop-testing.md`](desktop-testing.md) for the full record,
-  including the one observed real-world processing baseline (not a
-  performance guarantee).
+  an experimental pre-conversion size estimate, and structured
+  error/completion presentation (see [`desktop.md`](desktop.md)). Covered
+  by automated tests and by native macOS acceptance testing against the
+  real running application — see [`desktop-testing.md`](desktop-testing.md)
+  for the full record, including the one observed real-world processing
+  baseline (not a performance guarantee).
 
 **Not implemented yet:**
 
 - **`process` does not support a partial page selection** (`--pages` is
   `analyze`-only in this milestone); see [`cli.md`](cli.md) for the
   narrower-scope decision and rationale.
-- Output size estimation, the reproducible benchmarking framework, and
-  release packaging do not exist yet (Milestones 5–7).
+- The reproducible benchmarking framework and release packaging do not
+  exist yet (Milestones 6–7).
 - No benchmark data or fixtures beyond synthetic generated ones.
 - No automatic, checksum-verified PDFium provisioning in CI (Milestone 7);
   the PDFium-dependent tests remain `#[ignore]`d there.
@@ -96,6 +107,17 @@ Milestone 2 documentation described only the per-page bound because that
 milestone reopened the source file per page instead of holding it in
 memory; that design no longer exists, and this section has been corrected
 rather than left describing removed behavior.
+
+**Size estimation is experimental, not a guarantee.** It is a sampled
+approximation calibrated only against synthetic fixtures (±25% for
+heterogeneous documents, ±15% for homogeneous ones, at the default 8
+samples — engineering acceptance thresholds, not product guarantees). It
+is not a statistical confidence interval, not a quality judgement about
+the source scan, and not a "best settings" recommendation — the
+estimator only reports measured numbers. A real scanned book with more
+extreme per-page variation than the synthetic fixtures can miss by more
+than these thresholds; the converted file's real size is always
+authoritative. See [`size-estimation.md`](size-estimation.md).
 
 **What conversion loses.** Output pages are rasterized. Hidden OCR text
 layers, bookmarks, links, annotations, form fields, signatures, layers, and

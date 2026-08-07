@@ -354,11 +354,16 @@ legend {
 
 /* --- Settings panel --- */
 
-.settings-panel {
+.settings-column {
   border-left: 1px solid var(--border);
   overflow-y: auto;
-  padding: 0 var(--space-4) var(--space-4);
   background-color: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-panel {
+  padding: 0 var(--space-4) var(--space-4);
 }
 
 .preset-buttons {
@@ -408,6 +413,65 @@ legend {
   width: 100%;
 }
 
+/* --- Estimate panel --- */
+
+.estimate-panel {
+  border-top: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.estimate-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.estimate-panel-title {
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.estimate-panel-header button {
+  font-size: 0.85em;
+  padding: 0.3em 0.7em;
+}
+
+.estimate-panel-status {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin: 0;
+}
+
+.estimate-panel-error {
+  color: var(--danger);
+}
+
+.estimate-summary-central {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0;
+}
+
+.estimate-summary-range {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+}
+
+.estimate-summary-meta {
+  margin: var(--space-1) 0 0;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.estimate-summary.stale .estimate-summary-central,
+.estimate-summary.stale .estimate-summary-range {
+  opacity: 0.5;
+}
+
 /* --- Status bar --- */
 
 .status-bar {
@@ -434,12 +498,39 @@ legend {
   width: 200px;
 }
 
+.status-bar-completion {
+  flex-wrap: wrap;
+}
+
 .status-bar-completion-path {
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+}
+
+.status-bar-completion-details-toggle {
+  font-size: 0.85em;
+  padding: 0.2em 0.6em;
+}
+
+.status-bar-completion-details {
+  width: 100%;
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  font-size: 0.85em;
+}
+
+.status-bar-completion-details dt {
+  color: var(--text-muted);
+}
+
+.status-bar-completion-details dd {
+  margin: 0;
 }
 
 /* --- Empty state --- */

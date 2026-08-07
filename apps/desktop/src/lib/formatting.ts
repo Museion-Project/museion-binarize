@@ -21,10 +21,3 @@ export function formatMicros(elapsedUs: number): string {
 export function formatPercent(fraction: number): string {
   return `${Math.round(fraction * 100)}%`;
 }
-
-export function formatReduction(originalBytes: number, outputBytes: number): string | null {
-  if (originalBytes === 0) return null;
-  const reduction = ((originalBytes - outputBytes) / originalBytes) * 100;
-  const sign = reduction >= 0 ? "-" : "+";
-  return `${sign}${Math.abs(reduction).toFixed(1)}%`;
-}

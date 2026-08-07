@@ -233,8 +233,9 @@ not a new claim — is what makes the diagram above accurate.
 | `pdfium_backend.rs` | Library resolution and the process-wide PDFium session. |
 | `document_session.rs` | The persistent, single-open-per-operation document session; the `DocumentSession` trait the rest of the pipeline depends on instead of PDFium types directly. |
 | `image_pipeline.rs` | The one place that defines image-processing stage order and produces per-page measurements. |
-| `pdf_writer.rs` | Deterministic bilevel PDF construction. |
-| `pipeline.rs` | `process_pdf`/`analyze_pdf` orchestration, progress, cancellation, temp files, atomic persist. |
+| `pdf_writer.rs` | Deterministic bilevel PDF construction; also measures the writer's own fixed per-page/per-document container overhead for the size estimator. |
+| `pipeline.rs` | `process_pdf`/`analyze_pdf`/`estimate_output_size` orchestration, progress, cancellation, temp files, atomic persist. |
+| `estimation.rs` | Sampled output-size estimation: deterministic sample selection, quartiles, the `SizeEstimateReport` type, settings fingerprinting, estimate/actual comparison. Pure arithmetic, no PDFium. |
 | `validation.rs` | Reopen-and-render verification, separate from construction. |
 | `timing.rs` | Shared stage-duration measurement, used identically by `process` and `analyze`. |
 | `analysis.rs` | Document/page analysis report types and aggregation (min/max/mean/median). |
