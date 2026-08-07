@@ -89,15 +89,25 @@ fails `end_to_end_conversion_preserves_polarity_and_orientation`.
 
 ### Page geometry and rotation
 
-**One strategy, applied uniformly: rotation is normalized into the
-geometry, and every output page is written upright with no `/Rotate`.**
+**One strategy, applied uniformly: geometry is stored already-visible, and
+every output page is written upright with no `/Rotate`.**
 
 PDFium renders a page in its *visible* orientation, applying the source
-`/Rotate`. The resulting raster is therefore already upright, and the
-rebuilt page uses the visible rectangle (`display_width_points` x
-`display_height_points`). The alternative — preserving the original
-rectangle plus `/Rotate` and counter-rotating the content — was rejected
-because mixing both strategies is where orientation bugs breed.
+`/Rotate`, and its reported page width and height are likewise the visible,
+post-rotation ones. `PageGeometry` stores exactly those: `width_points` and
+`height_points` are the page as the reader sees it. They are used directly
+— with no further transformation — for both the rebuilt page box and the
+raster placed on it.
+
+The source `/Rotate` is kept only as informational metadata on
+`PdfPageInfo::source_rotation`, reported to the user but never applied to
+the dimensions. Applying it again would swap the axes a second time and
+transpose every rotated page, so `PageGeometry` deliberately carries no
+rotation of its own and offers no axis-swapping accessor.
+
+The alternative — preserving the original rectangle plus `/Rotate` and
+counter-rotating the content — was rejected because mixing both strategies
+is where orientation bugs breed.
 
 Visible page dimensions are preserved within a documented 0.1 pt tolerance
 (a page size makes a round trip through `f32` points and a rounded integer
