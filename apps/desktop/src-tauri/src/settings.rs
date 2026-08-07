@@ -29,6 +29,17 @@ pub fn to_processing_settings(dto: &ProcessingSettingsDto) -> Result<ProcessingS
     if dto.background_radius.is_some() && !dto.background_normalization {
         return Err("backgroundRadius requires backgroundNormalization".to_string());
     }
+    // Mirrors the CLI's SettingsArgs::to_settings exactly: a stale
+    // threshold/Sauvola field left over from switching methods in the UI
+    // must be rejected, not silently ignored, so a malformed or
+    // inconsistent request is never accepted here only to be quietly
+    // dropped a few lines down.
+    if dto.threshold.is_some() && dto.method != "manual" {
+        return Err("threshold only applies to method \"manual\"".to_string());
+    }
+    if (dto.sauvola_k.is_some() || dto.sauvola_window_size.is_some()) && dto.method != "sauvola" {
+        return Err("sauvolaK and sauvolaWindowSize only apply to method \"sauvola\"".to_string());
+    }
 
     let defaults = SauvolaParams::default();
     let method = match dto.method.as_str() {
@@ -107,6 +118,40 @@ mod tests {
         let settings = to_processing_settings(&base()).unwrap();
         assert!(matches!(settings.method, BinarizationMethod::Otsu));
         assert!(settings.validate().is_ok());
+    }
+
+    /// Parity with the CLI's `SettingsArgs::to_settings`: a threshold left
+    /// over from a previous "manual" selection must be rejected when the
+    /// method is no longer manual, not silently ignored. This is exactly
+    /// the state the frontend would send if it forgot to clear the field
+    /// on a method switch — see `SettingsPanel.tsx`'s `updateMethod`.
+    #[test]
+    fn a_stale_threshold_is_rejected_when_the_method_is_not_manual() {
+        let mut dto = base();
+        dto.method = "otsu".to_string();
+        dto.threshold = Some(128);
+        assert!(to_processing_settings(&dto)
+            .unwrap_err()
+            .contains("threshold"));
+    }
+
+    /// Same parity guarantee for the Sauvola-only fields.
+    #[test]
+    fn stale_sauvola_fields_are_rejected_when_the_method_is_not_sauvola() {
+        let mut dto = base();
+        dto.method = "otsu".to_string();
+        dto.sauvola_k = Some(0.3);
+        assert!(to_processing_settings(&dto)
+            .unwrap_err()
+            .contains("sauvola"));
+
+        let mut dto = base();
+        dto.method = "manual".to_string();
+        dto.threshold = Some(100);
+        dto.sauvola_window_size = Some(15);
+        assert!(to_processing_settings(&dto)
+            .unwrap_err()
+            .contains("sauvola"));
     }
 
     #[test]

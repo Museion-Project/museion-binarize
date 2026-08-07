@@ -16,6 +16,20 @@ export function SettingsPanel({ settings, preset, disabled, onChange }: Settings
     onChange(next, matchingPreset(next));
   }
 
+  // The backend rejects a threshold/Sauvola field left over from a
+  // previous method selection (mirroring the CLI's own validation), so
+  // switching away from a method must clear that method's now-irrelevant
+  // fields rather than leaving a stale value the user can no longer see
+  // or edit.
+  function updateMethod(method: ProcessingSettings["method"]) {
+    update({
+      method,
+      threshold: method === "manual" ? settings.threshold : null,
+      sauvolaWindowSize: method === "sauvola" ? settings.sauvolaWindowSize : null,
+      sauvolaK: method === "sauvola" ? settings.sauvolaK : null,
+    });
+  }
+
   return (
     <section className="settings-panel" aria-label="Processing settings">
       <fieldset disabled={disabled}>
@@ -46,7 +60,7 @@ export function SettingsPanel({ settings, preset, disabled, onChange }: Settings
         <select
           id="method-select"
           value={settings.method}
-          onChange={(e) => update({ method: e.target.value as ProcessingSettings["method"] })}
+          onChange={(e) => updateMethod(e.target.value as ProcessingSettings["method"])}
         >
           <option value="otsu">Otsu</option>
           <option value="sauvola">Sauvola</option>
