@@ -8,6 +8,7 @@ Run:
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import subprocess
 import sys
@@ -186,56 +187,146 @@ class FetchPdfiumSafetyTests(unittest.TestCase):
         for asset in data["asset"]:
             self.assertNotIn("latest", asset["archive_url"].lower())
 
-    def test_safe_extract_rejects_a_path_traversal_member(self):
+    # These validate `_validate_archive_member_path` lexically — as
+    # portable archive paths, independent of the host running the test
+    # — which is exactly the property that broke the original
+    # implementation (a naive `str(path).startswith(str(dest) + "/")`
+    # host-path check) on Windows, where `Path.resolve()` yields
+    # backslash-separated paths and treats an embedded drive letter or
+    # UNC prefix as absolute regardless of what it was joined to.
+    ACCEPTED_ARCHIVE_MEMBER_NAMES = [
+        "LICENSE",
+        "lib/pdfium.dll",
+        "nested/normal/file.txt",
+    ]
+    REJECTED_ARCHIVE_MEMBER_NAMES = [
+        "../evil",
+        "../../evil",
+        "lib/../../../evil",
+        "/absolute/path",
+        "C:\\evil.dll",
+        "C:/evil.dll",
+        "\\\\server\\share\\evil.dll",
+        "lib\\..\\..\\evil.dll",
+    ]
+
+    def test_validate_archive_member_path_accepts_normal_relative_members(self):
+        for name in self.ACCEPTED_ARCHIVE_MEMBER_NAMES:
+            with self.subTest(name=name):
+                fetch_pdfium._validate_archive_member_path(name)
+
+    def test_validate_archive_member_path_rejects_every_unsafe_shape(self):
+        for name in self.REJECTED_ARCHIVE_MEMBER_NAMES:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    fetch_pdfium._validate_archive_member_path(name)
+
+    @staticmethod
+    def _build_tar(path: Path, member_names: list[str]) -> None:
+        with tarfile.open(path, "w") as tar:
+            for name in member_names:
+                data = b"payload"
+                info = tarfile.TarInfo(name=name)
+                info.size = len(data)
+                tar.addfile(info, io.BytesIO(data))
+
+    def test_safe_extract_accepts_every_normal_member_shape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            good_tar = tmp_path / "good.tar"
+            self._build_tar(good_tar, self.ACCEPTED_ARCHIVE_MEMBER_NAMES)
+
+            dest = tmp_path / "extract-dest"
+            dest.mkdir()
+            with tarfile.open(good_tar) as tar:
+                fetch_pdfium._safe_extract(tar, dest)
+            self.assertTrue((dest / "LICENSE").is_file())
+            self.assertTrue((dest / "lib" / "pdfium.dll").is_file())
+            self.assertTrue((dest / "nested" / "normal" / "file.txt").is_file())
+
+    def test_safe_extract_rejects_every_unsafe_member_shape(self):
+        for name in self.REJECTED_ARCHIVE_MEMBER_NAMES:
+            with self.subTest(name=name):
+                with tempfile.TemporaryDirectory() as tmp:
+                    tmp_path = Path(tmp)
+                    malicious_tar = tmp_path / "evil.tar"
+                    self._build_tar(malicious_tar, [name])
+
+                    dest = tmp_path / "extract-dest"
+                    dest.mkdir()
+                    with tarfile.open(malicious_tar) as tar:
+                        with self.assertRaises(SystemExit):
+                            fetch_pdfium._safe_extract(tar, dest)
+                    # Nothing must have been written outside dest even
+                    # when the unsafe member is rejected before
+                    # extraction runs.
+                    self.assertEqual(list(dest.iterdir()), [])
+
+    def test_safe_extract_rejects_a_symlink_member_even_with_a_safe_name(self):
+        # A symlink's own *name* can look perfectly safe while its
+        # *target* (linkname) escapes the destination — extraction must
+        # reject the member type outright rather than trust the name.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             malicious_tar = tmp_path / "evil.tar"
-            evil_file = tmp_path / "evil.txt"
-            evil_file.write_text("pwned")
             with tarfile.open(malicious_tar, "w") as tar:
-                tar.add(evil_file, arcname="../../../etc/evil.txt")
+                info = tarfile.TarInfo(name="safe_looking_name.dll")
+                info.type = tarfile.SYMTYPE
+                info.linkname = "../../../etc/passwd"
+                tar.addfile(info)
 
             dest = tmp_path / "extract-dest"
             dest.mkdir()
             with tarfile.open(malicious_tar) as tar:
                 with self.assertRaises(SystemExit):
                     fetch_pdfium._safe_extract(tar, dest)
+            self.assertEqual(list(dest.iterdir()), [])
 
-    def test_safe_extract_allows_a_normal_nested_member(self):
+    def test_safe_extract_rejects_a_hardlink_member_even_with_a_safe_name(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            good_tar = tmp_path / "good.tar"
-            payload = tmp_path / "payload.txt"
-            payload.write_text("fine")
-            with tarfile.open(good_tar, "w") as tar:
-                tar.add(payload, arcname="lib/payload.txt")
+            malicious_tar = tmp_path / "evil.tar"
+            with tarfile.open(malicious_tar, "w") as tar:
+                info = tarfile.TarInfo(name="safe_looking_name.dll")
+                info.type = tarfile.LNKTYPE
+                info.linkname = "../../../etc/passwd"
+                tar.addfile(info)
+
+            dest = tmp_path / "extract-dest"
+            dest.mkdir()
+            with tarfile.open(malicious_tar) as tar:
+                with self.assertRaises(SystemExit):
+                    fetch_pdfium._safe_extract(tar, dest)
+            self.assertEqual(list(dest.iterdir()), [])
+
+    def test_safe_extract_accepts_the_real_windows_pdfium_archive_shape(self):
+        # The real pdfium-win-x64.tgz archive (build 7920) contains only
+        # regular files and directories at exactly this shape: top-level
+        # files (LICENSE, VERSION, ...), the library nested one
+        # directory deep (bin/pdfium.dll), and several other nested
+        # directories (include/, include/cpp/, lib/, licenses/). None of
+        # this should ever be rejected as "escaping."
+        real_shape = [
+            "LICENSE",
+            "VERSION",
+            "args.gn",
+            "PDFiumConfig.cmake",
+            "bin/pdfium.dll",
+            "include/fpdfview.h",
+            "include/cpp/fpdf_scopers.h",
+            "lib/pdfium.dll.lib",
+            "licenses/pdfium.txt",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            good_tar = tmp_path / "pdfium-win-x64.tar"
+            self._build_tar(good_tar, real_shape)
 
             dest = tmp_path / "extract-dest"
             dest.mkdir()
             with tarfile.open(good_tar) as tar:
                 fetch_pdfium._safe_extract(tar, dest)
-            self.assertTrue((dest / "lib" / "payload.txt").is_file())
-
-    def test_safe_extract_allows_a_top_level_member(self):
-        # Regression test: a naive `str(path).startswith(str(dest) +
-        # "/")` containment check (the original implementation) breaks on
-        # Windows, where `Path.resolve()` yields backslash-separated
-        # paths, causing every extracted member — including ordinary
-        # top-level files like the archive's LICENSE — to be rejected as
-        # "escaping" the destination. `Path.is_relative_to` must be used
-        # instead, since it is separator-agnostic.
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            good_tar = tmp_path / "good.tar"
-            payload = tmp_path / "LICENSE"
-            payload.write_text("license text")
-            with tarfile.open(good_tar, "w") as tar:
-                tar.add(payload, arcname="LICENSE")
-
-            dest = tmp_path / "extract-dest"
-            dest.mkdir()
-            with tarfile.open(good_tar) as tar:
-                fetch_pdfium._safe_extract(tar, dest)
+            self.assertTrue((dest / "bin" / "pdfium.dll").is_file())
             self.assertTrue((dest / "LICENSE").is_file())
 
 

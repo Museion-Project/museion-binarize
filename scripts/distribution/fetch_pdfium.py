@@ -19,12 +19,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import shutil
 import sys
 import tarfile
 import tomllib
 import urllib.request
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = REPO_ROOT / "distribution" / "pdfium" / "manifest.toml"
@@ -118,15 +119,65 @@ def fetch_and_verify(target_triple: str, dest_root: Path) -> Path:
     return staged_library
 
 
+# A tar member name is an archive/portable path, never a native
+# filesystem path — it must never be interpreted using the *extracting*
+# host's path semantics, since e.g. "C:\evil.dll" or "\\server\share\x"
+# are meaningless (and thus harmless-looking) as POSIX paths, and
+# `Path.resolve()` on Windows treats an embedded drive letter or UNC
+# prefix as absolute, silently discarding the destination it was joined
+# to. Reject those lexically as *archive* paths, before any host
+# filesystem path object is ever constructed from untrusted input.
+_DRIVE_QUALIFIED_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_UNC_RE = re.compile(r"^[\\/]{2}")
+
+
+def _validate_archive_member_path(name: str) -> PurePosixPath:
+    """Validates `name` as a safe, relative archive path — independent of
+    the extracting host's filesystem path semantics — and returns it as
+    a clean `PurePosixPath` with no `..`/absolute/drive/UNC components.
+    Raises `ValueError` if `name` is unsafe."""
+    if not name or not name.strip():
+        raise ValueError("empty member name")
+    if _DRIVE_QUALIFIED_RE.match(name):
+        raise ValueError(f"drive-qualified Windows path: {name!r}")
+    if _UNC_RE.match(name):
+        raise ValueError(f"UNC path: {name!r}")
+    if name.startswith(("/", "\\")):
+        raise ValueError(f"absolute path: {name!r}")
+    # Treat both `/` and `\` as separators — regardless of host — so
+    # mixed-separator traversal (e.g. "lib\..\..\evil.dll") is caught
+    # the same way on every platform, not just the one whose native
+    # separator happens to match.
+    segments = [s for s in re.split(r"[\\/]+", name) if s not in ("", ".")]
+    if not segments:
+        raise ValueError(f"empty path after normalization: {name!r}")
+    if any(segment == ".." for segment in segments):
+        raise ValueError(f"parent-directory traversal: {name!r}")
+    return PurePosixPath(*segments)
+
+
 def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
     """Extracts `tar` into `dest`, rejecting any member that would escape
-    it via a `../` path or an absolute path — a tar archive is untrusted
-    input even when its own checksum has already been verified, since the
-    checksum only proves the bytes are the ones that were pinned, not
-    that those bytes are safe to extract naively."""
+    it via a `../` path, an absolute path, a Windows drive-qualified
+    path, or a UNC path — a tar archive is untrusted input even when its
+    own checksum has already been verified, since the checksum only
+    proves the bytes are the ones that were pinned, not that those bytes
+    are safe to extract naively. Also rejects symlinks and hardlinks
+    outright: the real PDFium archives contain only regular files and
+    directories, so there is no legitimate case to support, and a
+    symlink's *target* (as opposed to its own name) is a second,
+    separate escape vector this validation would otherwise miss."""
     dest_resolved = dest.resolve()
     for member in tar.getmembers():
-        member_path = (dest / member.name).resolve()
+        if member.issym() or member.islnk():
+            raise SystemExit(
+                f"error: archive member '{member.name}' is a symlink/hardlink, which is not permitted"
+            )
+        try:
+            relative_path = _validate_archive_member_path(member.name)
+        except ValueError as exc:
+            raise SystemExit(f"error: archive member '{member.name}' escapes the extraction directory ({exc})")
+        member_path = dest_resolved.joinpath(*relative_path.parts)
         if not member_path.is_relative_to(dest_resolved):
             raise SystemExit(f"error: archive member '{member.name}' escapes the extraction directory")
     tar.extractall(dest)
