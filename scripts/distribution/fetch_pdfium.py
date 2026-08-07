@@ -127,7 +127,7 @@ def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
     dest_resolved = dest.resolve()
     for member in tar.getmembers():
         member_path = (dest / member.name).resolve()
-        if not str(member_path).startswith(str(dest_resolved) + "/") and member_path != dest_resolved:
+        if not member_path.is_relative_to(dest_resolved):
             raise SystemExit(f"error: archive member '{member.name}' escapes the extraction directory")
     tar.extractall(dest)
 

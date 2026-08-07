@@ -216,6 +216,28 @@ class FetchPdfiumSafetyTests(unittest.TestCase):
                 fetch_pdfium._safe_extract(tar, dest)
             self.assertTrue((dest / "lib" / "payload.txt").is_file())
 
+    def test_safe_extract_allows_a_top_level_member(self):
+        # Regression test: a naive `str(path).startswith(str(dest) +
+        # "/")` containment check (the original implementation) breaks on
+        # Windows, where `Path.resolve()` yields backslash-separated
+        # paths, causing every extracted member — including ordinary
+        # top-level files like the archive's LICENSE — to be rejected as
+        # "escaping" the destination. `Path.is_relative_to` must be used
+        # instead, since it is separator-agnostic.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            good_tar = tmp_path / "good.tar"
+            payload = tmp_path / "LICENSE"
+            payload.write_text("license text")
+            with tarfile.open(good_tar, "w") as tar:
+                tar.add(payload, arcname="LICENSE")
+
+            dest = tmp_path / "extract-dest"
+            dest.mkdir()
+            with tarfile.open(good_tar) as tar:
+                fetch_pdfium._safe_extract(tar, dest)
+            self.assertTrue((dest / "LICENSE").is_file())
+
 
 class TauriResourceConfigTests(unittest.TestCase):
     """Regression coverage for the ordinary-vs-distribution Tauri config
