@@ -13,6 +13,7 @@
 use serde::{Deserialize, Serialize};
 
 use museion_binarize_core::document::PdfDocumentInfo;
+use museion_binarize_core::estimation::{PageSizeEstimateSample, SizeEstimateReport};
 use museion_binarize_core::pipeline::ProcessingReport;
 
 /// One page's geometry, as reported after a document opens.
@@ -182,6 +183,22 @@ pub struct ProcessingProgressDto {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PageExtremeDto {
+    pub page_number: u32,
+    pub value: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EstimateComparisonDto {
+    pub estimated_output_bytes: u64,
+    pub actual_output_bytes: u64,
+    pub absolute_error_bytes: u64,
+    pub relative_error_fraction: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProcessingCompletedDto {
     pub job_id: String,
     pub output_path: String,
@@ -190,6 +207,23 @@ pub struct ProcessingCompletedDto {
     pub output_bytes: u64,
     pub elapsed_us: u64,
     pub pdfium_library: String,
+
+    // Primary-summary metrics (docs/desktop.md, "GUI completion improvements").
+    pub absolute_bytes_saved: u64,
+    pub size_reduction_fraction: Option<f64>,
+    pub input_to_output_ratio: Option<f64>,
+
+    // Advanced/expandable-details metrics.
+    pub median_processing_duration_us: f64,
+    pub overall_black_pixel_ratio: f64,
+    pub slowest_page: Option<PageExtremeDto>,
+    pub largest_encoded_page: Option<PageExtremeDto>,
+    pub smallest_encoded_page: Option<PageExtremeDto>,
+
+    /// Present only when this conversion's settings matched a prior
+    /// estimate for the same document — see `state::CachedEstimate`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub estimate_comparison: Option<EstimateComparisonDto>,
 }
 
 impl ProcessingCompletedDto {
@@ -202,6 +236,29 @@ impl ProcessingCompletedDto {
             output_bytes: report.output_bytes,
             elapsed_us: report.elapsed_us,
             pdfium_library: report.pdfium_library.clone(),
+            absolute_bytes_saved: report.absolute_bytes_saved,
+            size_reduction_fraction: report.size_reduction_fraction,
+            input_to_output_ratio: report.input_to_output_ratio,
+            median_processing_duration_us: report.median_processing_duration_us,
+            overall_black_pixel_ratio: report.overall_black_pixel_ratio,
+            slowest_page: report.slowest_page.map(|p| PageExtremeDto {
+                page_number: p.page_number,
+                value: p.value,
+            }),
+            largest_encoded_page: report.largest_encoded_page.map(|p| PageExtremeDto {
+                page_number: p.page_number,
+                value: p.value,
+            }),
+            smallest_encoded_page: report.smallest_encoded_page.map(|p| PageExtremeDto {
+                page_number: p.page_number,
+                value: p.value,
+            }),
+            estimate_comparison: report.estimate_comparison.map(|c| EstimateComparisonDto {
+                estimated_output_bytes: c.estimated_output_bytes,
+                actual_output_bytes: c.actual_output_bytes,
+                absolute_error_bytes: c.absolute_error_bytes,
+                relative_error_fraction: c.relative_error_fraction,
+            }),
         }
     }
 }
@@ -241,4 +298,90 @@ pub struct PdfiumStatusDto {
     pub resolved: bool,
     pub description: Option<String>,
     pub error: Option<UiErrorDto>,
+}
+
+/// A request to estimate the converted output's size — see
+/// `docs/size-estimation.md`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EstimateRequestDto {
+    pub document_id: String,
+    pub settings: ProcessingSettingsDto,
+    /// How many pages to sample. Validated and clamped server-side by
+    /// `museion_binarize_core::estimation::resolve_sample_count` —
+    /// exactly the same bounds the CLI's `estimate --samples` enforces.
+    pub samples: u32,
+    /// A generation id the frontend assigns and increments per request,
+    /// echoed back so a response to a superseded request can be
+    /// discarded — the same pattern `PreviewRequestDto::request_id` uses.
+    pub request_id: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PageSizeEstimateSampleDto {
+    pub page_number: u32,
+    pub raster_width: u32,
+    pub raster_height: u32,
+    pub black_pixel_ratio: f64,
+    pub ccitt_bytes: u64,
+    pub bytes_per_pixel: f64,
+}
+
+impl From<&PageSizeEstimateSample> for PageSizeEstimateSampleDto {
+    fn from(sample: &PageSizeEstimateSample) -> Self {
+        Self {
+            page_number: sample.page_number,
+            raster_width: sample.raster_width,
+            raster_height: sample.raster_height,
+            black_pixel_ratio: sample.black_pixel_ratio,
+            ccitt_bytes: sample.ccitt_bytes,
+            bytes_per_pixel: sample.bytes_per_pixel,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EstimateResultDto {
+    pub request_id: u64,
+    pub document_page_count: u32,
+    pub sampled_pages: Vec<PageSizeEstimateSampleDto>,
+    pub estimated_output_bytes: u64,
+    pub estimated_lower_bytes: u64,
+    pub estimated_upper_bytes: u64,
+    /// `"quartiles"` or `"min_max"` — see `docs/size-estimation.md` for
+    /// why the range is never called a confidence interval.
+    pub range_method: String,
+    pub dpi: u16,
+    pub method: String,
+    pub estimate_total_duration_us: u64,
+    /// Always `true`. Carried in the data itself, not only implied by
+    /// which command produced it.
+    pub experimental: bool,
+}
+
+impl EstimateResultDto {
+    pub fn build(request_id: u64, report: &SizeEstimateReport) -> Self {
+        Self {
+            request_id,
+            document_page_count: report.document_page_count,
+            sampled_pages: report.sampled_pages.iter().map(Into::into).collect(),
+            estimated_output_bytes: report.estimated_output_bytes,
+            estimated_lower_bytes: report.estimated_lower_bytes,
+            estimated_upper_bytes: report.estimated_upper_bytes,
+            range_method: match report.range_method {
+                museion_binarize_core::estimation::EstimationRangeMethod::Quartiles => {
+                    "quartiles".to_string()
+                }
+                museion_binarize_core::estimation::EstimationRangeMethod::MinMax => {
+                    "min_max".to_string()
+                }
+            },
+            dpi: report.dpi,
+            method: report.method.clone(),
+            estimate_total_duration_us: report.estimate_total_duration_us,
+            experimental: report.experimental,
+        }
+    }
 }

@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use museion_binarize_core::pipeline::PriorEstimate;
 use museion_binarize_core::progress::{ProcessingStage, ProgressEvent, ProgressReporter};
 
 use crate::dto::{
@@ -99,6 +100,30 @@ pub async fn start_processing(
             }
         };
 
+        // A conversion always wins over an in-flight estimate: flip its
+        // cancellation flag so it aborts at its next checkpoint instead
+        // of occupying the serialized worker thread while the far more
+        // important conversion waits behind it.
+        if let Some(estimate_cancel) = state.estimate_job.lock().unwrap().take() {
+            estimate_cancel.store(true, Ordering::SeqCst);
+        }
+
+        let prior_estimate = state
+            .estimate_cache
+            .lock()
+            .unwrap()
+            .as_ref()
+            .and_then(|cached| {
+                let fingerprint =
+                    museion_binarize_core::estimation::settings_fingerprint(&settings);
+                (cached.document_id == request.document_id
+                    && cached.settings_fingerprint == fingerprint)
+                    .then(|| PriorEstimate {
+                        estimated_output_bytes: cached.estimated_output_bytes,
+                        settings_fingerprint: cached.settings_fingerprint.clone(),
+                    })
+            });
+
         let output = PathBuf::from(&request.output_path);
         let reporter = Box::new(TauriProgressReporter::new(
             app.clone(),
@@ -112,6 +137,7 @@ pub async fn start_processing(
             output: output.clone(),
             settings,
             overwrite: request.overwrite,
+            prior_estimate,
             progress: reporter,
             reply: reply_tx,
         });

@@ -24,9 +24,12 @@ use std::thread;
 use museion_binarize_core::document::PdfDocumentInfo;
 use museion_binarize_core::document_session::{PdfDocumentSession, PdfOpenOptions};
 use museion_binarize_core::error::{CoreError, Result as CoreResult};
+use museion_binarize_core::estimation::SizeEstimateReport;
 use museion_binarize_core::image_pipeline::process_rendered_page;
 use museion_binarize_core::pdfium_backend::PdfiumConfig;
-use museion_binarize_core::pipeline::{self, PdfProcessingOptions, ProcessingReport};
+use museion_binarize_core::pipeline::{
+    self, EstimationOptions, PdfProcessingOptions, ProcessingReport,
+};
 use museion_binarize_core::progress::ProgressReporter;
 use museion_binarize_core::settings::ProcessingSettings;
 
@@ -70,8 +73,18 @@ pub enum WorkerCommand {
         output: PathBuf,
         settings: ProcessingSettings,
         overwrite: bool,
+        prior_estimate: Option<pipeline::PriorEstimate>,
         progress: Box<dyn ProgressReporter>,
         reply: Reply<ProcessingReport>,
+    },
+    /// Renders, processes, and CCITT-encodes a deterministic sample of
+    /// pages to estimate the converted output's size — never writes or
+    /// validates an output PDF. See `docs/size-estimation.md`.
+    Estimate {
+        settings: ProcessingSettings,
+        samples: u32,
+        progress: Box<dyn ProgressReporter>,
+        reply: Reply<SizeEstimateReport>,
     },
 }
 
@@ -161,6 +174,7 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>) {
                 output,
                 settings,
                 overwrite,
+                prior_estimate,
                 progress,
                 reply,
             } => {
@@ -169,8 +183,18 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>) {
                     &output,
                     &settings,
                     overwrite,
+                    prior_estimate,
                     progress.as_ref(),
                 );
+                let _ = reply.send(result);
+            }
+            WorkerCommand::Estimate {
+                settings,
+                samples,
+                progress,
+                reply,
+            } => {
+                let result = estimate(session.as_ref(), &settings, samples, progress.as_ref());
                 let _ = reply.send(result);
             }
         }
@@ -230,6 +254,7 @@ fn process(
     output: &std::path::Path,
     settings: &ProcessingSettings,
     overwrite: bool,
+    prior_estimate: Option<pipeline::PriorEstimate>,
     progress: &dyn ProgressReporter,
 ) -> CoreResult<ProcessingReport> {
     let session = session.ok_or_else(no_open_document)?;
@@ -238,8 +263,24 @@ fn process(
         overwrite,
         validation: museion_binarize_core::validation::ValidationMode::default(),
         pdfium: pdfium_config(),
+        prior_estimate,
     };
     pipeline::process_with_open_session(session, output, settings, &options, progress)
+}
+
+fn estimate(
+    session: Option<&PdfDocumentSession>,
+    settings: &ProcessingSettings,
+    samples: u32,
+    progress: &dyn ProgressReporter,
+) -> CoreResult<SizeEstimateReport> {
+    let session = session.ok_or_else(no_open_document)?;
+    let options = EstimationOptions {
+        password: None,
+        pdfium: pdfium_config(),
+        samples,
+    };
+    pipeline::estimate_with_open_session(session, settings, &options, progress)
 }
 
 fn no_open_document() -> CoreError {
