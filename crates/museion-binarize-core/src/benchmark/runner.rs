@@ -205,10 +205,23 @@ fn aggregate_pages(pages: &[&PageBenchmarkResult]) -> AggregateMetrics {
         true_negative: 0,
     };
     for p in pages {
-        total_confusion.true_positive += p.f_measure.confusion.true_positive;
-        total_confusion.false_positive += p.f_measure.confusion.false_positive;
-        total_confusion.false_negative += p.f_measure.confusion.false_negative;
-        total_confusion.true_negative += p.f_measure.confusion.true_negative;
+        // Saturating, not wrapping: cross-page confusion totals stay
+        // bounded well under u64::MAX given this crate's dataset/image
+        // size limits (see `benchmark::limits`), but a silent wraparound
+        // would be a worse failure mode than an inflated-but-safe
+        // saturated total.
+        total_confusion.true_positive = total_confusion
+            .true_positive
+            .saturating_add(p.f_measure.confusion.true_positive);
+        total_confusion.false_positive = total_confusion
+            .false_positive
+            .saturating_add(p.f_measure.confusion.false_positive);
+        total_confusion.false_negative = total_confusion
+            .false_negative
+            .saturating_add(p.f_measure.confusion.false_negative);
+        total_confusion.true_negative = total_confusion
+            .true_negative
+            .saturating_add(p.f_measure.confusion.true_negative);
     }
     let micro_f1 = metrics::f_measure(&total_confusion).f1;
 
@@ -310,10 +323,18 @@ fn aggregate_fmeasure_triples(items: &[(FMeasureReport, Psnr, f64)]) -> Aggregat
         true_negative: 0,
     };
     for (f, _, _) in items {
-        total_confusion.true_positive += f.confusion.true_positive;
-        total_confusion.false_positive += f.confusion.false_positive;
-        total_confusion.false_negative += f.confusion.false_negative;
-        total_confusion.true_negative += f.confusion.true_negative;
+        total_confusion.true_positive = total_confusion
+            .true_positive
+            .saturating_add(f.confusion.true_positive);
+        total_confusion.false_positive = total_confusion
+            .false_positive
+            .saturating_add(f.confusion.false_positive);
+        total_confusion.false_negative = total_confusion
+            .false_negative
+            .saturating_add(f.confusion.false_negative);
+        total_confusion.true_negative = total_confusion
+            .true_negative
+            .saturating_add(f.confusion.true_negative);
     }
     let micro_f1 = metrics::f_measure(&total_confusion).f1;
 
