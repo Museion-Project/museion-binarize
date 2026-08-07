@@ -1,0 +1,252 @@
+name: Build distribution artifacts
+
+# Manual only — this workflow NEVER runs on push/PR, and never publishes
+# a GitHub Release itself. It builds and packages artifacts, uploads them
+# as workflow run artifacts (private to the repository, not public
+# downloads), and stops there. Publishing a Release from these artifacts
+# is a deliberate separate step for a human to take — see
+# docs/releasing.md, "Publication is a separate deliberate step."
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Comma-separated targets to build (default: all four)"
+        required: false
+        default: "aarch64-apple-darwin,x86_64-apple-darwin,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version-check:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/distribution/check_version_consistency.py
+      - run: python3 scripts/distribution/test_distribution.py
+
+  macos:
+    name: macOS (${{ matrix.target }})
+    needs: version-check
+    if: contains(github.event.inputs.targets, matrix.target)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-apple-darwin
+            runner: macos-13
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch and verify pinned PDFium
+        run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
+
+      - name: Stage PDFium for Tauri bundling
+        run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+
+      - name: Build CLI (release)
+        run: cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
+
+      - name: Package CLI archive
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          python3 scripts/distribution/package_cli.py \
+            --target-triple ${{ matrix.target }} \
+            --binary target/${{ matrix.target }}/release/museion-binarize \
+            --pdfium-library target/distribution/pdfium/${{ matrix.target }}/libpdfium.dylib \
+            --version "$VERSION" \
+            --out-dir dist-out
+
+      - name: Build desktop app (.app + .dmg)
+        working-directory: apps/desktop
+        run: pnpm tauri build --target ${{ matrix.target }}
+
+      # Signing/notarization run only when the required secrets are
+      # configured (Developer ID cert + Apple API credentials). See
+      # docs/releasing.md, "Signing and notarization," for the exact
+      # secret names and why an unsigned build still produces a useful
+      # architecture-validation artifact on its own.
+      - name: Sign and notarize (conditional on credentials)
+        if: env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          echo "Signing/notarization integration point — not yet exercised in this workflow."
+          echo "See docs/releasing.md for the intended flow once credentials are provisioned."
+
+      - name: Collect and rename artifacts
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          python3 - "$VERSION" "${{ matrix.target }}" <<'PYEOF'
+          import shutil, sys
+          from pathlib import Path
+          sys.path.insert(0, "scripts/distribution")
+          import naming
+          version, target = sys.argv[1], sys.argv[2]
+          out = Path("dist-out")
+          out.mkdir(exist_ok=True)
+          dmg_dir = Path(f"target/{target}/release/bundle/dmg")
+          for dmg in dmg_dir.glob("*.dmg"):
+              dest = out / naming.desktop_artifact_name(version, target, "dmg")
+              shutil.copy2(dmg, dest)
+              print(f"copied {dmg} -> {dest}")
+          PYEOF
+
+      - name: Inspect bundled dependency architecture
+        run: |
+          set -e
+          APP=$(find target/${{ matrix.target }}/release/bundle/macos -maxdepth 1 -name "*.app" | head -1)
+          LIB="$APP/Contents/Resources/libpdfium.dylib"
+          test -f "$LIB" || { echo "::error::bundled PDFium library missing at $LIB"; exit 1; }
+          file "$LIB"
+          APP_ARCH=$(file "$APP/Contents/MacOS/"* | grep -o 'arm64\|x86_64' | head -1)
+          LIB_ARCH=$(file "$LIB" | grep -o 'arm64\|x86_64' | head -1)
+          if [ "$APP_ARCH" != "$LIB_ARCH" ]; then
+            echo "::error::architecture mismatch: app=$APP_ARCH pdfium=$LIB_ARCH"
+            exit 1
+          fi
+          echo "architecture OK: $APP_ARCH"
+
+      - name: Generate checksums and release manifest
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          PDFIUM_SHA=$(python3 -c "
+          import tomllib
+          m = tomllib.load(open('distribution/pdfium/manifest.toml','rb'))
+          for a in m['asset']:
+              if a['target_triple'] == '${{ matrix.target }}':
+                  print(a['library_sha256'])
+          ")
+          for f in dist-out/*; do
+            python3 scripts/distribution/release_manifest.py add \
+              --manifest dist-out/release-manifest.json \
+              --project-version "$VERSION" --git-sha "${{ github.sha }}" \
+              --target-triple ${{ matrix.target }} --os macos --arch "$(echo ${{ matrix.target }} | cut -d- -f1)" \
+              --artifact-filename "$(basename "$f")" \
+              --artifact-path "$f" \
+              --pdfium-build 7920 --pdfium-version 151.0.7920.0 \
+              --pdfium-sha256 "$PDFIUM_SHA" \
+              --signing-state unsigned --notarization-state not_applicable \
+              --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
+          done
+          python3 scripts/distribution/checksums.py dist-out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: museion-binarize-${{ matrix.target }}
+          path: dist-out/
+          retention-days: 14
+
+  windows:
+    name: Windows (${{ matrix.target }})
+    needs: version-check
+    if: contains(github.event.inputs.targets, matrix.target)
+    strategy:
+      matrix:
+        target: [x86_64-pc-windows-msvc]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+      - name: Fetch and verify pinned PDFium
+        run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
+      - name: Stage PDFium for Tauri bundling
+        run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      - name: Build desktop app (MSI)
+        working-directory: apps/desktop
+        run: pnpm tauri build --target ${{ matrix.target }}
+      - name: Build and package CLI
+        run: |
+          cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
+          $VERSION = (Get-Content Cargo.toml | Select-String '^version = "(.*)"' -Context 0,0 | Select-Object -First 1)
+          python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])" > version.txt
+          $VERSION = (Get-Content version.txt).Trim()
+          python3 scripts/distribution/package_cli.py --target-triple ${{ matrix.target }} --binary target/${{ matrix.target }}/release/museion-binarize.exe --pdfium-library target/distribution/pdfium/${{ matrix.target }}/pdfium.dll --version $VERSION --out-dir dist-out
+      - name: Checksums
+        run: python3 scripts/distribution/checksums.py dist-out
+      # Authenticode signing is not required for this architecture to be
+      # complete — see docs/releasing.md, "Windows signing." No
+      # certificate is configured; the package below is unsigned.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: museion-binarize-${{ matrix.target }}
+          path: dist-out/
+          retention-days: 14
+
+  linux:
+    name: Linux (${{ matrix.target }})
+    needs: version-check
+    if: contains(github.event.inputs.targets, matrix.target)
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - name: Install Tauri Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf file
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+      - name: Fetch and verify pinned PDFium
+        run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
+      - name: Stage PDFium for Tauri bundling
+        run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      - name: Build desktop app (AppImage, deb)
+        working-directory: apps/desktop
+        run: pnpm tauri build --target ${{ matrix.target }}
+      - name: Build and package CLI
+        run: |
+          cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          python3 scripts/distribution/package_cli.py \
+            --target-triple ${{ matrix.target }} \
+            --binary target/${{ matrix.target }}/release/museion-binarize \
+            --pdfium-library target/distribution/pdfium/${{ matrix.target }}/libpdfium.so \
+            --version "$VERSION" \
+            --out-dir dist-out
+      - name: Checksums
+        run: python3 scripts/distribution/checksums.py dist-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: museion-binarize-${{ matrix.target }}
+          path: dist-out/
+          retention-days: 14

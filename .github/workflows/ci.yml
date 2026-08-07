@@ -77,6 +77,21 @@ jobs:
         with:
           command: check
 
+  version-consistency:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check version consistency
+        # A release must never accidentally contain, e.g., CLI 0.1.0
+        # alongside desktop package.json 0.1.1 — see docs/releasing.md.
+        run: python3 scripts/distribution/check_version_consistency.py
+
+      - name: Distribution scripts unit tests
+        run: python3 scripts/distribution/test_distribution.py
+
   frontend:
     name: Frontend (lint, typecheck, test, build)
     runs-on: ubuntu-latest
