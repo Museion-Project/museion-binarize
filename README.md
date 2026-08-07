@@ -6,12 +6,16 @@ English | [简体中文](README.zh-CN.md)
 converting scanned scholarly books into clean and compact bilevel PDFs.
 
 **Status: Phase 1 — early development.** A complete local CLI pipeline
-exists (`inspect`, `analyze`, `process`, `preview`, with versioned JSON
-reports), and the desktop GUI is now wired to the same pipeline (open,
-preview, configure, convert, cancel — see [`docs/desktop.md`](docs/desktop.md)).
-End-to-end behavior is currently verified only on a provisioned macOS
-environment; see [`docs/desktop-testing.md`](docs/desktop-testing.md) for
-the native desktop acceptance record. See
+exists (`inspect`, `analyze`, `estimate`, `process`, `preview`, with
+versioned JSON reports), and the desktop GUI is now wired to the same
+pipeline (open, preview, configure, an experimental size estimate,
+convert, cancel — see [`docs/desktop.md`](docs/desktop.md)). `estimate`
+produces an experimental, sampled output-size prediction — see
+[`docs/size-estimation.md`](docs/size-estimation.md); it is not a
+guarantee. End-to-end behavior is currently verified only on a
+provisioned macOS environment; see
+[`docs/desktop-testing.md`](docs/desktop-testing.md) for the native
+desktop acceptance record. See
 [`docs/limitations.md`](docs/limitations.md) for exactly what this
 repository can and cannot do today.
 
@@ -137,6 +141,10 @@ museion-binarize inspect input.pdf
 # Measure a document through the real pipeline without writing an output
 # PDF — useful for choosing settings before a full conversion
 museion-binarize analyze input.pdf --dpi 300 --method otsu --json --pretty
+
+# Sample a handful of pages through the real pipeline and extrapolate an
+# experimental output-size estimate, without a full conversion
+museion-binarize estimate input.pdf --dpi 400 --method sauvola --samples 8
 
 # Convert to a bilevel CCITT Group 4 PDF
 museion-binarize process input.pdf --output output.pdf \
