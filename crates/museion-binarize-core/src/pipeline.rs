@@ -257,7 +257,7 @@ pub fn process_with_open_session(
         options,
         progress,
         started,
-        |path, expected, mode, pdfium| validation::validate_output(path, expected, mode, pdfium),
+        validation::validate_output,
     )
 }
 
