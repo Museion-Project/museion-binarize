@@ -29,6 +29,9 @@ pub enum Command {
     /// Render and measure a PDF through the real pipeline, without
     /// writing an output PDF.
     Analyze(AnalyzeArgs),
+    /// Estimate output size by processing a deterministic sample of
+    /// pages. Experimental; does not write a converted PDF.
+    Estimate(EstimateArgs),
     /// Convert a PDF into a bilevel CCITT Group 4 PDF.
     Process(ProcessArgs),
     /// Render and process one page, saving a PNG preview.
@@ -146,6 +149,39 @@ pub struct AnalyzeArgs {
     /// Write the analysis report to this path (in addition to any
     /// stdout output), atomically, refusing to overwrite unless
     /// `--overwrite` is also given.
+    #[arg(long)]
+    pub report: Option<PathBuf>,
+    #[arg(long)]
+    pub overwrite: bool,
+
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+}
+
+#[derive(Args)]
+pub struct EstimateArgs {
+    /// Input PDF.
+    pub input: PathBuf,
+
+    #[command(flatten)]
+    pub settings: SettingsArgs,
+
+    /// How many pages to sample. Clamped to the document's actual page
+    /// count when it has fewer pages than this; otherwise validated
+    /// against a documented minimum and maximum (see docs/cli.md).
+    #[arg(long, default_value_t = museion_binarize_core::estimation::DEFAULT_SAMPLE_COUNT)]
+    pub samples: u32,
+
+    #[command(flatten)]
+    pub output: OutputArgs,
+    /// How the source path is rendered in a JSON report.
+    #[arg(long, value_enum, default_value_t = PathModeArg::Basename)]
+    pub path_mode: PathModeArg,
+    /// Write the estimate report to this path (in addition to any
+    /// stdout output), atomically, refusing to overwrite unless
+    /// `--overwrite` is also given. Rejected if it would alias `input`
+    /// — including a not-yet-existing path spelled differently, the same
+    /// normalization the M3 review added for `process --report`.
     #[arg(long)]
     pub report: Option<PathBuf>,
     #[arg(long)]
