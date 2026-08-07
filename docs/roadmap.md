@@ -49,11 +49,29 @@ phase is scoped or committed to yet.
   deterministic 1-bit CCITT Group 4 PDF reconstruction, bounded-memory
   sequential processing, cancellation, temporary-file and atomic
   persistence, output validation, and enough CLI wiring (`inspect`,
-  `process`, `preview`) to exercise and verify it. *(Complete; verified on
-  Apple Silicon macOS only — see [`limitations.md`](limitations.md).)*
+  `process`, `preview`) to exercise and verify it. *(Complete; end-to-end
+  behaviour verified only on a provisioned Apple Silicon macOS environment
+  — CI runs the PDFium tests as ignored and verifies nothing about the
+  pipeline. See [`limitations.md`](limitations.md) and
+  [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).)*
 - **Milestone 3 — CLI feature completeness and analysis commands.** The
   full command surface, including `analyze` and machine-readable JSON
   reports, suitable for scripting and benchmarking.
+
+  Also scoped into this milestone: **a persistent PDFium document
+  session.** `PdfRenderer` currently reopens and reparses the source file
+  on every `render_page` call, because `PdfDocument` borrows from the
+  `Pdfium` session and holding one in the struct would be
+  self-referential. Two consequences to address:
+  * *Performance* — one full document parse per page, which grows with
+    page count on exactly the long scanned books this tool targets.
+  * *Correctness under mutation* — the file is reopened repeatedly, so a
+    source modified mid-run would be picked up partway through
+    (time-of-check/time-of-use). Deciding the intended behaviour (reject,
+    detect, or tolerate) is part of this work.
+
+  Neither is a defect in Milestone 2's output for an unchanging input
+  file, which is why it was deliberately deferred rather than rushed.
 - **Milestone 4 — Desktop GUI feature completeness.** Wire the same
   pipeline into the Tauri desktop app: file selection, thumbnails,
   before/after preview, parameter controls, presets, progress, and

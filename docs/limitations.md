@@ -41,6 +41,20 @@ PDFium binary. Windows and Linux are unverified at runtime. The project
 does not claim working support for all three operating systems merely
 because the Rust code compiles.
 
+**CI does not verify the PDF pipeline.** GitHub-hosted runners have no
+PDFium, so every end-to-end integration test is reported as *ignored*
+there. A green CI run means the code compiles, is formatted, passes
+clippy, passes the PDFium-independent unit tests, and satisfies
+`cargo-deny` — it says nothing about whether a PDF can actually be
+converted. That evidence currently comes only from a provisioned local
+macOS run; see [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).
+
+**Output replacement atomicity.** On Unix and macOS, replacing an existing
+output is a single atomic `rename(2)`. On Windows the old file must be
+unlinked immediately before the rename, leaving a narrow window in which
+neither name exists. No cross-platform atomicity is claimed; see
+[`pdf-output.md`](pdf-output.md).
+
 **Memory.** Uncompressed page buffers are bounded — one working page at a
 time. The *compressed* output PDF is assembled in memory, so total usage
 grows with document length. The honest bound is: one uncompressed working

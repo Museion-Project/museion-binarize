@@ -22,6 +22,15 @@ In order:
 Options 1 and 2 are exact. If the file you named is missing, the run fails
 and lists what it tried; it will never quietly load some other PDFium.
 
+**No location is relative to your current working directory.** Every
+search step above is anchored to the running executable or to the
+operating system. Resolving a native library against the working
+directory would mean that running the tool inside a directory someone
+else can write to — an extracted archive, a shared checkout, a downloads
+folder — could decide which native code gets loaded and executed. The one
+working-directory path that exists is the development location below, and
+it is off unless you turn it on.
+
 The library file is `libpdfium.dylib` on macOS, `pdfium.dll` on Windows, and
 `libpdfium.so` on Linux.
 
@@ -30,14 +39,26 @@ you can always tell.
 
 ## Developer setup
 
-Obtain a PDFium dynamic library for your platform, then either place it at
-`target/pdfium/<target-triple>/<library>` or point
-`MUSEION_PDFIUM_LIBRARY` at it:
+Obtain a PDFium dynamic library for your platform and point
+`MUSEION_PDFIUM_LIBRARY` at it. This is the recommended setup:
 
 ```bash
-export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
+export MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib
 cargo run -p museion-binarize-cli -- inspect some.pdf
 ```
+
+There is also a development location at
+`target/pdfium/<target-triple>/<library>`, but because it is resolved
+against the working directory it is **not searched by default**. It
+requires a debug build *and* an explicit opt-in:
+
+```bash
+export MUSEION_ALLOW_CWD_PDFIUM=1
+```
+
+Release builds ignore this variable entirely. Prefer the explicit path
+above; the opt-in exists only so a developer working inside the repository
+does not have to re-export a path in every shell.
 
 Common sources of a prebuilt binary:
 

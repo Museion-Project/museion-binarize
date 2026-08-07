@@ -107,6 +107,14 @@ A ~7.7 MB platform-specific binary per target would bloat the repository
 permanently, and Git is the wrong place to distribute signed executables.
 The development copy lives in the gitignored `target/pdfium/<triple>/`.
 
+That path is resolved against the **current working directory**, which
+makes it a library-injection vector: anyone who can write into a
+directory the user runs the tool from could choose the native code that
+gets loaded. It is therefore not part of ordinary resolution. It is
+consulted only in a debug build *and* only when `MUSEION_ALLOW_CWD_PDFIUM=1`
+is set explicitly; release builds ignore it entirely. Every other search
+location is anchored to the running executable or the operating system.
+
 ### Thread safety and concurrency
 
 **PDFium is initialized once per process.** `FPDF_InitLibrary` /
