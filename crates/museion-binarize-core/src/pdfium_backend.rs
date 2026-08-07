@@ -16,6 +16,17 @@ use crate::error::{CoreError, Result};
 /// Environment variable naming an explicit PDFium library path.
 pub const PDFIUM_LIBRARY_ENV: &str = "MUSEION_PDFIUM_LIBRARY";
 
+/// Opt-in for the development-tree library location under
+/// `./target/pdfium/<triple>/`.
+///
+/// That path is relative to the **current working directory**, so loading
+/// from it automatically would execute a native library chosen by whatever
+/// directory the program happened to be started in — a library-injection
+/// vector for anyone who can write to a directory the user runs the tool
+/// from. It is therefore never searched unless this variable is set to
+/// `1`, and only in debug builds.
+pub const ALLOW_CWD_PDFIUM_ENV: &str = "MUSEION_ALLOW_CWD_PDFIUM";
+
 /// Platform-specific PDFium dynamic library file name.
 pub const fn pdfium_library_file_name() -> &'static str {
     #[cfg(target_os = "macos")]
@@ -53,6 +64,9 @@ pub enum LibrarySource {
     Environment,
     BundledResource,
     ExecutableAdjacent,
+    /// The `./target/pdfium/<triple>/` development location. Debug builds
+    /// only, and only with [`ALLOW_CWD_PDFIUM_ENV`] explicitly set.
+    DevelopmentTree,
     SystemLibrary,
 }
 
@@ -63,6 +77,7 @@ impl LibrarySource {
             LibrarySource::Environment => "MUSEION_PDFIUM_LIBRARY environment variable",
             LibrarySource::BundledResource => "bundled application resource",
             LibrarySource::ExecutableAdjacent => "directory containing the executable",
+            LibrarySource::DevelopmentTree => "development tree (opt-in, debug build only)",
             LibrarySource::SystemLibrary => "system library search path",
         }
     }
@@ -86,9 +101,13 @@ pub struct ResolvedLibrary {
 /// 4. a library sitting next to the running executable;
 /// 5. the system library path, only when explicitly allowed.
 ///
-/// Only steps 3-5 are "search" steps. If an explicit path (step 1 or 2) is
-/// given but does not exist, resolution fails rather than quietly loading
-/// some other copy.
+/// Only steps 3-5 are "search" steps, and all of them are anchored to the
+/// running executable or the operating system — never to the current
+/// working directory. If an explicit path (step 1 or 2) is given but does
+/// not exist, resolution fails rather than quietly loading some other copy.
+///
+/// A debug build additionally consults `./target/pdfium/<triple>/` between
+/// steps 4 and 5, but only when [`ALLOW_CWD_PDFIUM_ENV`] is set to `1`.
 pub fn resolve_library(config: &PdfiumConfig) -> Result<ResolvedLibrary> {
     let file_name = pdfium_library_file_name();
     let mut attempted: Vec<String> = Vec::new();
@@ -163,19 +182,31 @@ fn search_candidates(file_name: &str) -> Vec<(LibrarySource, PathBuf)> {
         }
     }
 
-    // The gitignored development location populated per docs/pdfium.md.
-    // Only consulted when running out of a build tree.
-    if let Ok(cwd) = std::env::current_dir() {
-        candidates.push((
-            LibrarySource::BundledResource,
-            cwd.join("target")
-                .join("pdfium")
-                .join(current_target_triple())
-                .join(file_name),
-        ));
+    // The gitignored development location under ./target/pdfium/. This is
+    // resolved against the current working directory, so it is gated on
+    // both a debug build and an explicit opt-in: an attacker who can write
+    // into a directory the user runs the tool from must not be able to
+    // supply the native library that gets loaded. Release builds never
+    // consult it, and developers are expected to pass an explicit path or
+    // set MUSEION_PDFIUM_LIBRARY instead.
+    if cwd_development_path_allowed() {
+        if let Ok(cwd) = std::env::current_dir() {
+            candidates.push((
+                LibrarySource::DevelopmentTree,
+                cwd.join("target")
+                    .join("pdfium")
+                    .join(current_target_triple())
+                    .join(file_name),
+            ));
+        }
     }
 
     candidates
+}
+
+/// Whether the working-directory development path may be searched.
+fn cwd_development_path_allowed() -> bool {
+    cfg!(debug_assertions) && std::env::var_os(ALLOW_CWD_PDFIUM_ENV).is_some_and(|v| v == "1")
 }
 
 /// Best-effort target triple for the development library directory.
@@ -285,7 +316,18 @@ fn check_compatible(
     session: &'static PdfiumSession,
     config: &PdfiumConfig,
 ) -> Result<&'static PdfiumSession> {
-    if let Some(requested) = &config.library_path {
+    // An "explicit" request is one where the caller named a library: a
+    // configured path, or the environment variable. Both are authoritative
+    // in `resolve_library`, so both must be honoured here — otherwise a
+    // later explicit request would be silently served by whichever library
+    // happened to be bound first. A caller that names nothing is content
+    // with the already-bound session.
+    let requested = config
+        .library_path
+        .clone()
+        .or_else(|| std::env::var_os(PDFIUM_LIBRARY_ENV).map(PathBuf::from));
+
+    if let Some(requested) = &requested {
         let already = session.resolved.path.as_deref();
         let same = match already {
             Some(bound) => paths_equal(bound, requested),
@@ -406,6 +448,62 @@ mod tests {
         if let Ok(resolved) = resolve_library(&denied) {
             assert_ne!(resolved.source, LibrarySource::SystemLibrary);
         }
+    }
+
+    /// Serializes the tests that read or write process-global environment
+    /// variables. These deliberately do **not** change the working
+    /// directory, which would be visible to every other test in the
+    /// process; they inspect the candidate list instead.
+    static ENV_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// No candidate location may be derived from the current working
+    /// directory by default. Otherwise anyone able to write into a
+    /// directory the user happens to run the tool from could choose the
+    /// native library that gets loaded and executed.
+    #[test]
+    fn no_candidate_is_relative_to_the_working_directory_by_default() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var(ALLOW_CWD_PDFIUM_ENV);
+
+        let cwd = std::env::current_dir().expect("cwd");
+        let candidates = search_candidates(pdfium_library_file_name());
+
+        assert!(
+            !candidates
+                .iter()
+                .any(|(source, _)| *source == LibrarySource::DevelopmentTree),
+            "the development-tree candidate must not be offered without an opt-in"
+        );
+        for (source, path) in &candidates {
+            assert!(
+                !path.starts_with(&cwd) || !path.starts_with(cwd.join("target")),
+                "candidate {path:?} ({source:?}) is anchored to the working directory"
+            );
+        }
+    }
+
+    /// The development path still exists for convenience, but only behind
+    /// an explicit opt-in, and only in a debug build.
+    #[test]
+    fn the_development_tree_path_requires_an_explicit_opt_in() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+
+        std::env::remove_var(ALLOW_CWD_PDFIUM_ENV);
+        assert!(!cwd_development_path_allowed(), "must be off by default");
+
+        std::env::set_var(ALLOW_CWD_PDFIUM_ENV, "0");
+        assert!(!cwd_development_path_allowed(), "only \"1\" opts in");
+
+        std::env::set_var(ALLOW_CWD_PDFIUM_ENV, "1");
+        let allowed = cwd_development_path_allowed();
+        let offered = search_candidates(pdfium_library_file_name())
+            .iter()
+            .any(|(source, _)| *source == LibrarySource::DevelopmentTree);
+        std::env::remove_var(ALLOW_CWD_PDFIUM_ENV);
+
+        // Debug builds honour the opt-in; release builds never do.
+        assert_eq!(allowed, cfg!(debug_assertions));
+        assert_eq!(offered, cfg!(debug_assertions));
     }
 
     #[test]

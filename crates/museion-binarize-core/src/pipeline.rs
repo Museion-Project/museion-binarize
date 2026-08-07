@@ -327,15 +327,18 @@ fn check_destination(input: &Path, output: &Path, overwrite: bool) -> Result<()>
                 .to_string(),
         ));
     }
-    if output.exists() && !overwrite {
+    // Checked before the generic "already exists" case: a directory is
+    // never a valid destination, and suggesting `--overwrite` for one
+    // would send the user down a path that cannot work.
+    if output.is_dir() {
         return Err(CoreError::DestinationConflict(format!(
-            "{} already exists; pass the overwrite option to replace it",
+            "{} is a directory, not a file",
             output.display()
         )));
     }
-    if output.is_dir() {
+    if output.exists() && !overwrite {
         return Err(CoreError::DestinationConflict(format!(
-            "{} is a directory",
+            "{} already exists; pass the overwrite option to replace it",
             output.display()
         )));
     }
@@ -382,16 +385,34 @@ fn write_temporary(output: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFil
 
 /// Moves the validated temporary file into its final place.
 ///
-/// With `overwrite` the existing destination is only removed once the
-/// replacement is complete and validated, so a failure can never leave the
-/// user with neither file. On Windows a rename onto an existing path
-/// fails, so the old file is unlinked immediately before the rename; that
-/// leaves a very small window in which neither name exists, which is
-/// documented in `docs/pdf-output.md`.
+/// # Platform behaviour
+///
+/// The temporary file always lives in the destination's own directory, so
+/// the move stays on one filesystem.
+///
+/// * **Unix (including macOS):** `rename(2)` replaces an existing
+///   destination atomically. The old file is never unlinked first, so at
+///   every instant the destination names either the complete old document
+///   or the complete new one — never nothing.
+/// * **Windows:** `MoveFileEx` without `MOVEFILE_REPLACE_EXISTING` fails
+///   when the destination exists, and `std::fs::rename` does not set that
+///   flag, so the old file is unlinked immediately before the rename.
+///   That leaves a narrow window in which neither name exists. This is a
+///   real limitation, not a theoretical one; it is recorded in
+///   `docs/pdf-output.md` and no cross-platform atomicity is claimed.
+///
+/// In both cases the destination is only touched after the replacement has
+/// been fully written, synced, and validated.
 fn persist(temp: tempfile::NamedTempFile, output: &Path, overwrite: bool) -> Result<()> {
+    // Windows cannot rename onto an existing file; Unix can, and doing so
+    // atomically is the whole point, so it must not be unlinked there.
+    #[cfg(windows)]
     if overwrite && output.exists() {
         std::fs::remove_file(output).map_err(|e| CoreError::io(output, e))?;
     }
+    #[cfg(not(windows))]
+    let _ = overwrite;
+
     let path = temp.path().to_path_buf();
     temp.persist(output).map_err(|e| {
         CoreError::TemporaryFile(format!(
@@ -464,6 +485,80 @@ mod tests {
         std::fs::write(&input, b"in").unwrap();
         let err = check_destination(&input, dir.path(), true).unwrap_err();
         assert!(matches!(err, CoreError::DestinationConflict(_)));
+    }
+
+    /// A directory destination must be reported as a directory whether or
+    /// not overwrite is set — never as "already exists; pass overwrite",
+    /// which would suggest a fix that cannot work.
+    #[test]
+    fn a_directory_destination_is_reported_as_a_directory_regardless_of_overwrite() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("in.pdf");
+        std::fs::write(&input, b"in").unwrap();
+
+        for overwrite in [false, true] {
+            let err = check_destination(&input, dir.path(), overwrite).unwrap_err();
+            let CoreError::DestinationConflict(message) = err else {
+                panic!("expected a destination conflict");
+            };
+            assert!(
+                message.contains("is a directory"),
+                "overwrite={overwrite}: expected a directory error, got {message:?}"
+            );
+            assert!(
+                !message.contains("overwrite option"),
+                "overwrite={overwrite}: must not suggest overwriting a directory"
+            );
+        }
+    }
+
+    /// On Unix the replacement must be a single atomic rename: the old
+    /// destination is never unlinked first, so the path always names a
+    /// complete document.
+    #[cfg(unix)]
+    #[test]
+    fn unix_overwrite_replaces_the_destination_without_unlinking_it_first() {
+        use std::os::unix::fs::MetadataExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("out.pdf");
+        std::fs::write(&output, b"old contents").unwrap();
+        let old_inode = std::fs::metadata(&output).unwrap().ino();
+
+        let temp = write_temporary(&output, b"new contents").unwrap();
+        persist(temp, &output, true).unwrap();
+
+        assert_eq!(std::fs::read(&output).unwrap(), b"new contents");
+        // A fresh inode proves the rename swapped a different file into
+        // place rather than truncating or recreating the original.
+        assert_ne!(
+            std::fs::metadata(&output).unwrap().ino(),
+            old_inode,
+            "the destination should have been replaced by the temporary file"
+        );
+        assert!(leftover_temporary_files(dir.path()).is_empty());
+    }
+
+    /// A failure before persistence must leave the previous destination
+    /// completely intact and drop the temporary file.
+    #[test]
+    fn a_failure_before_persistence_leaves_the_old_destination_intact() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("out.pdf");
+        std::fs::write(&output, b"original document").unwrap();
+
+        {
+            // Stands in for validation failing: the temporary file exists
+            // but is never persisted, and goes out of scope.
+            let _temp = write_temporary(&output, b"replacement that never lands").unwrap();
+        }
+
+        assert_eq!(
+            std::fs::read(&output).unwrap(),
+            b"original document",
+            "the previous output must survive a failure before persistence"
+        );
+        assert!(leftover_temporary_files(dir.path()).is_empty());
     }
 
     #[test]
