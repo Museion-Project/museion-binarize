@@ -6,14 +6,19 @@ English | [简体中文](README.zh-CN.md)
 converting scanned scholarly books into clean and compact bilevel PDFs.
 
 **Status: Phase 1 — early development.** A complete local CLI pipeline
-exists (`inspect`, `analyze`, `estimate`, `process`, `preview`, with
-versioned JSON reports), and the desktop GUI is now wired to the same
-pipeline (open, preview, configure, an experimental size estimate,
-convert, cancel — see [`docs/desktop.md`](docs/desktop.md)). `estimate`
-produces an experimental, sampled output-size prediction — see
-[`docs/size-estimation.md`](docs/size-estimation.md); it is not a
-guarantee. End-to-end behavior is currently verified only on a
-provisioned macOS environment; see
+exists (`inspect`, `analyze`, `estimate`, `process`, `preview`,
+`benchmark`, with versioned JSON reports), and the desktop GUI is now
+wired to the same pipeline (open, preview, configure, an experimental
+size estimate, convert, cancel — see [`docs/desktop.md`](docs/desktop.md)).
+`estimate` produces an experimental, sampled output-size prediction —
+see [`docs/size-estimation.md`](docs/size-estimation.md); it is not a
+guarantee. `benchmark` is a reproducible ground-truth
+binarization-fidelity benchmarking framework — see
+[`docs/benchmarking.md`](docs/benchmarking.md); its committed synthetic
+fixture suite validates the framework and is **not** a representative
+corpus of real scanned documents, and is not evidence for a preservation
+claim about historical polytonic Greek editions. End-to-end behavior is
+currently verified only on a provisioned macOS environment; see
 [`docs/desktop-testing.md`](docs/desktop-testing.md) for the native
 desktop acceptance record. See
 [`docs/limitations.md`](docs/limitations.md) for exactly what this
@@ -152,6 +157,12 @@ museion-binarize process input.pdf --output output.pdf \
 
 # Save a PNG preview of one processed page (one-based page numbers)
 museion-binarize preview input.pdf --page 12 --output preview.png
+
+# Benchmark binarization fidelity against pixel-accurate ground truth
+# (no PDF/PDFium needed for the raster benchmark level)
+museion-binarize benchmark run \
+  --dataset test-data/benchmark/synthetic-v1/dataset.toml \
+  --profile test-data/benchmark/profiles/baseline.toml
 ```
 
 Useful options: `--method otsu|sauvola|manual`, `--threshold`, `--sauvola-k`, `--sauvola-window`, `--contrast`, `--median-denoise`, `--background-normalization`, `--despeckle off|conservative|strong`, `--overwrite`, `--pdfium-library`, `--pages` (`analyze` only, e.g. `1,3,8-12`), `--json`/`--pretty`/`--quiet`/`--report`. Progress goes to stderr; the result (human or `--json`) goes to stdout. See [`docs/cli.md`](docs/cli.md) for the full command surface, exit codes, and stdout/stderr contract, and [`docs/reporting.md`](docs/reporting.md) for JSON report schemas.

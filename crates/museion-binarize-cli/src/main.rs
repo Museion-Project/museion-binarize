@@ -14,7 +14,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
-use cli::{Cli, Command};
+use cli::{BenchmarkCommand, Cli, Command};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -33,5 +33,9 @@ fn main() -> ExitCode {
         Some(Command::Estimate(args)) => commands::estimate::run(args),
         Some(Command::Process(args)) => commands::process::run(args),
         Some(Command::Preview(args)) => commands::preview::run(args),
+        Some(Command::Benchmark(BenchmarkCommand::Run(args))) => commands::benchmark::run(args),
+        Some(Command::Benchmark(BenchmarkCommand::Validate(args))) => {
+            commands::benchmark::validate(args)
+        }
     }
 }

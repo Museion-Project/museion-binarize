@@ -91,6 +91,53 @@ pub enum CoreError {
     /// Processing was cancelled through the [`crate::progress::ProgressReporter`].
     #[error("processing was cancelled")]
     Cancelled,
+
+    // --- Benchmark framework (Milestone 6) ------------------------------
+    /// A benchmark dataset or profile manifest failed to parse, or is
+    /// missing a required field.
+    #[error("invalid benchmark manifest: {0}")]
+    InvalidBenchmarkManifest(String),
+
+    /// A benchmark manifest declared a `schema`/`schema_version` this
+    /// build does not understand.
+    #[error("unsupported benchmark schema: {0}")]
+    UnsupportedBenchmarkSchema(String),
+
+    /// A dataset manifest referenced a file path that would escape the
+    /// dataset root (e.g. `../../secret`, or a symlink pointing outside
+    /// it).
+    #[error("dataset path traversal: {0}")]
+    DatasetPathTraversal(String),
+
+    /// A dataset page referenced a ground-truth file that does not exist
+    /// or could not be read.
+    #[error("missing ground truth: {0}")]
+    MissingGroundTruth(String),
+
+    /// A ground-truth image could not be normalized to the project's
+    /// binary polarity convention (not actually binary/grayscale, has an
+    /// ambiguous alpha channel, or uses an unsupported color format).
+    #[error("invalid ground-truth polarity: {0}")]
+    InvalidGroundTruthPolarity(String),
+
+    /// A benchmark output mask and its ground truth do not have matching
+    /// dimensions. Metrics never crop or resample to compensate.
+    #[error("benchmark dimension mismatch: {0}")]
+    BenchmarkDimensionMismatch(String),
+
+    /// A region-of-interest definition was out of bounds or otherwise
+    /// invalid for the page it was declared on.
+    #[error("invalid region of interest: {0}")]
+    InvalidRoi(String),
+
+    /// A benchmark profile (run configuration) failed validation.
+    #[error("invalid benchmark profile: {0}")]
+    InvalidProfile(String),
+
+    /// A metric could not be computed (distinct from a dimension
+    /// mismatch, which has its own variant).
+    #[error("benchmark metric computation failed: {0}")]
+    MetricComputationFailed(String),
 }
 
 impl CoreError {

@@ -236,6 +236,8 @@ not a new claim — is what makes the diagram above accurate.
 | `pdf_writer.rs` | Deterministic bilevel PDF construction; also measures the writer's own fixed per-page/per-document container overhead for the size estimator. |
 | `pipeline.rs` | `process_pdf`/`analyze_pdf`/`estimate_output_size` orchestration, progress, cancellation, temp files, atomic persist. |
 | `estimation.rs` | Sampled output-size estimation: deterministic sample selection, quartiles, the `SizeEstimateReport` type, settings fingerprinting, estimate/actual comparison. Pure arithmetic, no PDFium. |
+| `benchmark/` | Ground-truth binarization-fidelity benchmarking (Milestone 6): pure metrics (confusion matrix, F1, PSNR, DRD), dataset/profile manifests with path containment, ROI support, the raster-level runner, and versioned reports. Deliberately separate from `analysis.rs` — `analyze` has no ground truth. See `docs/benchmark-metrics.md`. |
+| `benchmark_fixtures.rs` | Deterministic, procedural synthetic benchmark fixture generation (no fonts, no PDFium, no copyrighted material). Feeds `test-data/benchmark/synthetic-v1/` via `examples/gen_benchmark_fixtures.rs`. |
 | `validation.rs` | Reopen-and-render verification, separate from construction. |
 | `timing.rs` | Shared stage-duration measurement, used identically by `process` and `analyze`. |
 | `analysis.rs` | Document/page analysis report types and aggregation (min/max/mean/median). |

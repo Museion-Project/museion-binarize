@@ -78,6 +78,25 @@ pub fn classify(error: &CoreError) -> (&'static str, ExitReason) {
             ("output_validation_failed", ExitReason::OutputError)
         }
         CoreError::Cancelled => ("cancelled", ExitReason::Cancelled),
+        CoreError::InvalidBenchmarkManifest(_) => {
+            ("invalid_benchmark_manifest", ExitReason::UsageError)
+        }
+        CoreError::UnsupportedBenchmarkSchema(_) => {
+            ("unsupported_benchmark_schema", ExitReason::UsageError)
+        }
+        CoreError::DatasetPathTraversal(_) => ("dataset_path_traversal", ExitReason::UsageError),
+        CoreError::MissingGroundTruth(_) => ("missing_ground_truth", ExitReason::InputError),
+        CoreError::InvalidGroundTruthPolarity(_) => {
+            ("invalid_ground_truth_polarity", ExitReason::InputError)
+        }
+        CoreError::BenchmarkDimensionMismatch(_) => {
+            ("benchmark_dimension_mismatch", ExitReason::InputError)
+        }
+        CoreError::InvalidRoi(_) => ("invalid_roi", ExitReason::UsageError),
+        CoreError::InvalidProfile(_) => ("invalid_benchmark_profile", ExitReason::UsageError),
+        CoreError::MetricComputationFailed(_) => {
+            ("metric_computation_failed", ExitReason::ProcessingError)
+        }
     }
 }
 

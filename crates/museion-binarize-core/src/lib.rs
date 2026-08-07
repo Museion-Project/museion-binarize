@@ -13,6 +13,8 @@
 //! for the report schemas.
 
 pub mod analysis;
+pub mod benchmark;
+pub mod benchmark_fixtures;
 pub mod bilevel;
 pub mod binarization;
 pub mod ccitt;

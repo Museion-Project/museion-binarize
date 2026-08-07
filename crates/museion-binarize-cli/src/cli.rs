@@ -36,6 +36,57 @@ pub enum Command {
     Process(ProcessArgs),
     /// Render and process one page, saving a PNG preview.
     Preview(PreviewArgs),
+    /// Ground-truth binarization-fidelity benchmarking. Benchmark
+    /// requires pixel-accurate ground truth; `analyze` is not a
+    /// benchmark and has no ground truth at all.
+    #[command(subcommand)]
+    Benchmark(BenchmarkCommand),
+}
+
+#[derive(Subcommand)]
+pub enum BenchmarkCommand {
+    /// Runs a benchmark: every `[[runs]]` in a profile against every
+    /// page in a dataset, comparing output to ground truth.
+    Run(BenchmarkRunArgs),
+    /// Validates a dataset and/or profile manifest without processing
+    /// anything: schema, file existence, ground-truth validity,
+    /// dimensions, ROI bounds, and settings.
+    Validate(BenchmarkValidateArgs),
+}
+
+#[derive(Args)]
+pub struct BenchmarkRunArgs {
+    /// Path to a `museion-binarize-benchmark-dataset` manifest.
+    #[arg(long)]
+    pub dataset: PathBuf,
+    /// Path to a `museion-binarize-benchmark-profile` manifest.
+    #[arg(long)]
+    pub profile: PathBuf,
+
+    #[command(flatten)]
+    pub output: OutputArgs,
+    /// Write the benchmark report to this path (in addition to any
+    /// stdout output), atomically, refusing to overwrite unless
+    /// `--overwrite` is also given. Rejected if it would alias the
+    /// dataset or profile manifest.
+    #[arg(long)]
+    pub report: Option<PathBuf>,
+    #[arg(long)]
+    pub overwrite: bool,
+}
+
+#[derive(Args)]
+pub struct BenchmarkValidateArgs {
+    /// Path to a `museion-binarize-benchmark-dataset` manifest.
+    #[arg(long)]
+    pub dataset: PathBuf,
+    /// Path to a `museion-binarize-benchmark-profile` manifest. Optional
+    /// — a dataset can be validated on its own.
+    #[arg(long)]
+    pub profile: Option<PathBuf>,
+
+    #[command(flatten)]
+    pub output: OutputArgs,
 }
 
 /// PDFium library location, shared verbatim by every command that opens a

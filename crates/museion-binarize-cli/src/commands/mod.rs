@@ -4,6 +4,7 @@
 //! `crate::errors`. Each command function here only wires those together.
 
 pub mod analyze;
+pub mod benchmark;
 pub mod estimate;
 pub mod info;
 pub mod inspect;
