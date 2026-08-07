@@ -13,11 +13,20 @@ pub mod bilevel;
 pub mod binarization;
 pub mod ccitt;
 pub mod cleanup;
+pub mod document;
 pub mod error;
 pub mod grayscale;
+pub mod image_pipeline;
+pub mod page_geometry;
+pub mod pdf_writer;
+pub mod pdfium_backend;
+pub mod pipeline;
 pub mod preprocessing;
 pub mod progress;
+pub mod renderer;
 pub mod settings;
+pub mod test_fixtures;
+pub mod validation;
 
 /// The human-readable project name.
 pub const PROJECT_NAME: &str = "Museion Binarize";
