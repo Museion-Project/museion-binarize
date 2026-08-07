@@ -948,6 +948,47 @@ fn source_mutation_after_open_does_not_affect_an_in_progress_session() {
     assert_ne!(bytes_now.len() as u64, identity_at_open.byte_len);
 }
 
+/// `process_with_open_session` (added for the desktop app, which keeps one
+/// session open across preview and conversion) must convert successfully
+/// through a session opened earlier by the caller, without opening a
+/// second session of its own — proven the same way M3 proves it for
+/// `process_pdf`: by comparing output against a fixture-fresh run.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn process_with_open_session_reuses_an_already_open_session_without_reopening_the_source() {
+    use museion_binarize_core::pipeline::process_with_open_session;
+
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "a.pdf", &test_fixtures::mixed_page_sizes());
+    let output = dir.path().join("out.pdf");
+
+    let session = PdfDocumentSession::open(
+        &input,
+        &PdfOpenOptions {
+            password: None,
+            pdfium: config.clone(),
+            compute_source_hash: false,
+        },
+    )
+    .expect("open");
+
+    let report = process_with_open_session(
+        &session,
+        &output,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options(config, ValidationMode::Structural),
+        &museion_binarize_core::progress::NullProgressReporter,
+    )
+    .expect("conversion through an already-open session");
+
+    assert_eq!(report.pages_processed, 3);
+    assert!(output.exists());
+    let bytes = std::fs::read(&output).unwrap();
+    museion_binarize_core::validation::assert_bilevel_ccitt_structure(&bytes)
+        .expect("must be bilevel CCITT G4");
+}
+
 /// `analyze_pdf` end-to-end: real rendering and binarization, useful
 /// document- and page-level measurements, and — like `process_pdf` — no
 /// reconstructed output file.
