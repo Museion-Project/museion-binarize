@@ -14,7 +14,7 @@ An ordinary run reports them as **ignored** — never as passed:
 
 ```text
 Running tests/pdf_pipeline.rs
-test result: ok. 0 passed; 0 failed; 13 ignored
+test result: ok. 0 passed; 0 failed; 16 ignored
 ```
 
 Run them explicitly, with a library:
@@ -90,6 +90,37 @@ committed.** Fixtures are written into temporary directories at test time.
 * an existing destination is refused without overwrite, and honoured with;
 * input equals output is refused.
 
+## Milestone 3 additions
+
+* **source-mutation immunity**: a session is opened on a 3-page document,
+  the file is then overwritten on disk with a different 1-page document,
+  and every page still renders successfully from the original in-memory
+  snapshot — proof of the open-bytes snapshot policy in
+  [`pdf-pipeline-session.md`](pdf-pipeline-session.md), not just an
+  architectural claim;
+* **`analyze` end-to-end**: real measurements (grayscale stats, the
+  actual Otsu threshold selected, ink ratios, per-stage timing, CCITT
+  size with `--encode`) without a reconstructed output file, and only the
+  input fixture remains in its directory afterwards;
+* **`analyze` with a page selection**: only the selected pages are
+  rendered and reported, verified against the real PDFium-backed session
+  (the *mock*-session version of this same property is an ordinary,
+  non-`#[ignore]`, no-PDFium-required test in `pipeline.rs` — see below).
+
+## Proving "one session, not one open per page" without PDFium
+
+Most of the single-session claim is proven by **ordinary** tests in
+`crates/museion-binarize-core/src/pipeline.rs`, not by the `#[ignore]`d
+integration tests above. `process_with_session`/`analyze_with_session`
+are generic over the `DocumentSession` trait; the tests construct a
+`MockSession` backed by synthetic in-memory pages with an atomic
+`render_page` call counter, run a full multi-page `process`/`analyze`
+through it, and assert the exact sequence of rendered page indices —
+proving every page came from the one session the test constructed, with
+no PDFium involved and no risk of a global, racy test-only flag. See
+`process_with_session_renders_every_page_exactly_once_from_the_one_session`
+and the `analyze_with_session_*` tests.
+
 ## PDFium must be driven sequentially
 
 PDFium is initialized once per process and this project drives it
@@ -122,6 +153,8 @@ cargo run -p museion-binarize-cli -- process /tmp/fx/mixed.pdf \
   --output /tmp/fx/out.pdf --method otsu --dpi 300 --validate render-all
 cargo run -p museion-binarize-cli -- preview /tmp/fx/out.pdf \
   --page 1 --output /tmp/fx/page1.png --method manual --threshold 128
+cargo run -p museion-binarize-cli -- analyze /tmp/fx/mixed.pdf \
+  --dpi 300 --method otsu --json --pretty
 ```
 
 Processing the source and processing the reopened output should yield

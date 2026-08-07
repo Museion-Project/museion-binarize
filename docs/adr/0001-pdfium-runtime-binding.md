@@ -24,8 +24,11 @@ we fully control and can test.
 `pdfium-render` 0.9.3 (MIT OR Apache-2.0) wraps PDFium's C API with
 lifetimes and `Result`s. Hand-writing this FFI would mean maintaining a
 large `unsafe` surface for no benefit. All of it is confined behind
-`pdfium_backend.rs` and `renderer.rs`; no `pdfium-render` type appears in
-any public signature elsewhere in the core.
+`pdfium_backend.rs` and `document_session.rs` (Milestone 2's
+`renderer.rs`, replaced in Milestone 3 — see
+[`pdf-pipeline-session.md`](../pdf-pipeline-session.md)); no
+`pdfium-render` type appears in any public signature elsewhere in the
+core.
 
 Feature selection is explicit rather than defaulted:
 

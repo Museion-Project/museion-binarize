@@ -5,8 +5,11 @@
 **Museion Binarize** 是一款开源、跨平台的应用程序，用于将扫描的学术书籍转换为
 干净、紧凑的双色（bilevel）PDF 文件。
 
-**当前状态：Phase 1 —— 早期开发阶段。** 目前尚未实现任何 PDF 处理功能。请参阅
-[`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、不能做什么。
+**当前状态：Phase 1 —— 早期开发阶段。** 已具备完整的本地命令行处理流程
+（`inspect`、`analyze`、`process`、`preview`，支持带版本号的 JSON 报告）；
+桌面 GUI 尚未接入该流程。端到端行为目前仅在受控配置的 macOS 环境中验证过。
+请参阅 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、
+不能做什么。
 
 ## 核心原则
 
@@ -116,6 +119,9 @@ export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
 # 检查文档：页数、页面几何、旋转、各 DPI 下的渲染尺寸
 museion-binarize inspect input.pdf
 
+# 通过真实处理流程测量文档，不写出转换后的 PDF——适合在正式转换前挑选参数
+museion-binarize analyze input.pdf --dpi 300 --method otsu --json --pretty
+
 # 转换为双色（bilevel）CCITT Group 4 PDF
 museion-binarize process input.pdf --output output.pdf \
   --method sauvola --dpi 400 --validate render-all
@@ -124,7 +130,7 @@ museion-binarize process input.pdf --output output.pdf \
 museion-binarize preview input.pdf --page 12 --output preview.png
 ```
 
-常用选项：`--method otsu|sauvola|manual`、`--threshold`、`--sauvola-k`、`--sauvola-window`、`--contrast`、`--median-denoise`、`--background-normalization`、`--despeckle off|conservative|strong`、`--overwrite`、`--pdfium-library`。进度信息输出到 stderr，最终报告输出到 stdout。
+常用选项：`--method otsu|sauvola|manual`、`--threshold`、`--sauvola-k`、`--sauvola-window`、`--contrast`、`--median-denoise`、`--background-normalization`、`--despeckle off|conservative|strong`、`--overwrite`、`--pdfium-library`、`--pages`（仅 `analyze` 支持，例如 `1,3,8-12`）、`--json`/`--pretty`/`--quiet`/`--report`。进度信息输出到 stderr；最终结果（人类可读或 `--json`）输出到 stdout。完整命令、退出码与 stdout/stderr 约定见 [`docs/cli.md`](docs/cli.md)，JSON 报告结构见 [`docs/reporting.md`](docs/reporting.md)。
 
 源文件绝不会被修改；只有在生成并通过校验的完整文档就绪后，才会写入目标路径。
 

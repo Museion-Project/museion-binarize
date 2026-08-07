@@ -55,30 +55,38 @@ phase is scoped or committed to yet.
   pipeline. See [`limitations.md`](limitations.md) and
   [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).)*
 - **Milestone 3 — CLI feature completeness and analysis commands.** The
-  full command surface, including `analyze` and machine-readable JSON
-  reports, suitable for scripting and benchmarking.
+  full command surface (`info`, `inspect`, `analyze`, `process`,
+  `preview`), machine-readable versioned JSON reports for scripting, and a
+  persistent PDFium document session. *(Complete; end-to-end behaviour —
+  including `analyze` and the source-mutation-immunity test — verified on
+  the same provisioned Apple Silicon macOS environment as Milestone 2.
+  See [`limitations.md`](limitations.md) and
+  [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).)*
 
-  Also scoped into this milestone: **a persistent PDFium document
-  session.** `PdfRenderer` currently reopens and reparses the source file
-  on every `render_page` call, because `PdfDocument` borrows from the
-  `Pdfium` session and holding one in the struct would be
-  self-referential. Two consequences to address:
-  * *Performance* — one full document parse per page, which grows with
-    page count on exactly the long scanned books this tool targets.
-  * *Correctness under mutation* — the file is reopened repeatedly, so a
-    source modified mid-run would be picked up partway through
-    (time-of-check/time-of-use). Deciding the intended behaviour (reject,
-    detect, or tolerate) is part of this work.
-
-  Neither is a defect in Milestone 2's output for an unchanging input
-  file, which is why it was deliberately deferred rather than rushed.
+  This milestone resolved the persistent-session problem Milestone 2
+  deferred: `PdfRenderer` reopened and reparsed the source file on every
+  `render_page` call, because `PdfDocument` was believed to require a
+  self-referential struct to persist across calls. That belief was wrong
+  — see [`pdf-pipeline-session.md`](pdf-pipeline-session.md) for why the
+  pinned `pdfium-render` API makes a real, safe, single-open session
+  possible without `unsafe` code. The replacement,
+  `document_session.rs`'s `PdfDocumentSession`, opens the source exactly
+  once per operation (an "open-bytes snapshot": the whole file is read
+  into memory once and PDFium loads from that owned buffer), which also
+  resolves the time-of-check/time-of-use concern by construction — there
+  is no second read of the filesystem to race against a mutation. The
+  memory-model consequence (the source's bytes are now held for the whole
+  operation, not just one page) is documented honestly in
+  [`limitations.md`](limitations.md) rather than left as the old, no
+  longer accurate, per-page-only bound.
 - **Milestone 4 — Desktop GUI feature completeness.** Wire the same
   pipeline into the Tauri desktop app: file selection, thumbnails,
   before/after preview, parameter controls, presets, progress, and
   cancellation.
-- **Milestone 5 — Size estimation and processing reports.** Sampled output
-  size prediction (clearly labelled experimental) and richer processing
-  reports.
+- **Milestone 5 — Output size estimation.** Sampled output size prediction
+  (clearly labelled experimental, and not to be implemented as if it were
+  reliable). Basic process and analysis reports already exist as of
+  Milestone 3; see [`reporting.md`](reporting.md).
 - **Milestone 6 — Reproducible benchmarking framework.** The metrics and
   reporting pipeline described in [`benchmarking.md`](benchmarking.md),
   runnable on non-copyrighted fixtures.
