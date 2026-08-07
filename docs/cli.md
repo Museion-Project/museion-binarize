@@ -11,6 +11,7 @@ and the exit-code table. For JSON report field meanings, see
 | `info` | Print project/build information. Never touches PDFium unless `--probe-pdfium` is passed. |
 | `inspect` | Page count, geometry, rotation, and render sizes for a PDF. |
 | `analyze` | Render and binarize a PDF through the real pipeline, without writing an output PDF. For choosing settings and scripting — not a benchmark. |
+| `estimate` | Sample a handful of pages through the real pipeline and extrapolate an experimental output-size estimate, without writing an output PDF. See [`size-estimation.md`](size-estimation.md). |
 | `process` | Convert a PDF into a bilevel CCITT Group 4 PDF. |
 | `preview` | Render and process one page, saving a PNG. |
 
@@ -64,6 +65,30 @@ actual count, and non-numeric input. Duplicate pages (`1,1,2`) are accepted
 and deduplicated. See `PageSelection` in
 `crates/museion-binarize-core/src/page_selection.rs` for the exact rules
 and their tests.
+
+## Estimating output size (`estimate`)
+
+```bash
+museion-binarize estimate book.pdf --dpi 400 --method sauvola --samples 8
+```
+
+`estimate` parses `--dpi`/`--method`/binarization settings exactly the way
+`analyze` and `process` do — the same `SettingsArgs`, not a separate
+parser — so an estimate's settings are guaranteed to match what a later
+`process` call with the same flags would actually do.
+
+- `--samples <N>` — how many pages to sample, deterministically and evenly
+  spaced (default 8, range 1–32; a value above the document's page count
+  quietly samples every page instead of erroring). See
+  [`size-estimation.md`](size-estimation.md#sampling-policy).
+- `--report <PATH>` — write the `museion-binarize-size-estimate` report to
+  a file, atomically, subject to `--overwrite`; the same path-aliasing
+  check used elsewhere rejects a report path that resolves to the input
+  file.
+
+The result is always labeled experimental — see
+[`size-estimation.md`](size-estimation.md) for what the estimate is (and
+is not) a guarantee of.
 
 ## stdout / stderr contract
 
