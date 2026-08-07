@@ -60,17 +60,26 @@ pub struct AppState {
     /// checkpoint instead of running to completion on stale settings.
     pub estimate_job: Mutex<Option<Arc<AtomicBool>>>,
     pub estimate_cache: Mutex<Option<CachedEstimate>>,
+    /// The trusted bundled PDFium library path for this packaged build,
+    /// if one was found under Tauri's resolved resource directory at
+    /// startup — `None` in a development run with no bundled resource.
+    /// See `worker::pdfium_config` and `docs/pdfium-bundling.md`
+    /// for how this is used (and why an explicit
+    /// `MUSEION_PDFIUM_LIBRARY` still takes precedence over it, matching
+    /// the core resolver's own documented precedence).
+    pub bundled_pdfium_path: Option<PathBuf>,
     next_id: AtomicU64,
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(bundled_pdfium_path: Option<PathBuf>) -> Self {
         Self {
-            worker: WorkerHandle::spawn(),
+            worker: WorkerHandle::spawn(bundled_pdfium_path.clone()),
             document: Mutex::new(None),
             job: Mutex::new(None),
             estimate_job: Mutex::new(None),
             estimate_cache: Mutex::new(None),
+            bundled_pdfium_path,
             next_id: AtomicU64::new(1),
         }
     }
@@ -86,6 +95,6 @@ impl AppState {
 
 impl Default for AppState {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }

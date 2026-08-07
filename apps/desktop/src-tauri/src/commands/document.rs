@@ -82,10 +82,9 @@ pub fn close_document(state: State<'_, AppState>) -> Result<(), UiErrorDto> {
 /// than only failing at the first `open_document` call. Never downloads
 /// anything (see `docs/adr/0001-pdfium-runtime-binding.md`).
 #[tauri::command]
-pub fn pdfium_status() -> PdfiumStatusDto {
-    match museion_binarize_core::pipeline::describe_pdfium_library(
-        &museion_binarize_core::pdfium_backend::PdfiumConfig::default(),
-    ) {
+pub fn pdfium_status(state: State<'_, AppState>) -> PdfiumStatusDto {
+    let config = crate::worker::pdfium_config(state.bundled_pdfium_path.as_deref());
+    match museion_binarize_core::pipeline::describe_pdfium_library(&config) {
         Ok(description) => PdfiumStatusDto {
             resolved: true,
             description: Some(description),
