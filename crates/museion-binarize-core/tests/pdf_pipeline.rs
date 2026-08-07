@@ -1051,6 +1051,112 @@ fn process_report_includes_estimate_comparison_and_richer_metrics() {
     }
 }
 
+/// Estimation accuracy on a synthetic mixed-content document — see
+/// `docs/size-estimation.md`, "Accuracy" for the acceptance rationale.
+/// This is an engineering acceptance threshold on a synthetic fixture,
+/// not a product guarantee about any real document: a homogeneous
+/// fixture would make any estimator look better than it actually is,
+/// which is exactly why this fixture is deliberately heterogeneous (see
+/// `test_fixtures::heterogeneous_document`).
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn estimate_accuracy_on_a_heterogeneous_synthetic_document_is_within_the_engineering_threshold() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(
+        dir.path(),
+        "heterogeneous.pdf",
+        &test_fixtures::heterogeneous_document(24),
+    );
+    let output = dir.path().join("out.pdf");
+    let chosen_settings = settings(BinarizationMethod::Otsu, 300);
+
+    let estimate_options = pipeline::EstimationOptions {
+        password: None,
+        pdfium: config.clone(),
+        samples: 8,
+    };
+    let estimate = pipeline::estimate_output_size(
+        &input,
+        &chosen_settings,
+        &estimate_options,
+        &RecordingProgress::new(),
+    )
+    .expect("estimate should succeed");
+
+    let report = pipeline::process_pdf(
+        &input,
+        &output,
+        &chosen_settings,
+        &options(config, ValidationMode::Structural),
+        &RecordingProgress::new(),
+    )
+    .expect("conversion should succeed");
+
+    let comparison = museion_binarize_core::estimation::compare_estimate(
+        estimate.estimated_output_bytes,
+        report.output_bytes,
+    );
+    assert!(
+        comparison.relative_error_fraction <= 0.25,
+        "central estimate {} differed from actual {} by {:.1}% (24-page heterogeneous fixture, 8 samples); expected <= 25%",
+        estimate.estimated_output_bytes,
+        report.output_bytes,
+        comparison.relative_error_fraction * 100.0
+    );
+}
+
+/// The homogeneous control case: a document whose pages are all the same
+/// `PageType` should be at least as easy to estimate as the heterogeneous
+/// fixture above, and comfortably within a tighter engineering threshold.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn estimate_accuracy_on_a_homogeneous_synthetic_document_is_within_the_tighter_threshold() {
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(
+        dir.path(),
+        "homogeneous.pdf",
+        &test_fixtures::homogeneous_document(24, test_fixtures::PageType::DenseText),
+    );
+    let output = dir.path().join("out.pdf");
+    let chosen_settings = settings(BinarizationMethod::Otsu, 300);
+
+    let estimate_options = pipeline::EstimationOptions {
+        password: None,
+        pdfium: config.clone(),
+        samples: 8,
+    };
+    let estimate = pipeline::estimate_output_size(
+        &input,
+        &chosen_settings,
+        &estimate_options,
+        &RecordingProgress::new(),
+    )
+    .expect("estimate should succeed");
+
+    let report = pipeline::process_pdf(
+        &input,
+        &output,
+        &chosen_settings,
+        &options(config, ValidationMode::Structural),
+        &RecordingProgress::new(),
+    )
+    .expect("conversion should succeed");
+
+    let comparison = museion_binarize_core::estimation::compare_estimate(
+        estimate.estimated_output_bytes,
+        report.output_bytes,
+    );
+    assert!(
+        comparison.relative_error_fraction <= 0.15,
+        "central estimate {} differed from actual {} by {:.1}% (24-page homogeneous fixture, 8 samples); expected <= 15%",
+        estimate.estimated_output_bytes,
+        report.output_bytes,
+        comparison.relative_error_fraction * 100.0
+    );
+}
+
 #[test]
 #[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn refuses_an_existing_destination_without_overwrite_and_honours_it_with() {

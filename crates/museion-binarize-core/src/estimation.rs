@@ -188,9 +188,11 @@ pub struct SizeEstimateReport {
     pub median_bytes_per_pixel: f64,
     pub max_bytes_per_pixel: f64,
     pub range_method: EstimationRangeMethod,
-    /// Central estimate: sum over **every** document page (not just the
-    /// sampled ones) of that page's pixel count at the selected DPI,
-    /// multiplied by `median_bytes_per_pixel`.
+    /// Central estimate: `mean_bytes_per_pixel` extrapolated over every
+    /// document page's true pixel count at the selected DPI (not just the
+    /// sampled ones), plus the writer's measured PDF container overhead.
+    /// Uses the mean rather than the median — see docs/size-estimation.md,
+    /// "Why mean, not median."
     pub estimated_output_bytes: u64,
     /// Same extrapolation using the range method's lower bound
     /// (25th percentile or minimum bytes-per-pixel).

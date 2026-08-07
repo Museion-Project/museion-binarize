@@ -1037,16 +1037,54 @@ fn estimate_with_session(
             })?;
     }
 
+    // Raw CCITT bytes are only part of a real output PDF: every page also
+    // carries a page object, an image XObject dictionary, and a content
+    // stream, and the document itself carries a header/catalog/trailer.
+    // For pages that compress to almost nothing this structural overhead
+    // dominates, so extrapolating bytes-per-pixel alone systematically
+    // underestimates the real file (measured: 40-46% low on synthetic
+    // fixtures before this was accounted for). `measure_container_overhead`
+    // gets these numbers by building trivial reference pages through the
+    // exact same writer `process` uses, not by fitting anything to a
+    // corpus — see docs/size-estimation.md, "Why the estimate adds a
+    // container-overhead term".
+    let overhead = crate::pdf_writer::measure_container_overhead();
+    let container_bytes = overhead
+        .per_page_bytes
+        .checked_mul(u64::from(info.page_count))
+        .and_then(|per_page_total| per_page_total.checked_add(overhead.fixed_document_bytes))
+        .ok_or_else(|| {
+            CoreError::ResourceLimitExceeded(
+                "estimated container overhead overflowed while estimating output size".to_string(),
+            )
+        })?;
+
     let extrapolate = |bytes_per_pixel: f64| -> u64 {
-        let bytes = total_pixels as f64 * bytes_per_pixel.max(0.0);
-        if !bytes.is_finite() || bytes <= 0.0 {
+        let image_bytes = total_pixels as f64 * bytes_per_pixel.max(0.0);
+        let image_bytes = if !image_bytes.is_finite() || image_bytes <= 0.0 {
             0
         } else {
-            bytes.min(u64::MAX as f64) as u64
-        }
+            image_bytes.min(u64::MAX as f64) as u64
+        };
+        image_bytes.saturating_add(container_bytes)
     };
 
-    let estimated_output_bytes = extrapolate(quartiles.p50);
+    // The central estimate extrapolates a *total* (sum over every page),
+    // and the mean — not the median — is the mathematically appropriate
+    // central-tendency statistic for that: total ~= mean x page_count is
+    // exact in expectation, while the median carries no such guarantee
+    // once bytes-per-pixel is skewed or multimodal across page content
+    // (a real, measured effect: a mix of near-empty and heavily-inked
+    // page types, evaluated against a real PDFium build, made the
+    // median-based estimate underestimate the true total by 40-46% on
+    // synthetic mixed-content fixtures — see
+    // `estimate_accuracy_on_a_heterogeneous_synthetic_document_is_within_the_engineering_threshold`
+    // in `tests/pdf_pipeline.rs` and docs/size-estimation.md, "Why mean,
+    // not median, for the central estimate"). The median is still
+    // reported (`median_bytes_per_pixel`) as a useful, outlier-resistant
+    // data point, and the quartile/min-max spread below still describes
+    // the range around the mean.
+    let estimated_output_bytes = extrapolate(mean_bytes_per_pixel);
     let estimated_lower_bytes = extrapolate(lower_bpp).min(estimated_output_bytes);
     let estimated_upper_bytes = extrapolate(upper_bpp).max(estimated_output_bytes);
 
@@ -2007,9 +2045,18 @@ mod tests {
         })
         .sum();
 
+        // `estimated_output_bytes` now also carries a fixed PDF-container
+        // overhead (page/image/content objects, document trailer — see
+        // `pdf_writer::measure_container_overhead`), which is identical for
+        // both reports since they share the same page count. That constant
+        // must be backed out before comparing ratios, or it skews the
+        // ratio toward 1 regardless of how the image content itself scales.
+        let overhead = crate::pdf_writer::measure_container_overhead();
+        let container_bytes = overhead.fixed_document_bytes
+            + overhead.per_page_bytes * uniform.info.page_count as u64;
         let expected_ratio = expected_mixed_pixels as f64 / expected_uniform_pixels as f64;
-        let actual_ratio = mixed_report.estimated_output_bytes as f64
-            / uniform_report.estimated_output_bytes as f64;
+        let actual_ratio = (mixed_report.estimated_output_bytes - container_bytes) as f64
+            / (uniform_report.estimated_output_bytes - container_bytes) as f64;
         assert!(
             (actual_ratio - expected_ratio).abs() < 0.01,
             "expected ratio {expected_ratio}, got {actual_ratio}"

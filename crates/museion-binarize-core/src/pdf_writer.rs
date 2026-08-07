@@ -8,7 +8,7 @@
 
 use pdf_writer::{Content, Filter, Finish, Name, Pdf, Rect, Ref, TextStr};
 
-use crate::bilevel::BilevelImage;
+use crate::bilevel::{BilevelImage, BinaryMask};
 use crate::ccitt;
 use crate::document::PdfMetadata;
 use crate::error::{CoreError, Result};
@@ -236,6 +236,66 @@ impl BilevelPdfBuilder {
     }
 }
 
+/// The fixed byte cost of the PDF container structure this writer emits,
+/// separate from the CCITT image data itself: one page object, one image
+/// XObject dictionary, and one content stream per page, plus a one-time
+/// document-level cost (header, catalog, page tree, trailer/xref).
+///
+/// These numbers describe *this exact writer's* output shape. They are not
+/// fitted to any corpus of documents — they are measured directly, by
+/// building trivial reference pages through the real [`BilevelPdfBuilder`]
+/// and reading off the byte deltas. A page's actual CCITT payload varies
+/// with content; this structural overhead does not (the page object and
+/// image dictionary are fixed-size templates, aside from a few digits of
+/// width/height/columns/rows, negligible next to hundreds of bytes of
+/// structure).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ContainerOverhead {
+    /// Bytes contributed once by document-level structure: header,
+    /// catalog, page tree object, and trailer/xref.
+    pub fixed_document_bytes: u64,
+    /// Bytes contributed by each page's own object, image XObject
+    /// dictionary, and content stream, excluding the CCITT image data.
+    pub per_page_bytes: u64,
+}
+
+/// Measures [`ContainerOverhead`] by building one- and two-page reference
+/// documents through the real writer and reading the byte deltas between
+/// them. Cheap enough to call once per estimate; deterministic for a fixed
+/// writer version.
+pub fn measure_container_overhead() -> ContainerOverhead {
+    let reference_mask = BinaryMask::new(1, 1);
+    let reference_image = BilevelImage::from_mask(&reference_mask);
+
+    let build_n_pages = |n: u32| -> (u64, u64) {
+        let mut builder = BilevelPdfBuilder::new();
+        let mut ccitt_total = 0u64;
+        for _ in 0..n {
+            let page = EncodedPage::encode(&reference_image, 100.0, 100.0)
+                .expect("a 1x1 reference image always encodes");
+            ccitt_total += page.compressed_bytes();
+            builder
+                .add_page(&page)
+                .expect("a 1x1 reference page always adds");
+        }
+        let bytes = builder
+            .finish(&PdfMetadata::default())
+            .expect("a non-empty reference document always finishes");
+        (bytes.len() as u64, ccitt_total)
+    };
+
+    let (total_one, ccitt_one) = build_n_pages(1);
+    let (total_two, ccitt_two) = build_n_pages(2);
+
+    let per_page_bytes = (total_two - total_one) - (ccitt_two - ccitt_one);
+    let fixed_document_bytes = total_one - ccitt_one - per_page_bytes;
+
+    ContainerOverhead {
+        fixed_document_bytes,
+        per_page_bytes,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -391,5 +451,48 @@ mod tests {
         let page = EncodedPage::encode(&image, 100.0, 100.0).unwrap();
         assert!(page.compressed_bytes() > 0);
         assert_eq!(page.compressed_bytes(), page.ccitt_data.len() as u64);
+    }
+
+    #[test]
+    fn container_overhead_is_positive_and_deterministic() {
+        let a = measure_container_overhead();
+        let b = measure_container_overhead();
+        assert_eq!(a, b, "the writer's own structure must not vary run to run");
+        assert!(
+            a.per_page_bytes > 0,
+            "every page needs a page/image/content object"
+        );
+        assert!(
+            a.fixed_document_bytes > 0,
+            "the document needs a header/catalog/trailer"
+        );
+    }
+
+    #[test]
+    fn container_overhead_explains_the_gap_between_ccitt_bytes_and_real_pdf_bytes() {
+        let overhead = measure_container_overhead();
+        let image = asymmetric_image(64, 96);
+        let page_a = EncodedPage::encode(&image, 595.0, 842.0).unwrap();
+        let page_b = EncodedPage::encode(&image, 595.0, 842.0).unwrap();
+        let ccitt_total = page_a.compressed_bytes() + page_b.compressed_bytes();
+
+        let mut builder = BilevelPdfBuilder::new();
+        builder.add_page(&page_a).unwrap();
+        builder.add_page(&page_b).unwrap();
+        let bytes = builder.finish(&PdfMetadata::default()).unwrap();
+
+        let predicted = overhead.fixed_document_bytes + 2 * overhead.per_page_bytes + ccitt_total;
+        // Not exact: `measure_container_overhead` uses a 1x1 reference
+        // image, while this test's pages are 64x96, so `/Width`, `/Height`,
+        // `/Columns`, and `/Rows` are a digit or two longer here. That
+        // digit-count drift is the "negligible" variation called out on
+        // `ContainerOverhead` — real, but tiny next to hundreds of bytes
+        // of fixed structure per page.
+        let actual = bytes.len() as u64;
+        let delta = actual.abs_diff(predicted);
+        assert!(
+            delta <= 20,
+            "predicted {predicted} vs actual {actual} bytes, delta {delta} exceeds the expected digit-width drift"
+        );
     }
 }

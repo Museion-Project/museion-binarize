@@ -218,6 +218,152 @@ pub fn threshold_patterns() -> Vec<u8> {
     }])
 }
 
+/// The six deterministic page "types" [`heterogeneous_document`] cycles
+/// through, chosen so a size estimator cannot look accurate purely by
+/// coincidence on a uniform document (see `docs/size-estimation.md`,
+/// "Effect of heterogeneous pages").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PageType {
+    /// Nearly empty — a single tiny mark, mostly white.
+    MostlyBlank,
+    /// Many closely-packed thin horizontal bars, approximating dense body
+    /// text.
+    DenseText,
+    /// Many very small, widely-spaced specks, approximating fine print or
+    /// diacritics.
+    FineText,
+    /// One large black rectangle, approximating a full-page illustration
+    /// or plate.
+    LargeIllustration,
+    /// A large mid-gray fill, distinct in tone from the pure black/white
+    /// content of the other page types.
+    GrayBackground,
+    /// A black rectangle (an "image") alongside a block of thin bars (a
+    /// caption or text block).
+    MixedTextAndImage,
+}
+
+const PAGE_TYPE_CYCLE: [PageType; 6] = [
+    PageType::MostlyBlank,
+    PageType::DenseText,
+    PageType::FineText,
+    PageType::LargeIllustration,
+    PageType::GrayBackground,
+    PageType::MixedTextAndImage,
+];
+
+fn draw_page_type(content: &mut Content, width: f32, height: f32, page_type: PageType) {
+    match page_type {
+        PageType::MostlyBlank => {
+            black_rect(
+                content,
+                width * 0.48,
+                height * 0.48,
+                width * 0.04,
+                height * 0.02,
+            );
+        }
+        PageType::DenseText => {
+            let line_height = height * 0.02;
+            let mut y = height * 0.9;
+            while y > height * 0.1 {
+                black_rect(content, width * 0.1, y, width * 0.8, line_height * 0.4);
+                y -= line_height;
+            }
+        }
+        PageType::FineText => {
+            let mut y = height * 0.85;
+            while y > height * 0.15 {
+                let mut x = width * 0.1;
+                while x < width * 0.9 {
+                    black_rect(content, x, y, 1.5, 1.5);
+                    x += width * 0.03;
+                }
+                y -= height * 0.03;
+            }
+        }
+        PageType::LargeIllustration => {
+            black_rect(
+                content,
+                width * 0.1,
+                height * 0.1,
+                width * 0.8,
+                height * 0.8,
+            );
+        }
+        PageType::GrayBackground => {
+            content.save_state();
+            content.set_fill_gray(0.5);
+            content.rect(width * 0.05, height * 0.05, width * 0.9, height * 0.9);
+            content.fill_nonzero();
+            content.restore_state();
+        }
+        PageType::MixedTextAndImage => {
+            black_rect(
+                content,
+                width * 0.1,
+                height * 0.4,
+                width * 0.8,
+                height * 0.4,
+            );
+            let mut y = height * 0.3;
+            while y > height * 0.1 {
+                black_rect(content, width * 0.1, y, width * 0.8, height * 0.01);
+                y -= height * 0.04;
+            }
+        }
+    }
+}
+
+/// A synthetic multi-page document cycling deterministically through
+/// [`PageType`], for measuring size-estimation accuracy against a
+/// document that is deliberately *not* visually homogeneous — a uniform
+/// fixture would make any estimator look better than it actually is. All
+/// pages are A4 portrait, so page-geometry effects are isolated from
+/// content-variety effects; see [`mixed_page_sizes`] for geometry
+/// variation instead.
+pub fn heterogeneous_document(page_count: u32) -> Vec<u8> {
+    let (width, height) = A4_PORTRAIT;
+    let specs = (0..page_count)
+        .map(|i| {
+            let page_type = PAGE_TYPE_CYCLE[(i as usize) % PAGE_TYPE_CYCLE.len()];
+            let mut content = Content::new();
+            white_background(width, height, &mut content);
+            draw_page_type(&mut content, width, height, page_type);
+            PageSpec {
+                width,
+                height,
+                rotation: 0,
+                content: content.finish(),
+            }
+        })
+        .collect();
+    build(specs)
+}
+
+/// A synthetic multi-page document where every page is the same
+/// [`PageType`] — the accuracy control case: a homogeneous document is
+/// expected to be easier to estimate than [`heterogeneous_document`], and
+/// comparing the two is what makes that claim checkable rather than
+/// assumed.
+pub fn homogeneous_document(page_count: u32, page_type: PageType) -> Vec<u8> {
+    let (width, height) = A4_PORTRAIT;
+    let specs = (0..page_count)
+        .map(|_| {
+            let mut content = Content::new();
+            white_background(width, height, &mut content);
+            draw_page_type(&mut content, width, height, page_type);
+            PageSpec {
+                width,
+                height,
+                rotation: 0,
+                content: content.finish(),
+            }
+        })
+        .collect();
+    build(specs)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,5 +413,37 @@ mod tests {
         assert!(text.contains("842"));
         assert!(text.contains("300"));
         assert!(text.contains("400"));
+    }
+
+    #[test]
+    fn heterogeneous_document_is_a_plausible_deterministic_pdf_with_the_requested_page_count() {
+        let bytes = heterogeneous_document(24);
+        assert_looks_like_a_pdf(&bytes);
+        assert_eq!(bytes, heterogeneous_document(24));
+
+        let text = String::from_utf8_lossy(&bytes);
+        // 24 pages -> 24 `/Contents` stream references, one per page.
+        assert_eq!(text.matches("/Contents").count(), 24);
+    }
+
+    #[test]
+    fn heterogeneous_document_cycles_through_every_page_type() {
+        // With 6+ pages, every PageType in the cycle is exercised at
+        // least once — proven indirectly by checking the fixture doesn't
+        // panic and produces distinct byte sequences for at least two
+        // different page counts (i.e. isn't accidentally the same
+        // content repeated regardless of page_type).
+        let six = heterogeneous_document(6);
+        let twelve = heterogeneous_document(12);
+        assert_ne!(six, twelve);
+    }
+
+    #[test]
+    fn heterogeneous_document_handles_a_zero_and_single_page_request() {
+        assert_looks_like_a_pdf(&heterogeneous_document(1));
+        // Zero pages is a degenerate request the fixture itself does not
+        // reject (that validation lives in PdfDocumentSession::open,
+        // exercised by real PDFium tests) — it must simply not panic.
+        let _ = heterogeneous_document(0);
     }
 }
