@@ -33,6 +33,19 @@ pub fn classify_core_error(error: &CoreError) -> UiErrorDto {
         CoreError::DestinationConflict(_) => "destination_conflict",
         CoreError::OutputValidationFailed(_) => "output_validation_failed",
         CoreError::Cancelled => "cancelled",
+        // The desktop app never constructs or surfaces these — the
+        // benchmark framework (Milestone 6) is core/CLI-only — but the
+        // match must stay exhaustive so a new CoreError variant can
+        // never silently fall through unclassified.
+        CoreError::InvalidBenchmarkManifest(_) => "invalid_benchmark_manifest",
+        CoreError::UnsupportedBenchmarkSchema(_) => "unsupported_benchmark_schema",
+        CoreError::DatasetPathTraversal(_) => "dataset_path_traversal",
+        CoreError::MissingGroundTruth(_) => "missing_ground_truth",
+        CoreError::InvalidGroundTruthPolarity(_) => "invalid_ground_truth_polarity",
+        CoreError::BenchmarkDimensionMismatch(_) => "benchmark_dimension_mismatch",
+        CoreError::InvalidRoi(_) => "invalid_roi",
+        CoreError::InvalidProfile(_) => "invalid_benchmark_profile",
+        CoreError::MetricComputationFailed(_) => "metric_computation_failed",
     };
     let hint = match error {
         CoreError::PdfiumNotFound { .. } | CoreError::PdfiumLoadFailed { .. } => Some(
