@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -47,7 +48,47 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: cargo test
+        # Ordinary tests must not require a PDFium runtime library. The
+        # PDFium integration tests in
+        # crates/museion-binarize-core/tests/pdf_pipeline.rs detect that
+        # MUSEION_PDFIUM_LIBRARY is unset and report themselves as skipped
+        # rather than failing, so this job stays meaningful without one.
         run: cargo test --workspace
+
+  # PDFium-dependent end-to-end tests. These need a PDFium dynamic library,
+  # whose provisioning (download, checksum verification, caching) is not
+  # automated yet — see docs/pdfium.md and
+  # docs/adr/0001-pdfium-runtime-binding.md. Until that exists this job is
+  # run manually, so CI never silently reports the end-to-end pipeline as
+  # verified when it was not.
+  #
+  # To run it, dispatch the workflow with a PDFium library available and set
+  # MUSEION_PDFIUM_LIBRARY. Milestone 7 (packaging) will wire up automatic,
+  # checksum-verified provisioning from third_party/pdfium/manifest.toml.
+  pdfium-integration:
+    name: PDFium integration tests (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Report requirement
+        run: |
+          echo "This job requires a PDFium dynamic library at"
+          echo "MUSEION_PDFIUM_LIBRARY. See docs/pdfium.md."
+          if [ -z "${MUSEION_PDFIUM_LIBRARY:-}" ]; then
+            echo "MUSEION_PDFIUM_LIBRARY is not set; the end-to-end tests"
+            echo "would report themselves skipped. Failing explicitly so"
+            echo "this is never mistaken for a passing verification."
+            exit 1
+          fi
+
+      - name: cargo test (PDFium end-to-end)
+        run: cargo test -p museion-binarize-core --test pdf_pipeline
 
   cargo-deny:
     name: cargo-deny (licenses, advisories)

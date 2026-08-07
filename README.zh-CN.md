@@ -102,6 +102,32 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo run -p museion-binarize-cli -- --help
 ```
 
+### 提供 PDFium
+
+PDF 渲染需要 PDFium 动态库。本项目不捆绑该库、不将其提交到仓库，也绝不在运行时下载——需要您自行提供一次。详见 [docs/pdfium.md](docs/pdfium.md)。
+
+```bash
+export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
+```
+
+### 命令行用法
+
+```bash
+# 检查文档：页数、页面几何、旋转、各 DPI 下的渲染尺寸
+museion-binarize inspect input.pdf
+
+# 转换为双色（bilevel）CCITT Group 4 PDF
+museion-binarize process input.pdf --output output.pdf \
+  --method sauvola --dpi 400 --validate render-all
+
+# 将处理后的某一页保存为 PNG 预览（页码从 1 开始）
+museion-binarize preview input.pdf --page 12 --output preview.png
+```
+
+常用选项：`--method otsu|sauvola|manual`、`--threshold`、`--sauvola-k`、`--sauvola-window`、`--contrast`、`--median-denoise`、`--background-normalization`、`--despeckle off|conservative|strong`、`--overwrite`、`--pdfium-library`。进度信息输出到 stderr，最终报告输出到 stdout。
+
+源文件绝不会被修改；只有在生成并通过校验的完整文档就绪后，才会写入目标路径。
+
 ### 运行桌面应用
 
 ```bash
