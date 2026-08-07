@@ -238,6 +238,18 @@ not a new claim — is what makes the diagram above accurate.
 | `estimation.rs` | Sampled output-size estimation: deterministic sample selection, quartiles, the `SizeEstimateReport` type, settings fingerprinting, estimate/actual comparison. Pure arithmetic, no PDFium. |
 | `benchmark/` | Ground-truth binarization-fidelity benchmarking (Milestone 6): pure metrics (confusion matrix, F1, PSNR, DRD), dataset/profile manifests with path containment, ROI support, the raster-level runner, and versioned reports. Deliberately separate from `analysis.rs` — `analyze` has no ground truth. See `docs/benchmark-metrics.md`. |
 | `benchmark_fixtures.rs` | Deterministic, procedural synthetic benchmark fixture generation (no fonts, no PDFium, no copyrighted material). Feeds `test-data/benchmark/synthetic-v1/` via `examples/gen_benchmark_fixtures.rs`. |
+
+Milestone 7A adds `scripts/distribution/` (Python, stdlib-only):
+dependency-free tooling for release packaging — `fetch_pdfium.py`
+(pinned, checksum-verified PDFium retrieval), `stage_desktop_pdfium.py`
+(stages it for Tauri bundling), `package_cli.py` (standalone CLI
+archives), `naming.py` (artifact naming), `checksums.py`/
+`release_manifest.py` (release provenance), and
+`check_version_consistency.py` — plus `distribution/pdfium/manifest.toml`
+(pinned PDFium provenance for release packaging, distinct from
+`third_party/pdfium/manifest.toml`'s developer-verified record). See
+`docs/distribution.md`, `docs/releasing.md`, and
+`docs/pdfium-bundling.md`.
 | `validation.rs` | Reopen-and-render verification, separate from construction. |
 | `timing.rs` | Shared stage-duration measurement, used identically by `process` and `analyze`. |
 | `analysis.rs` | Document/page analysis report types and aggregation (min/max/mean/median). |

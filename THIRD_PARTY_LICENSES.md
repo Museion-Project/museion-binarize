@@ -51,6 +51,15 @@ records the provenance and locally-verified SHA-256 of every PDFium asset
 this project has actually used. **Anyone redistributing a PDFium binary
 alongside Museion Binarize must ship these notices.**
 
+**Official packaged builds** (Milestone 7A) bundle a PDFium library
+fetched and checksum-verified at build/package time from a pinned
+upstream release — see
+[`distribution/pdfium/manifest.toml`](distribution/pdfium/manifest.toml)
+and [`docs/pdfium-bundling.md`](docs/pdfium-bundling.md). This is a
+distinct, release-pipeline-specific provenance record from the developer
+manifest above, but both point at the same upstream PDFium/pdfium-binaries
+projects and licenses.
+
 ## Node.js / frontend dependencies
 
 Frontend dependency licenses are captured in `apps/desktop/package.json` and
