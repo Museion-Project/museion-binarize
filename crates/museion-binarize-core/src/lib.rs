@@ -20,6 +20,7 @@ pub mod cleanup;
 pub mod document;
 pub mod document_session;
 pub mod error;
+pub mod estimation;
 pub mod grayscale;
 pub mod image_pipeline;
 pub mod page_geometry;
