@@ -74,7 +74,7 @@ jobs:
 
       - name: Build desktop app (.app + .dmg)
         working-directory: apps/desktop
-        run: pnpm tauri build --target ${{ matrix.target }}
+        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
 
       # Signing/notarization run only when the required secrets are
       # configured (Developer ID cert + Apple API credentials). See
@@ -183,7 +183,7 @@ jobs:
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
       - name: Build desktop app (MSI)
         working-directory: apps/desktop
-        run: pnpm tauri build --target ${{ matrix.target }}
+        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
       - name: Build and package CLI
         run: |
           cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
@@ -232,7 +232,7 @@ jobs:
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
       - name: Build desktop app (AppImage, deb)
         working-directory: apps/desktop
-        run: pnpm tauri build --target ${{ matrix.target }}
+        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
       - name: Build and package CLI
         run: |
           cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}

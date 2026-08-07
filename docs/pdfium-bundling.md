@@ -82,28 +82,66 @@ document, convert, verify output) remains a human-runtime-verification
 step — see that document for exactly what is and is not covered by
 automated evidence.
 
-## `tauri.conf.json`
+## `tauri.conf.json` vs. `tauri.dist.conf.json`
+
+`tauri::generate_context!` (invoked from `src-tauri/src/main.rs`) reads
+`bundle.resources` at **compile time**, for every `cargo build` /
+`cargo clippy` / `cargo test` of the desktop crate — not only for
+`tauri build`. If `bundle.resources` names a glob, that glob must match
+on disk or compilation fails, even for an ordinary lint/test run that
+has no reason to know about PDFium at all. Ordinary CI (`ci.yml`) runs
+`cargo clippy --workspace --all-targets` / `cargo test --workspace` on a
+clean checkout with nothing staged under `resources/pdfium/`, so the
+base config must never require that glob to match.
+
+The `resources.pdfium/*` entry therefore lives in a separate overlay,
+`apps/desktop/src-tauri/tauri.dist.conf.json`, not in the base
+`tauri.conf.json`:
 
 ```json
-"bundle": {
-  "resources": {
-    "resources/pdfium/*": "./"
+// tauri.dist.conf.json
+{
+  "bundle": {
+    "resources": {
+      "resources/pdfium/*": "./"
+    }
   }
 }
 ```
+
+Only the distribution packaging workflow (`build-distribution.yml`)
+merges it in, via Tauri's own config-overlay mechanism:
+
+```
+pnpm tauri build --target <target-triple> --config src-tauri/tauri.dist.conf.json
+```
+
+`--config` merges the given file over the base `tauri.conf.json` (a
+deep merge, last value wins) for that one invocation only — plain
+`cargo build`/`clippy`/`test` never see it, since they read
+`tauri.conf.json` directly and no `--config`/`TAURI_CONFIG` is ever set
+outside the distribution workflow.
 
 `resources/pdfium/` (gitignored — never commit a staged binary) is
 populated by `scripts/distribution/stage_desktop_pdfium.py
 <target-triple>` immediately before `tauri build`, which fetches the
 pinned, checksum-verified library for the target being built (via
 `fetch_pdfium.py`) and copies it there under its own platform-correct
-filename. Only one target's library is staged at a time, so the same
-static glob works for every platform without per-OS config duplication.
-The target mapping `"./"` places the file directly at the bundle's
-resource root — verified by inspecting the actual built bundle (see
-above), not assumed from documentation, after an initial attempt at a
-`"resources/"` subfolder mapping was found (by inspection) to nest the
-file one level too deep.
+filename, failing closed (non-zero exit) if the target isn't pinned or
+a checksum doesn't match. Only one target's library is staged at a
+time, so the same static glob works for every platform without per-OS
+config duplication. The target mapping `"./"` places the file directly
+at the bundle's resource root — verified by inspecting the actual built
+bundle (see above), not assumed from documentation, after an initial
+attempt at a `"resources/"` subfolder mapping was found (by inspection)
+to nest the file one level too deep.
+
+Regression coverage for this split lives in
+`scripts/distribution/test_distribution.py`'s `TauriResourceConfigTests`:
+it asserts the base config has no `bundle.resources`, the dist overlay
+does reference `resources/pdfium/*` and carries nothing else, staging
+fails closed for an unpinned target, and no `.dylib`/`.dll`/`.so` is
+ever tracked in git.
 
 ## No production runtime dependency on an environment variable
 

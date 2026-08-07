@@ -217,6 +217,81 @@ class FetchPdfiumSafetyTests(unittest.TestCase):
             self.assertTrue((dest / "lib" / "payload.txt").is_file())
 
 
+class TauriResourceConfigTests(unittest.TestCase):
+    """Regression coverage for the ordinary-vs-distribution Tauri config
+    split: `tauri.conf.json` must never require a staged PDFium resource
+    to compile/lint/test, while `tauri.dist.conf.json` (merged in only by
+    the distribution packaging steps) must reference it."""
+
+    BASE_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
+    DIST_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.dist.conf.json"
+
+    def test_base_config_does_not_reference_pdfium_resources(self):
+        config = json.loads(self.BASE_CONFIG.read_text())
+        resources = config.get("bundle", {}).get("resources", {})
+        self.assertEqual(
+            resources,
+            {},
+            "tauri.conf.json must not declare bundle.resources — ordinary "
+            "`cargo build`/`clippy`/`test` compile against this file via "
+            "tauri::generate_context! and must not require a staged "
+            "PDFium binary that only distribution packaging provides",
+        )
+
+    def test_dist_config_references_the_staged_pdfium_glob(self):
+        config = json.loads(self.DIST_CONFIG.read_text())
+        resources = config["bundle"]["resources"]
+        self.assertIn("resources/pdfium/*", resources)
+
+    def test_dist_config_is_pure_overlay_with_no_top_level_conflicts(self):
+        # It must only carry the `bundle.resources` override so it stays a
+        # safe `--config` overlay merged on top of the base config for
+        # distribution builds, not a divergent duplicate configuration.
+        config = json.loads(self.DIST_CONFIG.read_text())
+        self.assertEqual(set(config["bundle"].keys()), {"resources"})
+        self.assertEqual(
+            set(config.keys()) - {"$schema"},
+            {"bundle"},
+        )
+
+    def test_staging_fails_closed_for_a_target_with_no_pinned_pdfium(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "distribution" / "stage_desktop_pdfium.py"),
+                "not-a-real-target-triple",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no PDFium asset pinned", result.stderr)
+
+    def test_no_pdfium_dynamic_library_is_tracked_in_git(self):
+        result = subprocess.run(
+            ["git", "ls-files"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        offenders = [
+            path
+            for path in result.stdout.splitlines()
+            if path.lower().endswith((".dylib", ".dll", ".so"))
+        ]
+        self.assertEqual(offenders, [], f"committed native binaries found: {offenders}")
+
+    def test_resources_pdfium_directory_is_gitignored(self):
+        result = subprocess.run(
+            ["git", "check-ignore", "apps/desktop/src-tauri/resources/pdfium/libpdfium.dylib"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, "staged PDFium resource dir must stay gitignored")
+
+
 class VersionConsistencyScriptTests(unittest.TestCase):
     def test_passes_on_the_real_repository_as_committed(self):
         result = subprocess.run(
