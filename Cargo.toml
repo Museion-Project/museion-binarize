@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/museion-binarize-core",
+    "crates/museion-binarize-cli",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Pei Haoran"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Museion-Project/museion-binarize"
+rust-version = "1.82"
+# None of these crates are published to crates.io yet (Milestone 0, no
+# tagged release). This also lets cargo-deny's wildcard-path-dependency
+# check treat them as internal rather than as public crates that could be
+# published with unresolvable path dependencies.
+publish = false
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }

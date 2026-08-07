@@ -1,0 +1,168 @@
+# Architecture
+
+This document describes the intended architecture of Museion Binarize. It
+reflects the design as of Milestone 0 (repository initialization); most of
+the pipeline described below is **not implemented yet**. See
+[`limitations.md`](limitations.md) for the current state.
+
+## Goals driving the architecture
+
+- **Determinism and reproducibility.** The same input file and parameters
+  must always produce the same output, byte-for-byte where feasible. This
+  rules out relying on nondeterministic libraries or unpinned dependency
+  behavior in the processing path.
+- **Local-first.** All processing happens on the user's machine. No scan,
+  page image, or output file is transmitted anywhere.
+- **Bounded memory.** Scanned scholarly books can run to hundreds of pages at
+  high DPI. The core must process pages in a streaming, page-at-a-time (or
+  otherwise memory-bounded) fashion rather than loading an entire book into
+  memory at once.
+- **Two front ends, one core.** A GUI (for most users) and a CLI (for
+  scripting, batch jobs, and reproducible benchmarking) must produce
+  identical output from identical input, because they share the same
+  processing logic.
+
+## Workspace layout
+
+```
+museion-binarize/
+├── crates/
+│   ├── museion-binarize-core/   # Pure Rust processing core
+│   └── museion-binarize-cli/    # CLI front end, depends on core
+└── apps/
+    └── desktop/
+        ├── src/                # React + TypeScript UI
+        └── src-tauri/           # Tauri 2 Rust backend, depends on core
+```
+
+This is a standard Tauri 2 project layout (Tauri backend under
+`apps/desktop/src-tauri`, frontend under `apps/desktop/src`), combined with a
+Cargo workspace at the repository root so the core crate can be shared
+between the CLI and the Tauri backend without duplication. No other
+deviation from the structure requested for Milestone 0 was necessary.
+
+## Core / CLI / desktop separation
+
+- **`museion-binarize-core`** contains all image and PDF processing logic:
+  decoding input, thresholding algorithms (Otsu, Sauvola, manual), bilevel
+  image construction, CCITT Group 4 encoding, and PDF reconstruction. It
+  depends only on general-purpose Rust crates (image processing, PDF
+  writing, etc.) — **never** on Tauri, `wry`, or any GUI toolkit.
+- **`museion-binarize-cli`** is a thin binary crate that parses command-line
+  arguments (via `clap`) and calls into `museion-binarize-core`. It is the
+  reference implementation for scripting and reproducible benchmarking.
+- **`apps/desktop`** is a Tauri 2 application. Its Rust backend
+  (`src-tauri`) depends on `museion-binarize-core` and exposes a small set
+  of Tauri commands that the React/TypeScript frontend calls. The frontend
+  contains no processing logic of its own.
+
+### Why the core is independent of Tauri
+
+1. **Testability.** Pure Rust logic in `museion-binarize-core` can be unit-
+   and property-tested without spinning up a webview or windowing system,
+   which matters for CI across three operating systems.
+2. **Reuse.** The CLI and the desktop app must produce identical output.
+   Sharing one crate is the only way to guarantee that without duplicating
+   (and risking divergence in) the processing logic.
+3. **Reproducible benchmarking.** The benchmarking framework (see
+   [`benchmarking.md`](benchmarking.md)) is expected to run headlessly, most
+   likely via the CLI or by depending on `museion-binarize-core` directly.
+   A GUI dependency would make that impractical, especially in CI.
+4. **Long-term flexibility.** Keeping the core UI-agnostic leaves room for
+   other front ends (e.g. a future batch/server tool) without a rewrite.
+
+## Intended PDF pipeline (planned, not yet implemented)
+
+```mermaid
+flowchart LR
+    A[Input PDF] --> B[Page rasterization\nvia PDFium]
+    B --> C[Preprocessing\nconservative, deterministic]
+    C --> D[Thresholding\nOtsu / Sauvola / manual]
+    D --> E[Bilevel raster\nper page]
+    E --> F[CCITT Group 4\nencoding]
+    F --> G[1-bit PDF\nreconstruction]
+    G --> H[Output PDF]
+```
+
+Stages, at a high level:
+
+1. **Rasterization.** Input PDF pages are rendered to raster images using
+   PDFium (see below). This is the only step that depends on an external
+   PDF rendering engine.
+2. **Preprocessing.** Conservative, deterministic operations (e.g. noise
+   reduction) applied before thresholding. See
+   [`algorithms.md`](algorithms.md) for the risks of over-aggressive
+   preprocessing, particularly for small typographic detail.
+3. **Thresholding.** Otsu, Sauvola, or a manual threshold converts each
+   grayscale page into a true bilevel (1-bit) raster.
+4. **CCITT Group 4 encoding.** The bilevel raster is compressed using the
+   CCITT Group 4 algorithm, the standard for compact bilevel scanned-document
+   PDFs.
+5. **PDF reconstruction.** A new PDF is built directly from the CCITT
+   Group 4-encoded bilevel images — not merely re-saved from the rendering
+   engine — so that the output is a genuine 1-bit PDF rather than a
+   downsampled color/grayscale one.
+
+### Planned PDFium boundary
+
+PDFium is used strictly as a **rasterization** engine: turning existing PDF
+pages into pixels the core can threshold. It is treated as an isolated
+dependency behind a narrow internal interface in `museion-binarize-core`, so
+that:
+
+- PDFium binaries can be fetched/built through a separate, documented,
+  controlled process per platform (macOS, Windows, Linux) rather than
+  committed to this repository (see [`.gitignore`](../.gitignore)).
+- The rest of the core — thresholding, encoding, PDF writing — has no direct
+  dependency on PDFium's API and could, in principle, be tested or reused
+  with a different rasterization backend.
+- FFI/`unsafe` surface area is confined to one module, which matters for the
+  security review process (see [`SECURITY.md`](../SECURITY.md)).
+
+### Planned 1-bit CCITT Group 4 output
+
+The output PDF's image streams are true 1-bit-per-pixel images compressed
+with CCITT Group 4 (`/Filter /CCITTFaxDecode`), the same approach used by
+long-established scanning and archival tools. This is what makes the output
+"clean and compact": no anti-aliased grayscale, no lossy DCT artifacts, and
+file sizes far smaller than color or grayscale scans.
+
+### Bounded-memory design
+
+The core is designed to process one page (or a small, fixed-size window of
+pages) at a time: rasterize, threshold, encode, write, release, move to the
+next page. This keeps peak memory roughly independent of book length, which
+matters for benchmarking (see [`benchmarking.md`](benchmarking.md)) and for
+usability on modest hardware. This is a design goal for the implementation
+milestones that follow Milestone 0; it is not yet enforced by any code in
+this repository.
+
+## Cross-platform packaging
+
+Tauri 2 is used specifically because it produces small, native-webview-based
+application bundles for macOS, Windows, and Linux from one codebase, and
+because its Rust backend integrates directly with `museion-binarize-core`
+without an additional FFI layer. Platform-specific packaging (DMG, MSI,
+AppImage/deb/rpm) is intentionally out of scope for Milestone 0 CI, which
+focuses on build and test correctness; packaging workflows will be added in
+a later milestone (see [`roadmap.md`](roadmap.md)).
+
+## Trust and reproducibility principles
+
+- **No network calls in the processing path.** Rasterization, thresholding,
+  encoding, and PDF writing operate entirely on local files.
+- **No hidden nondeterminism.** Given the same input file, algorithm choice,
+  and parameters, output must be reproducible. Where third-party libraries
+  introduce nondeterminism (e.g. parallel iteration order affecting
+  floating-point summation), it must be documented and, where it affects
+  output bytes, avoided.
+- **Deterministic algorithms only, for now.** Phase 1 intentionally limits
+  itself to classical, explainable thresholding methods so that every pixel
+  decision in the output can be attributed to a documented algorithm and
+  parameter set, rather than to an opaque model. See
+  [`algorithms.md`](algorithms.md).
+- **No claims without benchmarks.** Any statement about output quality,
+  performance, or typographic preservation must be backed by the
+  reproducible benchmarking framework described in
+  [`benchmarking.md`](benchmarking.md), not by inspection of a handful of
+  examples.

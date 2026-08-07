@@ -1,0 +1,22 @@
+{
+  "name": "museion-binarize",
+  "private": true,
+  "description": "Open-source, cross-platform desktop application for converting scanned scholarly books into clean, compact, bilevel PDFs.",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Museion-Project/museion-binarize"
+  },
+  "author": "Pei Haoran",
+  "engines": {
+    "node": ">=20.17.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "lint": "pnpm --filter museion-binarize-desktop lint",
+    "typecheck": "pnpm --filter museion-binarize-desktop typecheck",
+    "test": "pnpm --filter museion-binarize-desktop test",
+    "build": "pnpm --filter museion-binarize-desktop build"
+  }
+}

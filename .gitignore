@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# Rust / Cargo
+# ---------------------------------------------------------------------------
+/target/
+crates/*/target/
+apps/desktop/src-tauri/target/
+# Application crates commit their lockfile; library crates do not need one
+# tracked separately here since the workspace root Cargo.lock covers them.
+
+# ---------------------------------------------------------------------------
+# Node.js / pnpm / Vite
+# ---------------------------------------------------------------------------
+node_modules/
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/dist-ssr/
+.pnpm-store/
+*.local
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------------------------------------------------------------------------
+# Tauri
+# ---------------------------------------------------------------------------
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+# PDFium binaries are supplied through a separate controlled build/fetch
+# process and must never be committed directly to the repository.
+**/vendor/pdfium/**
+
+# ---------------------------------------------------------------------------
+# macOS
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ---------------------------------------------------------------------------
+# Windows
+# ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---------------------------------------------------------------------------
+# Linux
+# ---------------------------------------------------------------------------
+*~
+.directory
+.Trash-*
+
+# ---------------------------------------------------------------------------
+# Editors / IDEs
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ---------------------------------------------------------------------------
+# Test, benchmark, and temporary output
+# ---------------------------------------------------------------------------
+/test-output/
+/benchmark-output/
+*.tmp.pdf
+*.bench.json
+*.criterion/
+
+# ---------------------------------------------------------------------------
+# Release packages
+# ---------------------------------------------------------------------------
+/dist/
+/release/
+*.dmg
+*.msi
+*.AppImage
+*.deb
+*.rpm
+
+# ---------------------------------------------------------------------------
+# Local AI coding tool state (not project configuration)
+# ---------------------------------------------------------------------------
+/.claude/
+
+# ---------------------------------------------------------------------------
+# Environment files and secrets
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.toml
+
+# ---------------------------------------------------------------------------
+# Explicitly NOT ignored (documented for clarity; do not add these below)
+# ---------------------------------------------------------------------------
+# !Cargo.lock
+# !test-data/**
+# !docs/**
+# !.github/**
