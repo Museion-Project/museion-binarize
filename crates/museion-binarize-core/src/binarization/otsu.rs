@@ -1,9 +1,11 @@
 //! Global Otsu thresholding.
 //!
-//! The threshold search itself is delegated to `imageproc`, but wrapped
-//! behind this project-owned function so the rest of the pipeline never
-//! references `imageproc` directly and the implementation can be swapped
-//! later without touching callers.
+//! Implemented in-house with 64-bit accumulators. An earlier version
+//! delegated to `imageproc::contrast::otsu_level`, but that function
+//! accumulates `t * histogram[t]` in `u32`: a full-page scan at 600 DPI
+//! (roughly 35 megapixels) overflows it and panics, which is unacceptable
+//! for user-supplied documents. The wrapper that existed for exactly this
+//! reason made the swap a local change.
 
 use image::GrayImage;
 
@@ -11,8 +13,60 @@ use super::manual::binarize_manual;
 use crate::bilevel::BinaryMask;
 
 /// Computes the Otsu threshold for `image`.
+///
+/// Maximizes between-class variance over the 256-bin grayscale histogram.
+/// When several thresholds tie (as happens for a purely bimodal image),
+/// the lowest is returned.
 pub fn otsu_threshold(image: &GrayImage) -> u8 {
-    imageproc::contrast::otsu_level(image)
+    let mut histogram = [0u64; 256];
+    for pixel in image.pixels() {
+        histogram[pixel[0] as usize] += 1;
+    }
+
+    let total_weight: u64 = histogram.iter().sum();
+    if total_weight == 0 {
+        return 0;
+    }
+
+    // u64 throughout: the largest possible value here is 255 * pixel
+    // count, which stays far below u64::MAX for any page this crate will
+    // ever render (see page_geometry::MAX_RENDERED_PIXELS).
+    let total_sum: u64 = histogram
+        .iter()
+        .enumerate()
+        .map(|(t, count)| t as u64 * count)
+        .sum();
+
+    let mut background_weight: u64 = 0;
+    let mut background_sum: u64 = 0;
+    let mut largest_variance = 0f64;
+    let mut best_threshold = 0u8;
+
+    for (threshold, &count) in histogram.iter().enumerate() {
+        background_weight += count;
+        if background_weight == 0 {
+            continue;
+        }
+        let foreground_weight = total_weight - background_weight;
+        if foreground_weight == 0 {
+            break;
+        }
+        background_sum += threshold as u64 * count;
+        let foreground_sum = total_sum - background_sum;
+
+        let background_mean = background_sum as f64 / background_weight as f64;
+        let foreground_mean = foreground_sum as f64 / foreground_weight as f64;
+        let mean_difference = background_mean - foreground_mean;
+        let between_class_variance =
+            background_weight as f64 * foreground_weight as f64 * mean_difference * mean_difference;
+
+        if between_class_variance > largest_variance {
+            largest_variance = between_class_variance;
+            best_threshold = threshold as u8;
+        }
+    }
+
+    best_threshold
 }
 
 /// Binarizes `image` using global Otsu thresholding.
@@ -63,6 +117,17 @@ mod tests {
             assert!(mask.get(0, y));
             assert!(!mask.get(19, y));
         }
+    }
+
+    #[test]
+    fn does_not_overflow_on_a_large_uniform_page() {
+        // Regression: the previous imageproc-based implementation
+        // accumulated `t * count` in u32 and panicked with "attempt to
+        // multiply with overflow" once a single histogram bin held more
+        // than u32::MAX / 255 pixels (~16.8 M). A 5000x4000 all-white page
+        // (20 M pixels) reproduces it.
+        let img = GrayImage::from_pixel(5000, 4000, Luma([255]));
+        let _ = otsu_threshold(&img);
     }
 
     #[test]
