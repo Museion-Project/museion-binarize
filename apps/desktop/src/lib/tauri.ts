@@ -9,6 +9,7 @@ import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialo
 
 import type {
   DocumentSummary,
+  EstimateResult,
   PdfiumStatus,
   ProcessingCancelled,
   ProcessingCompleted,
@@ -100,6 +101,21 @@ export function startProcessing(request: StartProcessingRequest): Promise<Proces
 
 export function cancelProcessing(jobId: string): Promise<void> {
   return call("cancel_processing", { jobId });
+}
+
+export interface EstimateRequest {
+  documentId: string;
+  settings: ProcessingSettings;
+  samples: number;
+  requestId: number;
+}
+
+/** Experimental output-size estimate — see docs/size-estimation.md. Awaits
+ * the result directly (unlike `startProcessing`, no events): estimation is
+ * bounded and fast enough that the request/response shape `renderPreview`
+ * already uses fits better than the fire-and-forget job pattern. */
+export function startEstimate(request: EstimateRequest): Promise<EstimateResult> {
+  return call("start_estimate", { request });
 }
 
 /** Opens the native "choose a PDF" dialog. Returns `null` if the user cancelled. */

@@ -220,9 +220,11 @@ pub struct ProcessingCompletedDto {
     pub largest_encoded_page: Option<PageExtremeDto>,
     pub smallest_encoded_page: Option<PageExtremeDto>,
 
-    /// Present only when this conversion's settings matched a prior
-    /// estimate for the same document — see `state::CachedEstimate`.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// `null` unless this conversion's settings matched a prior estimate
+    /// for the same document — see `state::CachedEstimate`. Always
+    /// present as an explicit JSON `null` rather than an omitted key
+    /// (no `skip_serializing_if`), so the frontend's `T | null` field
+    /// types match what actually crosses the wire in every case.
     pub estimate_comparison: Option<EstimateComparisonDto>,
 }
 

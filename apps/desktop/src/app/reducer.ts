@@ -7,11 +7,24 @@
 import { defaultSettings } from "../lib/settings";
 import type {
   DocumentSummary,
+  EstimateResult,
   PresetId,
   ProcessingCompleted,
   ProcessingSettings,
   UiError,
 } from "./types";
+
+/** See docs/desktop.md, "Application states" — a discriminated union
+ * rather than `isEstimating`/`estimateError`/`estimateReady`/`estimateStale`
+ * booleans, so an invalid combination cannot be represented. */
+export type EstimateState =
+  | { kind: "idle" }
+  | { kind: "running" }
+  | { kind: "ready"; result: EstimateResult }
+  | { kind: "stale"; previous: EstimateResult }
+  | { kind: "failed"; error: UiError };
+
+const idleEstimate: EstimateState = { kind: "idle" };
 
 export interface PreviewPaneState {
   originalDataUrl: string | null;
@@ -52,6 +65,11 @@ export type AppState =
       /** The requestId of the newest preview request issued, so a late
        * response to an older request can be told apart and dropped. */
       latestRequestId: number;
+      estimate: EstimateState;
+      /** Same staleness pattern as `latestRequestId`, for estimate
+       * requests. A separate counter: preview and estimate requests are
+       * independent operations and must not share a generation id. */
+      latestEstimateRequestId: number;
     }
   | {
       kind: "processing";
@@ -89,6 +107,9 @@ export type Action =
       dataUrl: string;
     }
   | { type: "PREVIEW_FAILED"; requestId: number; error: UiError }
+  | { type: "ESTIMATE_REQUEST_STARTED"; requestId: number }
+  | { type: "ESTIMATE_SUCCEEDED"; requestId: number; result: EstimateResult }
+  | { type: "ESTIMATE_FAILED"; requestId: number; error: UiError }
   | { type: "PROCESSING_STARTED"; jobId: string; pageCount: number; outputPath: string }
   | {
       type: "PROCESSING_PROGRESS";
@@ -124,6 +145,8 @@ export function reducer(state: AppState, action: Action): AppState {
         outputPath: null,
         preview: emptyPreview,
         latestRequestId: 0,
+        estimate: idleEstimate,
+        latestEstimateRequestId: 0,
       };
 
     case "OPEN_FAILED":
@@ -148,6 +171,17 @@ export function reducer(state: AppState, action: Action): AppState {
         settings: action.settings,
         preset: action.preset,
         preview: { ...state.preview, processedDataUrl: null },
+        // A settings change invalidates a *ready* estimate (it was
+        // computed for the settings that just changed) but a running one
+        // is left alone — the hook that debounces estimate requests will
+        // issue a fresh one, which naturally supersedes it via the
+        // requestId check below. A "stale" or "failed" estimate has
+        // already been invalidated by an earlier change and is not
+        // re-wrapped.
+        estimate:
+          state.estimate.kind === "ready"
+            ? { kind: "stale", previous: state.estimate.result }
+            : state.estimate,
       };
     }
 
@@ -194,6 +228,29 @@ export function reducer(state: AppState, action: Action): AppState {
     case "PREVIEW_FAILED": {
       if (state.kind !== "ready" || action.requestId !== state.latestRequestId) return state;
       return { ...state, preview: { ...state.preview, loading: false, error: action.error } };
+    }
+
+    case "ESTIMATE_REQUEST_STARTED": {
+      if (state.kind !== "ready") return state;
+      return {
+        ...state,
+        latestEstimateRequestId: action.requestId,
+        estimate: { kind: "running" },
+      };
+    }
+
+    case "ESTIMATE_SUCCEEDED": {
+      if (state.kind !== "ready" || action.requestId !== state.latestEstimateRequestId) {
+        return state;
+      }
+      return { ...state, estimate: { kind: "ready", result: action.result } };
+    }
+
+    case "ESTIMATE_FAILED": {
+      if (state.kind !== "ready" || action.requestId !== state.latestEstimateRequestId) {
+        return state;
+      }
+      return { ...state, estimate: { kind: "failed", error: action.error } };
     }
 
     case "PROCESSING_STARTED": {
@@ -272,6 +329,8 @@ export function reducer(state: AppState, action: Action): AppState {
         outputPath: null,
         preview: emptyPreview,
         latestRequestId: 0,
+        estimate: idleEstimate,
+        latestEstimateRequestId: 0,
       };
     }
 
@@ -289,6 +348,8 @@ export function reducer(state: AppState, action: Action): AppState {
             outputPath: null,
             preview: emptyPreview,
             latestRequestId: 0,
+            estimate: idleEstimate,
+            latestEstimateRequestId: 0,
           }
         : { kind: "idle" };
     }

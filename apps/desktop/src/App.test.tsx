@@ -228,3 +228,113 @@ describe("App — error presentation", () => {
     expect(screen.getByText("Choose a different output location.")).toBeInTheDocument();
   });
 });
+
+describe("App — size estimate", () => {
+  async function openDocument() {
+    openDialogMock.mockResolvedValue("/tmp/book.pdf");
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "project_info") {
+        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+      }
+      if (command === "open_document") {
+        return sampleDocument();
+      }
+      if (command === "render_preview") {
+        return {
+          requestId: 1,
+          pageNumber: 1,
+          kind: "original",
+          width: 10,
+          height: 10,
+          pngBase64: "",
+          renderDpi: 72,
+          isReducedResolution: false,
+        };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /open pdf/i }));
+    await screen.findByText("book.pdf");
+  }
+
+  it("shows Not estimated until the user requests one, then the result with its range and experimental label", async () => {
+    await openDocument();
+    expect(screen.getByText("Not estimated")).toBeInTheDocument();
+
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "start_estimate") {
+        return {
+          requestId: 1,
+          documentPageCount: 3,
+          sampledPages: [
+            {
+              pageNumber: 1,
+              rasterWidth: 100,
+              rasterHeight: 100,
+              blackPixelRatio: 0.1,
+              ccittBytes: 500,
+              bytesPerPixel: 0.05,
+            },
+          ],
+          estimatedOutputBytes: 6_500_000,
+          estimatedLowerBytes: 5_400_000,
+          estimatedUpperBytes: 7_600_000,
+          rangeMethod: "quartiles",
+          dpi: 400,
+          method: "sauvola",
+          estimateTotalDurationUs: 1_000_000,
+          experimental: true,
+        };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^estimate$/i }));
+    expect(screen.getByText("Estimating…")).toBeInTheDocument();
+
+    expect(await screen.findByText("~6.2 MB")).toBeInTheDocument();
+    expect(screen.getByText(/Likely range/)).toBeInTheDocument();
+    expect(screen.getByText(/Experimental/)).toBeInTheDocument();
+    expect(screen.getByText(/1 sampled page/)).toBeInTheDocument();
+  });
+
+  it("marks the estimate outdated after a settings change, without discarding the last value", async () => {
+    await openDocument();
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "start_estimate") {
+        return {
+          requestId: 1,
+          documentPageCount: 3,
+          sampledPages: [],
+          estimatedOutputBytes: 1_000_000,
+          estimatedLowerBytes: 900_000,
+          estimatedUpperBytes: 1_100_000,
+          rangeMethod: "quartiles",
+          dpi: 400,
+          method: "sauvola",
+          estimateTotalDurationUs: 1,
+          experimental: true,
+        };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^estimate$/i }));
+    expect(await screen.findByText("~976.6 KB")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/contrast/i), { target: { value: "0.5" } });
+
+    // The previous value is still shown (not blanked), but flagged outdated.
+    expect(screen.getByText("~976.6 KB")).toBeInTheDocument();
+    expect(screen.getByText(/Estimate outdated/)).toBeInTheDocument();
+  });
+
+  it("does not block Convert — a conversion can proceed with no estimate ever requested", async () => {
+    await openDocument();
+    // No start_estimate call is made in this test at all; Convert must
+    // still be reachable (it is disabled only by the missing output path
+    // in this test setup, never by estimate state).
+    expect(screen.getByText("Not estimated")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^convert$/i })).toBeInTheDocument();
+  });
+});
