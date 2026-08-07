@@ -7,9 +7,12 @@ converting scanned scholarly books into clean and compact bilevel PDFs.
 
 **Status: Phase 1 — early development.** A complete local CLI pipeline
 exists (`inspect`, `analyze`, `process`, `preview`, with versioned JSON
-reports); the desktop GUI is not connected to it yet. End-to-end behavior
-is currently verified only on a provisioned macOS environment — see
-[`docs/limitations.md`](docs/limitations.md) for exactly what this
+reports), and the desktop GUI is now wired to the same pipeline (open,
+preview, configure, convert, cancel — see [`docs/desktop.md`](docs/desktop.md)).
+End-to-end behavior is currently verified only on a provisioned macOS
+environment, and the desktop GUI specifically has not yet been run as a
+native application (see [`docs/desktop-testing.md`](docs/desktop-testing.md)).
+See [`docs/limitations.md`](docs/limitations.md) for exactly what this
 repository can and cannot do today.
 
 ## Core principles

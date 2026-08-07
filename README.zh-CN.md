@@ -6,9 +6,12 @@
 干净、紧凑的双色（bilevel）PDF 文件。
 
 **当前状态：Phase 1 —— 早期开发阶段。** 已具备完整的本地命令行处理流程
-（`inspect`、`analyze`、`process`、`preview`，支持带版本号的 JSON 报告）；
-桌面 GUI 尚未接入该流程。端到端行为目前仅在受控配置的 macOS 环境中验证过。
-请参阅 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、
+（`inspect`、`analyze`、`process`、`preview`，支持带版本号的 JSON 报告），
+桌面 GUI 现已接入同一处理流程（打开、预览、配置、转换、取消——详见
+[`docs/desktop.md`](docs/desktop.md)）。端到端行为目前仅在受控配置的
+macOS 环境中验证过，桌面 GUI 本身尚未作为原生应用实际运行验证（详见
+[`docs/desktop-testing.md`](docs/desktop-testing.md)）。请参阅
+[`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、
 不能做什么。
 
 ## 核心原则

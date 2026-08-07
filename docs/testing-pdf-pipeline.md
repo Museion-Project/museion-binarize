@@ -107,6 +107,26 @@ committed.** Fixtures are written into temporary directories at test time.
   (the *mock*-session version of this same property is an ordinary,
   non-`#[ignore]`, no-PDFium-required test in `pipeline.rs` — see below).
 
+## Milestone 4 additions
+
+* **`process_with_open_session` reuse**: the desktop app's conversion
+  entry point (added this milestone so the app can convert through a
+  session it already has open for preview, instead of reopening the
+  source) is exercised end-to-end and its output validated as real
+  bilevel CCITT Group 4.
+* **CLI/GUI byte-identity**: `process_pdf` (the CLI's entry point) and
+  `process_with_open_session` (the desktop app's entry point) are run
+  against the same fixture and settings, and their output PDFs are
+  asserted byte-for-byte identical — see `docs/desktop.md`, "Settings,
+  presets, and CLI parity".
+
+The desktop backend's own Rust unit tests (`cargo test -p
+museion-binarize-desktop`) need no PDFium at all — DTO/settings
+conversion and error classification are ordinary, ignore-free tests. See
+[`desktop-testing.md`](desktop-testing.md) for what is and is not
+verified about the GUI as a whole, including the parts that need an
+actual running native window.
+
 ## Proving "one session, not one open per page" without PDFium
 
 Most of the single-session claim is proven by **ordinary** tests in

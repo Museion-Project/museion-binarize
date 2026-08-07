@@ -80,9 +80,21 @@ phase is scoped or committed to yet.
   [`limitations.md`](limitations.md) rather than left as the old, no
   longer accurate, per-page-only bound.
 - **Milestone 4 — Desktop GUI feature completeness.** Wire the same
-  pipeline into the Tauri desktop app: file selection, thumbnails,
-  before/after preview, parameter controls, presets, progress, and
-  cancellation.
+  pipeline into the Tauri desktop app: file selection, a persistent
+  per-window document session with a dedicated PDFium worker thread,
+  lazily-loaded thumbnails, before/after preview (through the real core
+  pipeline, at the real conversion DPI), settings and deterministic
+  presets, asynchronous processing with progress events and real
+  cancellation, and structured error/completion presentation.
+  *(Implementation complete; automated tests — ordinary, frontend, and
+  provisioned-PDFium, including a test proving the CLI and the desktop
+  app produce byte-identical output for identical settings — all pass.
+  **Not yet manually verified as a running native application**: this
+  work was done in an environment that can build and test the code but
+  cannot launch and interact with an actual Tauri window. See
+  [`desktop.md`](desktop.md) and [`desktop-testing.md`](desktop-testing.md)
+  for exactly what is and is not verified before treating this milestone
+  as done.)*
 - **Milestone 5 — Output size estimation.** Sampled output size prediction
   (clearly labelled experimental, and not to be implemented as if it were
   reliable). Basic process and analysis reports already exist as of
