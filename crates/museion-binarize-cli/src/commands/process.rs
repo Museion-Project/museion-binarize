@@ -210,4 +210,36 @@ mod tests {
 
         assert_eq!(run(args), ExitReason::UsageError.exit_code());
     }
+
+    /// Regression test for a data-loss bug found during independent review
+    /// of Milestone 3: `--output` names a file that does not exist yet, so
+    /// the earlier alias check (`std::fs::canonicalize`-or-raw-string-
+    /// compare) missed a `--report` given as a *different spelling* of
+    /// that same path (here, a relative path vs its absolute form). This
+    /// must be rejected before PDFium is ever touched — no real PDFium
+    /// library is available in this ordinary test, so a rejection this
+    /// early is exactly what proves the fix does not depend on processing
+    /// having happened first.
+    #[test]
+    fn report_path_aliasing_a_relative_vs_absolute_spelling_of_the_output_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("book.pdf");
+        std::fs::write(&input, b"input").unwrap();
+        let output = dir.path().join("out.pdf");
+        assert!(!output.exists(), "the destination must not exist yet");
+        let absolute_output = std::fs::canonicalize(dir.path()).unwrap().join("out.pdf");
+
+        let args = ProcessArgs {
+            input,
+            output,
+            settings: base_settings_args(),
+            overwrite: true,
+            validate: ValidateArg::Structural,
+            output_mode: OutputArgs::default(),
+            report: Some(absolute_output),
+            pdfium: no_pdfium(),
+        };
+
+        assert_eq!(run(args), ExitReason::UsageError.exit_code());
+    }
 }

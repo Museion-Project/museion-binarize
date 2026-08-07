@@ -585,13 +585,32 @@ fn check_destination(input: &Path, output: &Path, overwrite: bool) -> Result<()>
     Ok(())
 }
 
-/// Compares two paths, using filesystem identity when both exist so that
-/// symlinks and `./` differences are handled correctly.
+/// Compares two paths for filesystem identity. `output` typically does not
+/// exist yet at the moment this runs (it is about to be created), so this
+/// does not simply require both paths to exist: when a path cannot be
+/// canonicalized directly, its parent directory is canonicalized instead
+/// and the file name re-appended, which still catches two different
+/// spellings (relative vs absolute, `./`) of the same not-yet-existing
+/// destination. See the identical rationale on
+/// `museion_binarize_cli::output::paths_refer_to_same_file`, which shares
+/// this logic for the CLI's `--report` aliasing check.
 fn paths_refer_to_same_file(a: &Path, b: &Path) -> bool {
-    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
-        (Ok(ca), Ok(cb)) => ca == cb,
+    match (normalize_for_comparison(a), normalize_for_comparison(b)) {
+        (Some(na), Some(nb)) => na == nb,
         _ => a == b,
     }
+}
+
+fn normalize_for_comparison(path: &Path) -> Option<PathBuf> {
+    if let Ok(canonical) = std::fs::canonicalize(path) {
+        return Some(canonical);
+    }
+    let file_name = path.file_name()?;
+    let canonical_parent = match path.parent().filter(|p| !p.as_os_str().is_empty()) {
+        Some(parent) => std::fs::canonicalize(parent).ok()?,
+        None => std::env::current_dir().ok()?,
+    };
+    Some(canonical_parent.join(file_name))
 }
 
 /// Writes `bytes` to a temporary file in the destination's directory, so

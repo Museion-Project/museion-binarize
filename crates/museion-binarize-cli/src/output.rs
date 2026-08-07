@@ -7,7 +7,7 @@
 //! `docs/cli.md`.
 
 use std::io::Write as _;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
@@ -116,11 +116,43 @@ pub fn reject_path_aliases(named: &[(&str, &Path)]) -> Result<(), String> {
     Ok(())
 }
 
+/// Compares two paths for filesystem identity, without requiring either to
+/// exist yet.
+///
+/// `--output` (and often `--report`) name a file that is about to be
+/// *created* — at the moment this check runs, it does not exist yet, so
+/// `std::fs::canonicalize` fails on it. A naive `canonicalize`-or-else-
+/// raw-string-compare fallback therefore misses two different spellings of
+/// the same not-yet-existing path (`out.pdf` vs `./out.pdf`, or a relative
+/// path vs its absolute form): once processing creates the file at one
+/// spelling, a second write to the other spelling silently replaces it.
+/// This was caught empirically, not just by inspection: `process
+/// book.pdf --output book.pdf --report "$PWD/book.pdf"` reported success
+/// while leaving the JSON report's bytes at `book.pdf` instead of the
+/// converted PDF. Normalizing the parent directory (which, unlike the
+/// file itself, reliably already exists) closes that gap.
 fn paths_refer_to_same_file(a: &Path, b: &Path) -> bool {
-    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
-        (Ok(ca), Ok(cb)) => ca == cb,
+    match (normalize_for_comparison(a), normalize_for_comparison(b)) {
+        (Some(na), Some(nb)) => na == nb,
         _ => a == b,
     }
+}
+
+/// Best-effort normalization for identity comparison: canonicalizes the
+/// path itself when it exists, otherwise canonicalizes its parent
+/// directory and re-appends the file name. Returns `None` when neither the
+/// path nor its parent can be resolved (e.g. the parent does not exist
+/// either), in which case the caller falls back to a raw comparison.
+fn normalize_for_comparison(path: &Path) -> Option<PathBuf> {
+    if let Ok(canonical) = std::fs::canonicalize(path) {
+        return Some(canonical);
+    }
+    let file_name = path.file_name()?;
+    let canonical_parent = match path.parent().filter(|p| !p.as_os_str().is_empty()) {
+        Some(parent) => std::fs::canonicalize(parent).ok()?,
+        None => std::env::current_dir().ok()?,
+    };
+    Some(canonical_parent.join(file_name))
 }
 
 #[cfg(test)]
@@ -224,5 +256,40 @@ mod tests {
         let err =
             reject_path_aliases(&[("output", &a), ("report", &b), ("preview", &b)]).unwrap_err();
         assert!(err.contains("--report") && err.contains("--preview"));
+    }
+
+    /// Regression test for a data-loss bug found during independent review
+    /// of Milestone 3: a not-yet-existing `--output` fails to
+    /// `canonicalize`, so a naive fallback to raw string comparison missed
+    /// two different spellings (relative vs absolute) of the very file
+    /// `process` was about to create, letting `--report` silently replace
+    /// it afterwards. The parent directory does already exist, so
+    /// normalizing through it must catch this before either file is
+    /// touched.
+    #[test]
+    fn reject_path_aliases_catches_relative_vs_absolute_spellings_of_a_path_that_does_not_exist_yet(
+    ) {
+        let dir = tempfile::tempdir().unwrap();
+        let relative = dir.path().join("out.pdf");
+        let absolute = std::fs::canonicalize(dir.path()).unwrap().join("out.pdf");
+        assert!(
+            !relative.exists(),
+            "the destination must not exist yet, matching a fresh `process` run"
+        );
+
+        let err = reject_path_aliases(&[("output", &relative), ("report", &absolute)]).unwrap_err();
+        assert!(err.contains("--output") && err.contains("--report"));
+    }
+
+    #[test]
+    fn reject_path_aliases_catches_a_dot_slash_spelling_of_a_path_that_does_not_exist_yet() {
+        let dir = tempfile::tempdir().unwrap();
+        let plain = dir.path().join("out.pdf");
+        let dot_prefixed = dir.path().join("./out.pdf");
+        assert!(!plain.exists());
+
+        let err =
+            reject_path_aliases(&[("output", &plain), ("report", &dot_prefixed)]).unwrap_err();
+        assert!(err.contains("--output") && err.contains("--report"));
     }
 }
