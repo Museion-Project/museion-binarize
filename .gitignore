@@ -32,6 +32,8 @@ apps/desktop/src-tauri/gen/
 # tracked; only the binaries themselves are ignored.
 **/vendor/pdfium/**
 /target/pdfium/
+/target/distribution/
+apps/desktop/src-tauri/resources/pdfium/
 *.dylib
 *.dll
 *.so
@@ -59,6 +61,12 @@ $RECYCLE.BIN/
 *~
 .directory
 .Trash-*
+
+# ---------------------------------------------------------------------------
+# Python (scripts/distribution/)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.pyc
 
 # ---------------------------------------------------------------------------
 # Editors / IDEs
