@@ -1,6 +1,6 @@
 # Limitations
 
-## Current state (Milestone 3)
+## Current state (Milestone 4)
 
 Museion Binarize can perform a complete local PDF conversion and can
 analyze a PDF without converting it:
@@ -34,12 +34,20 @@ input.pdf -> PDFium rasterization -> image-processing core
 - documented, tested exit codes and a stdout/stderr contract that keeps
   `--json` output free of progress text or prose;
 - cancellation, safe temporary files with atomic persistence, and output
-  validation that reopens and renders the finished file.
+  validation that reopens and renders the finished file;
+- **the desktop GUI**: native file selection, a persistent per-window
+  document session, lazily-loaded page thumbnails, before/after preview
+  through the real pipeline, settings and deterministic presets,
+  asynchronous processing with progress events and real cancellation,
+  and structured error/completion presentation (see
+  [`desktop.md`](desktop.md)). Covered by automated tests and by native
+  macOS acceptance testing against the real running application — see
+  [`desktop-testing.md`](desktop-testing.md) for the full record,
+  including the one observed real-world processing baseline (not a
+  performance guarantee).
 
 **Not implemented yet:**
 
-- **The desktop GUI is not connected to the pipeline.** It still shows a
-  static screen with a disabled "Open PDF" control. Use the CLI.
 - **`process` does not support a partial page selection** (`--pages` is
   `analyze`-only in this milestone); see [`cli.md`](cli.md) for the
   narrower-scope decision and rationale.

@@ -1,12 +1,22 @@
 //! Tauri backend for the Museion Binarize desktop application.
 //!
-//! This backend depends on `museion-binarize-core` (see the workspace root
+//! This crate depends on `museion-binarize-core` (see the workspace root
 //! `docs/architecture.md`) and exposes it to the frontend through Tauri
-//! commands. At this stage (Milestone 0) it exposes only project metadata,
-//! to verify the frontend/backend bridge — no PDF processing is wired up.
+//! commands. It never duplicates a core algorithm, never shells out to
+//! the CLI, and never sends the source PDF's bytes to the frontend — see
+//! `docs/desktop.md` for the full architecture.
+
+mod commands;
+mod dto;
+mod errors;
+mod settings;
+mod state;
+mod worker;
 
 use museion_binarize_core::ProjectInfo;
 use serde::Serialize;
+
+use state::AppState;
 
 #[derive(Serialize)]
 struct ProjectInfoPayload {
@@ -14,9 +24,8 @@ struct ProjectInfoPayload {
     phase: String,
 }
 
-/// Returns basic project information from `museion-binarize-core`, proving
-/// that the desktop frontend can call into the shared processing core
-/// through the Tauri IPC bridge.
+/// Returns basic project information from `museion-binarize-core`. Kept
+/// from Milestone 0 as a minimal, dependency-free bridge check.
 #[tauri::command]
 fn project_info() -> ProjectInfoPayload {
     let info = ProjectInfo::current();
@@ -30,7 +39,17 @@ fn project_info() -> ProjectInfoPayload {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![project_info])
+        .plugin(tauri_plugin_dialog::init())
+        .manage(AppState::new())
+        .invoke_handler(tauri::generate_handler![
+            project_info,
+            commands::document::open_document,
+            commands::document::close_document,
+            commands::document::pdfium_status,
+            commands::preview::render_preview,
+            commands::processing::start_processing,
+            commands::processing::cancel_processing,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

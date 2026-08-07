@@ -758,6 +758,63 @@ fn repeated_conversions_are_byte_for_byte_identical() {
     );
 }
 
+/// Milestone 4 requirement: the desktop app's entry point
+/// (`process_with_open_session`, converting through a session it already
+/// holds open for preview) must produce byte-identical output to the
+/// CLI's entry point (`process_pdf`, which opens its own session) for the
+/// same input PDF and the same settings. The desktop GUI and the CLI
+/// share this same core, but this proves it directly rather than by
+/// inspection.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn cli_and_gui_entry_points_produce_byte_identical_output_for_identical_settings() {
+    use museion_binarize_core::pipeline::process_with_open_session;
+
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "mixed.pdf", &test_fixtures::mixed_page_sizes());
+    let chosen_settings = settings(BinarizationMethod::Sauvola(SauvolaParams::default()), 300);
+
+    // The CLI path: process_pdf opens its own session from the path.
+    let cli_output = dir.path().join("cli-out.pdf");
+    pipeline::process_pdf(
+        &input,
+        &cli_output,
+        &chosen_settings,
+        &options(config.clone(), ValidationMode::Structural),
+        &RecordingProgress::new(),
+    )
+    .expect("CLI-path conversion");
+
+    // The desktop GUI path: a session opened once (as it would be for
+    // preview), then reused for the conversion.
+    let session = PdfDocumentSession::open(
+        &input,
+        &PdfOpenOptions {
+            password: None,
+            pdfium: config.clone(),
+            compute_source_hash: false,
+        },
+    )
+    .expect("open the session the GUI would have kept open for preview");
+    let gui_output = dir.path().join("gui-out.pdf");
+    process_with_open_session(
+        &session,
+        &gui_output,
+        &chosen_settings,
+        &options(config, ValidationMode::Structural),
+        &RecordingProgress::new(),
+    )
+    .expect("GUI-path conversion");
+
+    let cli_bytes = std::fs::read(&cli_output).unwrap();
+    let gui_bytes = std::fs::read(&gui_output).unwrap();
+    assert_eq!(
+        cli_bytes, gui_bytes,
+        "the CLI and the desktop app must produce byte-identical output for identical input and settings"
+    );
+}
+
 #[test]
 #[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
 fn refuses_an_existing_destination_without_overwrite_and_honours_it_with() {
@@ -946,6 +1003,47 @@ fn source_mutation_after_open_does_not_affect_an_in_progress_session() {
     // *session* simply never performed that fresh open.
     let bytes_now = std::fs::read(&input).unwrap();
     assert_ne!(bytes_now.len() as u64, identity_at_open.byte_len);
+}
+
+/// `process_with_open_session` (added for the desktop app, which keeps one
+/// session open across preview and conversion) must convert successfully
+/// through a session opened earlier by the caller, without opening a
+/// second session of its own — proven the same way M3 proves it for
+/// `process_pdf`: by comparing output against a fixture-fresh run.
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/testing-pdf-pipeline.md"]
+fn process_with_open_session_reuses_an_already_open_session_without_reopening_the_source() {
+    use museion_binarize_core::pipeline::process_with_open_session;
+
+    let (config, _pdfium_guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_fixture(dir.path(), "a.pdf", &test_fixtures::mixed_page_sizes());
+    let output = dir.path().join("out.pdf");
+
+    let session = PdfDocumentSession::open(
+        &input,
+        &PdfOpenOptions {
+            password: None,
+            pdfium: config.clone(),
+            compute_source_hash: false,
+        },
+    )
+    .expect("open");
+
+    let report = process_with_open_session(
+        &session,
+        &output,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options(config, ValidationMode::Structural),
+        &museion_binarize_core::progress::NullProgressReporter,
+    )
+    .expect("conversion through an already-open session");
+
+    assert_eq!(report.pages_processed, 3);
+    assert!(output.exists());
+    let bytes = std::fs::read(&output).unwrap();
+    museion_binarize_core::validation::assert_bilevel_ccitt_structure(&bytes)
+        .expect("must be bilevel CCITT G4");
 }
 
 /// `analyze_pdf` end-to-end: real rendering and binarization, useful

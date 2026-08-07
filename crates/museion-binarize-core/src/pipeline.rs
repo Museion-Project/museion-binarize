@@ -215,6 +215,52 @@ pub fn process_pdf(
     )
 }
 
+/// Converts through an **already-open** [`DocumentSession`] instead of
+/// opening a new one from a path.
+///
+/// Exists for a front end (the desktop app) that keeps one document
+/// session open for the lifetime of a document — for preview and
+/// thumbnail rendering — and would otherwise have to re-read and re-parse
+/// the whole source file a second time just to start a conversion job.
+/// Reuses the exact same per-page loop as [`process_pdf`] and, unlike the
+/// test-only `process_with_session` this wraps, always uses the real
+/// output validator: a caller cannot substitute a fake one through this
+/// entry point.
+///
+/// The destination is checked against the session's own captured source
+/// identity (see [`crate::source_identity::SourceIdentity`]), so the
+/// input/output aliasing guarantee is unchanged from [`process_pdf`].
+pub fn process_with_open_session(
+    session: &impl DocumentSession,
+    output: &Path,
+    settings: &ProcessingSettings,
+    options: &PdfProcessingOptions,
+    progress: &dyn ProgressReporter,
+) -> Result<ProcessingReport> {
+    let started = Instant::now();
+    settings.validate()?;
+    check_destination(
+        &session.source_identity().canonical_path,
+        output,
+        options.overwrite,
+    )?;
+
+    if progress.is_cancelled() {
+        progress.report(ProgressEvent::Cancelled);
+        return Err(CoreError::Cancelled);
+    }
+
+    process_with_session(
+        session,
+        output,
+        settings,
+        options,
+        progress,
+        started,
+        validation::validate_output,
+    )
+}
+
 /// The session- and validator-generic implementation of [`process_pdf`].
 /// Depends only on [`DocumentSession`] for rendering, so tests can
 /// substitute a mock session to prove this function renders every page
@@ -1041,6 +1087,36 @@ mod tests {
             preprocessing: Default::default(),
             cleanup: Default::default(),
         }
+    }
+
+    /// `process_with_open_session` always uses the real output validator
+    /// (unlike `process_with_session`, whose validator is injectable only
+    /// for this test module), so its success path needs a real PDFium
+    /// library and is covered by the `#[ignore]`d integration test
+    /// `process_with_open_session_reuses_an_already_open_session_without_reopening_the_source`
+    /// in `tests/pdf_pipeline.rs`. This ordinary test covers the one thing
+    /// that must reject *before* validation is ever reached: an output
+    /// path that aliases the session's own source.
+    #[test]
+    fn process_with_open_session_rejects_output_aliasing_the_session_source() {
+        let session = MockSession::with_pages(2);
+        let output = session.source_identity().canonical_path.clone();
+
+        let err = process_with_open_session(
+            &session,
+            &output,
+            &mock_settings(),
+            &PdfProcessingOptions::default(),
+            &crate::progress::NullProgressReporter,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, CoreError::DestinationConflict(_)));
+        assert_eq!(
+            session.render_call_count(),
+            0,
+            "an aliased destination must be rejected before any page is rendered"
+        );
     }
 
     #[test]
