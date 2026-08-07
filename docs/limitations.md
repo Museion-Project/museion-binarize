@@ -1,10 +1,11 @@
 # Limitations
 
-## Current state (Milestone 5)
+## Current state (Milestone 6)
 
 Museion Binarize can perform a complete local PDF conversion, can analyze
-a PDF without converting it, and can produce an experimental sampled
-estimate of a conversion's output size before running it:
+a PDF without converting it, can produce an experimental sampled
+estimate of a conversion's output size before running it, and can
+benchmark binarization fidelity against pixel-accurate ground truth:
 
 ```
 input.pdf -> PDFium rasterization -> image-processing core
@@ -17,6 +18,9 @@ input.pdf -> PDFium rasterization -> image-processing core
 input.pdf -> deterministic page sample -> real pipeline on the sample
           -> bytes-per-pixel extrapolation + container overhead
           -> experimental size estimate                           [estimate]
+
+degraded raster + ground truth -> real image-processing core
+          -> confusion matrix / F1 / PSNR / DRD -> versioned report [benchmark]
 ```
 
 **Implemented:**
@@ -56,15 +60,29 @@ input.pdf -> deterministic page sample -> real pipeline on the sample
   real running application — see [`desktop-testing.md`](desktop-testing.md)
   for the full record, including the one observed real-world processing
   baseline (not a performance guarantee).
+- **a reproducible, ground-truth binarization-fidelity benchmark
+  framework** (Milestone 6): confusion matrix / precision / recall / F1
+  / PSNR / DRD against pixel-accurate ground truth, versioned
+  dataset/profile manifests with path containment, region-of-interest
+  metrics, and a `benchmark run`/`benchmark validate` CLI. See
+  [`benchmarking.md`](benchmarking.md) and
+  [`benchmark-metrics.md`](benchmark-metrics.md). **This is measurement
+  infrastructure, not a preservation claim** — see "Benchmark evidence
+  is not a preservation claim" below.
 
 **Not implemented yet:**
 
 - **`process` does not support a partial page selection** (`--pages` is
   `analyze`-only in this milestone); see [`cli.md`](cli.md) for the
   narrower-scope decision and rationale.
-- The reproducible benchmarking framework and release packaging do not
-  exist yet (Milestones 6–7).
-- No benchmark data or fixtures beyond synthetic generated ones.
+- **Pseudo-F-measure and the end-to-end PDF (Level B) benchmark** are
+  deliberately deferred — see [`benchmark-metrics.md`](benchmark-metrics.md)
+  for why (no trustworthy reference/test oracle for pseudo-F yet; Level
+  B is real, separate scope this milestone did not rush).
+- Release packaging does not exist yet (Milestone 7).
+- No real-world (non-synthetic) benchmark corpus — see
+  [`benchmark-datasets.md`](benchmark-datasets.md), "Real scholarly
+  corpus plan," for the documented future protocol.
 - No automatic, checksum-verified PDFium provisioning in CI (Milestone 7);
   the PDFium-dependent tests remain `#[ignore]`d there.
 
@@ -128,6 +146,20 @@ searchable.
 tool preserves polytonic Ancient Greek, critical apparatuses, or other fine
 typographic detail. That will only be claimed if and when reproducible
 benchmark data supports it (Phase 2).
+
+**Benchmark evidence is not a preservation claim.** Milestone 6 adds a
+real, reproducible benchmark *framework* and runs it once against a
+committed synthetic fixture suite (`synthetic-document-v1`). That
+suite validates the framework and measures defined synthetic stress
+cases, including polytonic-diacritic-*like* and dense-apparatus-*like*
+procedural shapes — it is explicitly **not** a representative corpus of
+real scanned or printed material, and its results are **not** evidence
+for a broad claim about preservation quality on historical polytonic
+Greek editions. See [`benchmark-results/synthetic-v1.md`](benchmark-results/synthetic-v1.md)
+for the actual first-run numbers and their interpretation, and
+[`benchmark-datasets.md`](benchmark-datasets.md) for what a
+rights-cleared real corpus would need before that broader claim could
+be made.
 
 All processing is local. There is no networking, telemetry, account, OCR,
 or AI of any kind.

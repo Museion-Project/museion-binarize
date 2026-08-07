@@ -14,6 +14,7 @@ and the exit-code table. For JSON report field meanings, see
 | `estimate` | Sample a handful of pages through the real pipeline and extrapolate an experimental output-size estimate, without writing an output PDF. See [`size-estimation.md`](size-estimation.md). |
 | `process` | Convert a PDF into a bilevel CCITT Group 4 PDF. |
 | `preview` | Render and process one page, saving a PNG. |
+| `benchmark run` / `benchmark validate` | Ground-truth binarization-fidelity benchmarking against a dataset/profile manifest. **`benchmark` requires pixel-accurate ground truth; `analyze` is not a benchmark.** See [`benchmark-running.md`](benchmark-running.md). |
 
 Run `museion-binarize <command> --help` for the full flag list.
 
@@ -89,6 +90,40 @@ parser — so an estimate's settings are guaranteed to match what a later
 The result is always labeled experimental — see
 [`size-estimation.md`](size-estimation.md) for what the estimate is (and
 is not) a guarantee of.
+
+## Benchmarking (`benchmark run` / `benchmark validate`)
+
+```bash
+museion-binarize benchmark run \
+  --dataset test-data/benchmark/synthetic-v1/dataset.toml \
+  --profile test-data/benchmark/profiles/baseline.toml \
+  --report /tmp/museion-benchmark.json
+
+museion-binarize benchmark validate \
+  --dataset test-data/benchmark/synthetic-v1/dataset.toml \
+  --profile test-data/benchmark/profiles/baseline.toml
+```
+
+Unlike every other command, `benchmark run` does not take an `--input`
+PDF directly — it takes a **dataset manifest** (pages with pixel-
+accurate ground truth) and a **profile manifest** (which settings to
+run). There is deliberately no `--method`/`--dpi` shortcut; a profile
+file is the reproducibility unit — see
+[`benchmark-datasets.md`](benchmark-datasets.md), "Why profiles
+enumerate runs." `benchmark validate` checks both manifests (schema,
+path containment, ground-truth validity, dimensions, ROI bounds,
+settings) without processing any page.
+
+`--report` uses the same atomic-write and path-alias-rejection helpers
+as `process`/`analyze`/`estimate --report` — a report path that
+resolves to the dataset or profile manifest is rejected before
+anything runs. See [`benchmark-running.md`](benchmark-running.md) for
+the full workflow and [`benchmark-metrics.md`](benchmark-metrics.md)
+for what the resulting numbers mean.
+
+**`benchmark` requires pixel-accurate ground truth. `analyze` is not a
+benchmark** — it has no ground truth and computes none of the fidelity
+metrics `benchmark` does.
 
 ## stdout / stderr contract
 

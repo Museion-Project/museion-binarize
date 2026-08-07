@@ -6,13 +6,17 @@
 干净、紧凑的双色（bilevel）PDF 文件。
 
 **当前状态：Phase 1 —— 早期开发阶段。** 已具备完整的本地命令行处理流程
-（`inspect`、`analyze`、`estimate`、`process`、`preview`，支持带版本号的
-JSON 报告），桌面 GUI 现已接入同一处理流程（打开、预览、配置、实验性的
-输出大小预估、转换、取消——详见 [`docs/desktop.md`](docs/desktop.md)）。
+（`inspect`、`analyze`、`estimate`、`process`、`preview`、`benchmark`，
+支持带版本号的 JSON 报告），桌面 GUI 现已接入同一处理流程（打开、预览、
+配置、实验性的输出大小预估、转换、取消——详见 [`docs/desktop.md`](docs/desktop.md)）。
 `estimate` 会基于抽样生成实验性的输出体积预测——详见
 [`docs/size-estimation.md`](docs/size-estimation.md)；这并非保证值。
-端到端行为目前仅在受控配置的 macOS 环境中验证过；桌面 GUI 的原生应用
-验收记录详见 [`docs/desktop-testing.md`](docs/desktop-testing.md)。请参阅
+`benchmark` 是一套可复现的、基于像素级标准答案（ground truth）的二值化
+保真度基准测试框架——详见 [`docs/benchmarking.md`](docs/benchmarking.md)；
+其内置的合成测试集仅用于验证框架本身，**并非**真实扫描文档的代表性语料，
+也不构成对历史多音调希腊语版本保真度的证明。端到端行为目前仅在受控配置的
+macOS 环境中验证过；桌面 GUI 的原生应用验收记录详见
+[`docs/desktop-testing.md`](docs/desktop-testing.md)。请参阅
 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、
 不能做什么。
 
@@ -137,6 +141,12 @@ museion-binarize process input.pdf --output output.pdf \
 
 # 将处理后的某一页保存为 PNG 预览（页码从 1 开始）
 museion-binarize preview input.pdf --page 12 --output preview.png
+
+# 基于像素级标准答案，对二值化保真度进行基准测试
+# （光栅级基准测试无需 PDF/PDFium）
+museion-binarize benchmark run \
+  --dataset test-data/benchmark/synthetic-v1/dataset.toml \
+  --profile test-data/benchmark/profiles/baseline.toml
 ```
 
 常用选项：`--method otsu|sauvola|manual`、`--threshold`、`--sauvola-k`、`--sauvola-window`、`--contrast`、`--median-denoise`、`--background-normalization`、`--despeckle off|conservative|strong`、`--overwrite`、`--pdfium-library`、`--pages`（仅 `analyze` 支持，例如 `1,3,8-12`）、`--json`/`--pretty`/`--quiet`/`--report`。进度信息输出到 stderr；最终结果（人类可读或 `--json`）输出到 stdout。完整命令、退出码与 stdout/stderr 约定见 [`docs/cli.md`](docs/cli.md)，JSON 报告结构见 [`docs/reporting.md`](docs/reporting.md)。

@@ -119,7 +119,20 @@ phase is scoped or committed to yet.
   [`limitations.md`](limitations.md) for what the estimate is not.)*
 - **Milestone 6 — Reproducible benchmarking framework.** The metrics and
   reporting pipeline described in [`benchmarking.md`](benchmarking.md),
-  runnable on non-copyrighted fixtures.
+  runnable on non-copyrighted fixtures. *(Complete. Adds a reproducible,
+  versioned ground-truth benchmark framework with deterministic
+  non-copyrighted synthetic fixtures, standard document-binarization
+  fidelity metrics, ROI/category reporting, dataset and profile
+  digests, and CLI benchmark execution. The committed synthetic
+  benchmark validates the framework and measures defined stress cases;
+  it is not yet evidence for a broad claim about preservation quality
+  across historical polytonic Greek editions — see
+  [`benchmark-metrics.md`](benchmark-metrics.md),
+  [`benchmark-datasets.md`](benchmark-datasets.md), and
+  [`benchmark-results/synthetic-v1.md`](benchmark-results/synthetic-v1.md).
+  Pseudo-F-measure and the end-to-end PDF (Level B) benchmark level are
+  deliberately deferred, each for a documented reason, rather than
+  shipped with uncertain correctness.)*
 - **Milestone 7 — Cross-platform packaging and release.** Verified Windows
   and Linux builds, DMG / MSI / AppImage / deb packaging, PDFium bundling,
   and a first tagged release.

@@ -208,6 +208,56 @@ Per sampled page:
 | `page_number` | One-based. |
 | `pixel_width`, `pixel_height` | Of the written PNG. |
 
+### `museion-binarize-benchmark` (`benchmark run --json` / `--report`)
+
+Ground-truth binarization-fidelity benchmark results — not the same
+thing as `analyze`, which has no ground truth. See
+[`benchmark-metrics.md`](benchmark-metrics.md) for what every field
+means and [`benchmark-datasets.md`](benchmark-datasets.md) for the
+dataset/profile manifests referenced below.
+
+| Field | Meaning |
+|---|---|
+| `metrics_schema_version` | Independent of the report's own `schema_version` — versions the metric *definitions* (e.g. DRD's formula), so a future change to how a metric is computed is visible even if the report's field shape did not change. |
+| `dataset.{id,title,manifest_digest,page_count}` | `manifest_digest` is the SHA-256 of the exact dataset manifest bytes used. |
+| `profile.{id,digest}` | SHA-256 of the exact profile manifest bytes used. |
+| `environment.{os,arch,tool_version,benchmark_level}` | `pdfium_library` is present only at the (currently unimplemented) PDF benchmark level. No hostname, username, or absolute private path is ever recorded. |
+| `runs[].{run_id,dpi,method}` | `dpi` is metadata only at the raster level (no active rendering factor — see `benchmark-metrics.md`). |
+| `runs[].pages[]` | See below. |
+| `runs[].aggregate` | `AggregateMetrics` — see below. |
+| `runs[].category_aggregates` | The same `AggregateMetrics` shape, keyed by each page's `category`. |
+| `runs[].roi_tag_aggregates` | The same shape again, keyed by ROI `tag` across every page (omitted from JSON when there are no ROIs). |
+| `runs[].worst_pages` | `{lowest_f1, highest_drd, largest_compressed_page, slowest_page}`, each `{page_id, value}` or absent. Metric-specific, not a scholarly judgement — see `benchmark-metrics.md`. |
+
+Per page (`runs[].pages[]`):
+
+| Field | Meaning |
+|---|---|
+| `page_id`, `category`, `tags` | From the dataset manifest. |
+| `width`, `height`, `pixel_count` | Of the compared rasters (output and ground truth, which must match — see `benchmark-metrics.md`, "Alignment"). |
+| `f_measure` | `{confusion: {true_positive,false_positive,false_negative,true_negative}, precision, recall, f1}`. |
+| `psnr` | `{"psnr_db": <number>}` or `{"perfect_match": true}` — never `Infinity`. |
+| `drd` | Always a finite, non-negative number. |
+| `black_pixel_ratio_output`, `black_pixel_ratio_ground_truth` | For comparing how much ink the output produced versus how much ground truth actually has. |
+| `ccitt_bytes`, `bytes_per_megapixel` | Raw CCITT payload for this page and its per-megapixel normalization — deliberately excludes PDF container overhead (see [`size-estimation.md`](size-estimation.md)). |
+| `render_duration_us` | `null` at the raster level (no PDFium render stage — distinct from a genuine zero-cost measurement). |
+| `processing_duration_us` | Sum of the per-stage timings `process`/`analyze` already measure. |
+| `roi_results` | `[{roi_id, tag, f_measure, psnr, drd}]`, omitted from JSON when the page has no ROIs. |
+
+`AggregateMetrics` (used identically for a run, a category, or an ROI
+tag):
+
+| Field | Meaning |
+|---|---|
+| `page_count` | Pages/ROIs this aggregate was computed over. |
+| `macro_f1`, `micro_f1` | Mean of per-page F1 vs. one F1 from summed confusion counts — see `benchmark-metrics.md`, "Macro vs. micro F1." Never a single unqualified `f1`. |
+| `mean_precision`, `mean_recall` | Macro-averaged. |
+| `mean_psnr_db` | Mean over non-perfect-match pages only; absent if every page was a perfect match. |
+| `perfect_psnr_page_count` | How many pages were excluded from `mean_psnr_db` that way. |
+| `mean_drd`, `median_drd`, `max_drd` | Always finite. |
+| `mean_bytes_per_megapixel` | Absent for ROI-tag aggregates (compression is a whole-page property, not a crop's). |
+| `median_processing_duration_us`, `total_processing_duration_us` | Absent for ROI-tag aggregates. |
+
 ## Error envelope
 
 Schema `museion-binarize-error`, version `1.0`:
