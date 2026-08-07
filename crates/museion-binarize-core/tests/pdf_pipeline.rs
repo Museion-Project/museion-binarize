@@ -1097,6 +1097,15 @@ fn estimate_accuracy_on_a_heterogeneous_synthetic_document_is_within_the_enginee
         estimate.estimated_output_bytes,
         report.output_bytes,
     );
+    // Printed unconditionally (not just on failure) so the actual observed
+    // accuracy is visible in `--nocapture` output for anyone re-running
+    // this as a calibration check, not only as a pass/fail gate.
+    println!(
+        "heterogeneous accuracy: estimated {} vs actual {} bytes, {:.1}% relative error",
+        estimate.estimated_output_bytes,
+        report.output_bytes,
+        comparison.relative_error_fraction * 100.0
+    );
     assert!(
         comparison.relative_error_fraction <= 0.25,
         "central estimate {} differed from actual {} by {:.1}% (24-page heterogeneous fixture, 8 samples); expected <= 25%",
@@ -1147,6 +1156,12 @@ fn estimate_accuracy_on_a_homogeneous_synthetic_document_is_within_the_tighter_t
     let comparison = museion_binarize_core::estimation::compare_estimate(
         estimate.estimated_output_bytes,
         report.output_bytes,
+    );
+    println!(
+        "homogeneous accuracy: estimated {} vs actual {} bytes, {:.1}% relative error",
+        estimate.estimated_output_bytes,
+        report.output_bytes,
+        comparison.relative_error_fraction * 100.0
     );
     assert!(
         comparison.relative_error_fraction <= 0.15,

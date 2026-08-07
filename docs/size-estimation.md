@@ -117,10 +117,19 @@ median to mean alone did not fix it (see the commit history around
 These are engineering acceptance thresholds for the automated test suite,
 not a promise about any particular real document:
 
-| Fixture | Sample count | Threshold | Status |
-|---|---|---|---|
-| 24-page heterogeneous synthetic (6 mixed page types) | 8 (default) | ≤ 25% relative error | Passing |
-| 24-page homogeneous synthetic (uniform page type) | 8 (default) | ≤ 15% relative error | Passing |
+| Fixture | Sample count | Threshold | Observed relative error | Status |
+|---|---|---|---|---|
+| 24-page heterogeneous synthetic (6 mixed page types) | 8 (default) | ≤ 25% | 3.7% (estimated 44,746 vs. actual 46,485 bytes) | Passing |
+| 24-page homogeneous synthetic (uniform page type) | 8 (default) | ≤ 15% | 1.2% (estimated 37,308 vs. actual 37,757 bytes) | Passing |
+
+These are single observed runs against the fixtures as committed
+(`crates/museion-binarize-core/src/test_fixtures.rs`), Otsu/300 DPI —
+not a statistical distribution across many runs, and the pass margin is
+comfortably inside the threshold rather than right at the boundary. The
+threshold, not the observed number, is the actual engineering
+commitment; re-running
+`cargo test --test pdf_pipeline estimate_accuracy -- --ignored --nocapture`
+against a provisioned PDFium library reprints the current numbers.
 
 Real scanned books are not synthetic fixtures. A document whose page
 content or per-page compressibility varies far more than these fixtures —
