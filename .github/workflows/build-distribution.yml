@@ -21,23 +21,55 @@ jobs:
   version-check:
     name: Version consistency
     runs-on: ubuntu-latest
+    outputs:
+      macos_matrix: ${{ steps.matrix.outputs.macos_matrix }}
+      windows_matrix: ${{ steps.matrix.outputs.windows_matrix }}
+      linux_matrix: ${{ steps.matrix.outputs.linux_matrix }}
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/distribution/check_version_consistency.py
       - run: python3 scripts/distribution/test_distribution.py
+      # `matrix` is not a valid context in a job-level `if:` (only
+      # `runs-on`, `env`, and `steps[*].if` see it) — a per-OS matrix
+      # filtered from the requested `targets` input has to be computed
+      # here instead and consumed by each build job's `strategy.matrix`.
+      - name: Compute per-OS target matrices from the targets input
+        id: matrix
+        env:
+          TARGETS_INPUT: ${{ github.event.inputs.targets }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+
+          requested = {t.strip() for t in os.environ["TARGETS_INPUT"].split(",") if t.strip()}
+
+          macos_runners = {
+              "aarch64-apple-darwin": "macos-14",
+              "x86_64-apple-darwin": "macos-13",
+          }
+          macos_matrix = [
+              {"target": target, "runner": runner}
+              for target, runner in macos_runners.items()
+              if target in requested
+          ]
+          windows_matrix = [t for t in ["x86_64-pc-windows-msvc"] if t in requested]
+          linux_matrix = [t for t in ["x86_64-unknown-linux-gnu"] if t in requested]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"macos_matrix={json.dumps(macos_matrix)}\n")
+              f.write(f"windows_matrix={json.dumps(windows_matrix)}\n")
+              f.write(f"linux_matrix={json.dumps(linux_matrix)}\n")
+          PYEOF
 
   macos:
     name: macOS (${{ matrix.target }})
     needs: version-check
-    if: contains(github.event.inputs.targets, matrix.target)
+    if: needs.version-check.outputs.macos_matrix != '[]'
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: aarch64-apple-darwin
-            runner: macos-14
-          - target: x86_64-apple-darwin
-            runner: macos-13
+        include: ${{ fromJson(needs.version-check.outputs.macos_matrix) }}
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -160,10 +192,10 @@ jobs:
   windows:
     name: Windows (${{ matrix.target }})
     needs: version-check
-    if: contains(github.event.inputs.targets, matrix.target)
+    if: needs.version-check.outputs.windows_matrix != '[]'
     strategy:
       matrix:
-        target: [x86_64-pc-windows-msvc]
+        target: ${{ fromJson(needs.version-check.outputs.windows_matrix) }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -205,10 +237,10 @@ jobs:
   linux:
     name: Linux (${{ matrix.target }})
     needs: version-check
-    if: contains(github.event.inputs.targets, matrix.target)
+    if: needs.version-check.outputs.linux_matrix != '[]'
     strategy:
       matrix:
-        target: [x86_64-unknown-linux-gnu]
+        target: ${{ fromJson(needs.version-check.outputs.linux_matrix) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
