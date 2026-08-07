@@ -135,10 +135,14 @@ def main() -> None:
             notarization_state=args.notarization_state,
             build_workflow=args.build_workflow,
         )
-        # Replace any existing entry for the same target rather than
-        # accumulating duplicates across repeated local runs.
+        # Replace any existing entry for the same artifact file rather
+        # than accumulating duplicates across repeated local runs. Keyed
+        # on filename, not target_triple: a single target produces more
+        # than one artifact (e.g. the desktop .dmg and the CLI archive),
+        # and deduping on target_triple alone silently discarded every
+        # artifact but the last one processed for that target.
         data["artifacts"] = [
-            e for e in data["artifacts"] if e["target_triple"] != args.target_triple
+            e for e in data["artifacts"] if e["artifact_filename"] != args.artifact_filename
         ] + [entry]
         args.manifest.write_text(json.dumps(data, indent=2) + "\n")
         print(f"wrote {args.manifest} ({len(data['artifacts'])} artifact(s))")

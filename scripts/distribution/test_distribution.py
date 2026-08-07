@@ -163,6 +163,68 @@ class ReleaseManifestTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 release_manifest.load_or_init(manifest_path, "0.1.0", "sha-b")
 
+    @staticmethod
+    def _run_add(manifest_path: Path, artifact_filename: str, artifact_path: Path, target_triple: str = "aarch64-apple-darwin") -> None:
+        script = REPO_ROOT / "scripts" / "distribution" / "release_manifest.py"
+        subprocess.run(
+            [
+                sys.executable, str(script), "add",
+                "--manifest", str(manifest_path),
+                "--project-version", "0.1.0", "--git-sha", "deadbeef",
+                "--target-triple", target_triple, "--os", "macos", "--arch", "arm64",
+                "--artifact-filename", artifact_filename,
+                "--artifact-path", str(artifact_path),
+                "--pdfium-build", "7920", "--pdfium-version", "151.0.7920.0",
+                "--pdfium-sha256", "a" * 64,
+                "--signing-state", "unsigned", "--notarization-state", "not_applicable",
+            ],
+            check=True,
+        )
+
+    def test_add_accumulates_multiple_artifacts_for_the_same_target(self):
+        # Regression test: a single target (e.g. macOS arm64) produces
+        # more than one artifact — a desktop .dmg and a CLI archive —
+        # and the packaging workflow calls `add` once per artifact using
+        # the *same* --target-triple for both. Deduping on target_triple
+        # alone (the original implementation) silently discarded every
+        # artifact but the last one processed for that target.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest_path = tmp_path / "release-manifest.json"
+            dmg = tmp_path / "app.dmg"
+            dmg.write_bytes(b"dmg bytes")
+            cli_archive = tmp_path / "cli.tar.gz"
+            cli_archive.write_bytes(b"cli bytes")
+
+            self._run_add(manifest_path, "app.dmg", dmg)
+            self._run_add(manifest_path, "cli.tar.gz", cli_archive)
+
+            data = json.loads(manifest_path.read_text())
+            filenames = {a["artifact_filename"] for a in data["artifacts"]}
+            self.assertEqual(filenames, {"app.dmg", "cli.tar.gz"})
+            self.assertEqual(len(data["artifacts"]), 2)
+
+    def test_add_replaces_only_the_matching_filename_on_rerun(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest_path = tmp_path / "release-manifest.json"
+            dmg = tmp_path / "app.dmg"
+            dmg.write_bytes(b"dmg bytes v1")
+            cli_archive = tmp_path / "cli.tar.gz"
+            cli_archive.write_bytes(b"cli bytes")
+
+            self._run_add(manifest_path, "app.dmg", dmg)
+            self._run_add(manifest_path, "cli.tar.gz", cli_archive)
+
+            dmg.write_bytes(b"dmg bytes v2, rebuilt")
+            self._run_add(manifest_path, "app.dmg", dmg)
+
+            data = json.loads(manifest_path.read_text())
+            self.assertEqual(len(data["artifacts"]), 2)
+            by_name = {a["artifact_filename"]: a for a in data["artifacts"]}
+            self.assertEqual(by_name["app.dmg"]["artifact_sha256"], release_manifest.sha256_of(dmg))
+            self.assertIn("cli.tar.gz", by_name)
+
 
 class FetchPdfiumSafetyTests(unittest.TestCase):
     def test_manifest_parses_and_every_entry_has_64_hex_char_checksums(self):
