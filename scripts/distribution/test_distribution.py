@@ -20,8 +20,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import aggregate_release  # noqa: E402
 import checksums  # noqa: E402
 import collect_desktop_artifact  # noqa: E402
+import render_release_notes  # noqa: E402
 import fetch_pdfium  # noqa: E402
 import naming  # noqa: E402
 import package_macos_dmg  # noqa: E402
@@ -817,6 +819,356 @@ class PackageMasEntitlementValidationTests(unittest.TestCase):
                 package_mas.REPO_ROOT = original_root
 
 
+def _artifact_entry(filename, **overrides):
+    entry = {
+        "target_triple": "aarch64-apple-darwin",
+        "os": "macos",
+        "arch": "arm64",
+        "artifact_filename": filename,
+        "artifact_sha256": "a" * 64,
+        "pdfium_build": "7920",
+        "pdfium_version": "151.0.7920.0",
+        "pdfium_sha256": "b" * 64,
+        "signing_state": "ad_hoc",
+        "notarization_state": "pending_credentials",
+    }
+    entry.update(overrides)
+    return entry
+
+
+def _write_target_dir(
+    root: Path,
+    name: str,
+    *,
+    project_version: str,
+    git_sha: str,
+    artifact_filenames: list[str],
+    artifact_overrides: dict | None = None,
+    extra_files: list[str] | None = None,
+    omit_manifest_entry_for: str | None = None,
+) -> Path:
+    """A synthetic stand-in for one `gh run download`ed artifact
+    subdirectory — no live GitHub call, matching the M7A2 brief's "use
+    synthetic temporary artifacts for tests" requirement."""
+    target_dir = root / name
+    target_dir.mkdir(parents=True)
+    entries = []
+    for filename in artifact_filenames:
+        (target_dir / filename).write_bytes(f"contents of {filename}".encode())
+        if filename == omit_manifest_entry_for:
+            continue
+        overrides = (artifact_overrides or {}).get(filename, {})
+        entries.append(_artifact_entry(filename, **overrides))
+    for filename in extra_files or []:
+        (target_dir / filename).write_bytes(b"unexpected stray file")
+    manifest = {
+        "schema": "museion-binarize-release-manifest",
+        "schema_version": "1.0",
+        "project_version": project_version,
+        "git_sha": git_sha,
+        "artifacts": entries,
+    }
+    (target_dir / "release-manifest.json").write_text(json.dumps(manifest, indent=2))
+    (target_dir / "SHA256SUMS").write_text("deliberately-stale-per-target-checksums\n")
+    return target_dir
+
+
+class RenderReleaseNotesTests(unittest.TestCase):
+    def _manifest(self, **overrides):
+        manifest = {
+            "schema": "museion-binarize-release-manifest",
+            "schema_version": "1.0",
+            "project_version": "0.1.0-rc.1",
+            "release_tag": "v0.1.0-rc.1",
+            "git_sha": "a" * 40,
+            "artifacts": [
+                _artifact_entry(
+                    "Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg",
+                    signing_state="ad_hoc",
+                    notarization_state="pending_credentials",
+                ),
+                _artifact_entry(
+                    "Museion-Binarize-0.1.0-rc.1-windows-x64.msi",
+                    signing_state="unsigned",
+                    notarization_state="not_applicable",
+                ),
+            ],
+        }
+        manifest.update(overrides)
+        return manifest
+
+    def test_lists_every_manifest_artifact_by_filename(self):
+        body = render_release_notes.render(self._manifest(), "0.1.0-rc.1")
+        self.assertIn("Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg", body)
+        self.assertIn("Museion-Binarize-0.1.0-rc.1-windows-x64.msi", body)
+
+    def test_does_not_claim_developer_id_signing_or_notarization_occurred(self):
+        body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
+        self.assertIn("ad-hoc signed", body)
+        # The honest negative claim ("not ... signed or notarized") must
+        # be present; an unqualified positive claim must not be.
+        self.assertIn("not Developer ID signed or notarized", body)
+        self.assertNotIn("is Developer ID signed", body)
+        self.assertNotIn("is notarized", body)
+
+    def test_does_not_claim_windows_or_linux_runtime_acceptance(self):
+        body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
+        self.assertIn("do not yet have human runtime acceptance", body)
+
+    def test_version_mismatch_between_manifest_and_argument_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest_path = Path(tmp) / "release-manifest.json"
+            manifest_path.write_text(json.dumps(self._manifest(project_version="0.1.0-rc.2")))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(REPO_ROOT / "scripts" / "distribution" / "render_release_notes.py"),
+                    "--manifest", str(manifest_path),
+                    "--version", "0.1.0-rc.1",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+
+
+class AggregateReleaseTests(unittest.TestCase):
+    VERSION = "0.1.0-rc.1"
+    TAG = "v0.1.0-rc.1"
+    SHA = "a" * 40
+
+    def _two_target_dir(self, tmp_path: Path) -> Path:
+        artifacts_dir = tmp_path / "downloaded"
+        _write_target_dir(
+            artifacts_dir,
+            "museion-binarize-aarch64-apple-darwin",
+            project_version=self.VERSION,
+            git_sha=self.SHA,
+            artifact_filenames=[
+                "Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg",
+                "museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz",
+            ],
+        )
+        _write_target_dir(
+            artifacts_dir,
+            "museion-binarize-x86_64-pc-windows-msvc",
+            project_version=self.VERSION,
+            git_sha=self.SHA,
+            artifact_filenames=[
+                "Museion-Binarize-0.1.0-rc.1-windows-x64.msi",
+                "museion-binarize-cli-0.1.0-rc.1-windows-x64.zip",
+            ],
+        )
+        return artifacts_dir
+
+    def test_matching_version_and_sha_are_accepted_and_merge_correctly(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = self._two_target_dir(tmp_path)
+            out_dir = tmp_path / "release-assets"
+
+            aggregate_release.aggregate(artifacts_dir, self.VERSION, self.TAG, self.SHA, out_dir)
+
+            manifest = json.loads((out_dir / "release-manifest.json").read_text())
+            self.assertEqual(manifest["project_version"], self.VERSION)
+            self.assertEqual(manifest["release_tag"], self.TAG)
+            self.assertEqual(manifest["git_sha"], self.SHA)
+            filenames = {a["artifact_filename"] for a in manifest["artifacts"]}
+            self.assertEqual(
+                filenames,
+                {
+                    "Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg",
+                    "museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz",
+                    "Museion-Binarize-0.1.0-rc.1-windows-x64.msi",
+                    "museion-binarize-cli-0.1.0-rc.1-windows-x64.zip",
+                },
+            )
+            # Every merged artifact file actually landed in out_dir.
+            for filename in filenames:
+                self.assertTrue((out_dir / filename).is_file())
+            # A fresh, release-wide SHA256SUMS/manifest were generated —
+            # not a copy of either per-target file (which this fixture
+            # deliberately seeded with obviously-wrong stale content, to
+            # prove that).
+            self.assertTrue((out_dir / "SHA256SUMS").is_file())
+            self.assertNotIn("deliberately-stale-per-target-checksums", (out_dir / "SHA256SUMS").read_text())
+
+    def test_version_mismatch_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version="0.1.0-rc.2", git_sha=self.SHA,
+                artifact_filenames=["a.dmg"],
+            )
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+    def test_tag_version_mismatch_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = self._two_target_dir(tmp_path)
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, "v0.1.0-rc.2", self.SHA, tmp_path / "out"
+                )
+
+    def test_mixed_git_shas_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["a.dmg"],
+            )
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-x86_64-pc-windows-msvc",
+                project_version=self.VERSION, git_sha="b" * 40,
+                artifact_filenames=["a.msi"],
+            )
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+    def test_duplicate_artifact_filename_across_targets_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["collision.bin"],
+            )
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-x86_64-pc-windows-msvc",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["collision.bin"],
+            )
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+    def test_stale_or_extra_file_not_in_manifest_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["a.dmg"],
+                extra_files=["Museion Binarize_0.1.0_aarch64.dmg"],  # a stale leftover, not in the manifest
+            )
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+    def test_manifest_entry_with_no_file_on_disk_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["a.dmg", "b.tar.gz"],
+                omit_manifest_entry_for="b.tar.gz",
+            )
+            # b.tar.gz exists on disk but has no manifest entry — this is
+            # actually the "unexpected file" case; construct the inverse
+            # (manifest claims a file that doesn't exist) directly:
+            manifest_path = artifacts_dir / "museion-binarize-aarch64-apple-darwin" / "release-manifest.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["artifacts"].append(_artifact_entry("never-written.bin"))
+            manifest_path.write_text(json.dumps(manifest))
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+    def test_release_wide_sha256sums_covers_every_artifact_exactly_once_and_matches_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = self._two_target_dir(tmp_path)
+            out_dir = tmp_path / "release-assets"
+
+            aggregate_release.aggregate(artifacts_dir, self.VERSION, self.TAG, self.SHA, out_dir)
+
+            sums_content = (out_dir / "SHA256SUMS").read_text()
+            lines = [line for line in sums_content.strip().splitlines()]
+            names_in_sums = [line.split("  ", 1)[1] for line in lines]
+            # Exactly once each — no duplicates, and covers the merged
+            # manifest itself alongside the four binary artifacts.
+            self.assertEqual(len(names_in_sums), len(set(names_in_sums)))
+            self.assertIn("release-manifest.json", names_in_sums)
+            for line in lines:
+                digest, name = line.split("  ", 1)
+                actual = hashlib.sha256((out_dir / name).read_bytes()).hexdigest()
+                self.assertEqual(digest, actual, f"checksum mismatch for {name}")
+
+    def test_signing_and_notarization_state_are_preserved_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["a.dmg"],
+                artifact_overrides={
+                    "a.dmg": {"signing_state": "ad_hoc", "notarization_state": "pending_credentials"}
+                },
+            )
+            out_dir = tmp_path / "out"
+            aggregate_release.aggregate(artifacts_dir, self.VERSION, self.TAG, self.SHA, out_dir)
+            manifest = json.loads((out_dir / "release-manifest.json").read_text())
+            entry = next(a for a in manifest["artifacts"] if a["artifact_filename"] == "a.dmg")
+            self.assertEqual(entry["signing_state"], "ad_hoc")
+            self.assertEqual(entry["notarization_state"], "pending_credentials")
+
+    def test_pdfium_provenance_is_preserved_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            _write_target_dir(
+                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                project_version=self.VERSION, git_sha=self.SHA,
+                artifact_filenames=["a.dmg"],
+                artifact_overrides={"a.dmg": {"pdfium_sha256": "c" * 64, "pdfium_version": "151.0.7920.0"}},
+            )
+            out_dir = tmp_path / "out"
+            aggregate_release.aggregate(artifacts_dir, self.VERSION, self.TAG, self.SHA, out_dir)
+            manifest = json.loads((out_dir / "release-manifest.json").read_text())
+            entry = next(a for a in manifest["artifacts"] if a["artifact_filename"] == "a.dmg")
+            self.assertEqual(entry["pdfium_sha256"], "c" * 64)
+
+    def test_no_target_subdirectories_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            artifacts_dir.mkdir()
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+    def test_missing_target_manifest_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            artifacts_dir = tmp_path / "downloaded"
+            bad_target = artifacts_dir / "museion-binarize-aarch64-apple-darwin"
+            bad_target.mkdir(parents=True)
+            (bad_target / "a.dmg").write_bytes(b"no manifest for this file")
+            with self.assertRaises(SystemExit):
+                aggregate_release.aggregate(
+                    artifacts_dir, self.VERSION, self.TAG, self.SHA, tmp_path / "out"
+                )
+
+
 class CollectDesktopArtifactTests(unittest.TestCase):
     """Shared by the Windows and Linux distribution jobs to pick the one
     built installer out of Tauri's bundle directory — see
@@ -897,6 +1249,92 @@ class PackageMasNeverAdHocSignsGuardTests(unittest.TestCase):
         self.assertIn("APPLE_SIGNING_IDENTITY", result.stderr)
         self.assertIn("never falls back to ad-hoc", result.stderr)
         self.assertFalse(Path("/tmp/should-not-be-created-mas-out").exists())
+
+
+class PublishReleaseWorkflowInvariantTests(unittest.TestCase):
+    """Structural checks on publish-release.yml's actual YAML/text —
+    this workflow's whole reason to exist is that it must never make a
+    release public by itself, so its most safety-critical properties
+    are asserted directly against the committed file rather than only
+    documented in prose."""
+
+    WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "publish-release.yml"
+
+    def setUp(self):
+        self.text = self.WORKFLOW_PATH.read_text()
+        # Lines actually executed by this workflow — comments (which may
+        # legitimately mention, e.g., the separate manual command an
+        # owner would later run to publish) must not confuse a check
+        # for what this workflow's own steps do.
+        self.non_comment_text = "\n".join(
+            line for line in self.text.splitlines() if not line.strip().startswith("#")
+        )
+        import yaml  # local import: only this test class needs it
+
+        self.parsed = yaml.safe_load(self.text)
+        # PyYAML parses the bare `on:` key as boolean True, not the
+        # string "on" — this is a real, well-known PyYAML quirk (YAML
+        # 1.1 treats unquoted on/off/yes/no as booleans), not a bug in
+        # this test.
+        self.triggers = self.parsed.get("on", self.parsed.get(True))
+
+    def test_trigger_is_workflow_dispatch_only(self):
+        self.assertEqual(set(self.triggers.keys()), {"workflow_dispatch"})
+
+    def test_requires_tag_run_id_and_git_sha_inputs(self):
+        inputs = self.triggers["workflow_dispatch"]["inputs"]
+        for name in ("tag", "run_id", "git_sha"):
+            self.assertIn(name, inputs)
+            self.assertTrue(inputs[name]["required"])
+
+    def test_permissions_are_minimal(self):
+        self.assertEqual(
+            self.parsed["permissions"],
+            {"contents": "write", "actions": "read"},
+        )
+
+    def test_release_creation_always_passes_draft_and_prerelease(self):
+        self.assertIn("--draft", self.text)
+        self.assertIn("--prerelease", self.text)
+        # Both flags must appear on the same `gh release create` line as
+        # each other and as the tag, not just somewhere in the file.
+        create_lines = [
+            line for line in self.text.splitlines() if "gh release create" in line
+        ]
+        self.assertEqual(len(create_lines), 1)
+
+    def test_never_flips_draft_to_false_or_runs_a_publish_step(self):
+        # Scoped to actual `gh release`/`gh api` invocations specifically
+        # — comments and the final human-facing status message both
+        # legitimately *mention* the separate, later, manual command an
+        # owner would run to actually publish (see the module docstring
+        # and the final "Report" step), which is not the same claim as
+        # "this workflow itself runs that command."
+        gh_invocation_lines = [
+            line
+            for line in self.non_comment_text.splitlines()
+            if ("gh release" in line or "gh api" in line) and "echo" not in line
+        ]
+        self.assertTrue(gh_invocation_lines, "expected at least one real `gh release`/`gh api` line")
+        for line in gh_invocation_lines:
+            self.assertNotIn("--draft=false", line)
+            self.assertNotIn("--draft false", line)
+            self.assertNotIn(" edit ", line)
+
+    def test_fails_closed_on_run_id_mismatch_workflow_name(self):
+        self.assertIn('data["name"] != "Build distribution artifacts"', self.text)
+
+    def test_fails_closed_on_head_sha_mismatch(self):
+        self.assertIn('data["headSha"] != expected_sha', self.text)
+
+    def test_fails_closed_on_non_successful_run(self):
+        self.assertIn('data["conclusion"] != "success"', self.text)
+
+    def test_verifies_checked_out_commit_matches_requested_sha(self):
+        self.assertIn("git rev-parse HEAD", self.text)
+
+    def test_rejects_a_tag_without_the_v_prefix_rather_than_guessing(self):
+        self.assertIn('does not start with', self.text)
 
 
 class MacosSigningAndPackagingGuardTests(unittest.TestCase):

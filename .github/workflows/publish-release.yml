@@ -1,0 +1,164 @@
+name: Publish release
+
+# Manual, owner-triggered only. This workflow NEVER makes a release
+# public by itself — it creates a DRAFT prerelease and stops. Publishing
+# it (flipping draft -> public) is a separate, deliberate action the
+# owner takes afterward, in the GitHub UI or via `gh release edit
+# <tag> --draft=false`. See docs/releasing.md, "Publication is a
+# separate deliberate step."
+#
+# This is intentionally a *second*, separate workflow from
+# build-distribution.yml, not an extra job appended to it:
+# build-distribution.yml's whole purpose is producing private,
+# reviewable workflow-run artifacts with no public side effect — folding
+# publication into it would make every future dispatch of that workflow
+# capable of touching the public Releases page, which is exactly the
+# blast-radius increase this split avoids.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v0.1.0-rc.1 (version is derived by stripping the leading 'v')"
+        required: true
+      run_id:
+        description: "The exact successful build-distribution.yml run ID to publish artifacts from"
+        required: true
+      git_sha:
+        description: "The exact full git SHA the release must be built from — must match the selected run's head commit"
+        required: true
+
+# Nothing beyond what release/tag creation and cross-run artifact
+# download actually require. No `issues`, `pull-requests`, `packages`,
+# etc. — setting `permissions:` at all restricts the token to exactly
+# what is listed here, dropping every other default scope.
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    name: Aggregate and create draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.git_sha }}
+          fetch-depth: 0
+
+      - name: Verify the checked-out commit is really the requested git_sha
+        run: |
+          ACTUAL=$(git rev-parse HEAD)
+          if [ "$ACTUAL" != "${{ github.event.inputs.git_sha }}" ]; then
+            echo "::error::checked out $ACTUAL, expected exactly ${{ github.event.inputs.git_sha }}"
+            exit 1
+          fi
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          case "$TAG" in
+            v*) VERSION="${TAG#v}" ;;
+            *)
+              echo "::error::tag '$TAG' does not start with 'v' — refusing to guess a version"
+              exit 1
+              ;;
+          esac
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the checked-out commit's own version matches the tag
+        run: |
+          ACTUAL=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          if [ "$ACTUAL" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::checked-out commit's own Cargo.toml version ($ACTUAL) does not match the tag-derived version (${{ steps.version.outputs.version }})"
+            exit 1
+          fi
+          python3 scripts/distribution/check_version_consistency.py
+
+      - name: Verify the selected distribution run succeeded and matches git_sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - "$RUN_ID" "$GIT_SHA" <<'PYEOF'
+          import json
+          import subprocess
+          import sys
+
+          run_id, expected_sha = sys.argv[1], sys.argv[2]
+          result = subprocess.run(
+              ["gh", "run", "view", run_id, "--json", "headSha,conclusion,status,name"],
+              capture_output=True, text=True, check=True,
+          )
+          data = json.loads(result.stdout)
+          if data["name"] != "Build distribution artifacts":
+              sys.exit(
+                  f"run {run_id} is not a build-distribution.yml run "
+                  f"(name={data['name']!r}) — refusing to publish from the wrong workflow"
+              )
+          if data["status"] != "completed" or data["conclusion"] != "success":
+              sys.exit(
+                  f"run {run_id} is not a completed, successful run "
+                  f"(status={data['status']!r} conclusion={data['conclusion']!r})"
+              )
+          if data["headSha"] != expected_sha:
+              sys.exit(
+                  f"run {run_id} head SHA {data['headSha']!r} != expected "
+                  f"git_sha {expected_sha!r} — refusing to publish artifacts "
+                  "built from a different commit than requested"
+              )
+          print(f"run {run_id} verified: succeeded, head SHA matches {expected_sha}")
+          PYEOF
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.inputs.run_id }}
+          GIT_SHA: ${{ github.event.inputs.git_sha }}
+
+      - name: Download artifacts from the selected run only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${{ github.event.inputs.run_id }}" --dir downloaded
+
+      - name: Aggregate release-wide assets
+        run: |
+          python3 scripts/distribution/aggregate_release.py \
+            --artifacts-dir downloaded \
+            --expected-version "${{ steps.version.outputs.version }}" \
+            --expected-tag "${{ github.event.inputs.tag }}" \
+            --expected-git-sha "${{ github.event.inputs.git_sha }}" \
+            --out-dir release-assets
+
+      - name: Render release notes
+        run: |
+          python3 scripts/distribution/render_release_notes.py \
+            --manifest release-assets/release-manifest.json \
+            --version "${{ steps.version.outputs.version }}" \
+            --out release-notes.md
+
+      - name: List what is about to be published (for the run log, before anything goes public)
+        run: |
+          echo "Tag: ${{ github.event.inputs.tag }}"
+          echo "Target commit: ${{ github.event.inputs.git_sha }}"
+          echo "Assets:"
+          ls -la release-assets/
+
+      # `--draft` is not optional here: this workflow must never be able
+      # to make a release public by itself, regardless of input values.
+      # `--prerelease` likewise always applies — every tag this workflow
+      # is meant to publish is an `-rc.` release candidate, never a
+      # stable `X.Y.Z`.
+      - name: Create DRAFT prerelease (never public, never final)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.event.inputs.tag }}" \
+            --draft \
+            --prerelease \
+            --title "Museion Binarize ${{ steps.version.outputs.version }}" \
+            --notes-file release-notes.md \
+            --target "${{ github.event.inputs.git_sha }}" \
+            release-assets/*
+
+      - name: Report
+        run: |
+          echo "Draft prerelease created for ${{ github.event.inputs.tag }}."
+          echo "It is NOT public. Owner review and an explicit 'Publish release' action (or 'gh release edit ${{ github.event.inputs.tag }} --draft=false') are required before anyone else can see it."
