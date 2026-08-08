@@ -531,14 +531,39 @@ class TauriResourceConfigTests(unittest.TestCase):
         self.assertIn("resources/pdfium/*", resources)
 
     def test_dist_config_is_pure_overlay_with_no_top_level_conflicts(self):
-        # It must only carry the `bundle.resources` override so it stays a
-        # safe `--config` overlay merged on top of the base config for
-        # distribution builds, not a divergent duplicate configuration.
+        # It must only carry the `bundle.resources` PDFium override and
+        # the `bundle.windows.wix.version` MSI-compatibility override
+        # (see test_dist_config_wix_version_is_msi_compatible below) so
+        # it stays a safe `--config` overlay merged on top of the base
+        # config for distribution builds, not a divergent duplicate
+        # configuration.
         config = json.loads(self.DIST_CONFIG.read_text())
-        self.assertEqual(set(config["bundle"].keys()), {"resources"})
+        self.assertEqual(set(config["bundle"].keys()), {"resources", "windows"})
         self.assertEqual(
             set(config.keys()) - {"$schema"},
             {"bundle"},
+        )
+
+    def test_dist_config_wix_version_is_msi_compatible(self):
+        # Windows Installer's ProductVersion is numeric-only,
+        # major.minor.build(.revision) — it cannot represent a SemVer
+        # prerelease identifier like "0.1.0-rc.1" (confirmed against
+        # Tauri's own WixConfig docs and tauri-bundler's changelog: "the
+        # msi bundle target... [prerelease/build metadata] must be
+        # numeric only"). This override lets the MSI-internal version
+        # stay numeric while every other version field in the repo
+        # (Cargo, package.json, tauri.conf.json, CFBundleShortVersionString,
+        # filenames) keeps the real, meaningful "0.1.0-rc.1". See
+        # docs/releasing.md, "Prerelease versioning across packaging
+        # targets."
+        config = json.loads(self.DIST_CONFIG.read_text())
+        wix_version = config["bundle"]["windows"]["wix"]["version"]
+        self.assertRegex(
+            wix_version,
+            r"^\d+\.\d+\.\d+(\.\d+)?$",
+            f"WiX MSI version {wix_version!r} must be numeric-only "
+            "major.minor.build(.revision) — MSI's ProductVersion field "
+            "cannot represent anything else",
         )
 
     def test_staging_fails_closed_for_a_target_with_no_pinned_pdfium(self):
