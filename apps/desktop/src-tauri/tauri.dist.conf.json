@@ -3,6 +3,11 @@
   "bundle": {
     "resources": {
       "resources/pdfium/*": "./"
+    },
+    "windows": {
+      "wix": {
+        "version": "0.1.0.1"
+      }
     }
   }
 }

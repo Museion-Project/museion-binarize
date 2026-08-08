@@ -34,8 +34,31 @@ Recommended trajectory toward the first tagged release:
 ```
 
 **No tag was created during Milestone 7A**, and `1.0.0` is not planned
-as the first release. This milestone makes the repository *capable* of
-producing an RC; it does not produce one.
+as the first release. Milestone 7A made the repository *capable* of
+producing an RC; the `0.1.0-rc.1` release-prep work is what actually
+produces one.
+
+### Prerelease versioning across packaging targets
+
+Before adopting `0.1.0-rc.1` as the real version, every packaging target
+was checked empirically (real local and CI builds, not assumption) for
+whether it accepts a SemVer prerelease identifier cleanly:
+
+| Target | Result |
+|---|---|
+| Cargo workspace (`[workspace.package].version`) | Accepts it natively — Rust's `semver` crate is fully SemVer-compliant. Verified via `cargo metadata`. |
+| `apps/desktop/package.json` | Accepts it natively (node-semver). |
+| `tauri.conf.json` `version` | Accepts it; flows through to `CFBundleShortVersionString`/`CFBundleVersion` unchanged on macOS. Verified with a real local build. |
+| macOS bundle (`.app`, `.dmg`) | Full build/sign/package pipeline verified locally with `0.1.0-rc.1` end to end — no rejection, no transformation. |
+| **Windows MSI (WiX)** | **Rejects a non-numeric prerelease identifier in `ProductVersion`** — Windows Installer's `ProductVersion` is strictly `major.minor.build`, numeric only (Microsoft's own documented limit: build field ≤ 65,535, no fourth field recognized). Tauri's `tauri-bundler` added msi-specific prerelease/build-metadata support that must also be numeric-only. `0.1.0-rc.1`'s `rc.1` prerelease identifier is neither. **Fix**: `bundle.windows.wix.version` (`tauri.dist.conf.json`) overrides the MSI-internal `ProductVersion` with a numeric-only value (`0.1.0.1` for this RC) while every other version field — including the installer's own filename — keeps the real `0.1.0-rc.1`. Verified via a real Windows CI build: `Museion Binarize_0.1.0-rc.1_x64_en-US.msi` built successfully. |
+| Windows NSIS | Accepts `0.1.0-rc.1` directly, no override needed — verified via the same real Windows CI build (`Museion Binarize_0.1.0-rc.1_x64-setup.exe`). |
+| Linux `.deb`/`.rpm`/AppImage | Accepts `0.1.0-rc.1` directly — verified via a real Linux CI build (`Museion Binarize_0.1.0-rc.1_amd64.deb`, `...-0.1.0-rc.1-1.x86_64.rpm`, `..._0.1.0-rc.1_amd64.AppImage`). |
+
+`scripts/distribution/check_version_consistency.py`'s SemVer regex
+already accepted prerelease identifiers before this milestone (no code
+change needed there); `scripts/distribution/test_distribution.py`'s
+`test_dist_config_wix_version_is_msi_compatible` guards the one real
+fix above from regressing.
 
 ## Artifact naming
 
@@ -54,6 +77,34 @@ museion-binarize-cli-<version>-macos-x64.tar.gz
 museion-binarize-cli-<version>-windows-x64.zip
 museion-binarize-cli-<version>-linux-x86_64.tar.gz
 ```
+
+**Fixed this milestone**: the Windows and Linux jobs previously never
+copied their actual desktop installer into `dist-out/` at all, and never
+generated a `release-manifest.json` entry for one — only the CLI archive
+and its own checksum ever left those two jobs. Only discovered while
+building the release-wide aggregation tooling below, since nothing had
+tried to aggregate Windows/Linux desktop artifacts before. Fixed via
+`scripts/distribution/collect_desktop_artifact.py` (shared by both
+jobs), with the same "exactly one match or fail loudly" discipline the
+macOS job's `.dmg` collector already used.
+
+### Windows artifact selection
+
+`tauri.conf.json`'s `bundle.targets: "all"` builds **both** an MSI and
+an NSIS installer on Windows. Only the **MSI** is collected into
+`dist-out`/published — chosen for its native Windows upgrade/uninstall
+tracking (`ProductVersion`, "Programs & Features" integration). NSIS
+still builds and is validated in CI; it is a deliberate, documented
+exclusion from the published asset set, not an oversight.
+
+### Linux artifact selection
+
+Linux similarly builds `.deb`, `.rpm`, and `.AppImage` from the same
+`"all"` targets setting. **`.deb` and `.AppImage`** are collected and
+published — the most common Debian/Ubuntu package format plus a
+distro-independent format that needs no package manager at all. `.rpm`
+still builds and is validated in CI; also a deliberate, documented
+exclusion.
 
 ## Checksums
 
@@ -79,7 +130,7 @@ Schema `museion-binarize-release-manifest` v1.0
   "pdfium_build": "7920",
   "pdfium_version": "151.0.7920.0",
   "pdfium_sha256": "...",
-  "signing_state": "unsigned | signed | pending_credentials",
+  "signing_state": "unsigned | ad_hoc | signed | pending_credentials",
   "notarization_state": "not_applicable | notarized | pending_credentials"
 }
 ```
@@ -117,14 +168,15 @@ desktop app and CLI archive, inspects bundled-dependency architecture
 `SHA256SUMS`, and uploads everything as a private workflow-run artifact
 — nothing public is produced by running it.
 
-**Not exercised in a real GitHub Actions run during this milestone** —
-triggering it would require pushing to the repository and dispatching
-the workflow, which this milestone's implementation phase did not do.
-Its YAML has been validated for syntax; the individual steps were
-validated by running the equivalent commands directly on this machine
-(see `docs/desktop-testing.md`'s Milestone 7A section for exact
-transcripts of the macOS build/package/smoke-test steps this workflow
-automates).
+**Exercised for real, repeatedly, via `workflow_dispatch`** across
+Milestones 7A, 7B1, and the `0.1.0-rc.1` release-prep work — including
+successful macOS arm64, Windows x64, and Linux x86_64 runs building and
+packaging the real desktop app and CLI archive on GitHub-hosted runners.
+See `docs/desktop-testing.md`'s verification-state table for exactly
+which platform/step combinations have real run evidence versus which
+remain human-runtime-unverified — "the workflow ran successfully" and
+"a human clicked through the resulting app" are still two different
+claims, kept separate throughout that document.
 
 ### Normal PR CI vs. this workflow
 
@@ -207,17 +259,60 @@ this repository's documentation.
 
 ## Publication is a separate deliberate step
 
-This milestone's workflow produces workflow-run artifacts only. The
-intended future publication flow:
+`build-distribution.yml` produces private workflow-run artifacts only —
+it never touches the public Releases page. Publishing is a second,
+separate, owner-triggered workflow: `.github/workflows/publish-release.yml`.
 
 ```
-validated packaged artifacts (this workflow)
-  -> owner-triggered publish action
-  -> Draft GitHub Release
-  -> upload final artifacts + SHA256SUMS + release-manifest.json
-  -> owner review
-  -> mark prerelease/public
+build-distribution.yml (workflow_dispatch, per-target)
+  -> private, reviewable workflow-run artifacts (14-day retention)
+       |
+       | owner explicitly selects one successful run's ID
+       v
+publish-release.yml (workflow_dispatch: tag, run_id, git_sha)
+  -> verifies the selected run succeeded and its head SHA matches git_sha
+  -> verifies the checked-out commit's own version matches the tag
+  -> downloads that run's artifacts (only that run — never "latest")
+  -> scripts/distribution/aggregate_release.py:
+       merges every target's release-manifest.json into one,
+       rejects mixed versions/git SHAs, duplicate/stale/unexpected
+       filenames, and any manifest entry with no file on disk
+  -> scripts/distribution/render_release_notes.py: user-facing notes,
+       generated from the merged manifest so the Downloads list can
+       never drift from what was actually aggregated
+  -> gh release create --draft --prerelease (never --draft=false,
+       never a plain `release create` without --draft — asserted
+       structurally by PublishReleaseWorkflowInvariantTests)
+  -> STOPS. The release exists, but only collaborators with repository
+       access can see it — nobody else, until an owner takes a
+       separate, explicit "un-draft" action afterward.
 ```
+
+Only `contents: write` and `actions: read` permissions — nothing else.
+No Apple credentials are required or read by this workflow; it does not
+sign anything.
 
 No stable release is created automatically by merging a PR, and none
-was created by this milestone's implementation work.
+was created by any of this repository's implementation work — creating
+the actual `v0.1.0-rc.1` tag/release is an owner action taken after this
+release-prep PR is merged, not part of it. See `docs/roadmap.md`'s
+milestone history for exactly which changes landed in which PR if that
+distinction matters later.
+
+**Not live-tested end to end during this milestone**: doing so would
+require dispatching `publish-release.yml` with the real `v0.1.0-rc.1`
+tag, which this milestone's brief explicitly reserves for a deliberate
+post-merge owner action, not something to exercise from a
+still-in-review branch. What *was* verified for real: `aggregate_release.py`
+and `render_release_notes.py` have 90 passing unit tests against
+synthetic fixtures covering every validation path described above
+(`scripts/distribution/test_distribution.py`), and real `workflow_dispatch`
+runs of `build-distribution.yml` on this branch confirmed every target
+now actually produces the artifacts + `release-manifest.json` entry
+`aggregate_release.py` expects to find (previously true only for macOS —
+see "Fixed this milestone" above). The `gh release create --draft`
+invocation itself is the one piece of `publish-release.yml` that
+remains unexercised against the real GitHub API; it is a single,
+well-documented `gh` command, and the "exact post-merge sequence" this
+release-prep PR's description ends with is precisely where a human
+first runs it for real.

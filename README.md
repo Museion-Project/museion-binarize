@@ -5,24 +5,26 @@ English | [简体中文](README.zh-CN.md)
 **Museion Binarize** is an open-source, cross-platform application for
 converting scanned scholarly books into clean and compact bilevel PDFs.
 
-**Status: Phase 1 — early development.** A complete local CLI pipeline
-exists (`inspect`, `analyze`, `estimate`, `process`, `preview`,
-`benchmark`, with versioned JSON reports), and the desktop GUI is now
-wired to the same pipeline (open, preview, configure, an experimental
-size estimate, convert, cancel — see [`docs/desktop.md`](docs/desktop.md)).
-`estimate` produces an experimental, sampled output-size prediction —
-see [`docs/size-estimation.md`](docs/size-estimation.md); it is not a
+**Status: Phase 1 feature-complete — preparing the first public release
+candidate, `v0.1.0-rc.1`.** A complete local CLI pipeline exists
+(`inspect`, `analyze`, `estimate`, `process`, `preview`, `benchmark`,
+with versioned JSON reports), and the desktop GUI is wired to the same
+pipeline (open, preview, configure, an experimental size estimate,
+convert, cancel — see [`docs/desktop.md`](docs/desktop.md)). `estimate`
+produces an experimental, sampled output-size prediction — see
+[`docs/size-estimation.md`](docs/size-estimation.md); it is not a
 guarantee. `benchmark` is a reproducible ground-truth
 binarization-fidelity benchmarking framework — see
 [`docs/benchmarking.md`](docs/benchmarking.md); its committed synthetic
 fixture suite validates the framework and is **not** a representative
 corpus of real scanned documents, and is not evidence for a preservation
-claim about historical polytonic Greek editions. End-to-end behavior is
-currently verified only on a provisioned macOS environment; see
+claim about historical polytonic Greek editions. Human end-to-end
+runtime acceptance exists for **macOS (Apple Silicon) only** — see
 [`docs/desktop-testing.md`](docs/desktop-testing.md) for the native
-desktop acceptance record. See
-[`docs/limitations.md`](docs/limitations.md) for exactly what this
-repository can and cannot do today.
+desktop acceptance record; Windows and Linux packages build and package
+successfully but do not yet have human runtime acceptance (see
+"Download" below). See [`docs/limitations.md`](docs/limitations.md) for
+exactly what this repository can and cannot do today.
 
 ## Core principles
 
@@ -39,7 +41,7 @@ repository can and cannot do today.
 Museion Binarize is not described as "AI-powered." Phase 1 uses classical,
 deterministic image-processing methods, not machine learning models.
 
-## Planned Phase 1 features
+## Phase 1 features
 
 - macOS, Windows, and Linux desktop support.
 - Fully local PDF processing — no upload, no network dependency for
@@ -52,9 +54,52 @@ deterministic image-processing methods, not machine learning models.
   the same processing core.
 - A reproducible benchmarking framework for evaluating output quality.
 
-None of these features are implemented yet in this repository; Phase 1 is
-just beginning. See [`docs/roadmap.md`](docs/roadmap.md) for the
-milestone-by-milestone plan.
+All of the above is implemented in this repository today. See
+[`docs/roadmap.md`](docs/roadmap.md) for the milestone-by-milestone
+history of how it was built, and "Download" below for how to get a
+packaged build.
+
+## Download
+
+Packaged builds are published as
+[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases).
+**If `v0.1.0-rc.1` is not listed there yet, it has not been published
+yet** — release candidates go through an internal review step before
+becoming public, so the Releases page may briefly lag this
+documentation; check back, or build from source in the meantime (see
+"Development instructions" below). Every packaged build — desktop app
+and CLI, on every platform — bundles its own pinned copy of PDFium;
+**you do not need to install PDFium separately to run a downloaded
+release.** (Running from source is different — see "Provide PDFium"
+below.)
+
+| Platform | Package | Human runtime tested | Signing |
+|---|---|---|---|
+| macOS (Apple Silicon / arm64) | `.dmg` (desktop app), CLI `.tar.gz` | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
+| Windows x64 | MSI/NSIS installer, CLI `.zip` | Not yet — release-candidate build only | Unsigned |
+| Linux x86_64 | AppImage, `.deb`, CLI `.tar.gz` | Not yet — release-candidate build only | Not applicable |
+
+**macOS Gatekeeper**: the desktop app is signed with a complete, valid
+ad-hoc signature (not a Developer ID certificate, and not notarized), so
+first launch shows the standard "Apple could not verify... is free of
+malware" prompt for an app from an unidentified developer. Right-click
+(or Control-click) the app and choose **Open**, then confirm — this is
+the normal, expected macOS flow for an unsigned/ad-hoc-signed
+distribution, once per machine. **Do not** disable Gatekeeper
+system-wide (`sudo spctl --master-disable`) to work around this; that
+turns off a real security feature for every app, not just this one, and
+is never necessary here.
+
+**Windows SmartScreen**: the installer is unsigned; Windows may warn
+accordingly. No trust or reputation claim is made for it.
+
+See [`docs/releasing.md`](docs/releasing.md) for exactly what "ad-hoc
+signed" means technically and what real Developer ID signing/notarization
+would additionally require, and
+[`docs/desktop-testing.md`](docs/desktop-testing.md) for the full,
+per-platform verification-state record — "built" and "packaged" are not
+the same claim as "human runtime tested," and this repository does not
+conflate them.
 
 ## Research direction
 
@@ -83,13 +128,15 @@ rationale.
 ## Distribution
 
 Museion Binarize's source remains open source (MIT OR Apache-2.0), and
-GitHub builds are intended to remain fully functional; a future paid Mac
-App Store edition is planned as a convenience distribution, not a
-separate closed-source tier — see
-[`docs/distribution.md`](docs/distribution.md). **Distribution packaging
-infrastructure is implemented; no public release has been published
-yet.** Building a production package yourself is possible from source —
-see [`docs/releasing.md`](docs/releasing.md).
+GitHub builds remain fully functional; a future paid Mac App Store
+edition is planned as a convenience distribution, not a separate
+closed-source tier — technical sandbox readiness for that path exists
+(see [`docs/mac-app-store-readiness.md`](docs/mac-app-store-readiness.md)),
+but nothing has been submitted to Apple and no App Store listing exists.
+See [`docs/distribution.md`](docs/distribution.md) for the full model.
+Packaged GitHub releases are published starting with `v0.1.0-rc.1` — see
+"Download" above. Building a package yourself from source is also
+possible — see [`docs/releasing.md`](docs/releasing.md).
 
 ## Privacy
 
@@ -142,7 +189,14 @@ cargo run -p museion-binarize-cli -- --help
 
 ### Provide PDFium
 
-PDF rendering needs a PDFium dynamic library. It is not bundled, not committed to this repository, and never downloaded at runtime — you supply it once. See [docs/pdfium.md](docs/pdfium.md).
+This section is for **running from source**. If you downloaded a
+packaged release instead (see "Download" above), PDFium is already
+bundled inside it — skip this section entirely.
+
+PDF rendering needs a PDFium dynamic library. When building from
+source, it is not bundled, not committed to this repository, and never
+downloaded at runtime — you supply it once. See
+[docs/pdfium.md](docs/pdfium.md).
 
 ```bash
 export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
