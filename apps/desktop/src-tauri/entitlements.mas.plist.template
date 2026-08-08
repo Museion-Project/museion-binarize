@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template, not the real entitlements file — @TEAM_ID@ is substituted by
+  scripts/distribution/render_mas_entitlements.py at MAS-build time from
+  the (non-secret, already-committed) APPLE_TEAM_ID environment variable.
+  The rendered output (entitlements.mas.plist, gitignored) is what
+  actually gets embedded in the code signature; this template is what's
+  committed, so no Team ID needs to be hard-coded here.
+
+  Kept deliberately minimal — see docs/mac-app-store-readiness.md,
+  "Entitlements," for why each key is here and why the ones evaluated
+  and NOT included (network *server*, Apple Events automation,
+  camera/microphone/location/contacts, downloads-folder, temporary
+  exceptions) are absent: this application has no demonstrated need for
+  any of them (see the M7B1 preflight audit).
+-->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <!--
+      Required by WKWebView, NOT by any network code in this application
+      (it has none, and makes no outbound connection at runtime — see
+      docs/limitations.md). WebKit renders in a separate, out-of-process
+      WebContent XPC service, and in a sandboxed app that service fails
+      to start at all without this entitlement, even when every asset is
+      local to the app bundle. Verified empirically, not assumed: with
+      only app-sandbox + user-selected.read-write, the app launched but
+      no WebContent process ever spawned and the window stayed blank;
+      adding exactly this key made it spawn and load. See
+      docs/mac-app-store-readiness.md, "Entitlements audit," for the
+      full A/B evidence and the App Review note.
+    -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.application-identifier</key>
+    <string>@TEAM_ID@.@BUNDLE_IDENTIFIER@</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>@TEAM_ID@</string>
+</dict>
+</plist>

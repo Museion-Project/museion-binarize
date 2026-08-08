@@ -46,6 +46,9 @@ pub fn run(args: ProcessArgs) -> ExitCode {
         // an estimate in memory for the open document, wires this
         // directly — see `apps/desktop/src-tauri/src/worker.rs`.
         prior_estimate: None,
+        // The CLI never runs under App Sandbox — M0–M7A's atomic
+        // same-directory rename, unchanged.
+        output_write_strategy: pipeline::OutputWriteStrategy::default(),
     };
     let progress = StderrProgress::new(args.output_mode.quiet);
 

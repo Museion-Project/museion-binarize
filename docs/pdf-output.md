@@ -70,15 +70,32 @@ source contributes to the bytes.
 
 ## Safe writing
 
-Output goes to a temporary file in the destination's directory, is flushed,
-synced, reopened, and validated, and only then atomically renamed into
-place. Failure or cancellation removes the temporary file and leaves both
-the source and any existing destination untouched. Overwriting is off by
-default.
+The CLI and the GitHub-distributed desktop app — neither ever runs under
+App Sandbox — write output through
+`OutputWriteStrategy::AtomicSameDirectoryRename`: a temporary file in the
+destination's directory, flushed, synced, reopened, and validated, and
+only then atomically renamed into place. Failure or cancellation removes
+the temporary file and leaves both the source and any existing
+destination untouched. Overwriting is off by default.
 
 On Windows, renaming onto an existing file is not permitted, so with
 `--overwrite` the old file is unlinked immediately before the rename. There
 is a brief window in which neither name exists.
+
+A Mac App Store build (only) instead uses
+`OutputWriteStrategy::DirectWriteToDestination`, because a sandboxed
+process's Powerbox grant for a user-selected save destination is scoped
+to that exact path, not a sibling temp file in the same directory — see
+`docs/mac-app-store-readiness.md`, "Sandboxed output-save architecture,"
+for the full evidence and trade-off. Validation still happens before the
+destination is ever touched (in the app's own always-writable container
+temp directory), so a validation failure or cancellation still leaves an
+existing destination completely untouched — but the final write to the
+destination is a plain write, not a same-filesystem atomic rename, so it
+does not have the same crash-window guarantee: a process killed mid-write
+to the destination can leave it holding a partial file. This applies only
+to the Mac App Store build, never to the CLI or the GitHub desktop
+build.
 
 ## Size expectations
 
