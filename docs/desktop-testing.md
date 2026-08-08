@@ -214,3 +214,190 @@ to confirm the completion report's estimate-vs-actual comparison appears.
 If that is done, record the observation here in the same style as the
 Milestone 4 baseline above, rather than silently assuming this document
 already covers it.
+
+## Milestone 7A: packaged-build verification
+
+See [`distribution.md`](distribution.md), [`pdfium-bundling.md`](pdfium-bundling.md),
+and [`releasing.md`](releasing.md) for the full distribution-foundation
+work. This section records exactly what was, and was not, verified
+during Milestone 7A's implementation.
+
+### Verification-state table
+
+| Target | Built | Packaged | PDFium bundled | Automated smoke | Human runtime | Signed | Notarized |
+|---|---|---|---|---|---|---|---|
+| macOS arm64 (`aarch64-apple-darwin`) | yes | yes (.app, .dmg) | yes, verified | yes | attempted — found broken, fixed, **re-verification pending** | ad-hoc | no |
+| macOS x64 (`x86_64-apple-darwin`) | configured | configured | configured | not run this session | pending | no | no |
+| Windows x64 (`x86_64-pc-windows-msvc`) | configured | configured | configured | not run this session | pending | no | no |
+| Linux x86_64 (`x86_64-unknown-linux-gnu`) | configured | configured | configured | not run this session | pending | not applicable | not applicable |
+
+"Configured" means the CI workflow (`.github/workflows/build-distribution.yml`)
+targets that platform and its steps were validated by running the
+equivalent commands directly where possible (macOS), but **this session
+had no Windows or Linux machine available**, so those three rows'
+"Built"/"Packaged"/"PDFium bundled" are the workflow's intended, not yet
+CI-executed, behavior — the workflow itself was never actually
+dispatched. This is recorded honestly as configured-but-unexercised,
+not as verified.
+
+### macOS arm64: "is damaged and can't be opened" bug found by human runtime testing, and fixed (2026-08-08)
+
+The first real human runtime check of the packaged macOS arm64 build —
+installing the `.dmg` from this milestone and double-clicking the
+`.app` in Finder — did not pass. Finder reported:
+
+> "Museion Binarize" is damaged and can't be opened. You should move it
+> to the Trash.
+
+This is a real defect, not a false alarm from an expected "unidentified
+developer" warning. It was independently reproduced and diagnosed
+without relying on the "damaged" dialog's own wording:
+
+- `codesign --verify --deep --strict` failed, on **both** the installed
+  `/Applications` copy and an untouched, freshly-mounted copy straight
+  from the `.dmg` (ruling out extraction/transfer corruption as the
+  cause), with:
+  ```
+  code has no resources but signature indicates they must be present
+  ```
+- Root cause: Rust's linker ad-hoc-signs each Apple Silicon Mach-O
+  binary at build time (arm64 requires every binary to carry some
+  signature), but `apps/desktop/src-tauri/tauri.conf.json` has no
+  `bundle.macOS.signingIdentity` configured, so `tauri-bundler` never
+  resigns the *whole app bundle* afterward. The packaged `.app`'s main
+  executable therefore carries an embedded CodeDirectory that implies a
+  signed structure with a resource envelope, but
+  `Contents/_CodeSignature/CodeResources` — which should seal
+  `Contents/Resources` (`libpdfium.dylib`, `icon.icns`) — was never
+  generated. Gatekeeper treats that specific mismatch as bundle
+  corruption, which is why the message says "damaged," not
+  "unidentified developer."
+- This gap existed even though the Milestone 7A "launch smoke test"
+  below reported success: that test only confirmed the process stayed
+  alive after being launched directly with `open`, which does not
+  exercise the same Gatekeeper resource-envelope check a Finder
+  double-click does. "Stays running after `open`" and "passes
+  `codesign --verify --deep --strict`" are different claims, and only
+  the second one is what Finder actually checks before allowing a
+  double-click to proceed.
+
+**Fix**: sign the whole `.app` bundle (ad-hoc, identity `-`, since no
+Developer ID credentials exist for this project — see
+[`releasing.md`](releasing.md), "Signing and notarization") *after*
+`tauri build --bundles app` produces it, and build the `.dmg` from that
+already-signed `.app` directly with `hdiutil` rather than through
+Tauri's own dmg bundler — which was confirmed, empirically, to
+recompile and re-bundle the `.app` from scratch as part of producing a
+`.dmg`, discarding any signature applied beforehand. See
+`scripts/distribution/sign_macos_app.py` and
+`scripts/distribution/package_macos_dmg.py`, and the corresponding
+steps added to `.github/workflows/build-distribution.yml`.
+
+**Verified after the fix**, on this machine, for `aarch64-apple-darwin`:
+
+- `codesign --verify --deep --strict` on the resigned `.app`: `valid on
+  disk`, `satisfies its Designated Requirement`.
+- A `.dmg` rebuilt from the resigned `.app` via
+  `package_macos_dmg.py`, then mounted fresh and inspected: the `.app`
+  inside it *also* passes `codesign --verify --deep --strict`.
+- The resigned `.app` launches via `open` with no crash (same
+  non-interactive check as the original Milestone 7A smoke test).
+- `spctl -a` still reports `rejected` on the ad-hoc-signed bundle — this
+  is expected and unchanged: ad-hoc signing fixes the damaged-bundle
+  defect but does not (and cannot) satisfy Gatekeeper's full
+  assessment or notarization, which still require real Developer ID
+  credentials this project does not have.
+
+**Not verified after the fix**: the fix has not yet been confirmed by
+an actual Finder double-click on a fresh human machine (only
+`open`/`codesign --verify` were used, which is real evidence the
+specific defect is gone, but is not the same claim as "a human
+double-clicked it and it opened"). Treat "Human runtime" as pending
+re-verification, not as newly complete, until that happens. If it fails
+again with the same or a different dialog, record the new observation
+here rather than assuming this fix is the end of the story.
+
+### macOS arm64: what was actually done, on this machine
+
+```bash
+python3 scripts/distribution/stage_desktop_pdfium.py aarch64-apple-darwin
+cd apps/desktop && pnpm tauri build --bundles app
+```
+
+- **Bundle inspected directly**: `Museion Binarize.app/Contents/Resources/libpdfium.dylib`
+  present (`file`: `Mach-O 64-bit dynamically linked shared library
+  arm64`, matching the app binary's own architecture).
+- An initial `tauri.conf.json` resources mapping placed the library one
+  directory too deep (`Contents/Resources/resources/libpdfium.dylib`);
+  this was caught by inspecting the actual built bundle, not assumed,
+  and fixed — see [`pdfium-bundling.md`](pdfium-bundling.md).
+- **`.dmg` built**: `Museion Binarize_0.1.0_aarch64.dmg`, 7,345,743
+  bytes, SHA-256
+  `a040ed1ccaf6c5a8c76fdf53516d96b05e8c82b9223e8ada597540d179f99bd9`.
+- **Launch smoke test**: the built `.app` was copied to `/tmp` (outside
+  the repository, simulating an install location), launched directly
+  (not via `pnpm tauri dev`, no dev server, no Cargo/Node/pnpm on the
+  launch path) with `MUSEION_PDFIUM_LIBRARY` explicitly unset, and
+  observed still running 3+ seconds later with no crash. This is
+  automated evidence of a clean startup, not a substitute for the
+  interactive checklist below.
+- **Not done this session**: opening a real PDF, converting, cancelling,
+  and the rest of the interactive checklist below — this requires
+  clicking through the actual GUI, which this environment cannot do.
+  Recorded as **pending human runtime verification**, matching the same
+  honest gap already documented for Milestone 4/5's desktop testing
+  where interactive GUI steps were involved.
+
+### macOS arm64 CLI archive: real end-to-end verification
+
+```bash
+python3 scripts/distribution/package_cli.py \
+  --target-triple aarch64-apple-darwin \
+  --binary target/release/museion-binarize \
+  --pdfium-library target/distribution/pdfium/aarch64-apple-darwin/libpdfium.dylib \
+  --version 0.1.0 --out-dir /tmp/cli-release
+```
+
+Extracted to a fresh directory (not the repository), with
+`MUSEION_PDFIUM_LIBRARY` unset:
+
+- `museion-binarize --help` / `info` — succeeded.
+- `museion-binarize inspect rotations.pdf` — succeeded, reported
+  `PDFium: .../libpdfium.dylib (directory containing the executable)`
+  — confirming `LibrarySource::ExecutableAdjacent` resolution with no
+  environment variable and no code change (see
+  [`pdfium-bundling.md`](pdfium-bundling.md)).
+- `museion-binarize process rotations.pdf --output out.pdf --method
+  otsu --dpi 300` — succeeded; `museion-binarize inspect out.pdf`
+  confirmed the 4-page output PDF was valid.
+- `museion-binarize benchmark validate`/`run` against the committed
+  `test-data/benchmark/synthetic-v1` suite — both succeeded (Level A
+  benchmarking needs no PDFium at all, so this was expected to work
+  regardless of bundling, and did).
+
+This is real, reproducible evidence that CLI distribution's "PDFium
+next to the executable" model works end to end — not a design claim.
+
+### Human checklist for eventual full acceptance (macOS, and for
+Windows/Linux once hardware is available)
+
+Not performed this session; recorded here as the checklist to run when
+a human operator (or a future session with GUI-interaction capability)
+is available, per `docs/architecture.md`'s existing pattern:
+
+- launch the packaged app outside the repository, no Terminal/env var;
+- open a real PDF; verify metadata, thumbnails, original/processed
+  preview, Estimate;
+- convert a multi-page PDF; observe progress; cancel after it begins;
+  verify no partial output;
+- convert again after cancellation; verify the output PDF opens with
+  the correct page count and 1-bit/CCITT properties;
+- quit and relaunch; open a different document;
+- (Windows) install via MSI, launch from Start Menu, uninstall, test a
+  path containing spaces and non-ASCII characters;
+- (Linux) launch the AppImage, and `.deb` install/launch/uninstall if
+  built; note the distro/version used.
+
+Until this checklist is actually run, "Human runtime" stays **pending**
+in the table above for every platform — including macOS arm64, where
+only the non-interactive launch was verified this session.

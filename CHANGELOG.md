@@ -8,6 +8,19 @@ once a first tagged release is published.
 
 ## [Unreleased]
 
+### Fixed
+
+- macOS arm64 packaged `.app`/`.dmg` reported "is damaged and can't be
+  opened" in Finder instead of launching, because the bundle's
+  `Contents/_CodeSignature/CodeResources` resource seal was never
+  generated (no `signingIdentity` configured, so `tauri-bundler` never
+  resigned the whole bundle after Rust's linker ad-hoc-signs the
+  individual Mach-O binaries). The build pipeline now always ad-hoc
+  signs the whole `.app` bundle and packages the `.dmg` from that signed
+  bundle directly, fixing the defect for unsigned (current) builds. See
+  `docs/desktop-testing.md`, "macOS arm64: 'is damaged' bug found by
+  human runtime testing."
+
 ### Added
 
 - Milestone 0: repository initialization — Rust workspace scaffolding

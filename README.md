@@ -80,6 +80,17 @@ Phase 1 does **not** include:
 See [`docs/limitations.md`](docs/limitations.md) for the complete list and
 rationale.
 
+## Distribution
+
+Museion Binarize's source remains open source (MIT OR Apache-2.0), and
+GitHub builds are intended to remain fully functional; a future paid Mac
+App Store edition is planned as a convenience distribution, not a
+separate closed-source tier — see
+[`docs/distribution.md`](docs/distribution.md). **Distribution packaging
+infrastructure is implemented; no public release has been published
+yet.** Building a production package yourself is possible from source —
+see [`docs/releasing.md`](docs/releasing.md).
+
 ## Privacy
 
 Museion Binarize is designed to process files entirely on your own machine.

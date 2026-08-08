@@ -133,9 +133,33 @@ phase is scoped or committed to yet.
   Pseudo-F-measure and the end-to-end PDF (Level B) benchmark level are
   deliberately deferred, each for a documented reason, rather than
   shipped with uncertain correctness.)*
-- **Milestone 7 — Cross-platform packaging and release.** Verified Windows
-  and Linux builds, DMG / MSI / AppImage / deb packaging, PDFium bundling,
-  and a first tagged release.
+- **Milestone 7A — Distribution foundation.** Self-contained production
+  packaging for official GitHub builds: trusted bundled PDFium (desktop
+  and CLI) with a pinned, checksum-verified provenance manifest,
+  production Tauri packaging (macOS `.app`/`.dmg`, Windows, Linux
+  AppImage/`.deb`), deterministic artifact naming, release checksums
+  and a versioned release-manifest, a `workflow_dispatch`-only GitHub
+  Actions build workflow that never auto-publishes, Developer-ID
+  signing/notarization integration points, and a Mac App Store
+  readiness audit for the future M7B. *(Complete. macOS arm64 built,
+  packaged, and non-interactively launch-verified from outside the
+  repository with no environment variable; the standalone CLI archive
+  was verified end to end — inspect/process/benchmark all succeeded
+  against a fresh extraction with bundled PDFium and no
+  `MUSEION_PDFIUM_LIBRARY`. Windows/Linux packaging is configured and
+  CI-targeted but not exercised on real hardware this milestone;
+  signing/notarization integration exists but no artifact is actually
+  signed or notarized (no credentials available). No public release or
+  tag was created. See [`distribution.md`](distribution.md),
+  [`releasing.md`](releasing.md), [`pdfium-bundling.md`](pdfium-bundling.md),
+  and [`desktop-testing.md`](desktop-testing.md)'s verification-state
+  table for the honest, per-platform breakdown.)*
+- **Milestone 7B — Mac App Store distribution.** Paid Mac App Store
+  edition: App Sandbox migration, Mac App Store signing/provisioning,
+  App Store Connect metadata and submission, store privacy/review
+  requirements. Scope only — see
+  [`mac-app-store-readiness.md`](mac-app-store-readiness.md) for the
+  M7A-era audit of what this would require. **Not started.**
 
 Milestone boundaries may shift as implementation reveals new constraints;
 this document will be updated accordingly rather than treated as a fixed

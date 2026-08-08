@@ -1,6 +1,6 @@
 # Limitations
 
-## Current state (Milestone 6)
+## Current state (Milestone 7A)
 
 Museion Binarize can perform a complete local PDF conversion, can analyze
 a PDF without converting it, can produce an experimental sampled
@@ -79,16 +79,35 @@ degraded raster + ground truth -> real image-processing core
   deliberately deferred — see [`benchmark-metrics.md`](benchmark-metrics.md)
   for why (no trustworthy reference/test oracle for pseudo-F yet; Level
   B is real, separate scope this milestone did not rush).
-- Release packaging does not exist yet (Milestone 7).
 - No real-world (non-synthetic) benchmark corpus — see
   [`benchmark-datasets.md`](benchmark-datasets.md), "Real scholarly
   corpus plan," for the documented future protocol.
-- No automatic, checksum-verified PDFium provisioning in CI (Milestone 7);
-  the PDFium-dependent tests remain `#[ignore]`d there.
+- **No public release exists.** Milestone 7A built the packaging
+  infrastructure (see [`distribution.md`](distribution.md) and
+  [`releasing.md`](releasing.md)) but did not publish a GitHub Release
+  or create a tag.
+- **No signed or notarized artifact exists.** Signing/notarization
+  integration is implemented but no Apple Developer credentials were
+  available; every artifact produced so far is unsigned. See
+  [`releasing.md`](releasing.md), "Signing and notarization."
+- **Windows and Linux packaging is configured, not runtime-verified.**
+  CI targets both, and the packaging steps were validated by running
+  their macOS equivalents directly, but no Windows or Linux machine
+  exercised an actual built package this milestone. See
+  [`desktop-testing.md`](desktop-testing.md)'s verification-state table.
+- Mac App Store distribution (M7B) has not started — see
+  [`mac-app-store-readiness.md`](mac-app-store-readiness.md) for the
+  audit of what it would require.
 
-**PDFium must be supplied separately.** It is not bundled with the crate,
-not committed to this repository, and never downloaded at runtime. See
-[`pdfium.md`](pdfium.md). Release bundling of PDFium is Milestone 7.
+**PDFium is not bundled with the crate or committed to this repository,
+and the running application never downloads one at runtime.** See
+[`pdfium.md`](pdfium.md) for the unchanged developer-setup story. As of
+Milestone 7A, an *officially packaged* build (desktop app or CLI
+archive) does carry its own trusted, checksum-verified PDFium, fetched
+and staged at *build/package time only* — see
+[`pdfium-bundling.md`](pdfium-bundling.md). No public package has
+actually been distributed yet (see above), so this bundling exists in
+the release infrastructure but has not reached an end user.
 
 **Platform verification.** The architecture is cross-platform, but only
 **aarch64-apple-darwin** has actually been built *and run* against a real

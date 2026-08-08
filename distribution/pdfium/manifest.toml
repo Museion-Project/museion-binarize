@@ -1,0 +1,112 @@
+# Pinned PDFium release dependencies for official Museion Binarize
+# packaging (desktop bundles and CLI distribution archives).
+#
+# This is distinct from `third_party/pdfium/manifest.toml`, which records
+# whatever PDFium copy a developer happened to verify locally for
+# day-to-day development (currently sourced indirectly via a Homebrew/
+# pypdfium2 wheel). This file is the release pipeline's own dependency
+# list: every entry points at a specific, versioned upstream release
+# asset fetched directly from its official distribution project, with a
+# checksum verified by downloading and hashing that exact asset -- not a
+# value copied from a web page. See docs/pdfium-bundling.md.
+#
+# CI (and scripts/distribution/fetch_pdfium.py) must:
+#   1. download the exact pinned archive_url for the requested target;
+#   2. compute its SHA-256;
+#   3. compare against archive_sha256 below;
+#   4. fail immediately on any mismatch;
+#   5. extract and verify library_sha256 matches the extracted library
+#      file before it is ever placed where packaging can pick it up.
+#
+# Never write "latest" anywhere in this file or the scripts that read it.
+
+schema = "museion-binarize-pdfium-manifest"
+schema_version = "1.0"
+
+[[asset]]
+target_triple = "aarch64-apple-darwin"
+os = "macos"
+arch = "aarch64"
+upstream_project = "PDFium"
+upstream_url = "https://pdfium.googlesource.com/pdfium/"
+distribution_project = "pdfium-binaries"
+distribution_url = "https://github.com/bblanchon/pdfium-binaries"
+build = "7920"
+version = "151.0.7920.0"
+archive_url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7920/pdfium-mac-arm64.tgz"
+archive_filename = "pdfium-mac-arm64.tgz"
+archive_sha256 = "c032aa59be58b0f12e41e76a8ef707e347b9841b0426446f646b2568d350ec4f"
+archive_library_path = "lib/libpdfium.dylib"
+library_filename = "libpdfium.dylib"
+library_sha256 = "df568fcd17a6a6296956aa79abea1181db187458432f360b084fec1cea7cd4d9"
+pdfium_license = "BSD-3-Clause AND Apache-2.0"
+pdfium_license_file = "third_party/pdfium/LICENSE-PDFIUM"
+distribution_license = "MIT"
+distribution_license_file = "third_party/pdfium/LICENSE-DISTRIBUTION"
+date_verified = "2026-08-07"
+
+[[asset]]
+target_triple = "x86_64-apple-darwin"
+os = "macos"
+arch = "x86_64"
+upstream_project = "PDFium"
+upstream_url = "https://pdfium.googlesource.com/pdfium/"
+distribution_project = "pdfium-binaries"
+distribution_url = "https://github.com/bblanchon/pdfium-binaries"
+build = "7920"
+version = "151.0.7920.0"
+archive_url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7920/pdfium-mac-x64.tgz"
+archive_filename = "pdfium-mac-x64.tgz"
+archive_sha256 = "0c78b8d55a4c97e02c9bb516997253cb972739373009cf29554c959a2f6b194a"
+archive_library_path = "lib/libpdfium.dylib"
+library_filename = "libpdfium.dylib"
+library_sha256 = "8fdf8fc61c85676515321b0c214fb1afa0e157cffdadbdff40802e7b4bed7ad6"
+pdfium_license = "BSD-3-Clause AND Apache-2.0"
+pdfium_license_file = "third_party/pdfium/LICENSE-PDFIUM"
+distribution_license = "MIT"
+distribution_license_file = "third_party/pdfium/LICENSE-DISTRIBUTION"
+date_verified = "2026-08-07"
+
+[[asset]]
+target_triple = "x86_64-pc-windows-msvc"
+os = "windows"
+arch = "x86_64"
+upstream_project = "PDFium"
+upstream_url = "https://pdfium.googlesource.com/pdfium/"
+distribution_project = "pdfium-binaries"
+distribution_url = "https://github.com/bblanchon/pdfium-binaries"
+build = "7920"
+version = "151.0.7920.0"
+archive_url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7920/pdfium-win-x64.tgz"
+archive_filename = "pdfium-win-x64.tgz"
+archive_sha256 = "bf25149815b34b00042f48a886653d469c817529dd9cccabb4b509b6465a9526"
+archive_library_path = "bin/pdfium.dll"
+library_filename = "pdfium.dll"
+library_sha256 = "0aa3abb1aa20798094c1a5f2d8cdea45b24a6e12cdc6c774de261dd522dbdf81"
+pdfium_license = "BSD-3-Clause AND Apache-2.0"
+pdfium_license_file = "third_party/pdfium/LICENSE-PDFIUM"
+distribution_license = "MIT"
+distribution_license_file = "third_party/pdfium/LICENSE-DISTRIBUTION"
+date_verified = "2026-08-07"
+
+[[asset]]
+target_triple = "x86_64-unknown-linux-gnu"
+os = "linux"
+arch = "x86_64"
+upstream_project = "PDFium"
+upstream_url = "https://pdfium.googlesource.com/pdfium/"
+distribution_project = "pdfium-binaries"
+distribution_url = "https://github.com/bblanchon/pdfium-binaries"
+build = "7920"
+version = "151.0.7920.0"
+archive_url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7920/pdfium-linux-x64.tgz"
+archive_filename = "pdfium-linux-x64.tgz"
+archive_sha256 = "49ab3afbd4e6c1e284b5f2898129c8bb8a10fd785c1c5392c8c1fc70242f9ced"
+archive_library_path = "lib/libpdfium.so"
+library_filename = "libpdfium.so"
+library_sha256 = "687dce861f959c7097d47c5864509d51a926a71b38322596a8ee3e7a99c6b96e"
+pdfium_license = "BSD-3-Clause AND Apache-2.0"
+pdfium_license_file = "third_party/pdfium/LICENSE-PDFIUM"
+distribution_license = "MIT"
+distribution_license_file = "third_party/pdfium/LICENSE-DISTRIBUTION"
+date_verified = "2026-08-07"

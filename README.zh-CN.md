@@ -67,6 +67,15 @@ Phase 1 **不包括**：
 
 完整列表及原因说明请见 [`docs/limitations.md`](docs/limitations.md)。
 
+## 分发
+
+Museion Binarize 的源代码将保持开源（MIT OR Apache-2.0），GitHub 构建版本
+也将保持功能完整；未来计划推出的付费 Mac App Store 版本是一种便利性的
+分发渠道，而非另立的闭源功能层级——详见
+[`docs/distribution.md`](docs/distribution.md)。**分发打包基础设施已经
+实现；目前尚未发布任何公开版本。** 如需从源码自行构建生产包，请参阅
+[`docs/releasing.md`](docs/releasing.md)。
+
 ## 隐私
 
 Museion Binarize 的设计目标是完全在您自己的设备上处理文件。核心处理流程不会

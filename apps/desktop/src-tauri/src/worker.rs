@@ -99,11 +99,11 @@ pub struct WorkerHandle {
 impl WorkerHandle {
     /// Spawns the worker thread. Call once per application run — this
     /// crate stores the single resulting handle in managed Tauri state.
-    pub fn spawn() -> Self {
+    pub fn spawn(bundled_pdfium_path: Option<PathBuf>) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel::<WorkerCommand>();
         thread::Builder::new()
             .name("museion-pdfium-worker".to_string())
-            .spawn(move || run(receiver))
+            .spawn(move || run(receiver, bundled_pdfium_path))
             .expect("failed to spawn the PDFium worker thread");
         Self { sender }
     }
@@ -138,7 +138,7 @@ fn worker_gone() -> CoreError {
     CoreError::InvalidParameter("the PDFium worker thread is not responding".to_string())
 }
 
-fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>) {
+fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: Option<PathBuf>) {
     let mut session: Option<PdfDocumentSession> = None;
     for command in receiver {
         match command {
@@ -147,7 +147,7 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>) {
                 password,
                 reply,
             } => {
-                let outcome = open(&path, password);
+                let outcome = open(&path, password, bundled_pdfium_path.as_deref());
                 match outcome {
                     Ok((new_session, opened)) => {
                         session = Some(new_session);
@@ -185,6 +185,7 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>) {
                     overwrite,
                     prior_estimate,
                     progress.as_ref(),
+                    bundled_pdfium_path.as_deref(),
                 );
                 let _ = reply.send(result);
             }
@@ -194,28 +195,53 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>) {
                 progress,
                 reply,
             } => {
-                let result = estimate(session.as_ref(), &settings, samples, progress.as_ref());
+                let result = estimate(
+                    session.as_ref(),
+                    &settings,
+                    samples,
+                    progress.as_ref(),
+                    bundled_pdfium_path.as_deref(),
+                );
                 let _ = reply.send(result);
             }
         }
     }
 }
 
-fn pdfium_config() -> PdfiumConfig {
-    // Development-only resolution: an explicit MUSEION_PDFIUM_LIBRARY, or
-    // an application-relative/executable-relative bundled copy (handled
-    // by `pdfium_backend::resolve_library`'s existing search order). No
-    // automatic download — see docs/adr/0001-pdfium-runtime-binding.md.
-    PdfiumConfig::default()
+/// Builds the [`PdfiumConfig`] this desktop backend actually uses,
+/// applying one precedence rule on top of the core resolver's own
+/// (`resolve_library`'s explicit-path-then-env-var-then-search order):
+/// an explicit `MUSEION_PDFIUM_LIBRARY` still wins when set (unchanged
+/// developer/support override behavior — see `docs/pdfium-bundling.md`),
+/// but otherwise a packaged build's trusted bundled resource (resolved
+/// once at startup via Tauri's own resource-directory API — see
+/// `lib.rs`'s `.setup()`) is used explicitly rather than relying on the
+/// core resolver's generic executable-adjacent search, which does not
+/// know macOS's `Contents/Resources` bundle layout. A development run
+/// with no bundled resource falls back to `PdfiumConfig::default()`
+/// unchanged, so `MUSEION_ALLOW_CWD_PDFIUM`/executable-adjacent search
+/// keep working exactly as before.
+pub(crate) fn pdfium_config(bundled_pdfium_path: Option<&std::path::Path>) -> PdfiumConfig {
+    if std::env::var_os(museion_binarize_core::pdfium_backend::PDFIUM_LIBRARY_ENV).is_some() {
+        return PdfiumConfig::default();
+    }
+    match bundled_pdfium_path {
+        Some(path) => PdfiumConfig {
+            library_path: Some(path.to_path_buf()),
+            allow_system_library: false,
+        },
+        None => PdfiumConfig::default(),
+    }
 }
 
 fn open(
     path: &std::path::Path,
     password: Option<String>,
+    bundled_pdfium_path: Option<&std::path::Path>,
 ) -> CoreResult<(PdfDocumentSession, OpenedDocument)> {
     let options = PdfOpenOptions {
         password,
-        pdfium: pdfium_config(),
+        pdfium: pdfium_config(bundled_pdfium_path),
         compute_source_hash: false,
     };
     let session = PdfDocumentSession::open(path, &options)?;
@@ -256,13 +282,14 @@ fn process(
     overwrite: bool,
     prior_estimate: Option<pipeline::PriorEstimate>,
     progress: &dyn ProgressReporter,
+    bundled_pdfium_path: Option<&std::path::Path>,
 ) -> CoreResult<ProcessingReport> {
     let session = session.ok_or_else(no_open_document)?;
     let options = PdfProcessingOptions {
         password: None,
         overwrite,
         validation: museion_binarize_core::validation::ValidationMode::default(),
-        pdfium: pdfium_config(),
+        pdfium: pdfium_config(bundled_pdfium_path),
         prior_estimate,
     };
     pipeline::process_with_open_session(session, output, settings, &options, progress)
@@ -273,11 +300,12 @@ fn estimate(
     settings: &ProcessingSettings,
     samples: u32,
     progress: &dyn ProgressReporter,
+    bundled_pdfium_path: Option<&std::path::Path>,
 ) -> CoreResult<SizeEstimateReport> {
     let session = session.ok_or_else(no_open_document)?;
     let options = EstimationOptions {
         password: None,
-        pdfium: pdfium_config(),
+        pdfium: pdfium_config(bundled_pdfium_path),
         samples,
     };
     pipeline::estimate_with_open_session(session, settings, &options, progress)
@@ -285,4 +313,52 @@ fn estimate(
 
 fn no_open_document() -> CoreError {
     CoreError::InvalidParameter("no document is open".to_string())
+}
+
+#[cfg(test)]
+mod pdfium_config_tests {
+    use super::pdfium_config;
+    use museion_binarize_core::pdfium_backend::PDFIUM_LIBRARY_ENV;
+    use std::path::PathBuf;
+
+    /// Serializes tests that touch the shared process-global
+    /// `MUSEION_PDFIUM_LIBRARY` environment variable, the same
+    /// discipline `pdfium_backend`'s own tests use.
+    static ENV_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn uses_the_bundled_path_explicitly_when_no_env_override_is_set() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var(PDFIUM_LIBRARY_ENV);
+
+        let bundled = PathBuf::from("/app/Resources/libpdfium.dylib");
+        let config = pdfium_config(Some(&bundled));
+        assert_eq!(config.library_path, Some(bundled));
+        assert!(!config.allow_system_library);
+    }
+
+    #[test]
+    fn falls_back_to_the_default_resolver_when_no_bundled_path_exists() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var(PDFIUM_LIBRARY_ENV);
+
+        let config = pdfium_config(None);
+        assert_eq!(config.library_path, None);
+    }
+
+    #[test]
+    fn an_explicit_env_override_still_wins_over_a_bundled_path() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::set_var(PDFIUM_LIBRARY_ENV, "/dev/override/libpdfium.dylib");
+
+        let bundled = PathBuf::from("/app/Resources/libpdfium.dylib");
+        let config = pdfium_config(Some(&bundled));
+        std::env::remove_var(PDFIUM_LIBRARY_ENV);
+
+        // pdfium_config defers to PdfiumConfig::default() (no explicit
+        // library_path of its own) so the core resolver's own env-var
+        // handling takes over — it must not shadow that with the
+        // bundled path.
+        assert_eq!(config.library_path, None);
+    }
 }
