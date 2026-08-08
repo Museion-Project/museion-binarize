@@ -62,12 +62,16 @@ packaged build.
 ## Download
 
 Packaged builds are published as
-[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases),
-starting with the `v0.1.0-rc.1` release candidate. Every packaged build —
-desktop app and CLI, on every platform — bundles its own pinned copy of
-PDFium; **you do not need to install PDFium separately to run a
-downloaded release.** (Running from source is different — see "Provide
-PDFium" below.)
+[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases).
+**If `v0.1.0-rc.1` is not listed there yet, it has not been published
+yet** — release candidates go through an internal review step before
+becoming public, so the Releases page may briefly lag this
+documentation; check back, or build from source in the meantime (see
+"Development instructions" below). Every packaged build — desktop app
+and CLI, on every platform — bundles its own pinned copy of PDFium;
+**you do not need to install PDFium separately to run a downloaded
+release.** (Running from source is different — see "Provide PDFium"
+below.)
 
 | Platform | Package | Human runtime tested | Signing |
 |---|---|---|---|

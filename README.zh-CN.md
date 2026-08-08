@@ -50,10 +50,12 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 ## 下载
 
 打包版本发布于
-[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases)，
-首个版本为发行候选版 `v0.1.0-rc.1`。所有平台的桌面应用与命令行工具打包版
-均内置了固定版本的 PDFium 库——**下载发行版无需单独安装 PDFium。**
-（从源码运行则不同，详见下方"提供 PDFium"一节。）
+[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases)。
+**如果 `v0.1.0-rc.1` 尚未出现在该页面，说明它还未正式发布**——发行候选版
+在公开前会经过内部审核，Releases 页面可能会略晚于本文档更新；请稍后再
+查看，或在此之前从源码自行构建（见下方"开发说明"一节）。所有平台的
+桌面应用与命令行工具打包版均内置了固定版本的 PDFium 库——**下载发行版
+无需单独安装 PDFium。**（从源码运行则不同，详见下方"提供 PDFium"一节。）
 
 | 平台 | 安装包 | 人工运行验收 | 签名情况 |
 |---|---|---|---|

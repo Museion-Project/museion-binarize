@@ -259,17 +259,60 @@ this repository's documentation.
 
 ## Publication is a separate deliberate step
 
-This milestone's workflow produces workflow-run artifacts only. The
-intended future publication flow:
+`build-distribution.yml` produces private workflow-run artifacts only —
+it never touches the public Releases page. Publishing is a second,
+separate, owner-triggered workflow: `.github/workflows/publish-release.yml`.
 
 ```
-validated packaged artifacts (this workflow)
-  -> owner-triggered publish action
-  -> Draft GitHub Release
-  -> upload final artifacts + SHA256SUMS + release-manifest.json
-  -> owner review
-  -> mark prerelease/public
+build-distribution.yml (workflow_dispatch, per-target)
+  -> private, reviewable workflow-run artifacts (14-day retention)
+       |
+       | owner explicitly selects one successful run's ID
+       v
+publish-release.yml (workflow_dispatch: tag, run_id, git_sha)
+  -> verifies the selected run succeeded and its head SHA matches git_sha
+  -> verifies the checked-out commit's own version matches the tag
+  -> downloads that run's artifacts (only that run — never "latest")
+  -> scripts/distribution/aggregate_release.py:
+       merges every target's release-manifest.json into one,
+       rejects mixed versions/git SHAs, duplicate/stale/unexpected
+       filenames, and any manifest entry with no file on disk
+  -> scripts/distribution/render_release_notes.py: user-facing notes,
+       generated from the merged manifest so the Downloads list can
+       never drift from what was actually aggregated
+  -> gh release create --draft --prerelease (never --draft=false,
+       never a plain `release create` without --draft — asserted
+       structurally by PublishReleaseWorkflowInvariantTests)
+  -> STOPS. The release exists, but only collaborators with repository
+       access can see it — nobody else, until an owner takes a
+       separate, explicit "un-draft" action afterward.
 ```
+
+Only `contents: write` and `actions: read` permissions — nothing else.
+No Apple credentials are required or read by this workflow; it does not
+sign anything.
 
 No stable release is created automatically by merging a PR, and none
-was created by this milestone's implementation work.
+was created by any of this repository's implementation work — creating
+the actual `v0.1.0-rc.1` tag/release is an owner action taken after this
+release-prep PR is merged, not part of it. See `docs/roadmap.md`'s
+milestone history for exactly which changes landed in which PR if that
+distinction matters later.
+
+**Not live-tested end to end during this milestone**: doing so would
+require dispatching `publish-release.yml` with the real `v0.1.0-rc.1`
+tag, which this milestone's brief explicitly reserves for a deliberate
+post-merge owner action, not something to exercise from a
+still-in-review branch. What *was* verified for real: `aggregate_release.py`
+and `render_release_notes.py` have 90 passing unit tests against
+synthetic fixtures covering every validation path described above
+(`scripts/distribution/test_distribution.py`), and real `workflow_dispatch`
+runs of `build-distribution.yml` on this branch confirmed every target
+now actually produces the artifacts + `release-manifest.json` entry
+`aggregate_release.py` expects to find (previously true only for macOS —
+see "Fixed this milestone" above). The `gh release create --draft`
+invocation itself is the one piece of `publish-release.yml` that
+remains unexercised against the real GitHub API; it is a single,
+well-documented `gh` command, and the "exact post-merge sequence" this
+release-prep PR's description ends with is precisely where a human
+first runs it for real.
