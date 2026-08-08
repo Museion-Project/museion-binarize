@@ -597,6 +597,11 @@ class MasConfigTests(unittest.TestCase):
             entitlements = plistlib.load(f)
         self.assertEqual(entitlements["com.apple.security.app-sandbox"], True)
         self.assertEqual(entitlements["com.apple.security.files.user-selected.read-write"], True)
+        # Required by WKWebView's out-of-process renderer under App
+        # Sandbox, not by any network code in this app; without it the
+        # window renders blank. Asserted present so it can never be
+        # "tidied away" as an unused permission.
+        self.assertEqual(entitlements["com.apple.security.network.client"], True)
         # Everything else is placeholder identity metadata, not a
         # capability grant — but confirm no unexpected key sneaked in.
         self.assertEqual(
@@ -604,10 +609,16 @@ class MasConfigTests(unittest.TestCase):
             {
                 "com.apple.security.app-sandbox",
                 "com.apple.security.files.user-selected.read-write",
+                "com.apple.security.network.client",
                 "com.apple.application-identifier",
                 "com.apple.developer.team-identifier",
             },
         )
+
+    def test_entitlements_template_does_not_grant_incoming_network_server(self):
+        with self.ENTITLEMENTS_TEMPLATE.open("rb") as f:
+            entitlements = plistlib.load(f)
+        self.assertNotIn("com.apple.security.network.server", entitlements)
 
     def test_entitlements_template_contains_no_forbidden_broad_entitlement(self):
         package_mas.validate_entitlements_plist_file(self.ENTITLEMENTS_TEMPLATE)
@@ -709,6 +720,7 @@ class PackageMasEntitlementValidationTests(unittest.TestCase):
     VALID = {
         "com.apple.security.app-sandbox": True,
         "com.apple.security.files.user-selected.read-write": True,
+        "com.apple.security.network.client": True,
     }
 
     def test_valid_minimal_set_passes(self):
@@ -729,8 +741,22 @@ class PackageMasEntitlementValidationTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             package_mas.validate_entitlements_dict(entitlements, source="test")
 
-    def test_forbidden_network_entitlement_is_rejected_even_alongside_valid_ones(self):
-        entitlements = dict(self.VALID, **{"com.apple.security.network.client": True})
+    def test_missing_network_client_is_rejected(self):
+        # Dropping it produces an app that launches but renders a blank
+        # window under App Sandbox (WKWebView's WebContent XPC service
+        # never starts) — a silent, easily-missed break, so it fails the
+        # build rather than shipping.
+        entitlements = {
+            "com.apple.security.app-sandbox": True,
+            "com.apple.security.files.user-selected.read-write": True,
+        }
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_forbidden_incoming_network_server_entitlement_is_rejected(self):
+        # network.client is required (WebKit); network.server — accepting
+        # *incoming* connections — remains forbidden.
+        entitlements = dict(self.VALID, **{"com.apple.security.network.server": True})
         with self.assertRaises(SystemExit):
             package_mas.validate_entitlements_dict(entitlements, source="test")
 

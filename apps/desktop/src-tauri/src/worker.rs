@@ -339,19 +339,31 @@ mod output_write_strategy_tests {
     use super::output_write_strategy;
     use museion_binarize_core::pipeline::OutputWriteStrategy;
 
+    // `output_write_strategy` is a compile-time `cfg` branch, not a
+    // runtime toggle, so one `#[test]` cannot exercise both arms in the
+    // same binary — each half below only compiles for the matching
+    // feature state, and `cargo test -p museion-binarize-desktop` /
+    // `cargo test -p museion-binarize-desktop --features mas-sandbox`
+    // each give the other its real, non-`#[cfg]`-skipped coverage.
+
+    #[cfg(not(feature = "mas-sandbox"))]
     #[test]
     fn ordinary_build_keeps_the_atomic_same_directory_rename_default() {
-        // This crate is compiled without `mas-sandbox` for ordinary
-        // `cargo test`/the GitHub distribution build, so this asserts
-        // exactly the M0–M7A behavior stays the default. The
-        // `mas-sandbox`-enabled branch is proven to compile and select
-        // `DirectWriteToDestination` by `cargo check -p
-        // museion-binarize-desktop --features mas-sandbox` (a `cfg`
-        // feature makes the other branch unreachable in this same test
-        // binary, not something one `#[test]` can toggle at runtime).
+        // Ordinary `cargo test`/the GitHub distribution build compiles
+        // without `mas-sandbox`, so this asserts exactly the M0–M7A
+        // behavior stays the default.
         assert_eq!(
             output_write_strategy(),
             OutputWriteStrategy::AtomicSameDirectoryRename
+        );
+    }
+
+    #[cfg(feature = "mas-sandbox")]
+    #[test]
+    fn mas_sandbox_build_selects_direct_write_to_destination() {
+        assert_eq!(
+            output_write_strategy(),
+            OutputWriteStrategy::DirectWriteToDestination
         );
     }
 }

@@ -78,6 +78,13 @@ MAS_CONFIG_PATH = SRC_TAURI / "tauri.mas.conf.json"
 REQUIRED_ENTITLEMENTS = {
     "com.apple.security.app-sandbox",
     "com.apple.security.files.user-selected.read-write",
+    # Required by WKWebView's out-of-process architecture, not by any
+    # network code in this app — without it the WebContent XPC service
+    # never starts under App Sandbox and the window renders blank. Kept
+    # in REQUIRED (not merely "allowed") precisely because dropping it
+    # silently produces an app that launches but shows nothing, which is
+    # exactly how it was found. See docs/mac-app-store-readiness.md.
+    "com.apple.security.network.client",
 }
 
 # Broad entitlements this application has no demonstrated need for (see
@@ -85,8 +92,14 @@ REQUIRED_ENTITLEMENTS = {
 # these appearing in the entitlements plist — template, rendered, or
 # actually embedded in a signed binary — is a structural regression,
 # not a judgment call to re-litigate per build.
+#
+# Note `network.server` (accepting *incoming* connections) stays
+# forbidden; only `network.client` is permitted, and only for the
+# WebKit reason documented above. The prefix is deliberately not the
+# broader "com.apple.security.network." so that a future
+# `network.server` addition still fails closed.
 FORBIDDEN_ENTITLEMENT_PREFIXES = (
-    "com.apple.security.network.",
+    "com.apple.security.network.server",
     "com.apple.security.automation.",
     "com.apple.security.device.camera",
     "com.apple.security.device.microphone",

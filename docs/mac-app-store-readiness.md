@@ -12,6 +12,29 @@ verification-state discipline as `docs/releasing.md`:
 "configured" != "structurally built" != "signed" != "sandbox-verified" != "submitted"
 ```
 
+## Status
+
+**Technical sandbox readiness: COMPLETE.** App Sandbox enforcement, the
+entitlement set, the sandboxed output-save architecture, and PDFium
+bundling have all been verified against a real, kernel-enforced
+sandboxed build, including a full interactive human acceptance pass —
+see "Human acceptance: PASSED" below. There is no open BLOCKING or HIGH
+technical finding for the sandbox itself as of this milestone.
+
+This is a distinct claim from, and must never be conflated with:
+
+- **Production Apple signing**: pending owner credentials (an Apple
+  Distribution certificate — not yet obtained).
+- **Provisioning**: pending owner credentials (App ID registration and a
+  Mac App Store provisioning profile — not yet obtained).
+- **App Store Connect upload / submission / review**: not started —
+  no tooling for it has been exercised, and none of this milestone's
+  builds have ever left this machine.
+
+"Technical sandbox readiness" means: the code and configuration are
+correct and demonstrated to work under real sandbox enforcement. It
+does not mean an App Store submission exists or has been attempted.
+
 ## Commercial model (documentation only — no code enforces or changes this)
 
 - GitHub source remains open source (MIT OR Apache-2.0), unchanged.
@@ -40,17 +63,31 @@ verification-state discipline as `docs/releasing.md`:
   reappear in any active file. The GitHub-distributed macOS app and the
   future Mac App Store version share this one identity, per the intended
   `me.museion.<product>` namespace for future Museion apps.
-- **Sandboxed output-save architecture**: `OutputWriteStrategy` in
-  `crates/museion-binarize-core/src/pipeline.rs`, selected at compile
+- **Sandboxed output-save architecture — human-verified**: `OutputWriteStrategy`
+  in `crates/museion-binarize-core/src/pipeline.rs`, selected at compile
   time by the `mas-sandbox` Cargo feature (MAS build only). Real,
   credential-free App Sandbox enforcement was demonstrated locally
   (ad-hoc signing plus the sandbox entitlement — no Apple Developer
-  Program membership required for this), and the write path was
-  redesigned to work within what a sandboxed save panel's grant actually
-  covers, with the resulting guarantee change (no longer crash-atomic on
-  the final write, everything else unchanged) explicitly documented, not
-  glossed over. See "Sandboxed output-save architecture" below and
+  Program membership required for this), the write path was redesigned
+  to work within what a sandboxed save panel's grant actually covers
+  (the resulting guarantee change — no longer crash-atomic on the final
+  write, everything else unchanged — explicitly documented, not glossed
+  over), and the owner then ran the full interactive open/save/convert/
+  cancel/overwrite/relaunch checklist against a real sandboxed build,
+  with every step passing and the sandbox log showing zero file-access
+  denials. See "Sandboxed output-save architecture" below and
   `docs/pdf-output.md`.
+- **`network.client` entitlement found necessary and added, with A/B
+  evidence**: the original entitlement set (`app-sandbox` +
+  `files.user-selected.read-write` only) launched but rendered a
+  completely blank window — `WKWebView` runs its renderer in a separate,
+  out-of-process `WebContent` service that does not start under App
+  Sandbox without this entitlement, even for purely local content. Found
+  by the owner during real human acceptance testing, then isolated by an
+  A/B test on one identical binary varying only the signed entitlements.
+  A dedicated network-capability audit (see "Entitlements audit" below)
+  confirms this is architectural, not a sign of any actual networking in
+  the application.
 - **MAS-specific Tauri config overlay**: `apps/desktop/src-tauri/tauri.mas.conf.json`,
   parallel to M7A's `tauri.dist.conf.json`, merged in only via `--config
   src-tauri/tauri.mas.conf.json`. It never redeclares `identifier` or
@@ -116,7 +153,7 @@ below):
 
 | Entitlement category | Evidence found |
 |---|---|
-| Network client/server | Zero network code anywhere in `apps/desktop` or `crates/` (`grep` for `reqwest`/`http(s)://`/`TcpStream`/`fetch(` found nothing). Tauri's internal `ipc:`/`http://ipc.localhost` bridge (see `tauri.conf.json`'s CSP) is `WKWebView`'s own intra-process custom-scheme handler, not a real network socket. |
+| Network **server** (incoming connections) | Nothing in this app listens on a socket. Explicitly kept in `package_mas.py`'s forbidden list so a future addition fails the build. (Network *client* is a different matter — see the corrected finding below.) |
 | Automation / Apple Events | No AppleScript/Scripting Bridge/`NSAppleEventDescriptor` usage. The one Finder interaction (`revealItemInDir`, the "reveal output" button) goes through `NSWorkspace`'s file-viewer API via the `tauri-plugin-opener`/`open` crate, not Apple Events. |
 | Camera / microphone / location / contacts | No usage anywhere. |
 | Downloads-folder entitlement | The app never targets `~/Downloads` specially — output destination is always the exact user-selected save path. |
@@ -128,20 +165,82 @@ below):
 |---|---|
 | `com.apple.security.app-sandbox` | Required unconditionally for Mac App Store submission. |
 | `com.apple.security.files.user-selected.read-write` | The app opens PDFs and saves output exclusively through `tauri-plugin-dialog`'s native open/save panels (`apps/desktop/src/lib/tauri.ts`'s `pickPdfToOpen`/`pickOutputDestination`) — no custom file browser, no raw path entry, no `tauri-plugin-fs` (not a dependency at all). This is exactly the entitlement Apple's own documentation pairs with that access pattern. |
+| `com.apple.security.network.client` | **Required by `WKWebView`, not by any network code in this app.** See the corrected finding immediately below. |
 
-**One entitlement evaluated and deliberately left out despite a
-plausible-sounding argument for it**: `com.apple.security.cs.allow-jit`.
-Some third-party guides claim any app embedding `WKWebView` needs it for
-`JavaScriptCore`. Apple's own Tauri-relevant documentation does not list
-it for a sandboxed build, and `WKWebView`'s JavaScript execution runs in
-a separate, Apple-signed `WebContent` XPC process with its own
-entitlements — not the hosting app's process or entitlements — so the
-technical basis for the claim is questionable for this
-architecture specifically. It is **not** included pre-emptively without
-evidence. If the human sandbox-acceptance pass (see "Pending
-validation" below) shows the `WKWebView` failing to initialize or
-crashing under a real signed sandboxed build, add it then, with that
-observation recorded as the evidence — not before.
+### Corrected finding: `network.client` is mandatory for WKWebView under App Sandbox
+
+An earlier revision of this document listed "network client/server" as
+*excluded*, reasoning that the app has zero network code (true — and
+still true: it makes no outbound connection at runtime, see
+`docs/limitations.md`). **That reasoning was wrong**, because it only
+considered the app's own code and not `WKWebView`'s process
+architecture. The error was caught by the owner actually running the
+sandboxed acceptance build: the app launched, the window appeared with
+its title bar, and the content area stayed completely blank.
+
+Diagnosed by A/B test on **one identical binary**, varying only the
+entitlements passed to `codesign`, using new-`WebContent`-process spawn
+as the objective signal (`WKWebView` cannot render without one):
+
+| Entitlements | `WebContent` process spawned? |
+|---|---|
+| *(none — unsandboxed)* | **yes** → renders |
+| `app-sandbox` + `files.user-selected.read-write` | **no** → blank window |
+| `app-sandbox` + `files.user-selected.read-write` + `cs.allow-jit` | **no** → still blank |
+| `app-sandbox` + `files.user-selected.read-write` + **`network.client`** | **yes** → renders (36 MB RSS, i.e. real loaded content, vs. ~2–5 MB for an idle/failed one) |
+
+This is a well-known, Apple-acknowledged WebKit requirement, not a
+quirk of this project: `WKWebView` renders out-of-process, and under App
+Sandbox that `WebContent` XPC service fails to start without the host
+app holding `network.client` — **even when every asset is local to the
+app bundle**. Apple has an open Feedback asking for the requirement to
+be lifted (FB6993802), and Tauri's own docs repository tracks it as
+mandatory for sandboxed macOS apps
+([tauri-docs#3171](https://github.com/tauri-apps/tauri-docs/issues/3171)).
+
+**App Review note**: this app declares `network.client` while genuinely
+making no outbound connections. That is expected and standard for any
+sandboxed `WKWebView`/Tauri/Electron-style app, but if App Review ever
+queries it, the honest answer is exactly the above — the entitlement is
+a WebKit process-architecture requirement, not a capability this app
+exercises. The App Privacy declaration should continue to state that no
+data is collected or transmitted, because none is.
+
+**`com.apple.security.cs.allow-jit` was tested in the same A/B run and
+is *not* required** — it did not fix the blank window, and the app works
+without it. It stays excluded, now on empirical grounds rather than
+reasoning alone.
+
+`package_mas.py` now treats `network.client` as **required** (not merely
+permitted): omitting it produces an app that launches successfully but
+renders nothing, which is precisely the kind of silent break that should
+fail a build rather than reach a user. `network.server` remains
+forbidden.
+
+### Network-capability audit: `network.client` is architectural, not applied
+
+`network.client` is required by `WKWebView`'s process architecture (see
+above). It must not be read as "this app does networking." A dedicated,
+repository-wide audit was performed to keep that distinction concrete
+rather than asserted:
+
+| Checked for | Result |
+|---|---|
+| Remote HTTP/HTTPS frontend assets (`<script src="http...">`, remote fonts/images, etc.) | None — `grep` for `http://`/`https://` in `apps/desktop/src` found nothing |
+| Remote navigation (`window.open`, `location.href =` to an external URL) | None |
+| `fetch`/`XMLHttpRequest`/`axios`/`WebSocket`/`EventSource` anywhere in the frontend | None |
+| Telemetry / crash-report upload (Sentry, analytics SDKs, custom crash uploaders) | None |
+| Updater / runtime dependency download (`tauri-plugin-updater`, self-update logic) | None — not a dependency anywhere in `package.json` or any `Cargo.toml` |
+| Application-owned runtime network calls in Rust (`reqwest`, `hyper`, `ureq`, raw `TcpStream`/`UdpSocket`) | None — not a dependency anywhere in the workspace |
+
+This reconfirms, rather than merely repeats, M7A's own "no runtime
+network access" finding (`docs/limitations.md`) and the earlier
+Entitlements audit above: Museion Binarize itself has no intended
+runtime networking, telemetry, updater, or remote dependency fetch of
+any kind. `network.client` exists solely to let the sandboxed
+`WKWebView` process render the app's own bundled, local frontend — a
+distinction worth stating plainly for App Review or anyone else auditing
+this entitlement later.
 
 ## File-access strategy
 
@@ -170,12 +269,12 @@ real need.
 
 ### Sandboxed output-save architecture
 
-**Status: code implemented and unit-tested; real sandbox enforcement
-proven possible and demonstrated without any Apple credentials; the
-full interactive open/save click-through is prepared and ready but not
-yet run, because this environment cannot drive native macOS dialogs —
-a tooling boundary, not a credentials boundary. See "What remains
-unverified" below.**
+**Status: COMPLETE.** Code implemented and unit-tested; real sandbox
+enforcement demonstrated without any Apple credentials; the full
+interactive open/save click-through has now been run by the owner
+against a real, kernel-enforced sandboxed build, and passed — see
+"Human acceptance: PASSED" below. This closes what was previously the
+one open BLOCKING finding for M7B1.
 
 #### The original risk
 
@@ -289,41 +388,23 @@ proves the GitHub build's default is unaffected; `cargo check -p
 museion-binarize-desktop --features mas-sandbox` (run this session)
 independently proves the other branch compiles and is reachable.
 
-#### What remains unverified, and exactly why
+#### How the interactive test was actually run
 
-The interactive open/save click-through (steps 1–17 in "Human runtime
-acceptance checklist," an updated version of which follows below) was
-**not run** this session. Not because of Apple credentials — those were
-shown above not to be the blocker — but because driving a real
-`NSOpenPanel`/`NSSavePanel` requires either a human at the keyboard or
-GUI-automation tooling this environment does not have:
-`osascript -e 'tell application "System Events" to ...'` (the standard
-way to script native macOS UI from a shell) failed with
-`execution error: "System Events" got an error: AppleEvent timed out.
-(-1712)` — this requires a one-time Accessibility permission grant in
-System Settings, itself a dialog only a human can click through.
-
-This is a real, reproducible, precisely-identified boundary, reported
-rather than guessed past. Everything up to that exact point — sandbox
-enforcement itself, the app launching cleanly under it, the new
-`DirectWriteToDestination` code path compiling and shipping in a build
-that launches under real enforcement (`cargo check --features
-mas-sandbox`, and an actual ad-hoc-signed sandboxed launch, both done
-this session) — is real, demonstrated evidence, not assumption.
-
-#### Ready-to-run acceptance test (no Apple credentials needed)
-
-Because credential-free local sandbox testing works, the owner (who has
-real keyboard/mouse access to this machine, unlike this session) can run
-the full interactive checklist right now, without waiting for Apple
-Developer Program enrollment:
+This session's own tooling cannot drive a real `NSOpenPanel`/`NSSavePanel`
+(`osascript`'s System Events UI scripting needs a one-time Accessibility
+permission grant only a human can approve — a precisely-identified
+tooling boundary, not a credentials one). Rather than leave that
+unresolved, the exact credential-free local build was handed to the
+owner to run at the keyboard:
 
 ```bash
 APPLE_TEAM_ID=LOCALTEST01 python3 scripts/distribution/package_mas.py \
   --target-triple aarch64-apple-darwin --version 0.1.0 \
   --out-dir /tmp/mas-local-test
 
-# entitlements.local-sandbox-test.plist: app-sandbox + files.user-selected.read-write only
+# entitlements.local-sandbox-test.plist: app-sandbox +
+# files.user-selected.read-write + network.client only — no Team
+# ID/App ID, nothing faked.
 codesign --force --deep --sign - \
   --entitlements entitlements.local-sandbox-test.plist \
   "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app"
@@ -331,12 +412,75 @@ codesign --force --deep --sign - \
 open "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app"
 ```
 
-then work through the checklist below. This exercises real kernel
-sandbox enforcement and the real `DirectWriteToDestination` code path —
-the *only* things this specific local test cannot exercise are Developer
-ID identity/provisioning validation and notarization/Store review
-themselves, neither of which affects whether the open/save/convert flow
-works under sandbox.
+This exercises real kernel sandbox enforcement and the real
+`DirectWriteToDestination` code path. The only things this specific
+local test cannot exercise are Developer ID identity/provisioning
+validation and notarization/Store review themselves, neither of which
+affects whether the open/save/convert flow works under sandbox.
+
+#### Human acceptance: PASSED
+
+The owner ran the full checklist against this build and reported every
+step passing:
+
+| Step | Result |
+|---|---|
+| Sandboxed launch via Finder | PASS |
+| UI/WebView rendering | PASS (after adding `network.client` — see "Entitlements audit") |
+| Open external PDF via native panel | PASS |
+| Preview | PASS |
+| Estimate | PASS |
+| Choose external output destination via native panel | PASS |
+| Convert | PASS |
+| Output PDF validity | PASS |
+| Cancel mid-conversion | PASS |
+| Reconvert after cancellation | PASS |
+| Overwrite an existing destination | PASS |
+| Quit / relaunch | PASS |
+| Open and convert a second PDF after relaunch | PASS |
+| Bundled PDFium, `MUSEION_PDFIUM_LIBRARY` unset | PASS |
+
+This directly exercises and confirms `DirectWriteToDestination`: new
+output, overwrite of an existing destination, and cancel-then-reconvert
+all completed correctly under real sandbox enforcement — the exact
+scenarios analyzed in the property table above, no longer only analyzed
+but observed.
+
+#### Sandbox log review
+
+The owner captured the unified log (`/usr/bin/log show` — note the
+plain `log` command is shadowed by an unrelated shell function on the
+test machine and silently returns nothing; the absolute path is
+required) across the full session above, spanning three launches. It
+was reviewed and the raw log was not committed (it is host-specific and
+irrelevant once summarized); the relevant findings:
+
+- **Zero file-write sandbox denials.** No `deny(1) file-write-*` naming
+  this application, across opening an external PDF, converting,
+  cancelling, reconverting, and overwriting an existing destination.
+- **File-read records relevant to the app bundle are `allow`, not
+  `deny`** (e.g. other system processes reading the bundle's own
+  executable/resources — expected, harmless).
+- **The only denials attributable to this app** are two mach-service
+  lookups at startup, on every launch: `com.apple.Safari.SafeBrowsing.Service`
+  and `com.apple.visualintelligence.visual-action-prediction`. Both are
+  routine `WKWebView`/system-framework initialization probes (Safari's
+  safe-browsing check, macOS's Visual Intelligence service) — this app
+  navigates to no URLs and has no visual-intelligence integration, so
+  neither denial is exercising an actual feature, and neither impaired
+  any tested workflow.
+- A handful of unrelated system processes were separately denied access
+  *to query this app's process info* (`process-info-pidinfo`) — that is
+  the sandbox correctly protecting this process from another one, not
+  this app being denied anything.
+- No crash reports for this app were found for the session.
+
+**Deliberately not "fixed"**: none of the above denials are addressed
+with a temporary-exception or private mach-service entitlement. They are
+framework/system noise that did not impair the tested workflow, and
+Apple's own App Review guidance disfavors exactly that class of broad or
+narrow-but-unusual entitlement without a demonstrated functional need —
+there is none here.
 
 ## PDFium strategy
 
@@ -407,10 +551,9 @@ in this repository.
 
 ## PENDING VALIDATION
 
-Two genuinely different kinds of "pending" — conflating them would
-overclaim one and undersell the other:
-
-**Requires the owner's real Apple Developer credentials:**
+Everything below genuinely requires the owner's real Apple Developer
+credentials — the sandbox itself is no longer in this list (see "Human
+acceptance: PASSED" above):
 
 - An actual `APPLE_SIGNING_IDENTITY`-signed `.app`, and
   `codesign --verify --deep --strict` plus an embedded-entitlements
@@ -418,52 +561,15 @@ overclaim one and undersell the other:
   real credentials).
 - A signed `.pkg` via `productbuild`/`APPLE_INSTALLER_SIGNING_IDENTITY`.
 - App Store Connect upload, TestFlight, or App Review — none attempted,
-  none of the tooling for it added.
+  none of the tooling for it added. Note the resulting `.app` from a
+  purely local/ad-hoc build has no `_MASReceipt` (the App Store
+  purchase-receipt file real Store distribution embeds) — expected for
+  this test build, and not a blocker for anything validated here.
 
-**Requires only a human at this machine's keyboard — no Apple
-credentials at all** (see "Sandboxed output-save architecture" above for
-why, and the exact commands to run):
-
-- The interactive acceptance checklist below, against the ad-hoc-signed
-  local sandbox-test build. This was set up and demonstrated to launch
-  correctly under real sandbox enforcement this session, but the
-  interactive open/save clicks themselves were not driven, because this
-  environment cannot script native macOS dialogs (a tooling boundary —
-  `osascript`'s "System Events" UI scripting requires an Accessibility
-  permission grant only a human can approve).
-
-### Human runtime acceptance checklist
-
-Using the ad-hoc-signed local sandbox-test build (no Apple credentials
-needed) or, once available, the real `--sign`ed build — either exercises
-the same code and the same sandbox enforcement:
-
-1. Launch the sandboxed app.
-2. Choose a real PDF through the native Open panel, from a location
-   outside any prior app interaction.
-3. Preview it.
-4. Estimate it.
-5. Choose an output path through the native Save panel.
-6. Convert successfully.
-7. Confirm the output exists at the selected location.
-8. Confirm the output PDF is valid (opens, correct page count).
-9. Start another conversion and cancel it partway through.
-10. Confirm cancellation left no partial/false-complete output.
-11. Convert again after cancellation — confirm a fresh attempt succeeds.
-12. Overwrite an existing destination (the app supports `--overwrite`
-    equivalent behavior — confirm it still works end to end).
-13. Quit the app.
-14. Relaunch it.
-15. Select a different PDF.
-16. Convert again.
-17. Confirm no runtime `MUSEION_PDFIUM_LIBRARY` (or any other env var)
-    was required at any point, and check Console.app for sandbox denial
-    (`sandboxd`/`Sandbox: deny`) messages across the whole sequence —
-    not just "the UI looked fine."
-
-Until this is actually run, "Human runtime" for the MAS build stays
-**pending** — not because it's blocked on anything external, but simply
-because it has not happened yet.
+The interactive human acceptance checklist that used to live here has
+**passed** — see "Human acceptance: PASSED" under "Sandboxed
+output-save architecture" above for the full per-step results and the
+sandbox log conclusion.
 
 ## Owner action required
 
@@ -486,6 +592,10 @@ and none of it exists in this repository:
 - App Privacy declarations in App Store Connect (what data, if any, is
   collected — this application collects none at runtime today, but the
   declaration itself is an App Store Connect form, not a code artifact).
+  If App Review asks about the `network.client` entitlement, see
+  "Network-capability audit" under "Entitlements audit" above — it is a
+  `WKWebView` process-architecture requirement, not application
+  networking, and the privacy declaration should say so.
 - The actual signed build, `.pkg` creation, upload, and submission for
   review — all deliberately left undone by this milestone.
 

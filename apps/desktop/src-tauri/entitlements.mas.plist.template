@@ -10,7 +10,7 @@
 
   Kept deliberately minimal — see docs/mac-app-store-readiness.md,
   "Entitlements," for why each key is here and why the ones evaluated
-  and NOT included (network client/server, Apple Events automation,
+  and NOT included (network *server*, Apple Events automation,
   camera/microphone/location/contacts, downloads-folder, temporary
   exceptions) are absent: this application has no demonstrated need for
   any of them (see the M7B1 preflight audit).
@@ -20,6 +20,21 @@
     <key>com.apple.security.app-sandbox</key>
     <true/>
     <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <!--
+      Required by WKWebView, NOT by any network code in this application
+      (it has none, and makes no outbound connection at runtime — see
+      docs/limitations.md). WebKit renders in a separate, out-of-process
+      WebContent XPC service, and in a sandboxed app that service fails
+      to start at all without this entitlement, even when every asset is
+      local to the app bundle. Verified empirically, not assumed: with
+      only app-sandbox + user-selected.read-write, the app launched but
+      no WebContent process ever spawned and the window stayed blank;
+      adding exactly this key made it spawn and load. See
+      docs/mac-app-store-readiness.md, "Entitlements audit," for the
+      full A/B evidence and the App Review note.
+    -->
+    <key>com.apple.security.network.client</key>
     <true/>
     <key>com.apple.application-identifier</key>
     <string>@TEAM_ID@.@BUNDLE_IDENTIFIER@</string>
