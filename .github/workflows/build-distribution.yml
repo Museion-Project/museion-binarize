@@ -71,6 +71,12 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.version-check.outputs.macos_matrix) }}
     runs-on: ${{ matrix.runner }}
+    env:
+      # Hoisted to job level (not just the signing step's own `env:`)
+      # so the `if: env.APPLE_CERTIFICATE != ''` conditions below can
+      # actually see it — a step's own `env:` block is not visible to
+      # its own `if:`, which evaluates first.
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
     steps:
       - uses: actions/checkout@v4
       - run: rustup show
@@ -104,9 +110,15 @@ jobs:
             --version "$VERSION" \
             --out-dir dist-out
 
-      - name: Build desktop app (.app + .dmg)
+      # `--bundles app` only — the `.dmg` is packaged in a later step,
+      # after signing, from this exact `.app`. Running Tauri's own dmg
+      # bundler here (or via `--bundles all`) would recompile and
+      # re-bundle the `.app` again as part of producing the `.dmg`,
+      # discarding whatever signature the steps below apply. See
+      # scripts/distribution/package_macos_dmg.py's docstring.
+      - name: Build desktop app (.app)
         working-directory: apps/desktop
-        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
+        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json --bundles app
 
       # Signing/notarization run only when the required secrets are
       # configured (Developer ID cert + Apple API credentials). See
@@ -116,7 +128,6 @@ jobs:
       - name: Sign and notarize (conditional on credentials)
         if: env.APPLE_CERTIFICATE != ''
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -125,6 +136,52 @@ jobs:
         run: |
           echo "Signing/notarization integration point — not yet exercised in this workflow."
           echo "See docs/releasing.md for the intended flow once credentials are provisioned."
+          # NOTE for whoever implements this: when this step actually
+          # signs with a real Developer ID identity, do it here (before
+          # dmg packaging) so the .dmg below is still built from the
+          # final signed .app — do not add a separate later signing
+          # pass, and do not let this step remain a no-op once
+          # APPLE_CERTIFICATE is set: the ad-hoc fallback step right
+          # below is skipped whenever this condition is true, so if this
+          # step stays a no-op while the secret is configured, the app
+          # would ship with neither real nor ad-hoc signing. The
+          # unconditional "Verify macOS app bundle signature" step further
+          # below exists specifically to catch that: it fails the build
+          # rather than letting a broken bundle ship either way.
+          # Notarization (once implemented) belongs after "Package macOS
+          # .dmg from signed app bundle" below, run against the final
+          # .dmg — Apple notarizes the artifact actually distributed, not
+          # an intermediate .app.
+
+      # Runs whenever the step above did not (no Developer ID
+      # credentials configured — currently always, in this repository).
+      # Without this, the `.app` bundle's main executable carries a
+      # bare ad-hoc "linker-signed" signature from the Rust toolchain
+      # (required on Apple Silicon) with no `_CodeSignature/CodeResources`
+      # sealing `Contents/Resources`, which macOS Gatekeeper reports to
+      # end users as "is damaged and can't be opened" rather than the
+      # expected "unidentified developer" prompt for a plain unsigned
+      # app. See scripts/distribution/sign_macos_app.py's docstring and
+      # docs/desktop-testing.md, "Milestone 7A," for how this was found.
+      - name: Ad-hoc sign macOS app bundle (unsigned-build fallback)
+        if: env.APPLE_CERTIFICATE == ''
+        run: |
+          APP=$(find target/${{ matrix.target }}/release/bundle/macos -maxdepth 1 -name "*.app" | head -1)
+          python3 scripts/distribution/sign_macos_app.py --app-path "$APP"
+
+      - name: Verify macOS app bundle signature
+        run: |
+          APP=$(find target/${{ matrix.target }}/release/bundle/macos -maxdepth 1 -name "*.app" | head -1)
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Package macOS .dmg from signed app bundle
+        run: |
+          APP=$(find target/${{ matrix.target }}/release/bundle/macos -maxdepth 1 -name "*.app" | head -1)
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          python3 scripts/distribution/package_macos_dmg.py \
+            --app-path "$APP" --version "$VERSION" \
+            --target-triple ${{ matrix.target }} \
+            --out-dir target/${{ matrix.target }}/release/bundle/dmg
 
       - name: Collect and rename artifacts
         run: |
@@ -138,10 +195,19 @@ jobs:
           out = Path("dist-out")
           out.mkdir(exist_ok=True)
           dmg_dir = Path(f"target/{target}/release/bundle/dmg")
-          for dmg in dmg_dir.glob("*.dmg"):
-              dest = out / naming.desktop_artifact_name(version, target, "dmg")
-              shutil.copy2(dmg, dest)
-              print(f"copied {dmg} -> {dest}")
+          dmgs = sorted(dmg_dir.glob("*.dmg")) if dmg_dir.is_dir() else []
+          if len(dmgs) != 1:
+              # A stale dmg left over from an earlier/different build in
+              # this same bundle/dmg directory must never be silently
+              # picked (or silently overwritten) here — that is exactly
+              # how a broken artifact could end up shipped again after
+              # the "is damaged" bundle-signing fix. See
+              # docs/desktop-testing.md, "Milestone 7A."
+              print(f"::error::expected exactly 1 .dmg in {dmg_dir}, found {len(dmgs)}: {dmgs}")
+              sys.exit(1)
+          dest = out / naming.desktop_artifact_name(version, target, "dmg")
+          shutil.copy2(dmgs[0], dest)
+          print(f"copied {dmgs[0]} -> {dest}")
           PYEOF
 
       - name: Inspect bundled dependency architecture

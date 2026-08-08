@@ -22,7 +22,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import checksums  # noqa: E402
 import fetch_pdfium  # noqa: E402
 import naming  # noqa: E402
+import package_macos_dmg  # noqa: E402
 import release_manifest  # noqa: E402
+import sign_macos_app  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -154,6 +156,49 @@ class ReleaseManifestTests(unittest.TestCase):
         blob = json.dumps(entry).lower()
         for forbidden in ["/users/", "/home/", "password", "token", "secret", "apikey"]:
             self.assertNotIn(forbidden, blob)
+
+    def test_add_keeps_both_artifacts_for_the_same_target_triple(self):
+        # A single target (e.g. aarch64-apple-darwin) produces two
+        # distinct artifacts: the desktop .dmg and the CLI archive.
+        # Regression test: the dedup key used to be target_triple alone,
+        # which silently dropped whichever of the two was added first.
+        # Invokes the real CLI (not release_manifest internals directly)
+        # so this exercises the exact code path the build workflow runs.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            dmg = tmp_path / "Museion-Binarize-0.1.0-macos-arm64.dmg"
+            dmg.write_bytes(b"fake dmg bytes")
+            cli_archive = tmp_path / "museion-binarize-cli-0.1.0-macos-arm64.tar.gz"
+            cli_archive.write_bytes(b"fake cli archive bytes")
+            manifest_path = tmp_path / "release-manifest.json"
+            script = REPO_ROOT / "scripts" / "distribution" / "release_manifest.py"
+
+            for artifact in (dmg, cli_archive):
+                result = subprocess.run(
+                    [
+                        sys.executable, str(script), "add",
+                        "--manifest", str(manifest_path),
+                        "--project-version", "0.1.0",
+                        "--git-sha", "deadbeef",
+                        "--target-triple", "aarch64-apple-darwin",
+                        "--os", "macos",
+                        "--arch", "arm64",
+                        "--artifact-filename", artifact.name,
+                        "--artifact-path", str(artifact),
+                        "--pdfium-build", "7920",
+                        "--pdfium-version", "151.0.7920.0",
+                        "--pdfium-sha256", "a" * 64,
+                        "--signing-state", "unsigned",
+                        "--notarization-state", "not_applicable",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+            loaded = json.loads(manifest_path.read_text())
+            filenames = {a["artifact_filename"] for a in loaded["artifacts"]}
+            self.assertEqual(filenames, {dmg.name, cli_archive.name})
 
     def test_load_or_init_refuses_to_mix_different_builds_into_one_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -465,6 +510,32 @@ class TauriResourceConfigTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, "staged PDFium resource dir must stay gitignored")
+
+
+class MacosSigningAndPackagingGuardTests(unittest.TestCase):
+    """Only the pre-subprocess argument guards — `codesign` and
+    `hdiutil` are macOS-only, and this file also runs on Linux (the
+    `version-check` job), so the actual signing/packaging behavior is
+    exercised on real macOS CI runners instead (see the workflow's
+    "Verify macOS app bundle signature" step), not here.
+    """
+
+    def test_sign_macos_app_rejects_a_non_app_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            not_an_app = Path(tmp) / "not-an-app"
+            not_an_app.mkdir()
+            with self.assertRaises(SystemExit):
+                sign_macos_app.sign(not_an_app, "-")
+
+    def test_package_macos_dmg_rejects_a_non_app_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            not_an_app = tmp_path / "not-an-app"
+            not_an_app.mkdir()
+            with self.assertRaises(SystemExit):
+                package_macos_dmg.build_dmg(
+                    not_an_app, "0.1.0", "aarch64-apple-darwin", tmp_path / "out"
+                )
 
 
 class VersionConsistencyScriptTests(unittest.TestCase):

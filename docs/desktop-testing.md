@@ -226,7 +226,7 @@ during Milestone 7A's implementation.
 
 | Target | Built | Packaged | PDFium bundled | Automated smoke | Human runtime | Signed | Notarized |
 |---|---|---|---|---|---|---|---|
-| macOS arm64 (`aarch64-apple-darwin`) | yes | yes (.app, .dmg) | yes, verified | yes | **pending** | no | no |
+| macOS arm64 (`aarch64-apple-darwin`) | yes | yes (.app, .dmg) | yes, verified | yes | attempted — found broken, fixed, **re-verification pending** | ad-hoc | no |
 | macOS x64 (`x86_64-apple-darwin`) | configured | configured | configured | not run this session | pending | no | no |
 | Windows x64 (`x86_64-pc-windows-msvc`) | configured | configured | configured | not run this session | pending | no | no |
 | Linux x86_64 (`x86_64-unknown-linux-gnu`) | configured | configured | configured | not run this session | pending | not applicable | not applicable |
@@ -239,6 +239,83 @@ had no Windows or Linux machine available**, so those three rows'
 CI-executed, behavior — the workflow itself was never actually
 dispatched. This is recorded honestly as configured-but-unexercised,
 not as verified.
+
+### macOS arm64: "is damaged and can't be opened" bug found by human runtime testing, and fixed (2026-08-08)
+
+The first real human runtime check of the packaged macOS arm64 build —
+installing the `.dmg` from this milestone and double-clicking the
+`.app` in Finder — did not pass. Finder reported:
+
+> "Museion Binarize" is damaged and can't be opened. You should move it
+> to the Trash.
+
+This is a real defect, not a false alarm from an expected "unidentified
+developer" warning. It was independently reproduced and diagnosed
+without relying on the "damaged" dialog's own wording:
+
+- `codesign --verify --deep --strict` failed, on **both** the installed
+  `/Applications` copy and an untouched, freshly-mounted copy straight
+  from the `.dmg` (ruling out extraction/transfer corruption as the
+  cause), with:
+  ```
+  code has no resources but signature indicates they must be present
+  ```
+- Root cause: Rust's linker ad-hoc-signs each Apple Silicon Mach-O
+  binary at build time (arm64 requires every binary to carry some
+  signature), but `apps/desktop/src-tauri/tauri.conf.json` has no
+  `bundle.macOS.signingIdentity` configured, so `tauri-bundler` never
+  resigns the *whole app bundle* afterward. The packaged `.app`'s main
+  executable therefore carries an embedded CodeDirectory that implies a
+  signed structure with a resource envelope, but
+  `Contents/_CodeSignature/CodeResources` — which should seal
+  `Contents/Resources` (`libpdfium.dylib`, `icon.icns`) — was never
+  generated. Gatekeeper treats that specific mismatch as bundle
+  corruption, which is why the message says "damaged," not
+  "unidentified developer."
+- This gap existed even though the Milestone 7A "launch smoke test"
+  below reported success: that test only confirmed the process stayed
+  alive after being launched directly with `open`, which does not
+  exercise the same Gatekeeper resource-envelope check a Finder
+  double-click does. "Stays running after `open`" and "passes
+  `codesign --verify --deep --strict`" are different claims, and only
+  the second one is what Finder actually checks before allowing a
+  double-click to proceed.
+
+**Fix**: sign the whole `.app` bundle (ad-hoc, identity `-`, since no
+Developer ID credentials exist for this project — see
+[`releasing.md`](releasing.md), "Signing and notarization") *after*
+`tauri build --bundles app` produces it, and build the `.dmg` from that
+already-signed `.app` directly with `hdiutil` rather than through
+Tauri's own dmg bundler — which was confirmed, empirically, to
+recompile and re-bundle the `.app` from scratch as part of producing a
+`.dmg`, discarding any signature applied beforehand. See
+`scripts/distribution/sign_macos_app.py` and
+`scripts/distribution/package_macos_dmg.py`, and the corresponding
+steps added to `.github/workflows/build-distribution.yml`.
+
+**Verified after the fix**, on this machine, for `aarch64-apple-darwin`:
+
+- `codesign --verify --deep --strict` on the resigned `.app`: `valid on
+  disk`, `satisfies its Designated Requirement`.
+- A `.dmg` rebuilt from the resigned `.app` via
+  `package_macos_dmg.py`, then mounted fresh and inspected: the `.app`
+  inside it *also* passes `codesign --verify --deep --strict`.
+- The resigned `.app` launches via `open` with no crash (same
+  non-interactive check as the original Milestone 7A smoke test).
+- `spctl -a` still reports `rejected` on the ad-hoc-signed bundle — this
+  is expected and unchanged: ad-hoc signing fixes the damaged-bundle
+  defect but does not (and cannot) satisfy Gatekeeper's full
+  assessment or notarization, which still require real Developer ID
+  credentials this project does not have.
+
+**Not verified after the fix**: the fix has not yet been confirmed by
+an actual Finder double-click on a fresh human machine (only
+`open`/`codesign --verify` were used, which is real evidence the
+specific defect is gone, but is not the same claim as "a human
+double-clicked it and it opened"). Treat "Human runtime" as pending
+re-verification, not as newly complete, until that happens. If it fails
+again with the same or a different dialog, record the new observation
+here rather than assuming this fix is the end of the story.
 
 ### macOS arm64: what was actually done, on this machine
 

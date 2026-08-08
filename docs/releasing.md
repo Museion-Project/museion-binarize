@@ -168,6 +168,36 @@ produces; an unsigned development/CI artifact is clearly non-production
 and requires an explicit, informed developer action to open, not a
 system-wide security downgrade.
 
+### Ad-hoc signing fallback (macOS, always, when the step above didn't run)
+
+"Unsigned" does not mean "the bundler leaves the `.app` alone." Rust's
+linker ad-hoc-signs each Apple Silicon Mach-O binary at build time (arm64
+requires every binary to carry some signature), but without
+`bundle.macOS.signingIdentity` in `tauri.conf.json`, `tauri-bundler`
+never resigns the *whole app bundle*, which leaves
+`Contents/_CodeSignature/CodeResources` missing. macOS Gatekeeper
+reports that specific mismatch as "**is damaged and can't be opened**,"
+not the expected "unidentified developer" prompt a plain, properly
+ad-hoc-signed unsigned app would get — this is a real defect a real
+user hit, not a hypothetical. See
+[`desktop-testing.md`](desktop-testing.md), "macOS arm64: 'is damaged'
+bug found by human runtime testing," for how it was found, diagnosed,
+and fixed.
+
+The build workflow now always signs the whole `.app` bundle ad-hoc
+(`codesign --force --deep --sign -`, via
+`scripts/distribution/sign_macos_app.py`) whenever the real
+Developer-ID step above didn't run, then packages the `.dmg` from that
+already-signed `.app` directly with `hdiutil`
+(`scripts/distribution/package_macos_dmg.py`) rather than through
+Tauri's own dmg bundler — which was confirmed to recompile and
+re-bundle the `.app` from scratch as part of producing a `.dmg`,
+silently discarding any signature applied beforehand. Ad-hoc signing
+fixes the damaged-bundle defect and makes `codesign --verify --deep
+--strict` pass, but it does not satisfy `spctl -a` or notarization —
+those still require the real Developer ID credentials this project does
+not have.
+
 ### Windows signing
 
 Authenticode signing is not required for the architecture to be
