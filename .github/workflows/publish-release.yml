@@ -78,6 +78,8 @@ jobs:
       - name: Verify the selected distribution run succeeded and matches git_sha
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.inputs.run_id }}
+          GIT_SHA: ${{ github.event.inputs.git_sha }}
         run: |
           python3 - "$RUN_ID" "$GIT_SHA" <<'PYEOF'
           import json
@@ -108,10 +110,6 @@ jobs:
               )
           print(f"run {run_id} verified: succeeded, head SHA matches {expected_sha}")
           PYEOF
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.event.inputs.run_id }}
-          GIT_SHA: ${{ github.event.inputs.git_sha }}
 
       - name: Download artifacts from the selected run only
         env:

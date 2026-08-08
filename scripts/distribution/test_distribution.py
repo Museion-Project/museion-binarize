@@ -1251,6 +1251,57 @@ class PackageMasNeverAdHocSignsGuardTests(unittest.TestCase):
         self.assertFalse(Path("/tmp/should-not-be-created-mas-out").exists())
 
 
+class WorkflowYamlDuplicateKeyTests(unittest.TestCase):
+    """Guards against a real defect that shipped to main: a workflow step
+    with two `env:` keys in the same YAML mapping. PyYAML's `safe_load`
+    silently accepts duplicate mapping keys (keeping only the last one),
+    so it can't catch this — GitHub's own workflow parser rejects it
+    outright at dispatch time, but by then it's already merged. This
+    test parses every workflow file with a loader that raises on any
+    duplicate key, anywhere in the document, not just under `env`."""
+
+    WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
+
+    @staticmethod
+    def _load_strict(text):
+        import yaml
+
+        class StrictLoader(yaml.SafeLoader):
+            pass
+
+        def construct_mapping(loader, node, deep=False):
+            mapping = {}
+            for key_node, value_node in node.value:
+                key = loader.construct_object(key_node, deep=deep)
+                if key in mapping:
+                    raise ValueError(f"duplicate key {key!r} at line {key_node.start_mark.line + 1}")
+                mapping[key] = loader.construct_object(value_node, deep=deep)
+            return mapping
+
+        StrictLoader.add_constructor(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+        )
+        return yaml.load(text, Loader=StrictLoader)
+
+    def test_no_workflow_file_has_duplicate_mapping_keys(self):
+        workflow_files = sorted(self.WORKFLOWS_DIR.glob("*.yml")) + sorted(
+            self.WORKFLOWS_DIR.glob("*.yaml")
+        )
+        self.assertTrue(workflow_files, "expected at least one workflow file")
+        for path in workflow_files:
+            with self.subTest(workflow=path.name):
+                try:
+                    self._load_strict(path.read_text())
+                except ValueError as exc:
+                    self.fail(f"{path.name}: {exc}")
+
+    def test_strict_loader_actually_rejects_a_duplicate_key(self):
+        # Guards the guard: confirms _load_strict doesn't just silently
+        # accept duplicates like plain yaml.safe_load would.
+        with self.assertRaises(ValueError):
+            self._load_strict("a:\n  x: 1\n  x: 2\n")
+
+
 class PublishReleaseWorkflowInvariantTests(unittest.TestCase):
     """Structural checks on publish-release.yml's actual YAML/text —
     this workflow's whole reason to exist is that it must never make a
