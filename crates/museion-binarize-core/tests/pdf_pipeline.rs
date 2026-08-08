@@ -117,6 +117,7 @@ fn options(pdfium: PdfiumConfig, validation: ValidationMode) -> PdfProcessingOpt
         validation,
         pdfium,
         prior_estimate: None,
+        output_write_strategy: pipeline::OutputWriteStrategy::default(),
     }
 }
 

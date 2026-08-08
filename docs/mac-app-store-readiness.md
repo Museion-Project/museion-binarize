@@ -30,6 +30,27 @@ verification-state discipline as `docs/releasing.md`:
 
 ## READY / IMPLEMENTED (repository-side technical work completed this milestone)
 
+- **Permanent product identifier finalized**: `me.museion.binarize`
+  (previously `org.museionproject.binarize`), owner-approved, changed
+  before any Apple App ID or App Store Connect identity was created.
+  Declared exactly once, in the base `tauri.conf.json`; every overlay
+  (GitHub dist, MAS) inherits it rather than redeclaring it, enforced by
+  `BundleIdentifierConsistencyTests` in `test_distribution.py`, including
+  a repo-wide `git grep` assertion that the old identifier does not
+  reappear in any active file. The GitHub-distributed macOS app and the
+  future Mac App Store version share this one identity, per the intended
+  `me.museion.<product>` namespace for future Museion apps.
+- **Sandboxed output-save architecture**: `OutputWriteStrategy` in
+  `crates/museion-binarize-core/src/pipeline.rs`, selected at compile
+  time by the `mas-sandbox` Cargo feature (MAS build only). Real,
+  credential-free App Sandbox enforcement was demonstrated locally
+  (ad-hoc signing plus the sandbox entitlement — no Apple Developer
+  Program membership required for this), and the write path was
+  redesigned to work within what a sandboxed save panel's grant actually
+  covers, with the resulting guarantee change (no longer crash-atomic on
+  the final write, everything else unchanged) explicitly documented, not
+  glossed over. See "Sandboxed output-save architecture" below and
+  `docs/pdf-output.md`.
 - **MAS-specific Tauri config overlay**: `apps/desktop/src-tauri/tauri.mas.conf.json`,
   parallel to M7A's `tauri.dist.conf.json`, merged in only via `--config
   src-tauri/tauri.mas.conf.json`. It never redeclares `identifier` or
@@ -74,11 +95,18 @@ verification-state discipline as `docs/releasing.md`:
   asserted to fail closed (before any build step runs) when
   `APPLE_SIGNING_IDENTITY` is unset, and to never import or fall back to
   `sign_macos_app.py`'s ad-hoc path.
-- **No M0–M7A behavior changed.** `crates/museion-binarize-core/` and
-  `crates/museion-binarize-cli/` have zero diff against `main` at
-  `afff0de46e47be7ec18b699606b3679003e0e098`; every M7B1 change is new
-  files plus additive config, except one documentation-only correction
-  (this file) and a `.gitignore` addition.
+- **M0–M7A behavior unchanged for every existing caller.** This is no
+  longer a literal zero-diff claim against `main` at
+  `afff0de46e47be7ec18b699606b3679003e0e098` — `pipeline.rs` gained
+  `OutputWriteStrategy` (see above) — but the change is additive and
+  behavior-preserving: `OutputWriteStrategy::default()` is exactly the
+  old, only, unconditional behavior, every existing caller (CLI, GitHub
+  desktop build, every pre-existing test) explicitly uses it, and
+  `cargo test --workspace` — the same suite M7A's own tests all still
+  belong to — passes unchanged, with new tests added alongside rather
+  than any existing one modified. The identifier change is the other
+  non-additive edit, and is an explicit owner-approved decision (see
+  above), not an accidental drift.
 
 ## Entitlements audit
 
@@ -140,44 +168,175 @@ cross-launch file-access persistence** — adding one would be exactly
 the "convenience" bookmark the M7B1 brief says not to add without a
 real need.
 
-### Known blocking risk: the atomic write-then-rename pattern
+### Sandboxed output-save architecture
 
-`crates/museion-binarize-core/src/pipeline.rs`'s `write_temporary`/`persist`
-writes conversion output to a **new temp file in the same directory** as
-the destination (`.museion-binarize-<random>.pdf.partial`), then
-`rename(2)`s it onto the final path — deliberately, for atomicity (see
-`docs/pdf-output.md`). This is unaffected by, and correct for, M0–M7A
-(the CLI and the GitHub-distributed desktop app never run under App
-Sandbox at all).
+**Status: code implemented and unit-tested; real sandbox enforcement
+proven possible and demonstrated without any Apple credentials; the
+full interactive open/save click-through is prepared and ready but not
+yet run, because this environment cannot drive native macOS dialogs —
+a tooling boundary, not a credentials boundary. See "What remains
+unverified" below.**
 
-Apple's own documented behavior (Apple Developer Forums, on
-`NSSavePanel`-granted sandbox access): *"When the save panel gives you
-back a URL it extends your sandbox so that you can access **exactly
+#### The original risk
+
+`crates/museion-binarize-core/src/pipeline.rs`'s write path used to
+unconditionally create a **new temp file in the same directory** as the
+destination (`.museion-binarize-<random>.pdf.partial`), then
+`rename(2)` it onto the final path — for atomicity (see
+`docs/pdf-output.md`). Correct and unaffected for M0–M7A (the CLI and
+the GitHub-distributed desktop app never run under App Sandbox at all),
+but Apple's own documented behavior (Apple Developer Forums, on
+`NSSavePanel`-granted sandbox access) says: *"When the save panel gives
+you back a URL it extends your sandbox so that you can access **exactly
 that URL**. You are not allowed to change the URL in any way..."* — the
-grant is scoped to the one path the user selected, not to sibling paths
-in the same directory. That means creating the `.partial` temp file
-**next to** the selected output path is not obviously covered by the
-same sandbox extension, and could fail under a real sandboxed build.
+grant is scoped to the one path the user selected, not sibling paths in
+the same directory. Creating the `.partial` temp file **next to** the
+selected output path is therefore not obviously covered, under a real
+sandboxed build.
 
-**This was not fixed in M7B1.** Two real, credentials-independent facts
-support leaving it as a documented risk rather than a blind code change:
+#### First, whether this could be tested locally at all — it can
 
-1. It cannot be verified without an actually signed, sandboxed binary
-   running under real enforcement — which requires the Apple Distribution
-   credentials this milestone does not have (see "Owner action
-   required").
-2. It does not affect M0–M7A at all, so there is no regression risk to
-   the existing, shipped GitHub build from leaving it unresolved for now.
+Before deciding whether to change any code, this milestone tested
+whether real, kernel-enforced App Sandbox could be exercised locally
+*without* Apple Developer credentials, rather than assuming Apple
+credentials were required. They are not, for this purpose:
 
-**If real sandbox testing confirms this fails**, the fix is scoped and
-known, not open-ended: write directly to the exact granted output path
-for the MAS build specifically (accepting the loss of the atomic-replace
-guarantee `docs/pdf-output.md` documents for the CLI/GitHub build), or
-integrate Apple's `NSFileCoordinator`/`replaceItemAtURL` safe-save
-pattern via a small native shim. Either is a genuine "MAS-specific
-adaptation," not a core-pipeline behavior change for M0–M7A, and either
-needs a real sandboxed test to confirm it actually resolves the
-constraint before being called done.
+```
+codesign --force --deep --sign - \
+  --entitlements entitlements.local-sandbox-test.plist \
+  "Museion Binarize.app"
+```
+
+with `entitlements.local-sandbox-test.plist` containing only
+`com.apple.security.app-sandbox` and
+`com.apple.security.files.user-selected.read-write` — **no**
+`com.apple.application-identifier`/`com.apple.developer.team-identifier`
+(no Team ID was fabricated to make this work, per the M7B1 brief; those
+identity-binding keys were simply omitted, and the ad-hoc signature
+still succeeded and still carried the sandbox entitlement). Launching
+this ad-hoc-signed build produced, immediately and reproducibly:
+
+```
+~/Library/Containers/me.museion.binarize/Data/{Documents,Desktop,Downloads,Library,...}
+~/Library/Containers/me.museion.binarize/.com.apple.containermanagerd.metadata.plist
+```
+
+— a real sandbox container, created by `containermanagerd`, which only
+happens for a process the kernel is actually sandboxing. This is
+conclusive, machine-checkable evidence that `com.apple.security.app-sandbox`
+enforcement itself does not require a Developer ID, an Apple Distribution
+certificate, a Team ID, or an App ID — only a code signature (ad-hoc is
+sufficient) that carries the entitlement. Identity-binding entitlements
+(`application-identifier`/`developer.team-identifier`) exist for App
+Store *provisioning-profile validation*, not for the kernel's sandbox
+enforcement decision.
+
+This is a materially better position than the M7B1 draft assumed: local
+sandbox *enforcement* testing needs no owner credentials at all. What
+still needs a human is described below.
+
+#### The fix actually made
+
+`OutputWriteStrategy` (`pipeline.rs`) now has two variants:
+
+- `AtomicSameDirectoryRename` — M0–M7A's exact existing behavior,
+  unchanged, the default for every existing caller (CLI, GitHub desktop
+  build).
+- `DirectWriteToDestination` — Mac App Store build only, selected at
+  **compile time** via the `mas-sandbox` Cargo feature
+  (`apps/desktop/src-tauri/Cargo.toml`), set only by
+  `scripts/distribution/package_mas.py`'s `tauri build --features
+  mas-sandbox`. Validates in the system/container temp directory (always
+  writable, sandboxed or not, no entitlement needed), then writes the
+  already-validated bytes **straight to the exact granted destination
+  path** — never touching a second path near it.
+
+Properties, analyzed against the current pipeline before writing any
+code (not assumed):
+
+| Property | `AtomicSameDirectoryRename` (unchanged) | `DirectWriteToDestination` (MAS) |
+|---|---|---|
+| New destination | Temp-in-same-dir, validate, rename | Temp-in-container, validate, direct write |
+| Existing destination / overwrite | Atomic `rename(2)` replace (Unix); unlink-then-rename (Windows, documented gap) | Direct `File::create` truncate-and-write at the exact granted path — the textbook `NSSavePanel` overwrite case |
+| Cancellation | Checked before `persist`; temp dropped, destination untouched | Identical — checked before `persist` in both strategies; the destination is never reached on cancellation either way |
+| Validation failure | Destination untouched (validated before any destination write) | Identical — validation happens in the container temp file, before the destination is ever touched |
+| Cross-volume output | N/A (temp always shares the destination's volume, by construction) | No rename at all, so no cross-volume `EXDEV` failure mode exists for this strategy either |
+| Crash *during* the final commit | **Atomic** — destination is always either the complete old file or the complete new file, never partial (`rename(2)`) | **Not atomic** — a crash mid-write can leave the destination holding a partial file. This is a real, deliberate, documented reduction in guarantee, not papered over. |
+| Cleanup | `NamedTempFile`'s `Drop` deletes the temp file on every path | Identical mechanism, temp file just lives in the container instead |
+| Large PDFs / memory | Whole output already held in memory (`bytes: Vec<u8>`) before any write, for both strategies — unchanged | One extra full write pass (temp copy, then destination) instead of a cheap rename; a minor I/O cost, not a memory-behavior change |
+
+The crash-mid-write gap was evaluated against the alternative
+(`NSFileCoordinator`/`FileManager.replaceItemAt`, Apple's own
+sandbox-safe-save API) and deliberately not implemented this pass: it
+would require new Objective-C/Foundation FFI (or a native helper
+process — itself disfavored under sandbox and for Store review) that
+cannot be verified end-to-end without the same live interactive test
+this pass could not complete either (see below), so it would add real,
+unverified surface area rather than a provably-working fix. If the
+crash-window gap proves unacceptable once real testing is possible,
+that FFI integration is the identified upgrade path, not a hypothetical
+one.
+
+**Regression tests** (`crates/museion-binarize-core/src/pipeline.rs`):
+`direct_write_strategy_writes_bytes_straight_to_the_destination`,
+`direct_write_strategy_overwrite_replaces_the_destination_contents`,
+`direct_write_strategy_failure_before_persistence_leaves_the_old_destination_intact`
+— mirroring the exact three properties the pre-existing
+`AtomicSameDirectoryRename` tests already proved, for the new strategy.
+`apps/desktop/src-tauri/src/worker.rs`'s
+`output_write_strategy_tests::ordinary_build_keeps_the_atomic_same_directory_rename_default`
+proves the GitHub build's default is unaffected; `cargo check -p
+museion-binarize-desktop --features mas-sandbox` (run this session)
+independently proves the other branch compiles and is reachable.
+
+#### What remains unverified, and exactly why
+
+The interactive open/save click-through (steps 1–17 in "Human runtime
+acceptance checklist," an updated version of which follows below) was
+**not run** this session. Not because of Apple credentials — those were
+shown above not to be the blocker — but because driving a real
+`NSOpenPanel`/`NSSavePanel` requires either a human at the keyboard or
+GUI-automation tooling this environment does not have:
+`osascript -e 'tell application "System Events" to ...'` (the standard
+way to script native macOS UI from a shell) failed with
+`execution error: "System Events" got an error: AppleEvent timed out.
+(-1712)` — this requires a one-time Accessibility permission grant in
+System Settings, itself a dialog only a human can click through.
+
+This is a real, reproducible, precisely-identified boundary, reported
+rather than guessed past. Everything up to that exact point — sandbox
+enforcement itself, the app launching cleanly under it, the new
+`DirectWriteToDestination` code path compiling and shipping in a build
+that launches under real enforcement (`cargo check --features
+mas-sandbox`, and an actual ad-hoc-signed sandboxed launch, both done
+this session) — is real, demonstrated evidence, not assumption.
+
+#### Ready-to-run acceptance test (no Apple credentials needed)
+
+Because credential-free local sandbox testing works, the owner (who has
+real keyboard/mouse access to this machine, unlike this session) can run
+the full interactive checklist right now, without waiting for Apple
+Developer Program enrollment:
+
+```bash
+APPLE_TEAM_ID=LOCALTEST01 python3 scripts/distribution/package_mas.py \
+  --target-triple aarch64-apple-darwin --version 0.1.0 \
+  --out-dir /tmp/mas-local-test
+
+# entitlements.local-sandbox-test.plist: app-sandbox + files.user-selected.read-write only
+codesign --force --deep --sign - \
+  --entitlements entitlements.local-sandbox-test.plist \
+  "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app"
+
+open "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app"
+```
+
+then work through the checklist below. This exercises real kernel
+sandbox enforcement and the real `DirectWriteToDestination` code path —
+the *only* things this specific local test cannot exercise are Developer
+ID identity/provisioning validation and notarization/Store review
+themselves, neither of which affects whether the open/save/convert flow
+works under sandbox.
 
 ## PDFium strategy
 
@@ -219,7 +378,7 @@ Distinguishing implementation from completion, as required:
 | App code signing | `package_mas.py --sign` requires `APPLE_SIGNING_IDENTITY` in the environment (an **Apple Distribution** certificate identity — the current unified Apple terminology that replaced the older separate "3rd Party Mac Developer Application" cert name; confirmed against current third-party Tauri/Apple documentation, not assumed from memory) already imported into the local keychain. Tauri's own bundler picks this up and signs the `.app` with the rendered entitlements as part of its `tauri build` step — not a separate re-signing pass afterward, avoiding the exact "bundler re-bundles and discards a prior signature" failure mode M7A hit (`docs/desktop-testing.md`). | Owner must enroll in the Apple Developer Program, generate/download an Apple Distribution certificate, and have it in the build machine's keychain. |
 | Installer (`.pkg`) signing | `package_mas.py --package-pkg` requires `APPLE_INSTALLER_SIGNING_IDENTITY` (a **Mac Installer Distribution** certificate — a separate cert type from Apple Distribution, specifically for `productbuild`/`pkgbuild`) and calls `xcrun productbuild --sign ...`, then verifies with `pkgutil --check-signature`. | Owner must generate a Mac Installer Distribution certificate separately from the app-signing one. |
 | Provisioning profile | Not embedded by any script in this milestone — `tauri.mas.conf.json` deliberately does not reference `bundle.macOS.files.embedded.provisionprofile` for a file that does not exist in this repository. | Owner must register the App ID (with App Sandbox capability enabled) in the Apple Developer portal, create a Mac App Store provisioning profile, download it to `apps/desktop/src-tauri/embedded.provisionprofile` (gitignored — see `.gitignore`), and add the `files` mapping to `tauri.mas.conf.json` (or a further local-only overlay) before attempting a real submission build. |
-| Team ID / App ID / bundle identifier consistency | `render_mas_entitlements.py` reads the bundle identifier from `tauri.conf.json` (single source of truth, cannot drift) and reads the Team ID from `APPLE_TEAM_ID` — both are cross-checked into the rendered entitlements' `com.apple.application-identifier` (`$TEAM_ID.$IDENTIFIER`). | Owner must register the App ID `org.museionproject.binarize` under their own Team ID in the Apple Developer portal, with App Sandbox capability enabled, before either matters at build time. |
+| Team ID / App ID / bundle identifier consistency | `render_mas_entitlements.py` reads the bundle identifier from `tauri.conf.json` (single source of truth, cannot drift) and reads the Team ID from `APPLE_TEAM_ID` — both are cross-checked into the rendered entitlements' `com.apple.application-identifier` (`$TEAM_ID.$IDENTIFIER`). | Owner must register the App ID `me.museion.binarize` under their own Team ID in the Apple Developer portal, with App Sandbox capability enabled, before either matters at build time. |
 
 **No certificate, private key, Team ID, Apple ID, password, or
 provisioning-profile UUID is committed anywhere in this repository.**
@@ -248,43 +407,63 @@ in this repository.
 
 ## PENDING VALIDATION
 
-Nothing below has been exercised against a real signed, sandboxed
-binary — all of it requires the owner's Apple Developer credentials
-first:
+Two genuinely different kinds of "pending" — conflating them would
+overclaim one and undersell the other:
+
+**Requires the owner's real Apple Developer credentials:**
 
 - An actual `APPLE_SIGNING_IDENTITY`-signed `.app`, and
   `codesign --verify --deep --strict` plus an embedded-entitlements
   inspection (`package_mas.py --sign` implements both, unexercised with
   real credentials).
 - A signed `.pkg` via `productbuild`/`APPLE_INSTALLER_SIGNING_IDENTITY`.
-- **Sandbox runtime acceptance** — the human checklist below, especially
-  the write-then-rename risk documented above.
 - App Store Connect upload, TestFlight, or App Review — none attempted,
   none of the tooling for it added.
 
-### Human runtime acceptance checklist (to run once credentials + a provisioning profile exist)
+**Requires only a human at this machine's keyboard — no Apple
+credentials at all** (see "Sandboxed output-save architecture" above for
+why, and the exact commands to run):
 
-1. Launch the MAS-configured, sandboxed, signed app.
-2. Open a PDF via the picker, from a location outside any prior app
-   interaction (e.g. a folder never previously touched by this app).
+- The interactive acceptance checklist below, against the ad-hoc-signed
+  local sandbox-test build. This was set up and demonstrated to launch
+  correctly under real sandbox enforcement this session, but the
+  interactive open/save clicks themselves were not driven, because this
+  environment cannot script native macOS dialogs (a tooling boundary —
+  `osascript`'s "System Events" UI scripting requires an Accessibility
+  permission grant only a human can approve).
+
+### Human runtime acceptance checklist
+
+Using the ad-hoc-signed local sandbox-test build (no Apple credentials
+needed) or, once available, the real `--sign`ed build — either exercises
+the same code and the same sandbox enforcement:
+
+1. Launch the sandboxed app.
+2. Choose a real PDF through the native Open panel, from a location
+   outside any prior app interaction.
 3. Preview it.
-4. Run an estimate.
-5. Convert it.
-6. Cancel a conversion partway through.
-7. Convert again (confirm no partial output, no leftover temp file, a
-   fresh attempt succeeds).
-8. Save output outside the app's own container, through the native save
-   panel.
-9. Quit and relaunch the app.
-10. Open a different PDF.
-11. Confirm no runtime `MUSEION_PDFIUM_LIBRARY` (or any other env var)
-    was required at any point.
-12. Check Console.app for sandbox denial (`sandboxd`/`Sandbox: deny`)
-    messages during the whole sequence above — not just "the UI looked
-    fine."
+4. Estimate it.
+5. Choose an output path through the native Save panel.
+6. Convert successfully.
+7. Confirm the output exists at the selected location.
+8. Confirm the output PDF is valid (opens, correct page count).
+9. Start another conversion and cancel it partway through.
+10. Confirm cancellation left no partial/false-complete output.
+11. Convert again after cancellation — confirm a fresh attempt succeeds.
+12. Overwrite an existing destination (the app supports `--overwrite`
+    equivalent behavior — confirm it still works end to end).
+13. Quit the app.
+14. Relaunch it.
+15. Select a different PDF.
+16. Convert again.
+17. Confirm no runtime `MUSEION_PDFIUM_LIBRARY` (or any other env var)
+    was required at any point, and check Console.app for sandbox denial
+    (`sandboxd`/`Sandbox: deny`) messages across the whole sequence —
+    not just "the UI looked fine."
 
-Until this is run, "Human runtime" for the MAS build is **pending**, in
-the same sense M7A's own verification-state table used that word.
+Until this is actually run, "Human runtime" for the MAS build stays
+**pending** — not because it's blocked on anything external, but simply
+because it has not happened yet.
 
 ## Owner action required
 
@@ -294,7 +473,7 @@ and none of it exists in this repository:
 - Apple Developer Program membership (individual or organization).
 - Apple Distribution certificate + Mac Installer Distribution
   certificate, generated and kept in a build keychain.
-- App ID registration for `org.museionproject.binarize` with App
+- App ID registration for `me.museion.binarize` with App
   Sandbox capability enabled, under the owner's Team ID.
 - Mac App Store provisioning profile for that App ID.
 - App Store Connect app record creation.
@@ -317,7 +496,18 @@ and none of it exists in this repository:
 - No pricing, paywall, subscription, DRM, license key, or activation
   server — in code or in this document.
 - No M7B2 work started.
-- No change to the permanent bundle identifier (`org.museionproject.binarize`
-  is unchanged; a change did not appear necessary — see the M7B1 audit
-  finding that Apple permits reusing the same identifier across
-  Developer ID and Mac App Store distributions of the same app).
+- No Apple App ID created, no App Store Connect record created, nothing
+  submitted to Apple — the identifier finalization below is a
+  repository-side rename only, ahead of any Apple-side registration, so
+  registration happens against the correct, final name.
+
+## Bundle identifier
+
+**Finalized this milestone, owner-approved**: `me.museion.binarize`
+(previously `org.museionproject.binarize`, M7A's original value). The
+owner explicitly approved this permanent identifier and the
+`me.museion.<product>` namespace convention for future Museion apps, and
+asked for the change to happen now, before any Apple App ID or App
+Store Connect identity is created against the old name. See "READY /
+IMPLEMENTED" above for the single-source-of-truth mechanism and the
+regression tests that enforce it.

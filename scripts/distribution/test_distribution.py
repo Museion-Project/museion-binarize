@@ -440,6 +440,70 @@ class FetchPdfiumSafetyTests(unittest.TestCase):
             self.assertTrue((dest / "LICENSE").is_file())
 
 
+class BundleIdentifierConsistencyTests(unittest.TestCase):
+    """The canonical product identity is `me.museion.binarize`, declared
+    exactly once, in the base `tauri.conf.json` — see
+    docs/mac-app-store-readiness.md, "Bundle identifier." Every overlay
+    (GitHub dist, MAS) must inherit it rather than redeclaring it, so it
+    is structurally impossible for the two distribution channels to
+    represent different products. The previous identifier,
+    `org.museionproject.binarize`, must not reappear in any active
+    configuration."""
+
+    CANONICAL_IDENTIFIER = "me.museion.binarize"
+    OLD_IDENTIFIER = "org.museionproject.binarize"
+
+    BASE_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
+    DIST_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.dist.conf.json"
+    MAS_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.mas.conf.json"
+
+    def test_base_config_declares_the_canonical_identifier(self):
+        config = json.loads(self.BASE_CONFIG.read_text())
+        self.assertEqual(config["identifier"], self.CANONICAL_IDENTIFIER)
+
+    def test_dist_and_mas_overlays_never_redeclare_identifier(self):
+        # Both must inherit from the base config alone — a distribution
+        # overlay declaring its own "identifier" would let the GitHub
+        # and MAS builds silently diverge into different products.
+        for config_path in (self.DIST_CONFIG, self.MAS_CONFIG):
+            config = json.loads(config_path.read_text())
+            self.assertNotIn(
+                "identifier", config, f"{config_path} must not redeclare \"identifier\""
+            )
+
+    def test_old_identifier_is_absent_from_active_configuration(self):
+        # Scoped to config/scripts, not the whole repo: CHANGELOG.md and
+        # this doc's own "Bundle identifier" section legitimately narrate
+        # the migration ("previously org.museionproject.binarize") as
+        # historical record, which the M7B1 migration brief explicitly
+        # says to preserve, not strip. What must never drift back to the
+        # old value is active configuration.
+        result = subprocess.run(
+            [
+                "git", "grep", "-l", "-F", self.OLD_IDENTIFIER,
+                "--",
+                "*.json", "*.py", "*.toml", "*.rs", "*.ts", "*.tsx",
+                # This test file must name the retired identifier
+                # literally to check for it.
+                ":!scripts/distribution/test_distribution.py",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        # `git grep` exits 1 when it finds no matches — that is the
+        # passing case here, not an error.
+        self.assertEqual(
+            result.returncode,
+            1,
+            f"old identifier {self.OLD_IDENTIFIER!r} still appears in active "
+            f"configuration/code: {result.stdout}",
+        )
+
+    def test_render_mas_entitlements_reads_the_canonical_identifier(self):
+        self.assertEqual(render_mas_entitlements.bundle_identifier(), self.CANONICAL_IDENTIFIER)
+
+
 class TauriResourceConfigTests(unittest.TestCase):
     """Regression coverage for the ordinary-vs-distribution Tauri config
     split: `tauri.conf.json` must never require a staged PDFium resource

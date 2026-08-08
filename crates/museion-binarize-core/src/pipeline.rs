@@ -72,6 +72,51 @@ pub struct PdfProcessingOptions {
     /// estimate available" rather than compared anyway — see
     /// `docs/size-estimation.md`.
     pub prior_estimate: Option<PriorEstimate>,
+    /// How the validated output actually gets written to `output`. See
+    /// [`OutputWriteStrategy`] — every existing caller (CLI, GitHub
+    /// desktop build) keeps the default; only a sandboxed Mac App Store
+    /// build opts into the other variant.
+    pub output_write_strategy: OutputWriteStrategy,
+}
+
+/// Two ways to commit a validated conversion result to `output`, chosen
+/// by the caller because only the caller knows whether it is running
+/// under App Sandbox.
+///
+/// # Why this exists
+///
+/// [`AtomicSameDirectoryRename`](Self::AtomicSameDirectoryRename) writes
+/// a temp file *in `output`'s own directory* and `rename(2)`s it into
+/// place — atomic on Unix, and documented in `docs/pdf-output.md`. Apple
+/// documents that a security-scoped extension granted by an `NSSavePanel`
+/// selection covers *exactly* the selected URL, not sibling paths in the
+/// same directory ("When the save panel gives you back a URL it extends
+/// your sandbox so that you can access exactly that URL" — Apple
+/// Developer Forums). Creating a new sibling temp file next to a
+/// sandboxed Mac App Store build's user-selected destination is
+/// therefore not something the grant obviously covers, and this was
+/// evaluated, not assumed — see `docs/mac-app-store-readiness.md`,
+/// "Sandboxed output-save architecture."
+///
+/// [`DirectWriteToDestination`](Self::DirectWriteToDestination) instead
+/// validates in a location the process always has unrestricted access to
+/// (the system/container temp directory — under App Sandbox this
+/// resolves inside the app's own container, no entitlement needed), then
+/// writes the already-validated bytes straight to the exact granted
+/// `output` path — never touching a second path near it. This trades
+/// away the same-directory-rename's crash-window guarantee (see the
+/// docs above) in exchange for working within what the sandbox extension
+/// actually covers; every other safety property (validate before ever
+/// touching an existing destination, cancellation never touches the
+/// destination, temp file always cleaned up) is unchanged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OutputWriteStrategy {
+    /// M0–M7A behavior, unchanged. Used by the CLI and the GitHub
+    /// Developer-ID desktop build — neither ever runs under App Sandbox.
+    #[default]
+    AtomicSameDirectoryRename,
+    /// Mac App Store build only.
+    DirectWriteToDestination,
 }
 
 /// The minimum a caller needs to supply for
@@ -538,7 +583,7 @@ fn process_with_session(
 
     validation::assert_bilevel_ccitt_structure(&bytes)?;
 
-    let temp = write_temporary(output, &bytes)?;
+    let temp = write_temporary(output, &bytes, options.output_write_strategy)?;
 
     if progress.is_cancelled() {
         progress.report(ProgressEvent::Cancelled);
@@ -554,7 +599,13 @@ fn process_with_session(
     validate_output(temp.path(), &expected, options.validation, &options.pdfium)?;
 
     let output_bytes = bytes.len() as u64;
-    persist(temp, output, options.overwrite)?;
+    persist(
+        temp,
+        output,
+        &bytes,
+        options.overwrite,
+        options.output_write_strategy,
+    )?;
 
     progress.report(ProgressEvent::Finished);
 
@@ -1198,10 +1249,25 @@ fn normalize_for_comparison(path: &Path) -> Option<PathBuf> {
     Some(canonical_parent.join(file_name))
 }
 
-/// Writes `bytes` to a temporary file in the destination's directory, so
-/// the later rename stays on one filesystem and is therefore atomic.
-fn write_temporary(output: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
-    let directory = output.parent().filter(|p| !p.as_os_str().is_empty());
+/// Writes `bytes` to a temporary file, for later validation.
+///
+/// [`OutputWriteStrategy::AtomicSameDirectoryRename`] places it in
+/// `output`'s own directory, so the later rename stays on one filesystem
+/// and is therefore atomic. [`OutputWriteStrategy::DirectWriteToDestination`]
+/// places it in the system/container temp directory instead — a location
+/// this process always has unrestricted access to, sandboxed or not — since
+/// that strategy never renames it into place at all (see `persist`).
+fn write_temporary(
+    output: &Path,
+    bytes: &[u8],
+    strategy: OutputWriteStrategy,
+) -> Result<tempfile::NamedTempFile> {
+    let directory = match strategy {
+        OutputWriteStrategy::AtomicSameDirectoryRename => {
+            output.parent().filter(|p| !p.as_os_str().is_empty())
+        }
+        OutputWriteStrategy::DirectWriteToDestination => None,
+    };
     let mut temp = match directory {
         Some(dir) => tempfile::Builder::new()
             .prefix(".museion-binarize-")
@@ -1227,12 +1293,12 @@ fn write_temporary(output: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFil
     Ok(temp)
 }
 
-/// Moves the validated temporary file into its final place.
+/// Commits the already-validated `bytes` to `output`, per `strategy`.
 ///
-/// # Platform behaviour
+/// # `AtomicSameDirectoryRename` (M0–M7A, unchanged)
 ///
-/// The temporary file always lives in the destination's own directory, so
-/// the move stays on one filesystem.
+/// Moves the validated temporary file (which lives in `output`'s own
+/// directory — see `write_temporary`) into place.
 ///
 /// * **Unix (including macOS):** `rename(2)` replaces an existing
 ///   destination atomically. The old file is never unlinked first, so at
@@ -1245,26 +1311,80 @@ fn write_temporary(output: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFil
 ///   real limitation, not a theoretical one; it is recorded in
 ///   `docs/pdf-output.md` and no cross-platform atomicity is claimed.
 ///
-/// In both cases the destination is only touched after the replacement has
-/// been fully written, synced, and validated.
-fn persist(temp: tempfile::NamedTempFile, output: &Path, overwrite: bool) -> Result<()> {
-    // Windows cannot rename onto an existing file; Unix can, and doing so
-    // atomically is the whole point, so it must not be unlinked there.
-    #[cfg(windows)]
-    if overwrite && output.exists() {
-        std::fs::remove_file(output).map_err(|e| CoreError::io(output, e))?;
-    }
-    #[cfg(not(windows))]
-    let _ = overwrite;
+/// The destination is only touched after the replacement has been fully
+/// written, synced, and validated.
+///
+/// # `DirectWriteToDestination` (Mac App Store build only)
+///
+/// Writes `bytes` (already validated, via the container-local temp file)
+/// straight to `output` — the one path a sandboxed build's Powerbox grant
+/// actually covers — rather than renaming a sibling temp file into place.
+/// The destination is still only touched after validation succeeds, so a
+/// validation failure or cancellation still leaves an existing destination
+/// completely untouched, exactly as `AtomicSameDirectoryRename` guarantees.
+/// What is **not** preserved: if the process is killed or crashes *during*
+/// this specific write, the destination can be left holding a partial
+/// file — `rename(2)`'s all-or-nothing swap is what `AtomicSameDirectoryRename`
+/// gets and this strategy does not, because achieving it would require
+/// either a rename across two different granted paths (not demonstrably
+/// covered by the sandbox extension a save-panel selection grants — see
+/// `OutputWriteStrategy`'s own docs) or an Apple-coordinated replacement
+/// API this milestone does not implement. See
+/// `docs/mac-app-store-readiness.md`, "Sandboxed output-save architecture,"
+/// for the full record of this trade-off and why it was made here rather
+/// than left unresolved.
+fn persist(
+    temp: tempfile::NamedTempFile,
+    output: &Path,
+    bytes: &[u8],
+    overwrite: bool,
+    strategy: OutputWriteStrategy,
+) -> Result<()> {
+    match strategy {
+        OutputWriteStrategy::AtomicSameDirectoryRename => {
+            // Windows cannot rename onto an existing file; Unix can, and
+            // doing so atomically is the whole point, so it must not be
+            // unlinked there.
+            #[cfg(windows)]
+            if overwrite && output.exists() {
+                std::fs::remove_file(output).map_err(|e| CoreError::io(output, e))?;
+            }
+            #[cfg(not(windows))]
+            let _ = overwrite;
 
-    let path = temp.path().to_path_buf();
-    temp.persist(output).map_err(|e| {
-        CoreError::TemporaryFile(format!(
-            "could not move the completed output from {} into place: {}",
-            path.display(),
-            e.error
-        ))
-    })?;
+            let path = temp.path().to_path_buf();
+            temp.persist(output).map_err(|e| {
+                CoreError::TemporaryFile(format!(
+                    "could not move the completed output from {} into place: {}",
+                    path.display(),
+                    e.error
+                ))
+            })?;
+            Ok(())
+        }
+        OutputWriteStrategy::DirectWriteToDestination => {
+            // `check_destination` already rejected an existing
+            // destination without `overwrite` before any work began, so
+            // reaching here means writing directly is intended.
+            let _ = overwrite;
+            write_direct(output, bytes)?;
+            // `temp` (the container-local validation copy) is dropped
+            // here, deleting it — it was never the file that mattered to
+            // the caller.
+            Ok(())
+        }
+    }
+}
+
+/// The `DirectWriteToDestination` half of `persist`: writes `bytes`
+/// straight to the exact path a sandboxed build's Powerbox grant covers,
+/// flushed and synced before returning.
+fn write_direct(output: &Path, bytes: &[u8]) -> Result<()> {
+    use std::io::Write;
+    let mut file = std::fs::File::create(output).map_err(|e| CoreError::io(output, e))?;
+    file.write_all(bytes)
+        .map_err(|e| CoreError::io(output, e))?;
+    file.sync_all().map_err(|e| CoreError::io(output, e))?;
     Ok(())
 }
 
@@ -1369,8 +1489,16 @@ mod tests {
         std::fs::write(&output, b"old contents").unwrap();
         let old_inode = std::fs::metadata(&output).unwrap().ino();
 
-        let temp = write_temporary(&output, b"new contents").unwrap();
-        persist(temp, &output, true).unwrap();
+        let temp =
+            write_temporary(&output, b"new contents", OutputWriteStrategy::default()).unwrap();
+        persist(
+            temp,
+            &output,
+            b"new contents",
+            true,
+            OutputWriteStrategy::default(),
+        )
+        .unwrap();
 
         assert_eq!(std::fs::read(&output).unwrap(), b"new contents");
         assert_ne!(
@@ -1390,7 +1518,12 @@ mod tests {
         std::fs::write(&output, b"original document").unwrap();
 
         {
-            let _temp = write_temporary(&output, b"replacement that never lands").unwrap();
+            let _temp = write_temporary(
+                &output,
+                b"replacement that never lands",
+                OutputWriteStrategy::default(),
+            )
+            .unwrap();
         }
 
         assert_eq!(
@@ -1406,14 +1539,22 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let output = dir.path().join("out.pdf");
 
-        let temp = write_temporary(&output, b"%PDF-1.7 test").unwrap();
+        let temp =
+            write_temporary(&output, b"%PDF-1.7 test", OutputWriteStrategy::default()).unwrap();
         assert_eq!(temp.path().parent().unwrap(), dir.path());
         assert!(
             !output.exists(),
             "destination must not exist before persist"
         );
 
-        persist(temp, &output, false).unwrap();
+        persist(
+            temp,
+            &output,
+            b"%PDF-1.7 test",
+            false,
+            OutputWriteStrategy::default(),
+        )
+        .unwrap();
         assert_eq!(std::fs::read(&output).unwrap(), b"%PDF-1.7 test");
         assert!(leftover_temporary_files(dir.path()).is_empty());
     }
@@ -1423,7 +1564,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let output = dir.path().join("out.pdf");
         {
-            let _temp = write_temporary(&output, b"partial").unwrap();
+            let _temp =
+                write_temporary(&output, b"partial", OutputWriteStrategy::default()).unwrap();
             assert_eq!(leftover_temporary_files(dir.path()).len(), 1);
         }
         assert!(
@@ -1439,9 +1581,93 @@ mod tests {
         let output = dir.path().join("out.pdf");
         std::fs::write(&output, b"old").unwrap();
 
-        let temp = write_temporary(&output, b"new").unwrap();
-        persist(temp, &output, true).unwrap();
+        let temp = write_temporary(&output, b"new", OutputWriteStrategy::default()).unwrap();
+        persist(temp, &output, b"new", true, OutputWriteStrategy::default()).unwrap();
         assert_eq!(std::fs::read(&output).unwrap(), b"new");
+        assert!(leftover_temporary_files(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn direct_write_strategy_writes_bytes_straight_to_the_destination() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("out.pdf");
+
+        let temp = write_temporary(
+            &output,
+            b"%PDF-1.7 test",
+            OutputWriteStrategy::DirectWriteToDestination,
+        )
+        .unwrap();
+        // Unlike AtomicSameDirectoryRename, the temp file is NOT beside
+        // the destination — it must never assume sibling-path access.
+        assert_ne!(temp.path().parent().unwrap(), dir.path());
+        assert!(
+            !output.exists(),
+            "destination must not exist before persist"
+        );
+
+        persist(
+            temp,
+            &output,
+            b"%PDF-1.7 test",
+            false,
+            OutputWriteStrategy::DirectWriteToDestination,
+        )
+        .unwrap();
+        assert_eq!(std::fs::read(&output).unwrap(), b"%PDF-1.7 test");
+        assert!(
+            leftover_temporary_files(dir.path()).is_empty(),
+            "no sibling temp file may ever appear next to the destination"
+        );
+    }
+
+    #[test]
+    fn direct_write_strategy_overwrite_replaces_the_destination_contents() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("out.pdf");
+        std::fs::write(&output, b"old").unwrap();
+
+        let temp = write_temporary(
+            &output,
+            b"new",
+            OutputWriteStrategy::DirectWriteToDestination,
+        )
+        .unwrap();
+        persist(
+            temp,
+            &output,
+            b"new",
+            true,
+            OutputWriteStrategy::DirectWriteToDestination,
+        )
+        .unwrap();
+        assert_eq!(std::fs::read(&output).unwrap(), b"new");
+        assert!(leftover_temporary_files(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn direct_write_strategy_failure_before_persistence_leaves_the_old_destination_intact() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("out.pdf");
+        std::fs::write(&output, b"original document").unwrap();
+
+        {
+            let _temp = write_temporary(
+                &output,
+                b"replacement that never lands",
+                OutputWriteStrategy::DirectWriteToDestination,
+            )
+            .unwrap();
+            // Simulates cancellation/validation failure: persist is never
+            // called, so the destination must be untouched and the
+            // container-local temp file must not leak into `dir`.
+        }
+
+        assert_eq!(
+            std::fs::read(&output).unwrap(),
+            b"original document",
+            "the previous output must survive a failure before persistence"
+        );
         assert!(leftover_temporary_files(dir.path()).is_empty());
     }
 

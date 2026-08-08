@@ -174,6 +174,10 @@ def run_tauri_build(target_triple: str, *, signing_identity: str | None) -> None
             "--target", target_triple,
             "--config", "src-tauri/tauri.mas.conf.json",
             "--bundles", "app",
+            # Selects OutputWriteStrategy::DirectWriteToDestination in
+            # worker.rs — see docs/mac-app-store-readiness.md, "Sandboxed
+            # output-save architecture." Never set for the GitHub build.
+            "--features", "mas-sandbox",
         ],
         cwd=DESKTOP_DIR,
         env=env,

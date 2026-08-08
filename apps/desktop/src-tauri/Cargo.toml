@@ -18,6 +18,14 @@ publish.workspace = true
 name = "museion_binarize_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Only ever set by scripts/distribution/package_mas.py (`tauri build
+# --features mas-sandbox`) — never by ordinary `cargo build`/the GitHub
+# distribution build. Selects the sandbox-compatible output-write
+# strategy in worker.rs; see docs/mac-app-store-readiness.md, "Sandboxed
+# output-save architecture."
+mas-sandbox = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

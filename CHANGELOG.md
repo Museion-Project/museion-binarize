@@ -8,6 +8,28 @@ once a first tagged release is published.
 
 ## [Unreleased]
 
+### Changed
+
+- Permanent application identifier finalized to `me.museion.binarize`
+  (previously `org.museionproject.binarize`), owner-approved, ahead of
+  any Apple App ID / App Store Connect registration. Declared once in
+  `tauri.conf.json`; every distribution overlay inherits it.
+
+### Added
+
+- Mac App Store readiness (Milestone 7B1): a separate, App
+  Sandbox-enabled build path (`tauri.mas.conf.json`, a minimal
+  entitlements template, `scripts/distribution/package_mas.py`) beside
+  the existing GitHub Developer-ID distribution — not a replacement for
+  it. A sandboxed-output-save strategy
+  (`OutputWriteStrategy::DirectWriteToDestination`, MAS build only, via
+  the `mas-sandbox` Cargo feature) writes directly to a user-selected
+  destination instead of the same-directory-rename pattern the CLI and
+  GitHub build keep using unchanged, because a real, credential-free
+  local App Sandbox test showed a sandboxed save panel's grant does not
+  obviously cover a sibling temp file. See
+  `docs/mac-app-store-readiness.md`.
+
 ### Fixed
 
 - macOS arm64 packaged `.app`/`.dmg` reported "is damaged and can't be

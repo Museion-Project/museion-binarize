@@ -234,6 +234,24 @@ pub(crate) fn pdfium_config(bundled_pdfium_path: Option<&std::path::Path>) -> Pd
     }
 }
 
+/// A compile-time choice, not a runtime one: whether *this build* is the
+/// Mac App Store variant is fixed at build time by
+/// `scripts/distribution/package_mas.py` (`tauri build --features
+/// mas-sandbox`), never toggled at runtime. See
+/// `docs/mac-app-store-readiness.md`, "Sandboxed output-save
+/// architecture," for why the GitHub build (never sandboxed) keeps the
+/// atomic same-directory rename unconditionally.
+fn output_write_strategy() -> pipeline::OutputWriteStrategy {
+    #[cfg(feature = "mas-sandbox")]
+    {
+        pipeline::OutputWriteStrategy::DirectWriteToDestination
+    }
+    #[cfg(not(feature = "mas-sandbox"))]
+    {
+        pipeline::OutputWriteStrategy::default()
+    }
+}
+
 fn open(
     path: &std::path::Path,
     password: Option<String>,
@@ -291,6 +309,7 @@ fn process(
         validation: museion_binarize_core::validation::ValidationMode::default(),
         pdfium: pdfium_config(bundled_pdfium_path),
         prior_estimate,
+        output_write_strategy: output_write_strategy(),
     };
     pipeline::process_with_open_session(session, output, settings, &options, progress)
 }
@@ -313,6 +332,28 @@ fn estimate(
 
 fn no_open_document() -> CoreError {
     CoreError::InvalidParameter("no document is open".to_string())
+}
+
+#[cfg(test)]
+mod output_write_strategy_tests {
+    use super::output_write_strategy;
+    use museion_binarize_core::pipeline::OutputWriteStrategy;
+
+    #[test]
+    fn ordinary_build_keeps_the_atomic_same_directory_rename_default() {
+        // This crate is compiled without `mas-sandbox` for ordinary
+        // `cargo test`/the GitHub distribution build, so this asserts
+        // exactly the M0–M7A behavior stays the default. The
+        // `mas-sandbox`-enabled branch is proven to compile and select
+        // `DirectWriteToDestination` by `cargo check -p
+        // museion-binarize-desktop --features mas-sandbox` (a `cfg`
+        // feature makes the other branch unreachable in this same test
+        // binary, not something one `#[test]` can toggle at runtime).
+        assert_eq!(
+            output_write_strategy(),
+            OutputWriteStrategy::AtomicSameDirectoryRename
+        );
+    }
 }
 
 #[cfg(test)]
