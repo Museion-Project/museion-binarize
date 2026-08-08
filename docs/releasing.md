@@ -34,8 +34,31 @@ Recommended trajectory toward the first tagged release:
 ```
 
 **No tag was created during Milestone 7A**, and `1.0.0` is not planned
-as the first release. This milestone makes the repository *capable* of
-producing an RC; it does not produce one.
+as the first release. Milestone 7A made the repository *capable* of
+producing an RC; the `0.1.0-rc.1` release-prep work is what actually
+produces one.
+
+### Prerelease versioning across packaging targets
+
+Before adopting `0.1.0-rc.1` as the real version, every packaging target
+was checked empirically (real local and CI builds, not assumption) for
+whether it accepts a SemVer prerelease identifier cleanly:
+
+| Target | Result |
+|---|---|
+| Cargo workspace (`[workspace.package].version`) | Accepts it natively — Rust's `semver` crate is fully SemVer-compliant. Verified via `cargo metadata`. |
+| `apps/desktop/package.json` | Accepts it natively (node-semver). |
+| `tauri.conf.json` `version` | Accepts it; flows through to `CFBundleShortVersionString`/`CFBundleVersion` unchanged on macOS. Verified with a real local build. |
+| macOS bundle (`.app`, `.dmg`) | Full build/sign/package pipeline verified locally with `0.1.0-rc.1` end to end — no rejection, no transformation. |
+| **Windows MSI (WiX)** | **Rejects a non-numeric prerelease identifier in `ProductVersion`** — Windows Installer's `ProductVersion` is strictly `major.minor.build`, numeric only (Microsoft's own documented limit: build field ≤ 65,535, no fourth field recognized). Tauri's `tauri-bundler` added msi-specific prerelease/build-metadata support that must also be numeric-only. `0.1.0-rc.1`'s `rc.1` prerelease identifier is neither. **Fix**: `bundle.windows.wix.version` (`tauri.dist.conf.json`) overrides the MSI-internal `ProductVersion` with a numeric-only value (`0.1.0.1` for this RC) while every other version field — including the installer's own filename — keeps the real `0.1.0-rc.1`. Verified via a real Windows CI build: `Museion Binarize_0.1.0-rc.1_x64_en-US.msi` built successfully. |
+| Windows NSIS | Accepts `0.1.0-rc.1` directly, no override needed — verified via the same real Windows CI build (`Museion Binarize_0.1.0-rc.1_x64-setup.exe`). |
+| Linux `.deb`/`.rpm`/AppImage | Accepts `0.1.0-rc.1` directly — verified via a real Linux CI build (`Museion Binarize_0.1.0-rc.1_amd64.deb`, `...-0.1.0-rc.1-1.x86_64.rpm`, `..._0.1.0-rc.1_amd64.AppImage`). |
+
+`scripts/distribution/check_version_consistency.py`'s SemVer regex
+already accepted prerelease identifiers before this milestone (no code
+change needed there); `scripts/distribution/test_distribution.py`'s
+`test_dist_config_wix_version_is_msi_compatible` guards the one real
+fix above from regressing.
 
 ## Artifact naming
 
@@ -117,14 +140,15 @@ desktop app and CLI archive, inspects bundled-dependency architecture
 `SHA256SUMS`, and uploads everything as a private workflow-run artifact
 — nothing public is produced by running it.
 
-**Not exercised in a real GitHub Actions run during this milestone** —
-triggering it would require pushing to the repository and dispatching
-the workflow, which this milestone's implementation phase did not do.
-Its YAML has been validated for syntax; the individual steps were
-validated by running the equivalent commands directly on this machine
-(see `docs/desktop-testing.md`'s Milestone 7A section for exact
-transcripts of the macOS build/package/smoke-test steps this workflow
-automates).
+**Exercised for real, repeatedly, via `workflow_dispatch`** across
+Milestones 7A, 7B1, and the `0.1.0-rc.1` release-prep work — including
+successful macOS arm64, Windows x64, and Linux x86_64 runs building and
+packaging the real desktop app and CLI archive on GitHub-hosted runners.
+See `docs/desktop-testing.md`'s verification-state table for exactly
+which platform/step combinations have real run evidence versus which
+remain human-runtime-unverified — "the workflow ran successfully" and
+"a human clicked through the resulting app" are still two different
+claims, kept separate throughout that document.
 
 ### Normal PR CI vs. this workflow
 

@@ -1,6 +1,6 @@
 # Limitations
 
-## Current state (Milestone 7A)
+## Current state (as of the `0.1.0-rc.1` release candidate)
 
 Museion Binarize can perform a complete local PDF conversion, can analyze
 a PDF without converting it, can produce an experimental sampled
@@ -86,18 +86,25 @@ degraded raster + ground truth -> real image-processing core
   infrastructure (see [`distribution.md`](distribution.md) and
   [`releasing.md`](releasing.md)) but did not publish a GitHub Release
   or create a tag.
-- **No signed or notarized artifact exists.** Signing/notarization
-  integration is implemented but no Apple Developer credentials were
-  available; every artifact produced so far is unsigned. See
-  [`releasing.md`](releasing.md), "Signing and notarization."
-- **Windows and Linux packaging is configured, not runtime-verified.**
-  CI targets both, and the packaging steps were validated by running
-  their macOS equivalents directly, but no Windows or Linux machine
-  exercised an actual built package this milestone. See
+- **No Developer ID signed or notarized artifact exists.** The macOS
+  build is ad-hoc signed (a real, complete signature that satisfies
+  `codesign --verify --deep --strict` and launches normally — see
+  `docs/desktop-testing.md`, "macOS arm64: 'is damaged' bug found by
+  human runtime testing") but not signed with a Developer ID
+  certificate and not notarized; Windows and Linux artifacts are
+  unsigned. Real Developer ID/notarization credentials were not
+  available. See [`releasing.md`](releasing.md), "Signing and
+  notarization."
+- **Windows and Linux packaging builds and packages successfully in
+  CI, but has no human runtime acceptance.** No Windows or Linux
+  machine has exercised an actual built package interactively. See
   [`desktop-testing.md`](desktop-testing.md)'s verification-state table.
-- Mac App Store distribution (M7B) has not started — see
-  [`mac-app-store-readiness.md`](mac-app-store-readiness.md) for the
-  audit of what it would require.
+- **Mac App Store technical sandbox readiness is complete** (Milestone
+  7B1) — App Sandbox, entitlements, and the sandboxed output-save path
+  have passed local human sandbox-acceptance testing — but production
+  Apple Developer signing/provisioning is still pending owner
+  credentials, and no App Store Connect submission has been made. See
+  [`mac-app-store-readiness.md`](mac-app-store-readiness.md).
 
 **PDFium is not bundled with the crate or committed to this repository,
 and the running application never downloads one at runtime.** See

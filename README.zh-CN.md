@@ -5,20 +5,22 @@
 **Museion Binarize** 是一款开源、跨平台的应用程序，用于将扫描的学术书籍转换为
 干净、紧凑的双色（bilevel）PDF 文件。
 
-**当前状态：Phase 1 —— 早期开发阶段。** 已具备完整的本地命令行处理流程
+**当前状态：Phase 1 功能已完成 —— 正在准备首个公开发行候选版
+`v0.1.0-rc.1`。** 已具备完整的本地命令行处理流程
 （`inspect`、`analyze`、`estimate`、`process`、`preview`、`benchmark`，
-支持带版本号的 JSON 报告），桌面 GUI 现已接入同一处理流程（打开、预览、
+支持带版本号的 JSON 报告），桌面 GUI 已接入同一处理流程（打开、预览、
 配置、实验性的输出大小预估、转换、取消——详见 [`docs/desktop.md`](docs/desktop.md)）。
 `estimate` 会基于抽样生成实验性的输出体积预测——详见
 [`docs/size-estimation.md`](docs/size-estimation.md)；这并非保证值。
 `benchmark` 是一套可复现的、基于像素级标准答案（ground truth）的二值化
 保真度基准测试框架——详见 [`docs/benchmarking.md`](docs/benchmarking.md)；
 其内置的合成测试集仅用于验证框架本身，**并非**真实扫描文档的代表性语料，
-也不构成对历史多音调希腊语版本保真度的证明。端到端行为目前仅在受控配置的
-macOS 环境中验证过；桌面 GUI 的原生应用验收记录详见
-[`docs/desktop-testing.md`](docs/desktop-testing.md)。请参阅
-[`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做什么、
-不能做什么。
+也不构成对历史多音调希腊语版本保真度的证明。目前仅 **macOS（Apple
+Silicon）** 完成了人工端到端运行验收——桌面 GUI 的原生应用验收记录详见
+[`docs/desktop-testing.md`](docs/desktop-testing.md)；Windows 与 Linux
+安装包可正常构建打包，但尚未完成人工运行验收（详见下方"下载"一节）。
+请参阅 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做
+什么、不能做什么。
 
 ## 核心原则
 
@@ -32,7 +34,7 @@ macOS 环境中验证过；桌面 GUI 的原生应用验收记录详见
 Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是经典、确定性的
 图像处理方法，而非机器学习模型。
 
-## 计划中的 Phase 1 功能
+## Phase 1 功能
 
 - 支持 macOS、Windows 和 Linux 桌面平台。
 - 完全本地化的 PDF 处理——转换过程无需上传、无需依赖网络。
@@ -42,8 +44,38 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 - 提供图形化桌面应用与命令行界面，二者共享同一处理核心。
 - 提供可复现的基准测试框架，用于评估输出质量。
 
-以上功能目前均尚未在本仓库中实现；Phase 1 才刚刚开始。里程碑规划详见
-[`docs/roadmap.md`](docs/roadmap.md)。
+以上功能均已在本仓库中实现。里程碑演进历史详见
+[`docs/roadmap.md`](docs/roadmap.md)；如何获取打包版本请见下方"下载"一节。
+
+## 下载
+
+打包版本发布于
+[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases)，
+首个版本为发行候选版 `v0.1.0-rc.1`。所有平台的桌面应用与命令行工具打包版
+均内置了固定版本的 PDFium 库——**下载发行版无需单独安装 PDFium。**
+（从源码运行则不同，详见下方"提供 PDFium"一节。）
+
+| 平台 | 安装包 | 人工运行验收 | 签名情况 |
+|---|---|---|---|
+| macOS（Apple Silicon / arm64） | `.dmg`（桌面应用）、CLI `.tar.gz` | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
+| Windows x64 | MSI/NSIS 安装包、CLI `.zip` | 尚未完成——仅为发行候选构建 | 未签名 |
+| Linux x86_64 | AppImage、`.deb`、CLI `.tar.gz` | 尚未完成——仅为发行候选构建 | 不适用 |
+
+**macOS Gatekeeper**：桌面应用采用完整、有效的 ad-hoc 签名（并非
+Developer ID 证书签名，也未经公证），因此首次启动时会出现 macOS 标准的
+"无法验证开发者"提示。请右键（或按住 Control 点击）应用图标，选择
+"打开"并确认——这是未签名/ad-hoc 签名发行版本在每台机器上首次运行时的
+正常、预期流程。**请勿**为此关闭系统级 Gatekeeper（`sudo spctl
+--master-disable`）——这会关闭整台机器的一项真实安全防护，而非仅针对
+本应用，且从来没有必要这样做。
+
+**Windows SmartScreen**：安装包未签名，Windows 可能相应给出提示，本项目
+不对其可信度或信誉做任何声明。
+
+签名/公证的技术细节详见 [`docs/releasing.md`](docs/releasing.md)；各
+平台的完整验证状态记录详见
+[`docs/desktop-testing.md`](docs/desktop-testing.md)——"已构建打包"与
+"已完成人工运行验收"并非同一件事，本仓库不会将二者混为一谈。
 
 ## 研究方向
 
@@ -69,12 +101,14 @@ Phase 1 **不包括**：
 
 ## 分发
 
-Museion Binarize 的源代码将保持开源（MIT OR Apache-2.0），GitHub 构建版本
-也将保持功能完整；未来计划推出的付费 Mac App Store 版本是一种便利性的
-分发渠道，而非另立的闭源功能层级——详见
-[`docs/distribution.md`](docs/distribution.md)。**分发打包基础设施已经
-实现；目前尚未发布任何公开版本。** 如需从源码自行构建生产包，请参阅
-[`docs/releasing.md`](docs/releasing.md)。
+Museion Binarize 的源代码保持开源（MIT OR Apache-2.0），GitHub 构建版本
+保持功能完整；未来计划推出的付费 Mac App Store 版本是一种便利性的
+分发渠道，而非另立的闭源功能层级——该路径的技术沙盒就绪工作已完成
+（详见 [`docs/mac-app-store-readiness.md`](docs/mac-app-store-readiness.md)），
+但尚未向 Apple 提交任何内容，也不存在 App Store 商品页面。完整分发模型
+详见 [`docs/distribution.md`](docs/distribution.md)。打包版本自
+`v0.1.0-rc.1` 起发布于 GitHub Releases——详见上方"下载"一节。也可以
+从源码自行构建打包版本，详见 [`docs/releasing.md`](docs/releasing.md)。
 
 ## 隐私
 
@@ -125,7 +159,10 @@ cargo run -p museion-binarize-cli -- --help
 
 ### 提供 PDFium
 
-PDF 渲染需要 PDFium 动态库。本项目不捆绑该库、不将其提交到仓库，也绝不在运行时下载——需要您自行提供一次。详见 [docs/pdfium.md](docs/pdfium.md)。
+本节仅适用于**从源码运行**的情况。如果您下载的是打包发行版（见上方
+"下载"一节），PDFium 已内置其中——可跳过本节。
+
+PDF 渲染需要 PDFium 动态库。从源码构建时，本项目不捆绑该库、不将其提交到仓库，也绝不在运行时下载——需要您自行提供一次。详见 [docs/pdfium.md](docs/pdfium.md)。
 
 ```bash
 export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
