@@ -1,7 +1,7 @@
 {
   "name": "museion-binarize-desktop",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0-rc.1",
   "description": "Museion Binarize desktop application (Tauri 2 + React + TypeScript)",
   "license": "MIT OR Apache-2.0",
   "author": "Pei Haoran",
