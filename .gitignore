@@ -38,6 +38,15 @@ apps/desktop/src-tauri/resources/pdfium/
 *.dll
 *.so
 
+# Mac App Store entitlements are rendered from entitlements.mas.plist.template
+# (see scripts/distribution/render_mas_entitlements.py) with the Team ID
+# filled in from an environment variable — the rendered file never gets
+# committed, only the placeholder template does.
+apps/desktop/src-tauri/entitlements.mas.plist
+# A real Mac App Store provisioning profile, once the owner has one, is a
+# local build input — never committed.
+apps/desktop/src-tauri/embedded.provisionprofile
+
 # ---------------------------------------------------------------------------
 # macOS
 # ---------------------------------------------------------------------------

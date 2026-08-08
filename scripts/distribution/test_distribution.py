@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import plistlib
 import subprocess
 import sys
 import tarfile
@@ -23,7 +24,9 @@ import checksums  # noqa: E402
 import fetch_pdfium  # noqa: E402
 import naming  # noqa: E402
 import package_macos_dmg  # noqa: E402
+import package_mas  # noqa: E402
 import release_manifest  # noqa: E402
+import render_mas_entitlements  # noqa: E402
 import sign_macos_app  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -510,6 +513,229 @@ class TauriResourceConfigTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, "staged PDFium resource dir must stay gitignored")
+
+
+class MasConfigTests(unittest.TestCase):
+    """M7B1: Mac App Store config/entitlements must never leak into the
+    ordinary or GitHub-distribution paths, and must never carry a
+    broader entitlement set than this application has demonstrated a
+    need for. See docs/mac-app-store-readiness.md."""
+
+    BASE_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
+    DIST_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.dist.conf.json"
+    MAS_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.mas.conf.json"
+    ENTITLEMENTS_TEMPLATE = (
+        REPO_ROOT / "apps" / "desktop" / "src-tauri" / "entitlements.mas.plist.template"
+    )
+
+    def test_entitlements_template_has_exactly_the_intended_keys(self):
+        with self.ENTITLEMENTS_TEMPLATE.open("rb") as f:
+            entitlements = plistlib.load(f)
+        self.assertEqual(entitlements["com.apple.security.app-sandbox"], True)
+        self.assertEqual(entitlements["com.apple.security.files.user-selected.read-write"], True)
+        # Everything else is placeholder identity metadata, not a
+        # capability grant — but confirm no unexpected key sneaked in.
+        self.assertEqual(
+            set(entitlements.keys()),
+            {
+                "com.apple.security.app-sandbox",
+                "com.apple.security.files.user-selected.read-write",
+                "com.apple.application-identifier",
+                "com.apple.developer.team-identifier",
+            },
+        )
+
+    def test_entitlements_template_contains_no_forbidden_broad_entitlement(self):
+        package_mas.validate_entitlements_plist_file(self.ENTITLEMENTS_TEMPLATE)
+
+    def test_neither_base_nor_dist_config_declares_macos_entitlements(self):
+        # A GitHub Developer-ID/ad-hoc build must never accidentally
+        # inherit App Sandbox — that is a different distribution
+        # channel with a different security model (see
+        # docs/mac-app-store-readiness.md, "Signing/provisioning").
+        for config_path in (self.BASE_CONFIG, self.DIST_CONFIG):
+            config = json.loads(config_path.read_text())
+            self.assertNotIn(
+                "entitlements",
+                config.get("bundle", {}).get("macOS", {}),
+                f"{config_path} must not declare a macOS entitlements file",
+            )
+
+    def test_mas_config_references_entitlements_and_pdfium_resources(self):
+        config = json.loads(self.MAS_CONFIG.read_text())
+        self.assertEqual(config["bundle"]["macOS"]["entitlements"], "./entitlements.mas.plist")
+        self.assertIn("resources/pdfium/*", config["bundle"]["resources"])
+
+    def test_mas_config_does_not_redeclare_identifier_or_version(self):
+        # Both must come from the base config alone, so they can never
+        # drift between the GitHub and MAS builds of "the same app."
+        config = json.loads(self.MAS_CONFIG.read_text())
+        self.assertNotIn("identifier", config)
+        self.assertNotIn("version", config)
+
+    def test_mas_config_never_hardcodes_a_signing_identity(self):
+        # Team ID / signing identity must come from the environment at
+        # build time (APPLE_TEAM_ID / APPLE_SIGNING_IDENTITY) — never a
+        # literal value committed to this file.
+        config = json.loads(self.MAS_CONFIG.read_text())
+        self.assertNotIn("signingIdentity", config.get("bundle", {}).get("macOS", {}))
+
+    def test_mas_config_is_a_pure_overlay_with_no_unexpected_top_level_keys(self):
+        config = json.loads(self.MAS_CONFIG.read_text())
+        self.assertEqual(set(config.keys()) - {"$schema"}, {"bundle"})
+        self.assertEqual(set(config["bundle"].keys()), {"category", "resources", "macOS"})
+
+    def test_rendered_entitlements_are_gitignored(self):
+        result = subprocess.run(
+            ["git", "check-ignore", "apps/desktop/src-tauri/entitlements.mas.plist"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, "rendered MAS entitlements must stay gitignored")
+
+    def test_provisioning_profile_path_is_gitignored(self):
+        result = subprocess.run(
+            ["git", "check-ignore", "apps/desktop/src-tauri/embedded.provisionprofile"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, "a real provisioning profile must stay gitignored")
+
+
+class RenderMasEntitlementsTests(unittest.TestCase):
+    def test_fails_closed_when_team_id_is_unset(self):
+        env = {k: v for k, v in __import__("os").environ.items() if k != "APPLE_TEAM_ID"}
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / "distribution" / "render_mas_entitlements.py")],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("APPLE_TEAM_ID", result.stderr)
+
+    def test_renders_team_id_and_the_real_bundle_identifier(self):
+        rendered_path = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "entitlements.mas.plist"
+        real_identifier = json.loads(
+            (REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json").read_text()
+        )["identifier"]
+        env = dict(__import__("os").environ, APPLE_TEAM_ID="TESTTEAM01")
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / "distribution" / "render_mas_entitlements.py")],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        try:
+            self.assertEqual(result.returncode, 0, result.stderr)
+            with rendered_path.open("rb") as f:
+                entitlements = plistlib.load(f)
+            self.assertEqual(entitlements["com.apple.developer.team-identifier"], "TESTTEAM01")
+            self.assertEqual(
+                entitlements["com.apple.application-identifier"],
+                f"TESTTEAM01.{real_identifier}",
+            )
+        finally:
+            rendered_path.unlink(missing_ok=True)
+
+
+class PackageMasEntitlementValidationTests(unittest.TestCase):
+    VALID = {
+        "com.apple.security.app-sandbox": True,
+        "com.apple.security.files.user-selected.read-write": True,
+    }
+
+    def test_valid_minimal_set_passes(self):
+        package_mas.validate_entitlements_dict(dict(self.VALID), source="test")
+
+    def test_missing_app_sandbox_is_rejected(self):
+        entitlements = {"com.apple.security.files.user-selected.read-write": True}
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_app_sandbox_false_is_rejected(self):
+        entitlements = dict(self.VALID, **{"com.apple.security.app-sandbox": False})
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_missing_file_access_entitlement_is_rejected(self):
+        entitlements = {"com.apple.security.app-sandbox": True}
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_forbidden_network_entitlement_is_rejected_even_alongside_valid_ones(self):
+        entitlements = dict(self.VALID, **{"com.apple.security.network.client": True})
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_forbidden_automation_entitlement_is_rejected(self):
+        entitlements = dict(self.VALID, **{"com.apple.security.automation.apple-events": True})
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_forbidden_temporary_exception_entitlement_is_rejected(self):
+        entitlements = dict(
+            self.VALID,
+            **{"com.apple.security.temporary-exception.files.absolute-path.read-write": ["/"]},
+        )
+        with self.assertRaises(SystemExit):
+            package_mas.validate_entitlements_dict(entitlements, source="test")
+
+    def test_find_built_app_fails_closed_when_none_or_multiple_exist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            macos_dir = tmp_path / "target" / "aarch64-apple-darwin" / "release" / "bundle" / "macos"
+            macos_dir.mkdir(parents=True)
+            original_root = package_mas.REPO_ROOT
+            package_mas.REPO_ROOT = tmp_path
+            try:
+                with self.assertRaises(SystemExit):
+                    package_mas.find_built_app("aarch64-apple-darwin")
+                (macos_dir / "A.app").mkdir()
+                (macos_dir / "B.app").mkdir()
+                with self.assertRaises(SystemExit):
+                    package_mas.find_built_app("aarch64-apple-darwin")
+            finally:
+                package_mas.REPO_ROOT = original_root
+
+
+class PackageMasNeverAdHocSignsGuardTests(unittest.TestCase):
+    """A Mac App Store artifact must never be produced through the same
+    ad-hoc structural-signing fallback the GitHub distribution path uses
+    for unsigned builds (see `sign_macos_app.py`) — that fallback fixes
+    a different problem (Gatekeeper's "damaged" bundle check on an
+    *unsigned* build) and is not a substitute for real Apple Distribution
+    signing on a submission artifact."""
+
+    PACKAGE_MAS_SOURCE = (
+        REPO_ROOT / "scripts" / "distribution" / "package_mas.py"
+    ).read_text()
+
+    def test_package_mas_never_imports_the_ad_hoc_signing_script(self):
+        self.assertNotIn("import sign_macos_app", self.PACKAGE_MAS_SOURCE)
+
+    def test_package_mas_has_no_ad_hoc_identity_default(self):
+        self.assertNotIn('"-"', self.PACKAGE_MAS_SOURCE)
+        self.assertNotIn("'-'", self.PACKAGE_MAS_SOURCE)
+
+    def test_sign_required_without_credentials_fails_before_any_build_step(self):
+        env = {k: v for k, v in __import__("os").environ.items() if k != "APPLE_SIGNING_IDENTITY"}
+        result = subprocess.run(
+            [
+                sys.executable, str(REPO_ROOT / "scripts" / "distribution" / "package_mas.py"),
+                "--sign", "--target-triple", "aarch64-apple-darwin",
+                "--version", "0.1.0", "--out-dir", "/tmp/should-not-be-created-mas-out",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("APPLE_SIGNING_IDENTITY", result.stderr)
+        self.assertIn("never falls back to ad-hoc", result.stderr)
+        self.assertFalse(Path("/tmp/should-not-be-created-mas-out").exists())
 
 
 class MacosSigningAndPackagingGuardTests(unittest.TestCase):
