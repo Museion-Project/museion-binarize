@@ -10,8 +10,11 @@ Museion Binarize's intended long-term distribution model:
 - **A future Mac App Store edition** may be sold as a paid convenience
   distribution — packaging and platform-integration work, not a
   separate closed-source feature tier. See
-  [`mac-app-store-readiness.md`](mac-app-store-readiness.md) for what
-  that would require (audit only; not started).
+  [`mac-app-store-readiness.md`](mac-app-store-readiness.md): technical
+  sandbox readiness (App Sandbox, entitlements, the sandboxed
+  output-save path) is complete and human-acceptance-tested locally,
+  but production Apple Developer signing/provisioning is still pending
+  owner credentials, and no App Store Connect submission has been made.
 - GitHub Sponsors may coexist with both later; sponsorship integration
   is out of scope for this engineering milestone.
 
