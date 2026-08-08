@@ -29,7 +29,7 @@ from pathlib import Path
 SCHEMA = "museion-binarize-release-manifest"
 SCHEMA_VERSION = "1.0"
 
-VALID_SIGNING_STATES = {"unsigned", "signed", "pending_credentials"}
+VALID_SIGNING_STATES = {"unsigned", "ad_hoc", "signed", "pending_credentials"}
 VALID_NOTARIZATION_STATES = {"not_applicable", "notarized", "pending_credentials"}
 
 

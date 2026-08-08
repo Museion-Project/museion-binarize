@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import checksums  # noqa: E402
+import collect_desktop_artifact  # noqa: E402
 import fetch_pdfium  # noqa: E402
 import naming  # noqa: E402
 import package_macos_dmg  # noqa: E402
@@ -814,6 +815,51 @@ class PackageMasEntitlementValidationTests(unittest.TestCase):
                     package_mas.find_built_app("aarch64-apple-darwin")
             finally:
                 package_mas.REPO_ROOT = original_root
+
+
+class CollectDesktopArtifactTests(unittest.TestCase):
+    """Shared by the Windows and Linux distribution jobs to pick the one
+    built installer out of Tauri's bundle directory — see
+    scripts/distribution/collect_desktop_artifact.py's docstring for why
+    this must fail loudly rather than silently pick among several
+    matches."""
+
+    def test_collects_the_single_match_under_the_naming_convention(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bundle_dir = tmp_path / "bundle" / "msi"
+            bundle_dir.mkdir(parents=True)
+            (bundle_dir / "Museion Binarize_0.1.0-rc.1_x64_en-US.msi").write_bytes(b"fake msi")
+            out_dir = tmp_path / "dist-out"
+
+            dest = collect_desktop_artifact.collect(
+                bundle_dir, "*.msi", "0.1.0-rc.1", "x86_64-pc-windows-msvc", "msi", out_dir
+            )
+
+            self.assertEqual(dest.name, "Museion-Binarize-0.1.0-rc.1-windows-x64.msi")
+            self.assertEqual(dest.read_bytes(), b"fake msi")
+
+    def test_rejects_zero_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bundle_dir = tmp_path / "bundle" / "msi"
+            bundle_dir.mkdir(parents=True)
+            with self.assertRaises(SystemExit):
+                collect_desktop_artifact.collect(
+                    bundle_dir, "*.msi", "0.1.0-rc.1", "x86_64-pc-windows-msvc", "msi", tmp_path / "out"
+                )
+
+    def test_rejects_multiple_matches_rather_than_picking_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bundle_dir = tmp_path / "bundle" / "deb"
+            bundle_dir.mkdir(parents=True)
+            (bundle_dir / "a.deb").write_bytes(b"1")
+            (bundle_dir / "b.deb").write_bytes(b"2")
+            with self.assertRaises(SystemExit):
+                collect_desktop_artifact.collect(
+                    bundle_dir, "*.deb", "0.1.0-rc.1", "x86_64-unknown-linux-gnu", "deb", tmp_path / "out"
+                )
 
 
 class PackageMasNeverAdHocSignsGuardTests(unittest.TestCase):

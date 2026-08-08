@@ -78,6 +78,34 @@ museion-binarize-cli-<version>-windows-x64.zip
 museion-binarize-cli-<version>-linux-x86_64.tar.gz
 ```
 
+**Fixed this milestone**: the Windows and Linux jobs previously never
+copied their actual desktop installer into `dist-out/` at all, and never
+generated a `release-manifest.json` entry for one — only the CLI archive
+and its own checksum ever left those two jobs. Only discovered while
+building the release-wide aggregation tooling below, since nothing had
+tried to aggregate Windows/Linux desktop artifacts before. Fixed via
+`scripts/distribution/collect_desktop_artifact.py` (shared by both
+jobs), with the same "exactly one match or fail loudly" discipline the
+macOS job's `.dmg` collector already used.
+
+### Windows artifact selection
+
+`tauri.conf.json`'s `bundle.targets: "all"` builds **both** an MSI and
+an NSIS installer on Windows. Only the **MSI** is collected into
+`dist-out`/published — chosen for its native Windows upgrade/uninstall
+tracking (`ProductVersion`, "Programs & Features" integration). NSIS
+still builds and is validated in CI; it is a deliberate, documented
+exclusion from the published asset set, not an oversight.
+
+### Linux artifact selection
+
+Linux similarly builds `.deb`, `.rpm`, and `.AppImage` from the same
+`"all"` targets setting. **`.deb` and `.AppImage`** are collected and
+published — the most common Debian/Ubuntu package format plus a
+distro-independent format that needs no package manager at all. `.rpm`
+still builds and is validated in CI; also a deliberate, documented
+exclusion.
+
 ## Checksums
 
 `scripts/distribution/checksums.py <dir>` writes one `SHA256SUMS` file
@@ -102,7 +130,7 @@ Schema `museion-binarize-release-manifest` v1.0
   "pdfium_build": "7920",
   "pdfium_version": "151.0.7920.0",
   "pdfium_sha256": "...",
-  "signing_state": "unsigned | signed | pending_credentials",
+  "signing_state": "unsigned | ad_hoc | signed | pending_credentials",
   "notarization_state": "not_applicable | notarized | pending_credentials"
 }
 ```

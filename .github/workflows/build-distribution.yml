@@ -235,6 +235,18 @@ jobs:
               if a['target_triple'] == '${{ matrix.target }}':
                   print(a['library_sha256'])
           ")
+          # Reflects what actually happened above: a real Developer ID
+          # signature when APPLE_CERTIFICATE was configured, otherwise
+          # the ad-hoc structural-signing fallback — never blanket
+          # "unsigned", which would understate what the ad-hoc path
+          # actually establishes (a valid, verifiable signature; just
+          # not a Developer ID identity). See docs/releasing.md, "Ad-hoc
+          # signing fallback."
+          if [ -n "${APPLE_CERTIFICATE:-}" ]; then
+            SIGNING_STATE=signed
+          else
+            SIGNING_STATE=ad_hoc
+          fi
           for f in dist-out/*; do
             python3 scripts/distribution/release_manifest.py add \
               --manifest dist-out/release-manifest.json \
@@ -244,7 +256,7 @@ jobs:
               --artifact-path "$f" \
               --pdfium-build 7920 --pdfium-version 151.0.7920.0 \
               --pdfium-sha256 "$PDFIUM_SHA" \
-              --signing-state unsigned --notarization-state not_applicable \
+              --signing-state "$SIGNING_STATE" --notarization-state pending_credentials \
               --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
           done
           python3 scripts/distribution/checksums.py dist-out
@@ -279,18 +291,55 @@ jobs:
         run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
       - name: Stage PDFium for Tauri bundling
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      # Tauri's default bundle.targets ("all") also builds an NSIS
+      # installer here, alongside the MSI — deliberately not collected
+      # into dist-out below. MSI is this project's chosen canonical
+      # Windows installer format for publication (upgrade/uninstall
+      # tracking via ProductVersion, the Windows-native "Programs &
+      # Features" integration); NSIS still builds successfully (real CI
+      # validation that it does), it is just not part of the published
+      # asset set for this release. See docs/releasing.md, "Windows
+      # artifact selection."
       - name: Build desktop app (MSI)
         working-directory: apps/desktop
         run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
       - name: Build and package CLI
         run: |
           cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
-          $VERSION = (Get-Content Cargo.toml | Select-String '^version = "(.*)"' -Context 0,0 | Select-Object -First 1)
           python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])" > version.txt
           $VERSION = (Get-Content version.txt).Trim()
           python3 scripts/distribution/package_cli.py --target-triple ${{ matrix.target }} --binary target/${{ matrix.target }}/release/museion-binarize.exe --pdfium-library target/distribution/pdfium/${{ matrix.target }}/pdfium.dll --version $VERSION --out-dir dist-out
-      - name: Checksums
-        run: python3 scripts/distribution/checksums.py dist-out
+      - name: Collect MSI installer
+        run: |
+          $VERSION = (Get-Content version.txt).Trim()
+          python3 scripts/distribution/collect_desktop_artifact.py `
+            --bundle-dir target/${{ matrix.target }}/release/bundle/msi `
+            --glob "*.msi" `
+            --version $VERSION --target-triple ${{ matrix.target }} `
+            --ext msi --out-dir dist-out
+      - name: Generate checksums and release manifest
+        run: |
+          $VERSION = (Get-Content version.txt).Trim()
+          $PDFIUM_SHA = python3 -c "import tomllib; m = tomllib.load(open('distribution/pdfium/manifest.toml','rb')); print([a['library_sha256'] for a in m['asset'] if a['target_triple'] == '${{ matrix.target }}'][0])"
+          # Captured into an array before the loop starts (rather than
+          # piped directly) so it is a fixed snapshot of what existed
+          # before manifest generation began — release-manifest.json
+          # itself, created inside this same loop, must never be able
+          # to append itself as an "artifact" of its own manifest.
+          $artifactsBefore = @(Get-ChildItem dist-out -File)
+          foreach ($f in $artifactsBefore) {
+            python3 scripts/distribution/release_manifest.py add `
+              --manifest dist-out/release-manifest.json `
+              --project-version $VERSION --git-sha "${{ github.sha }}" `
+              --target-triple ${{ matrix.target }} --os windows --arch x86_64 `
+              --artifact-filename $f.Name `
+              --artifact-path $f.FullName `
+              --pdfium-build 7920 --pdfium-version 151.0.7920.0 `
+              --pdfium-sha256 $PDFIUM_SHA `
+              --signing-state unsigned --notarization-state not_applicable `
+              --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
+          }
+          python3 scripts/distribution/checksums.py dist-out
       # Authenticode signing is not required for this architecture to be
       # complete — see docs/releasing.md, "Windows signing." No
       # certificate is configured; the package below is unsigned.
@@ -328,6 +377,15 @@ jobs:
         run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
       - name: Stage PDFium for Tauri bundling
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      # Tauri's default bundle.targets ("all") also builds an .rpm here,
+      # alongside the .deb and .AppImage — deliberately not collected
+      # into dist-out below. .deb and .AppImage are this project's
+      # chosen canonical Linux publication formats (broad
+      # distro-independent AppImage plus the most common
+      # package-manager format); .rpm still builds successfully (real CI
+      # validation that it does), it is just not part of the published
+      # asset set for this release. See docs/releasing.md, "Linux
+      # artifact selection."
       - name: Build desktop app (AppImage, deb)
         working-directory: apps/desktop
         run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
@@ -341,8 +399,42 @@ jobs:
             --pdfium-library target/distribution/pdfium/${{ matrix.target }}/libpdfium.so \
             --version "$VERSION" \
             --out-dir dist-out
-      - name: Checksums
-        run: python3 scripts/distribution/checksums.py dist-out
+      - name: Collect .deb and .AppImage
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          python3 scripts/distribution/collect_desktop_artifact.py \
+            --bundle-dir "target/${{ matrix.target }}/release/bundle/deb" \
+            --glob "*.deb" \
+            --version "$VERSION" --target-triple ${{ matrix.target }} \
+            --ext deb --out-dir dist-out
+          python3 scripts/distribution/collect_desktop_artifact.py \
+            --bundle-dir "target/${{ matrix.target }}/release/bundle/appimage" \
+            --glob "*.AppImage" \
+            --version "$VERSION" --target-triple ${{ matrix.target }} \
+            --ext AppImage --out-dir dist-out
+      - name: Generate checksums and release manifest
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          PDFIUM_SHA=$(python3 -c "
+          import tomllib
+          m = tomllib.load(open('distribution/pdfium/manifest.toml','rb'))
+          for a in m['asset']:
+              if a['target_triple'] == '${{ matrix.target }}':
+                  print(a['library_sha256'])
+          ")
+          for f in dist-out/*; do
+            python3 scripts/distribution/release_manifest.py add \
+              --manifest dist-out/release-manifest.json \
+              --project-version "$VERSION" --git-sha "${{ github.sha }}" \
+              --target-triple ${{ matrix.target }} --os linux --arch x86_64 \
+              --artifact-filename "$(basename "$f")" \
+              --artifact-path "$f" \
+              --pdfium-build 7920 --pdfium-version 151.0.7920.0 \
+              --pdfium-sha256 "$PDFIUM_SHA" \
+              --signing-state unsigned --notarization-state not_applicable \
+              --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
+          done
+          python3 scripts/distribution/checksums.py dist-out
       - uses: actions/upload-artifact@v4
         with:
           name: museion-binarize-${{ matrix.target }}
