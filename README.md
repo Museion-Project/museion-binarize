@@ -61,23 +61,28 @@ packaged build.
 
 ## Download
 
-Packaged builds are published as
-[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases).
-**If `v0.1.0-rc.1` is not listed there yet, it has not been published
-yet** — release candidates go through an internal review step before
-becoming public, so the Releases page may briefly lag this
-documentation; check back, or build from source in the meantime (see
-"Development instructions" below). Every packaged build — desktop app
+The current public release is
+[**v0.1.0-rc.1**](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
+— the first public release candidate. It is a **prerelease**: use the
+direct links below or the release page itself, not
+`/releases/latest` (which only ever points at a stable, non-prerelease
+version and will not list this one). Every packaged build — desktop app
 and CLI, on every platform — bundles its own pinned copy of PDFium;
 **you do not need to install PDFium separately to run a downloaded
 release.** (Running from source is different — see "Provide PDFium"
 below.)
 
-| Platform | Package | Human runtime tested | Signing |
+| Platform | Download | Human runtime tested | Signing |
 |---|---|---|---|
-| macOS (Apple Silicon / arm64) | `.dmg` (desktop app), CLI `.tar.gz` | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
-| Windows x64 | MSI/NSIS installer, CLI `.zip` | Not yet — release-candidate build only | Unsigned |
-| Linux x86_64 | AppImage, `.deb`, CLI `.tar.gz` | Not yet — release-candidate build only | Not applicable |
+| macOS (Apple Silicon / arm64) | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg) (desktop app) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz) | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
+| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-windows-x64.msi) installer · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-windows-x64.zip) | Not yet — release-candidate build only | Unsigned |
+| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-linux-x86_64.tar.gz) | Not yet — release-candidate build only | Not applicable |
+
+The [release page](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
+also has [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/SHA256SUMS)
+and [`release-manifest.json`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/release-manifest.json)
+for verifying every asset above, plus all CLI archives listed in the
+table.
 
 **macOS Gatekeeper**: the desktop app is signed with a complete, valid
 ad-hoc signature (not a Developer ID certificate, and not notarized), so
@@ -137,6 +142,21 @@ See [`docs/distribution.md`](docs/distribution.md) for the full model.
 Packaged GitHub releases are published starting with `v0.1.0-rc.1` — see
 "Download" above. Building a package yourself from source is also
 possible — see [`docs/releasing.md`](docs/releasing.md).
+
+## Open source and supporting the project
+
+Museion Binarize is free and open source. The official GitHub builds are
+fully functional and freely available — nothing is held back for a paid
+tier.
+
+GitHub Sponsors support is planned and will be enabled once the
+Sponsors profile is approved. It is not available yet.
+
+A paid Mac App Store edition is also planned for the future. It is
+intended as a convenient way to install and update the application
+while supporting continued development — not as a feature-gated
+replacement for the free GitHub version. No price has been set, and no
+App Store submission exists yet (see [`docs/distribution.md`](docs/distribution.md)).
 
 ## Privacy
 

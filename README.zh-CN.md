@@ -49,19 +49,24 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 
 ## 下载
 
-打包版本发布于
-[GitHub Releases](https://github.com/Museion-Project/museion-binarize/releases)。
-**如果 `v0.1.0-rc.1` 尚未出现在该页面，说明它还未正式发布**——发行候选版
-在公开前会经过内部审核，Releases 页面可能会略晚于本文档更新；请稍后再
-查看，或在此之前从源码自行构建（见下方"开发说明"一节）。所有平台的
+当前的公开发行版本是
+[**v0.1.0-rc.1**](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
+——首个公开发行候选版。它是一个**预发行版（prerelease）**：请使用下方
+的直接下载链接或 Release 页面本身，**不要**使用 `/releases/latest`
+（该链接只会指向正式稳定版本，不会列出本预发行版）。所有平台的
 桌面应用与命令行工具打包版均内置了固定版本的 PDFium 库——**下载发行版
 无需单独安装 PDFium。**（从源码运行则不同，详见下方"提供 PDFium"一节。）
 
-| 平台 | 安装包 | 人工运行验收 | 签名情况 |
+| 平台 | 下载 | 人工运行验收 | 签名情况 |
 |---|---|---|---|
-| macOS（Apple Silicon / arm64） | `.dmg`（桌面应用）、CLI `.tar.gz` | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
-| Windows x64 | MSI/NSIS 安装包、CLI `.zip` | 尚未完成——仅为发行候选构建 | 未签名 |
-| Linux x86_64 | AppImage、`.deb`、CLI `.tar.gz` | 尚未完成——仅为发行候选构建 | 不适用 |
+| macOS（Apple Silicon / arm64） | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg)（桌面应用）· [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz) | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
+| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-windows-x64.msi) 安装包 · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-windows-x64.zip) | 尚未完成——仅为发行候选构建 | 未签名 |
+| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-linux-x86_64.tar.gz) | 尚未完成——仅为发行候选构建 | 不适用 |
+
+[Release 页面](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
+还提供 [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/SHA256SUMS)
+与 [`release-manifest.json`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/release-manifest.json)
+用于校验上表中的每一个文件，以及表格中列出的全部 CLI 压缩包。
 
 **macOS Gatekeeper**：桌面应用采用完整、有效的 ad-hoc 签名（并非
 Developer ID 证书签名，也未经公证），因此首次启动时会出现 macOS 标准的
@@ -111,6 +116,19 @@ Museion Binarize 的源代码保持开源（MIT OR Apache-2.0），GitHub 构建
 详见 [`docs/distribution.md`](docs/distribution.md)。打包版本自
 `v0.1.0-rc.1` 起发布于 GitHub Releases——详见上方"下载"一节。也可以
 从源码自行构建打包版本，详见 [`docs/releasing.md`](docs/releasing.md)。
+
+## 开源与支持项目
+
+Museion Binarize 是免费且开源的软件，GitHub 提供的官方版本功能完整并
+免费提供——不存在任何为付费版本保留的功能。
+
+GitHub Sponsors 支持渠道正在筹备中，将在账户审核通过后上线；目前尚
+不可用。
+
+未来也计划提供付费的 Mac App Store 版本。它主要作为更方便的安装、
+更新渠道，并用于支持项目的持续开发，而不是通过功能限制来替代 GitHub
+免费版。目前尚未设定价格，也尚未向 App Store 提交任何内容（详见
+[`docs/distribution.md`](docs/distribution.md)）。
 
 ## 隐私
 
