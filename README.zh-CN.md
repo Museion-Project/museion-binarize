@@ -239,7 +239,7 @@ pnpm --filter museion-binarize-desktop tauri dev
 
 ## 作者与维护者
 
-Museion Binarize 由 **Pei Haoran（裴皓然）** 在 **Museion Project** 组织下
+Museion Binarize 由 **Pei Haoran（裴浩然）** 在 **Museion Project** 组织下
 创建并维护。详见 [`AUTHORS.md`](AUTHORS.md)。
 
 ## 许可证
