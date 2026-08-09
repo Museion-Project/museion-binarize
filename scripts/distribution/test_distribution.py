@@ -915,6 +915,17 @@ class RenderReleaseNotesTests(unittest.TestCase):
         body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
         self.assertIn("do not yet have human runtime acceptance", body)
 
+    def test_describes_sponsors_and_app_store_as_planned_only(self):
+        body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
+        self.assertIn("free and open source", body)
+        self.assertIn("GitHub Sponsors support is planned", body)
+        self.assertIn("Mac App Store edition is planned for later", body)
+        # Must never claim either is currently live/available.
+        self.assertNotIn("Sponsors is available", body)
+        self.assertNotIn("Sponsors is live", body)
+        self.assertNotIn("available on the Mac App Store", body)
+        self.assertNotIn("now available on the App Store", body)
+
     def test_version_mismatch_between_manifest_and_argument_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             manifest_path = Path(tmp) / "release-manifest.json"

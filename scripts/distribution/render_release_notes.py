@@ -79,6 +79,19 @@ Every file below is listed with its SHA-256 in `SHA256SUMS`
 (`release-manifest.json` carries the same digests plus PDFium
 provenance and signing state per artifact).
 
+## Open source and supporting the project
+
+Museion Binarize is free and open source, and the official GitHub
+builds are fully functional and freely available.
+
+GitHub Sponsors support is planned once the Sponsors profile is
+approved.
+
+A paid Mac App Store edition is planned for later as a convenient
+installation and update channel that also supports continued
+development, not as a feature-gated replacement for the free GitHub
+build.
+
 ## Source / license
 
 Source: https://github.com/Museion-Project/museion-binarize at this
