@@ -149,8 +149,8 @@ Museion Binarize is free and open source. The official GitHub builds are
 fully functional and freely available — nothing is held back for a paid
 tier.
 
-GitHub Sponsors support is planned and will be enabled once the
-Sponsors profile is approved. It is not available yet.
+If Museion Binarize is useful to you, you can support its continued
+development through [GitHub Sponsors](https://github.com/sponsors/pei-haoran).
 
 A paid Mac App Store edition is also planned for the future. It is
 intended as a convenient way to install and update the application

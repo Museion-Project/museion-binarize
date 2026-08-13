@@ -122,8 +122,8 @@ Museion Binarize 的源代码保持开源（MIT OR Apache-2.0），GitHub 构建
 Museion Binarize 是免费且开源的软件，GitHub 提供的官方版本功能完整并
 免费提供——不存在任何为付费版本保留的功能。
 
-GitHub Sponsors 支持渠道正在筹备中，将在账户审核通过后上线；目前尚
-不可用。
+如果 Museion Binarize 对您有所帮助，欢迎通过
+[GitHub Sponsors](https://github.com/sponsors/pei-haoran) 支持项目的持续开发。
 
 未来也计划提供付费的 Mac App Store 版本。它主要作为更方便的安装、
 更新渠道，并用于支持项目的持续开发，而不是通过功能限制来替代 GitHub
