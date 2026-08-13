@@ -55,6 +55,7 @@ body,
   display: grid;
   grid-template-rows: auto 1fr auto;
   grid-template-columns: 1fr;
+  position: relative;
 }
 
 button {
@@ -550,6 +551,45 @@ legend {
   padding: 0.2em 0.7em;
   border-radius: 999px;
   background-color: var(--surface-muted);
+}
+
+.file-drop-error {
+  position: absolute;
+  top: 4.25rem;
+  left: 50%;
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  transform: translateX(-50%);
+  color: var(--danger);
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.file-drop-error button {
+  border: 0;
+  padding: 0 var(--space-1);
+  color: inherit;
+}
+
+.file-drop-overlay {
+  position: absolute;
+  inset: var(--space-4);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px dashed var(--accent);
+  border-radius: calc(var(--radius) * 2);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-weight: 600;
+  pointer-events: none;
 }
 
 /* --- Error / password / boundary --- */

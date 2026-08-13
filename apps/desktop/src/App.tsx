@@ -22,6 +22,7 @@ import {
   cancelProcessing,
   closeDocument,
   openDocument,
+  onFileDragDrop,
   pickOutputDestination,
   pickPdfToOpen,
   projectInfo,
@@ -33,6 +34,8 @@ function App() {
   const [projectPhase, setProjectPhase] = useState<string | null>(null);
   const [pendingOpenPath, setPendingOpenPath] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isFileDragActive, setIsFileDragActive] = useState(false);
+  const [fileDropError, setFileDropError] = useState<string | null>(null);
 
   useEffect(() => {
     projectInfo()
@@ -68,10 +71,9 @@ function App() {
     return () => window.clearInterval(timer);
   }, [activeJobId]);
 
-  const handleOpen = useCallback(async () => {
+  const handleOpenPath = useCallback(async (path: string) => {
     if (state.kind === "processing") return;
-    const path = await pickPdfToOpen();
-    if (!path) return;
+    setFileDropError(null);
     dispatch({ type: "OPEN_STARTED" });
     try {
       const document = await openDocument(path);
@@ -88,6 +90,52 @@ function App() {
       });
     }
   }, [state.kind]);
+
+  const handleOpen = useCallback(async () => {
+    if (state.kind === "processing" || state.kind === "opening") return;
+    const path = await pickPdfToOpen();
+    if (path) await handleOpenPath(path);
+  }, [state.kind, handleOpenPath]);
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | null = null;
+
+    onFileDragDrop((event) => {
+      const canOpen = state.kind !== "processing" && state.kind !== "opening";
+
+      if (event.type === "enter") {
+        setIsFileDragActive(canOpen);
+        return;
+      }
+      if (event.type === "leave") {
+        setIsFileDragActive(false);
+        return;
+      }
+      if (event.type !== "drop") return;
+
+      setIsFileDragActive(false);
+      if (!canOpen) return;
+      if (event.paths.length !== 1 || !/\.pdf$/i.test(event.paths[0])) {
+        setFileDropError("Drop a single PDF file.");
+        return;
+      }
+      void handleOpenPath(event.paths[0]);
+    })
+      .then((stopListening) => {
+        if (disposed) stopListening();
+        else unlisten = stopListening;
+      })
+      .catch(() => {
+        // The native listener is unavailable when the frontend is run in
+        // a regular browser; the Open PDF button remains fully functional.
+      });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [state.kind, handleOpenPath]);
 
   const handlePasswordSubmit = useCallback(
     async (password: string) => {
@@ -229,11 +277,30 @@ function App() {
 
         {state.kind === "idle" && (
           <div className="empty-state">
-            <p>Open a scanned PDF to inspect, preview, and convert it.</p>
+            <p>Open or drop a scanned PDF to inspect, preview, and convert it.</p>
             <p className="empty-state-hint">
               All processing runs locally. No file is uploaded to any network service.
             </p>
             {projectPhase && <p className="empty-state-phase">{projectPhase}</p>}
+          </div>
+        )}
+
+        {isFileDragActive && (
+          <div className="file-drop-overlay" role="status" aria-live="polite">
+            <span>Drop PDF to open</span>
+          </div>
+        )}
+
+        {fileDropError && (
+          <div className="file-drop-error" role="alert">
+            <span>{fileDropError}</span>
+            <button
+              type="button"
+              aria-label="Dismiss file drop error"
+              onClick={() => setFileDropError(null)}
+            >
+              ×
+            </button>
           </div>
         )}
 

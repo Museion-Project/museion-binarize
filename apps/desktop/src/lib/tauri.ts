@@ -5,6 +5,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWindow, type DragDropEvent } from "@tauri-apps/api/window";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 
 import type {
@@ -135,6 +136,17 @@ export async function pickOutputDestination(defaultFileName: string): Promise<st
     filters: [{ name: "PDF files", extensions: ["pdf"] }],
   });
   return selection ?? null;
+}
+
+/**
+ * Listens for operating-system file drags over the application window.
+ * Tauri handles native file drops before the webview, so this must use
+ * its window API rather than HTML drag/drop events.
+ */
+export function onFileDragDrop(
+  handler: (event: DragDropEvent) => void,
+): Promise<UnlistenFn> {
+  return getCurrentWindow().onDragDropEvent((event) => handler(event.payload));
 }
 
 // --- Progress event bridge -------------------------------------------

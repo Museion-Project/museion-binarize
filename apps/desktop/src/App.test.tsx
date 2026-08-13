@@ -7,9 +7,10 @@ import type { DocumentSummary } from "./app/types";
 // variables they close over must be created through vi.hoisted() — a
 // plain `const` here would be in the temporal dead zone when the factory
 // actually runs, silently yielding `undefined` from the mocked functions.
-const { invokeMock, listenMock, openDialogMock, saveDialogMock } = vi.hoisted(() => ({
+const { invokeMock, listenMock, dragDropMock, openDialogMock, saveDialogMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
   listenMock: vi.fn().mockResolvedValue(() => {}),
+  dragDropMock: vi.fn().mockResolvedValue(() => {}),
   openDialogMock: vi.fn(),
   saveDialogMock: vi.fn(),
 }));
@@ -20,6 +21,12 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: (...args: unknown[]) => listenMock(...args),
+}));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({
+    onDragDropEvent: (...args: unknown[]) => dragDropMock(...args),
+  }),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -58,6 +65,8 @@ beforeEach(() => {
   });
   openDialogMock.mockReset();
   saveDialogMock.mockReset();
+  dragDropMock.mockReset();
+  dragDropMock.mockResolvedValue(() => {});
 });
 
 afterEach(() => {
@@ -76,6 +85,49 @@ describe("App — idle state", () => {
 });
 
 describe("App — document open", () => {
+  it("opens a PDF dropped on the native application window", async () => {
+    invokeMock.mockImplementation(async (command: string, args?: { path?: string }) => {
+      if (command === "project_info") {
+        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+      }
+      if (command === "open_document") {
+        expect(args?.path).toBe("/tmp/dropped-book.PDF");
+        return sampleDocument();
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    render(<App />);
+    await waitFor(() => expect(dragDropMock).toHaveBeenCalled());
+    const nativeHandler = dragDropMock.mock.calls[0][0];
+    nativeHandler({
+      payload: {
+        type: "drop",
+        paths: ["/tmp/dropped-book.PDF"],
+        position: { x: 10, y: 10 },
+      },
+    });
+
+    expect(await screen.findByText("book.pdf")).toBeInTheDocument();
+    expect(openDialogMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a drop that is not exactly one PDF", async () => {
+    render(<App />);
+    await waitFor(() => expect(dragDropMock).toHaveBeenCalled());
+    const nativeHandler = dragDropMock.mock.calls[0][0];
+    nativeHandler({
+      payload: {
+        type: "drop",
+        paths: ["/tmp/notes.txt"],
+        position: { x: 10, y: 10 },
+      },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Drop a single PDF file.");
+    expect(invokeMock).not.toHaveBeenCalledWith("open_document", expect.anything());
+  });
+
   it("shows document details and the page sidebar once a document opens", async () => {
     openDialogMock.mockResolvedValue("/tmp/book.pdf");
     invokeMock.mockImplementation(async (command: string) => {
