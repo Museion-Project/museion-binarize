@@ -25,6 +25,8 @@ Nothing yet since `0.1.0-rc.2`.
   operating-system drops are intercepted before ordinary HTML drag events,
   which made the earlier webview-style approach ineffective in packaged
   desktop builds.
+- The Intel macOS distribution job now targets GitHub's current
+  `macos-15-intel` runner instead of the retired `macos-13` label.
 
 ## [0.1.0-rc.1] - 2026-08-08
 
