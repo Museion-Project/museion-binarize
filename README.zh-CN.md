@@ -5,8 +5,8 @@
 **Museion Binarize** 是一款开源、跨平台的应用程序，用于将扫描的学术书籍转换为
 干净、紧凑的双色（bilevel）PDF 文件。
 
-**当前状态：Phase 1 功能已完成 —— 正在准备首个公开发行候选版
-`v0.1.0-rc.1`。** 已具备完整的本地命令行处理流程
+**当前状态：Phase 1 功能已完成——当前公开发行候选版为
+`v0.1.0-rc.2`。** 已具备完整的本地命令行处理流程
 （`inspect`、`analyze`、`estimate`、`process`、`preview`、`benchmark`，
 支持带版本号的 JSON 报告），桌面 GUI 已接入同一处理流程（打开、预览、
 配置、实验性的输出大小预估、转换、取消——详见 [`docs/desktop.md`](docs/desktop.md)）。
@@ -42,6 +42,7 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 - 从扫描页面图像重建真正的 1-bit（双色）PDF。
 - 采用 **CCITT Group 4** 压缩，输出紧凑的双色文件。
 - 提供图形化桌面应用与命令行界面，二者共享同一处理核心。
+- 桌面应用支持原生单 PDF 拖入打开。
 - 提供可复现的基准测试框架，用于评估输出质量。
 
 以上功能均已在本仓库中实现。里程碑演进历史详见
@@ -50,8 +51,8 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 ## 下载
 
 当前的公开发行版本是
-[**v0.1.0-rc.1**](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
-——首个公开发行候选版。它是一个**预发行版（prerelease）**：请使用下方
+[**v0.1.0-rc.2**](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.2)
+——第二个公开发行候选版。它是一个**预发行版（prerelease）**：请使用下方
 的直接下载链接或 Release 页面本身，**不要**使用 `/releases/latest`
 （该链接只会指向正式稳定版本，不会列出本预发行版）。所有平台的
 桌面应用与命令行工具打包版均内置了固定版本的 PDFium 库——**下载发行版
@@ -59,13 +60,13 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 
 | 平台 | 下载 | 人工运行验收 | 签名情况 |
 |---|---|---|---|
-| macOS（Apple Silicon / arm64） | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg)（桌面应用）· [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz) | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
-| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-windows-x64.msi) 安装包 · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-windows-x64.zip) | 尚未完成——仅为发行候选构建 | 未签名 |
-| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-linux-x86_64.tar.gz) | 尚未完成——仅为发行候选构建 | 不适用 |
+| macOS（Apple Silicon / arm64） | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-macos-arm64.dmg)（桌面应用）· [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-macos-arm64.tar.gz) | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
+| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-windows-x64.msi) 安装包 · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-windows-x64.zip) | 尚未完成——仅为发行候选构建 | 未签名 |
+| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-linux-x86_64.tar.gz) | 尚未完成——仅为发行候选构建 | 不适用 |
 
-[Release 页面](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
-还提供 [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/SHA256SUMS)
-与 [`release-manifest.json`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/release-manifest.json)
+[Release 页面](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.2)
+还提供 [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/SHA256SUMS)
+与 [`release-manifest.json`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/release-manifest.json)
 用于校验上表中的每一个文件，以及表格中列出的全部 CLI 压缩包。
 
 **macOS Gatekeeper**：桌面应用采用完整、有效的 ad-hoc 签名（并非

@@ -33,15 +33,14 @@ TEMPLATE = """\
 
 Museion Binarize converts scanned scholarly books into clean, compact,
 true 1-bit (bilevel) PDFs using deterministic thresholding — no OCR, no
-AI, no generative restoration. This is the **first public release
-candidate**.
+AI, no generative restoration. This is a **public release candidate**.
 
 ## Highlights
 
 - Deterministic Otsu / Sauvola / manual binarization, true 1-bit PDF
   reconstruction, CCITT Group 4 compression.
-- Desktop GUI and CLI, sharing one processing core: open, preview,
-  estimate, convert, cancel.
+- Desktop GUI and CLI, sharing one processing core: open (including
+  native single-PDF drag-and-drop), preview, estimate, convert, cancel.
 - Every packaged download bundles its own pinned PDFium — no separate
   install needed.
 - All processing is local. No upload, no telemetry, no network access
@@ -84,8 +83,8 @@ provenance and signing state per artifact).
 Museion Binarize is free and open source, and the official GitHub
 builds are fully functional and freely available.
 
-GitHub Sponsors support is planned once the Sponsors profile is
-approved.
+GitHub Sponsors support is available at
+https://github.com/sponsors/pei-haoran.
 
 A paid Mac App Store edition is planned for later as a convenient
 installation and update channel that also supports continued

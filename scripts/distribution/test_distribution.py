@@ -915,14 +915,12 @@ class RenderReleaseNotesTests(unittest.TestCase):
         body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
         self.assertIn("do not yet have human runtime acceptance", body)
 
-    def test_describes_sponsors_and_app_store_as_planned_only(self):
+    def test_describes_live_sponsors_and_app_store_as_planned_only(self):
         body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
         self.assertIn("free and open source", body)
-        self.assertIn("GitHub Sponsors support is planned", body)
+        self.assertIn("https://github.com/sponsors/pei-haoran", body)
         self.assertIn("Mac App Store edition is planned for later", body)
-        # Must never claim either is currently live/available.
-        self.assertNotIn("Sponsors is available", body)
-        self.assertNotIn("Sponsors is live", body)
+        # Must never claim the App Store edition is currently live/available.
         self.assertNotIn("available on the Mac App Store", body)
         self.assertNotIn("now available on the App Store", body)
 

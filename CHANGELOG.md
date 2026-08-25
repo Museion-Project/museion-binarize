@@ -8,7 +8,23 @@ once a first tagged release is published.
 
 ## [Unreleased]
 
-Nothing yet since `0.1.0-rc.1`.
+Nothing yet since `0.1.0-rc.2`.
+
+## [0.1.0-rc.2] - 2026-08-25
+
+### Added
+
+- Native desktop drag-and-drop: dropping exactly one PDF anywhere on the
+  application window opens it directly, with a visible drop target and a
+  clear validation message for unsupported drops.
+- GitHub Sponsors support for the open-source project.
+
+### Fixed
+
+- File drag-and-drop now uses Tauri's native window event API. Native
+  operating-system drops are intercepted before ordinary HTML drag events,
+  which made the earlier webview-style approach ineffective in packaged
+  desktop builds.
 
 ## [0.1.0-rc.1] - 2026-08-08
 

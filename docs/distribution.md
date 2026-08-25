@@ -1,5 +1,12 @@
 # Distribution overview
 
+For the longer-term Museion product, open-source, mobile, institution,
+and sustainability direction (which is deliberately broader than the
+features in the current release), see
+[`museion-product-strategy.zh-CN.md`](museion-product-strategy.zh-CN.md).
+That strategy document is forward-looking; this file remains the source
+of truth for the distribution policy of the software that exists today.
+
 Museion Binarize's intended long-term distribution model:
 
 - **GitHub source remains open source** (MIT OR Apache-2.0 — unchanged
@@ -25,7 +32,7 @@ part of this milestone.
 
 ## Current distribution policy
 
-This is the project's distribution policy as of `v0.1.0-rc.1` — the
+This is the project's distribution policy as of `v0.1.0-rc.2` — the
 current state of an evolving plan, not an irreversible promise about
 every hypothetical future product:
 
@@ -33,9 +40,8 @@ every hypothetical future product:
 2. Official GitHub binaries are free and fully functional — see
    [the release page](https://github.com/Museion-Project/museion-binarize/releases)
    and the root [`README.md`](../README.md)'s "Download" section.
-3. GitHub Sponsors is planned, pending approval of the Sponsors
-   profile. It is **not** currently available; no Sponsors link exists
-   in this repository yet (see "No FUNDING.yml yet" below).
+3. GitHub Sponsors is available at
+   [github.com/sponsors/pei-haoran](https://github.com/sponsors/pei-haoran).
 4. A paid Mac App Store edition is planned for later, once Apple
    Developer signing/provisioning is ready — as a convenience
    installation/update channel and a way to support development, not
@@ -45,13 +51,11 @@ every hypothetical future product:
 7. No intentional core-feature paywall between the GitHub build and the
    future Mac App Store edition, under the current product model.
 
-### No FUNDING.yml yet
+### GitHub Sponsors
 
-`.github/FUNDING.yml` has not been added. GitHub Sponsors is still
-pending approval — adding the file (and a Sponsors link anywhere in
-this repository) is deferred to a small, separate follow-up once the
-Sponsors profile is actually live, so nothing here ever points at a
-Sponsors page that doesn't exist yet.
+`.github/FUNDING.yml` points to the maintainer's approved Sponsors
+profile. Sponsorship supports continued open-source development; it does
+not change the functionality or license of GitHub builds.
 
 ## What Milestone 7A actually built
 

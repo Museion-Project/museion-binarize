@@ -1,6 +1,6 @@
 # Limitations
 
-## Current state (as of the `0.1.0-rc.1` release candidate)
+## Current state (as of the `0.1.0-rc.2` release candidate)
 
 Museion Binarize can perform a complete local PDF conversion, can analyze
 a PDF without converting it, can produce an experimental sampled
@@ -50,7 +50,8 @@ degraded raster + ground truth -> real image-processing core
   `--json` output free of progress text or prose;
 - cancellation, safe temporary files with atomic persistence, and output
   validation that reopens and renders the finished file;
-- **the desktop GUI**: native file selection, a persistent per-window
+- **the desktop GUI**: native file selection and single-PDF drag-and-drop,
+  a persistent per-window
   document session, lazily-loaded page thumbnails, before/after preview
   through the real pipeline, settings and deterministic presets,
   asynchronous processing with progress events and real cancellation,

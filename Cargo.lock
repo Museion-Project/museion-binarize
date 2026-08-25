@@ -2180,7 +2180,7 @@ dependencies = [
 
 [[package]]
 name = "museion-binarize-cli"
-version = "0.1.0-rc.1"
+version = "0.1.0-rc.2"
 dependencies = [
  "clap",
  "museion-binarize-core",
@@ -2191,7 +2191,7 @@ dependencies = [
 
 [[package]]
 name = "museion-binarize-core"
-version = "0.1.0-rc.1"
+version = "0.1.0-rc.2"
 dependencies = [
  "fax",
  "image",
@@ -2207,7 +2207,7 @@ dependencies = [
 
 [[package]]
 name = "museion-binarize-desktop"
-version = "0.1.0-rc.1"
+version = "0.1.0-rc.2"
 dependencies = [
  "base64 0.22.1",
  "image",

@@ -5,8 +5,8 @@ English | [简体中文](README.zh-CN.md)
 **Museion Binarize** is an open-source, cross-platform application for
 converting scanned scholarly books into clean and compact bilevel PDFs.
 
-**Status: Phase 1 feature-complete — preparing the first public release
-candidate, `v0.1.0-rc.1`.** A complete local CLI pipeline exists
+**Status: Phase 1 feature-complete — current public release candidate:
+`v0.1.0-rc.2`.** A complete local CLI pipeline exists
 (`inspect`, `analyze`, `estimate`, `process`, `preview`, `benchmark`,
 with versioned JSON reports), and the desktop GUI is wired to the same
 pipeline (open, preview, configure, an experimental size estimate,
@@ -52,6 +52,7 @@ deterministic image-processing methods, not machine learning models.
 - **CCITT Group 4** compression for compact bilevel output.
 - Both a graphical desktop application and a command-line interface, sharing
   the same processing core.
+- Native single-PDF drag-and-drop in the desktop application.
 - A reproducible benchmarking framework for evaluating output quality.
 
 All of the above is implemented in this repository today. See
@@ -62,8 +63,8 @@ packaged build.
 ## Download
 
 The current public release is
-[**v0.1.0-rc.1**](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
-— the first public release candidate. It is a **prerelease**: use the
+[**v0.1.0-rc.2**](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.2)
+— the second public release candidate. It is a **prerelease**: use the
 direct links below or the release page itself, not
 `/releases/latest` (which only ever points at a stable, non-prerelease
 version and will not list this one). Every packaged build — desktop app
@@ -74,13 +75,13 @@ below.)
 
 | Platform | Download | Human runtime tested | Signing |
 |---|---|---|---|
-| macOS (Apple Silicon / arm64) | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg) (desktop app) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz) | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
-| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-windows-x64.msi) installer · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-windows-x64.zip) | Not yet — release-candidate build only | Unsigned |
-| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/Museion-Binarize-0.1.0-rc.1-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/museion-binarize-cli-0.1.0-rc.1-linux-x86_64.tar.gz) | Not yet — release-candidate build only | Not applicable |
+| macOS (Apple Silicon / arm64) | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-macos-arm64.dmg) (desktop app) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-macos-arm64.tar.gz) | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
+| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-windows-x64.msi) installer · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-windows-x64.zip) | Not yet — release-candidate build only | Unsigned |
+| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-linux-x86_64.tar.gz) | Not yet — release-candidate build only | Not applicable |
 
-The [release page](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.1)
-also has [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/SHA256SUMS)
-and [`release-manifest.json`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.1/release-manifest.json)
+The [release page](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.2)
+also has [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/SHA256SUMS)
+and [`release-manifest.json`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/release-manifest.json)
 for verifying every asset above, plus all CLI archives listed in the
 table.
 

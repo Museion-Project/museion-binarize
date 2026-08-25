@@ -54,6 +54,10 @@ whether it accepts a SemVer prerelease identifier cleanly:
 | Windows NSIS | Accepts `0.1.0-rc.1` directly, no override needed — verified via the same real Windows CI build (`Museion Binarize_0.1.0-rc.1_x64-setup.exe`). |
 | Linux `.deb`/`.rpm`/AppImage | Accepts `0.1.0-rc.1` directly — verified via a real Linux CI build (`Museion Binarize_0.1.0-rc.1_amd64.deb`, `...-0.1.0-rc.1-1.x86_64.rpm`, `..._0.1.0-rc.1_amd64.AppImage`). |
 
+For `0.1.0-rc.2`, the same MSI mapping advances the WiX-only numeric
+version to `0.1.0.2`; the public SemVer remains `0.1.0-rc.2` everywhere
+else.
+
 `scripts/distribution/check_version_consistency.py`'s SemVer regex
 already accepted prerelease identifiers before this milestone (no code
 change needed there); `scripts/distribution/test_distribution.py`'s
