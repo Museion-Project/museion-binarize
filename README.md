@@ -32,6 +32,13 @@ The MDP 0.1 evidence-package slice is available from the CLI:
 geometry evidence and SHA-256 references without OCR or copying the source
 PDF; see [`docs/document-package.md`](docs/document-package.md).
 
+The M2 development job store can be exercised without an OCR provider:
+
+```bash
+mpdf job create --db .mpdf/jobs.sqlite --job-id demo --pages 500
+mpdf job status --db .mpdf/jobs.sqlite --job-id demo
+```
+
 ## Core principles
 
 - **Transparent processing. Reproducible results. No generative rewriting of

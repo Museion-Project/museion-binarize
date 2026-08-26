@@ -28,6 +28,14 @@ MDP 0.1 证据包切片也可通过 CLI 使用：
 SHA-256 引用，不执行 OCR，也不复制源 PDF；详见
 [`docs/document-package.md`](docs/document-package.md)。
 
+M2 本地持久任务库可在不接入 OCR provider 的情况下验证：
+
+```bash
+mpdf job create --db .mpdf/jobs.sqlite --job-id demo --pages 500
+mpdf job status --db .mpdf/jobs.sqlite --job-id demo
+mpdf job cancel --db .mpdf/jobs.sqlite --job-id demo
+```
+
 ## 核心原则
 
 - **处理过程透明，结果可复现，不对源文档进行生成式改写。**

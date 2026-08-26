@@ -26,6 +26,7 @@ pub mod error;
 pub mod estimation;
 pub mod grayscale;
 pub mod image_pipeline;
+pub mod jobs;
 pub mod page_geometry;
 pub mod page_selection;
 pub mod pdf_writer;

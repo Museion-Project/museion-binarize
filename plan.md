@@ -2,7 +2,7 @@
 
 **状态：** Active
 **日期：** 2026-08-26
-**当前分支：** `codex/m-pdf-m1-mdp-01`
+**当前分支：** `codex/m-pdf-m2-jobs-provider`
 
 本文把当前 OCR + AI-ready 中间层方案拆成可以独立审查、测试、回退的 milestones。
 每个 milestone 必须先通过本地检查，再提交 GitHub Pull Request；只有远端 CI 全绿并合并后，
@@ -98,7 +98,7 @@ manifest/source/pages/assets/provenance/validation 类型、确定性 SHA-256 ID
 已加入 `package create <PDF> --output <DIR>` 与 `package validate <DIR>`。
 当前 `create` 复用 `PdfDocumentSession` 取得真实页几何和源摘要，不复制外部源 PDF；
 JSON Schema 位于 `schemas/mpdf-document-package-0.1.schema.json`。完整本地门禁、真实 PDFium
-集成测试和 CLI 正负向冒烟测试均已通过，等待 GitHub CI。
+集成测试、CLI 正负向冒烟测试和 GitHub CI 均已通过，并由 PR #14 合并。
 
 出口条件：同一输入和参数产生可验证、可追溯的包；路径逃逸、摘要错误、未知主版本和残缺
 资源均被拒绝；现有 PDF 输出测试继续通过。
@@ -115,6 +115,13 @@ JSON Schema 位于 `schemas/mpdf-document-package-0.1.schema.json`。完整本�
 - reference/fake provider，覆盖成功、部分失败、超时、崩溃、乱序和协议版本不兼容；
 - provider 运行记录包含引擎、模型、版本、参数、输入资产摘要和执行位置；
 - CLI 开发入口和桌面任务进度状态，不接真实 OCR。
+
+实现进度（本分支）：`mpdf_core::jobs` 已提供 SQLite WAL job/page 状态库、租约心跳、
+有界重试、逐页 checkpoint、取消与崩溃恢复；并提供版本化 `mpdf-job` NDJSON sidecar、
+reference/fake provider 及完整失败模式测试。CLI 的 `job create/status/cancel` 仅操作本地
+任务状态，桌面侧提供可恢复的任务进度 DTO；provider attempt provenance 已与成功
+checkpoint 或失败结果原子写入 SQLite；真实 OCR provider 和 process 联动仍等待后续里程碑。
+完整本地门禁、500 页恢复验收和 CLI 正负向冒烟测试均已通过，等待 GitHub CI。
 
 出口条件：模拟 500 页任务中止后能从最后已提交页恢复；取消不会删除已确认产物；sidecar
 崩溃不会形成伪成功任务。
@@ -200,8 +207,8 @@ JSON Schema 位于 `schemas/mpdf-document-package-0.1.schema.json`。完整本�
 | Milestone | 状态 | 分支/PR | 下一门禁 |
 |---|---|---|---|
 | M0 命名与 CI | 已合并 | [PR #13](https://github.com/Museion-Project/museion-binarize/pull/13) | GitHub CI 全绿；merge `f37a72e` |
-| M1 MDP 0.1 | 本地完成，等待 CI | `codex/m-pdf-m1-mdp-01` | 提交 PR 并等待 GitHub CI 全绿 |
-| M2 任务与 provider | 未开始 | — | M1 CI 全绿并合并 |
+| M1 MDP 0.1 | 已合并 | [PR #14](https://github.com/Museion-Project/museion-binarize/pull/14) | GitHub CI 全绿；merge `8179b44` |
+| M2 任务与 provider | 本地完成，等待 CI | `codex/m-pdf-m2-jobs-provider` | 提交 PR 并等待 GitHub CI 全绿 |
 | M3 本地 OCR | 未开始 | — | M2 CI 全绿并合并 |
 | M4 AI-ready/校对 | 未开始 | — | M3 CI 全绿并合并 |
 | M5 自动书签/PDF | 未开始 | — | M4 CI 全绿并合并 |

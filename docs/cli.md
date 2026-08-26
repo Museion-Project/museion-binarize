@@ -192,3 +192,23 @@ protection (see [`pdf-output.md`](pdf-output.md)).
 **once** — see [`pdf-pipeline-session.md`](pdf-pipeline-session.md) for the
 session architecture, the memory model, and the source-mutation policy
 this implies.
+
+## Persistent jobs (development API)
+
+M2 exposes a local, provider-neutral job store for integration testing and
+desktop recovery. It does not run OCR:
+
+```bash
+mpdf job create --db .mpdf/jobs.sqlite --job-id demo --pages 500
+mpdf job status --db .mpdf/jobs.sqlite --job-id demo
+mpdf job cancel --db .mpdf/jobs.sqlite --job-id demo
+```
+
+The store uses SQLite WAL mode. Workers claim pages with a lease, heartbeat
+while processing, and commit each page checkpoint atomically. Expired leases
+return to the queue; cancellation marks only unfinished pages cancelled and
+never removes completed checkpoints. Provider adapters must speak the
+versioned `mpdf-job` NDJSON contract and report engine/model/version,
+parameters, input asset SHA-256 and execution location. See
+[`document-jobs.md`](document-jobs.md) and
+[`adr/0004-persistent-jobs-and-provider-contract.md`](adr/0004-persistent-jobs-and-provider-contract.md).
