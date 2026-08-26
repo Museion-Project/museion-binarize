@@ -44,6 +44,9 @@ pub enum Command {
     /// Create or validate an MDP 0.1 evidence package.
     #[command(subcommand)]
     Package(PackageCommand),
+    /// Inspect and exercise the local persistent job store (development API).
+    #[command(subcommand)]
+    Job(JobCommand),
 }
 
 #[derive(Subcommand)]
@@ -52,6 +55,49 @@ pub enum PackageCommand {
     Create(PackageCreateArgs),
     /// Validate a package directory, including paths, references and digests.
     Validate(PackageValidateArgs),
+}
+
+#[derive(Subcommand)]
+pub enum JobCommand {
+    /// Create an empty persistent job with one queued page record per page.
+    Create(JobCreateArgs),
+    /// Print durable job/page progress as JSON.
+    Status(JobStatusArgs),
+    /// Request cancellation while retaining already committed pages.
+    Cancel(JobCancelArgs),
+}
+
+#[derive(Args)]
+pub struct JobCreateArgs {
+    /// SQLite database path. The database uses WAL mode.
+    #[arg(long)]
+    pub db: PathBuf,
+    /// Stable job identifier.
+    #[arg(long)]
+    pub job_id: String,
+    /// Number of pages to queue.
+    #[arg(long)]
+    pub pages: u32,
+}
+
+#[derive(Args)]
+pub struct JobStatusArgs {
+    /// SQLite database path.
+    #[arg(long)]
+    pub db: PathBuf,
+    /// Stable job identifier.
+    #[arg(long)]
+    pub job_id: String,
+}
+
+#[derive(Args)]
+pub struct JobCancelArgs {
+    /// SQLite database path.
+    #[arg(long)]
+    pub db: PathBuf,
+    /// Stable job identifier.
+    #[arg(long)]
+    pub job_id: String,
 }
 
 #[derive(Args)]
@@ -634,6 +680,55 @@ mod tests {
         assert!(matches!(
             validate.command,
             Some(Command::Package(PackageCommand::Validate(_)))
+        ));
+    }
+
+    #[test]
+    fn job_development_commands_parse_the_documented_arguments() {
+        use clap::Parser;
+        let create = Cli::try_parse_from([
+            "mpdf",
+            "job",
+            "create",
+            "--db",
+            "jobs.sqlite",
+            "--job-id",
+            "demo",
+            "--pages",
+            "500",
+        ])
+        .unwrap();
+        assert!(matches!(
+            create.command,
+            Some(Command::Job(JobCommand::Create(_)))
+        ));
+        let status = Cli::try_parse_from([
+            "mpdf",
+            "job",
+            "status",
+            "--db",
+            "jobs.sqlite",
+            "--job-id",
+            "demo",
+        ])
+        .unwrap();
+        assert!(matches!(
+            status.command,
+            Some(Command::Job(JobCommand::Status(_)))
+        ));
+        let cancel = Cli::try_parse_from([
+            "mpdf",
+            "job",
+            "cancel",
+            "--db",
+            "jobs.sqlite",
+            "--job-id",
+            "demo",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cancel.command,
+            Some(Command::Job(JobCommand::Cancel(_)))
         ));
     }
 }

@@ -261,6 +261,7 @@ archives), `naming.py` (artifact naming), `checksums.py`/
 | `analysis.rs` | Document/page analysis report types and aggregation (min/max/mean/median). |
 | `report.rs` | The versioned `ReportEnvelope`/`ErrorEnvelope` shared by every JSON report; path-rendering modes. |
 | `page_selection.rs` | Parses and validates `--pages` syntax into zero-based indices. |
+| `jobs.rs` | SQLite-WAL job/page state, leases, checkpoints, cancellation/recovery, and the versioned provider/sidecar contract. No OCR implementation. |
 
 PDFium types never escape `pdfium_backend.rs` and `document_session.rs`.
 The core remains free of Tauri, and the CLI and (future) desktop app share

@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use mpdf_core::document::PdfDocumentInfo;
 use mpdf_core::estimation::{PageSizeEstimateSample, SizeEstimateReport};
+use mpdf_core::jobs::{JobProgress, JobStatus};
 use mpdf_core::pipeline::ProcessingReport;
 
 /// One page's geometry, as reported after a document opens.
@@ -162,6 +163,42 @@ pub struct StartProcessingRequestDto {
 pub struct ProcessingStartedDto {
     pub job_id: String,
     pub page_count: u32,
+}
+
+/// Durable M2 task progress exposed to the desktop shell. Unlike the fine
+/// grained processing event below, this snapshot can be reconstructed after
+/// a restart from SQLite and never implies that OCR has run.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(dead_code)] // M2 command wiring lands with the desktop job controller.
+pub struct PersistentJobProgressDto {
+    pub job_id: String,
+    pub status: String,
+    pub total_pages: u32,
+    pub completed_pages: u32,
+    pub failed_pages: u32,
+    pub cancelled_pages: u32,
+}
+
+impl From<JobProgress> for PersistentJobProgressDto {
+    fn from(progress: JobProgress) -> Self {
+        let status = match progress.status {
+            JobStatus::Queued => "queued",
+            JobStatus::Running => "running",
+            JobStatus::Cancelling => "cancelling",
+            JobStatus::Completed => "completed",
+            JobStatus::Failed => "failed",
+            JobStatus::Cancelled => "cancelled",
+        };
+        Self {
+            job_id: progress.job_id,
+            status: status.to_string(),
+            total_pages: progress.page_count,
+            completed_pages: progress.completed_pages,
+            failed_pages: progress.failed_pages,
+            cancelled_pages: progress.cancelled_pages,
+        }
+    }
 }
 
 /// Progress payload emitted on the `mpdf://processing-progress` event.
