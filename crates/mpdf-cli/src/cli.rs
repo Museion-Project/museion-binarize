@@ -41,6 +41,38 @@ pub enum Command {
     /// benchmark and has no ground truth at all.
     #[command(subcommand)]
     Benchmark(BenchmarkCommand),
+    /// Create or validate an MDP 0.1 evidence package.
+    #[command(subcommand)]
+    Package(PackageCommand),
+}
+
+#[derive(Subcommand)]
+pub enum PackageCommand {
+    /// Create an evidence-only package from a PDF. The source PDF is not copied.
+    Create(PackageCreateArgs),
+    /// Validate a package directory, including paths, references and digests.
+    Validate(PackageValidateArgs),
+}
+
+#[derive(Args)]
+pub struct PackageCreateArgs {
+    /// Input PDF.
+    pub input: PathBuf,
+    /// New package directory.
+    #[arg(long)]
+    pub output: PathBuf,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Args)]
+pub struct PackageValidateArgs {
+    /// Existing package directory.
+    pub input: PathBuf,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
 }
 
 #[derive(Subcommand)]
@@ -585,5 +617,23 @@ mod tests {
     fn cli_help_does_not_panic() {
         use clap::CommandFactory;
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn package_commands_parse_the_documented_arguments() {
+        use clap::Parser;
+        let create = Cli::try_parse_from([
+            "mpdf", "package", "create", "book.pdf", "--output", "book.mdp",
+        ])
+        .unwrap();
+        assert!(matches!(
+            create.command,
+            Some(Command::Package(PackageCommand::Create(_)))
+        ));
+        let validate = Cli::try_parse_from(["mpdf", "package", "validate", "book.mdp"]).unwrap();
+        assert!(matches!(
+            validate.command,
+            Some(Command::Package(PackageCommand::Validate(_)))
+        ));
     }
 }

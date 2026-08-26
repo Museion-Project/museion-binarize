@@ -2,7 +2,7 @@
 
 **状态：** Active
 **日期：** 2026-08-26
-**当前分支：** `codex/m-pdf-m0-naming-ci`
+**当前分支：** `codex/m-pdf-m1-mdp-01`
 
 本文把当前 OCR + AI-ready 中间层方案拆成可以独立审查、测试、回退的 milestones。
 每个 milestone 必须先通过本地检查，再提交 GitHub Pull Request；只有远端 CI 全绿并合并后，
@@ -63,7 +63,7 @@ Windows、macOS、Linux 分发构建。
 
 ## 3. Milestones
 
-### M0 — 命名解耦与 CI 基线（本地完成，等待 GitHub CI）
+### M0 — 命名解耦与 CI 基线（已合并）
 
 **目标：** 删除当前产品代码和构建配置对旧品牌的依赖，建立后续开发的可靠门禁。
 
@@ -89,8 +89,16 @@ Windows、macOS、Linux 分发构建。
 - 稳定 document/page/asset ID、SHA-256 摘要、相对路径与版本拒绝规则；
 - 左上角原点的归一化母版坐标空间，以及 pixel/PDF point 显式变换；
 - 目录容器、原子写入、validator 和损坏 fixture；
-- 当前 `inspect/process` 可导出最小 MDP，不接真实 OCR；
+- 当前 `package create` 复用 `inspect` 的会话路径生成最小 MDP，不接真实 OCR；`process` 联动导出推迟；
 - 为后续书签预留 page label、existing outline、typography 和 region evidence 字段。
+
+实现进度（本分支）：`mpdf-core::document_package` 已提供 MDP 0.1 的
+manifest/source/pages/assets/provenance/validation 类型、确定性 SHA-256 ID、
+顶左母版坐标与 PDF point affine transform、安全目录读写和 validator；CLI
+已加入 `package create <PDF> --output <DIR>` 与 `package validate <DIR>`。
+当前 `create` 复用 `PdfDocumentSession` 取得真实页几何和源摘要，不复制外部源 PDF；
+JSON Schema 位于 `schemas/mpdf-document-package-0.1.schema.json`。完整本地门禁、真实 PDFium
+集成测试和 CLI 正负向冒烟测试均已通过，等待 GitHub CI。
 
 出口条件：同一输入和参数产生可验证、可追溯的包；路径逃逸、摘要错误、未知主版本和残缺
 资源均被拒绝；现有 PDF 输出测试继续通过。
@@ -191,8 +199,8 @@ Windows、macOS、Linux 分发构建。
 
 | Milestone | 状态 | 分支/PR | 下一门禁 |
 |---|---|---|---|
-| M0 命名与 CI | 本地完成，等待 CI | `codex/m-pdf-m0-naming-ci` | 恢复 GitHub 授权后提交、推送并创建 PR |
-| M1 MDP 0.1 | 未开始 | — | M0 CI 全绿并合并 |
+| M0 命名与 CI | 已合并 | [PR #13](https://github.com/Museion-Project/museion-binarize/pull/13) | GitHub CI 全绿；merge `f37a72e` |
+| M1 MDP 0.1 | 本地完成，等待 CI | `codex/m-pdf-m1-mdp-01` | 提交 PR 并等待 GitHub CI 全绿 |
 | M2 任务与 provider | 未开始 | — | M1 CI 全绿并合并 |
 | M3 本地 OCR | 未开始 | — | M2 CI 全绿并合并 |
 | M4 AI-ready/校对 | 未开始 | — | M3 CI 全绿并合并 |
@@ -202,6 +210,5 @@ Windows、macOS、Linux 分发构建。
 
 ## 5. 当前阻塞
 
-`gh auth status` 于 2026-08-26 显示两个已配置 GitHub 账号的 token 均失效。M0 可以继续在
-本地实现和测试，但在重新执行 `gh auth login -h github.com` 前，不能推送分支、创建 PR、
-确认仓库写权限或等待 GitHub CI。
+无。2026-08-26 已确认 GitHub 账号 `pei-haoran` 授权有效，并对
+`Museion-Project/museion-binarize` 具有管理员权限。

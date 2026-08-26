@@ -20,6 +20,7 @@ pub mod binarization;
 pub mod ccitt;
 pub mod cleanup;
 pub mod document;
+pub mod document_package;
 pub mod document_session;
 pub mod error;
 pub mod estimation;
@@ -38,6 +39,8 @@ pub mod source_identity;
 pub mod test_fixtures;
 pub mod timing;
 pub mod validation;
+/// Short technical alias used by MDP consumers.
+pub use document_package as mdp;
 
 /// The human-readable project name.
 pub const PROJECT_NAME: &str = "M PDF Processor";

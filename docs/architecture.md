@@ -5,6 +5,12 @@ reflects the design as of Milestone 0 (repository initialization); most of
 the pipeline described below is **not implemented yet**. See
 [`limitations.md`](limitations.md) for the current state.
 
+Milestone 1 adds the provider-neutral Machine-readable Document Package
+(MDP) layer in `mpdf-core`. It consumes the existing PDF document session for
+source digest and page geometry, and remains independent of OCR and Tauri.
+See [`document-package.md`](document-package.md) and ADR 0003 for its safety
+and coordinate contract.
+
 ## Goals driving the architecture
 
 - **Determinism and reproducibility.** The same input file and parameters

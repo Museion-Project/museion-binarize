@@ -97,6 +97,9 @@ pub fn classify(error: &CoreError) -> (&'static str, ExitReason) {
         CoreError::MetricComputationFailed(_) => {
             ("metric_computation_failed", ExitReason::ProcessingError)
         }
+        CoreError::InvalidDocumentPackage(_) => {
+            ("invalid_document_package", ExitReason::OutputError)
+        }
     }
 }
 

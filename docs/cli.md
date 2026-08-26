@@ -15,6 +15,7 @@ and the exit-code table. For JSON report field meanings, see
 | `process` | Convert a PDF into a bilevel CCITT Group 4 PDF. |
 | `preview` | Render and process one page, saving a PNG. |
 | `benchmark run` / `benchmark validate` | Ground-truth binarization-fidelity benchmarking against a dataset/profile manifest. **`benchmark` requires pixel-accurate ground truth; `analyze` is not a benchmark.** See [`benchmark-running.md`](benchmark-running.md). |
+| `package create <PDF> --output <DIR>` / `package validate <DIR>` | Create or validate an MDP 0.1 evidence package. Creation records source digest and real page geometry without copying the PDF. See [`document-package.md`](document-package.md). |
 
 Run `mpdf <command> --help` for the full flag list.
 
@@ -49,6 +50,18 @@ MPDF_PDF_PASSWORD=secret mpdf inspect protected.pdf
 ```
 
 It is never logged, serialized, or included in an error's JSON `context`.
+
+## MDP packages
+
+```bash
+mpdf package create book.pdf --output book.mdp
+mpdf package validate book.mdp
+```
+
+`package create` uses the same PDFium/session path as `inspect`, requires an
+available PDFium library, and refuses to overwrite the destination. `package
+validate` is local and does not open PDFium. Both commands support `--json`,
+`--pretty`, and `--quiet`.
 
 ## Page selection (`analyze --pages`)
 

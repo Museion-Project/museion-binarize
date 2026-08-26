@@ -46,6 +46,7 @@ pub fn classify_core_error(error: &CoreError) -> UiErrorDto {
         CoreError::InvalidRoi(_) => "invalid_roi",
         CoreError::InvalidProfile(_) => "invalid_benchmark_profile",
         CoreError::MetricComputationFailed(_) => "metric_computation_failed",
+        CoreError::InvalidDocumentPackage(_) => "invalid_document_package",
     };
     let hint = match error {
         CoreError::PdfiumNotFound { .. } | CoreError::PdfiumLoadFailed { .. } => Some(

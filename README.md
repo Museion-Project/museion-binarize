@@ -26,6 +26,12 @@ successfully but do not yet have human runtime acceptance (see
 "Download" below). See [`docs/limitations.md`](docs/limitations.md) for
 exactly what this repository can and cannot do today.
 
+The MDP 0.1 evidence-package slice is available from the CLI:
+`mpdf package create book.pdf --output book.mdp` and
+`mpdf package validate book.mdp`. It stores deterministic source/page
+geometry evidence and SHA-256 references without OCR or copying the source
+PDF; see [`docs/document-package.md`](docs/document-package.md).
+
 ## Core principles
 
 - **Transparent processing. Reproducible results. No generative rewriting of

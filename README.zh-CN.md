@@ -22,6 +22,12 @@ Silicon）** 完成了人工端到端运行验收——桌面 GUI 的原生应�
 请参阅 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做
 什么、不能做什么。
 
+MDP 0.1 证据包切片也可通过 CLI 使用：
+`mpdf package create book.pdf --output book.mdp` 和
+`mpdf package validate book.mdp`。它保存确定性的来源/页面几何证据和
+SHA-256 引用，不执行 OCR，也不复制源 PDF；详见
+[`docs/document-package.md`](docs/document-package.md)。
+
 ## 核心原则
 
 - **处理过程透明，结果可复现，不对源文档进行生成式改写。**
