@@ -138,6 +138,11 @@ pub enum CoreError {
     /// mismatch, which has its own variant).
     #[error("benchmark metric computation failed: {0}")]
     MetricComputationFailed(String),
+
+    /// A machine-readable document package was malformed or failed one of
+    /// its safety/integrity checks.
+    #[error("invalid document package: {0}")]
+    InvalidDocumentPackage(String),
 }
 
 impl CoreError {
