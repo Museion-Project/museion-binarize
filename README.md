@@ -1,8 +1,8 @@
 English | [简体中文](README.zh-CN.md)
 
-# Museion Binarize
+# M PDF Processor
 
-**Museion Binarize** is an open-source, cross-platform application for
+**M PDF Processor** is an open-source, cross-platform application for
 converting scanned scholarly books into clean and compact bilevel PDFs.
 
 **Status: Phase 1 feature-complete — current public release candidate:
@@ -38,7 +38,7 @@ exactly what this repository can and cannot do today.
 - Cross-platform by default: macOS, Windows, and Linux are first-class
   targets, not afterthoughts.
 
-Museion Binarize is not described as "AI-powered." Phase 1 uses classical,
+M PDF Processor is not described as "AI-powered." Phase 1 uses classical,
 deterministic image-processing methods, not machine learning models.
 
 ## Phase 1 features
@@ -75,9 +75,9 @@ below.)
 
 | Platform | Download | Human runtime tested | Signing |
 |---|---|---|---|
-| macOS (Apple Silicon / arm64) | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-macos-arm64.dmg) (desktop app) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-macos-arm64.tar.gz) | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
-| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-windows-x64.msi) installer · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-windows-x64.zip) | Not yet — release-candidate build only | Unsigned |
-| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-linux-x86_64.tar.gz) | Not yet — release-candidate build only | Not applicable |
+| macOS (Apple Silicon / arm64) | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-macos-arm64.dmg) (desktop app) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-cli-0.1.0-rc.2-macos-arm64.tar.gz) | Yes — the primary validated platform | Ad-hoc signed, **not** Developer ID signed or notarized (see below) |
+| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-windows-x64.msi) installer · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-cli-0.1.0-rc.2-windows-x64.zip) | Not yet — release-candidate build only | Unsigned |
+| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-cli-0.1.0-rc.2-linux-x86_64.tar.gz) | Not yet — release-candidate build only | Not applicable |
 
 The [release page](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.2)
 also has [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/SHA256SUMS)
@@ -112,7 +112,7 @@ conflate them.
 A later, benchmark-driven research phase will evaluate methods intended to
 better preserve **polytonic Ancient Greek**, **critical apparatuses**, and
 other small typographic details that aggressive binarization can destroy.
-No claim is made today that Museion Binarize preserves this kind of
+No claim is made today that M PDF Processor preserves this kind of
 typography — that claim will only be made once reproducible benchmark data
 exists. See [`docs/roadmap.md`](docs/roadmap.md) and
 [`docs/benchmarking.md`](docs/benchmarking.md).
@@ -133,7 +133,7 @@ rationale.
 
 ## Distribution
 
-Museion Binarize's source remains open source (MIT OR Apache-2.0), and
+M PDF Processor's source remains open source (MIT OR Apache-2.0), and
 GitHub builds remain fully functional; a future paid Mac App Store
 edition is planned as a convenience distribution, not a separate
 closed-source tier — technical sandbox readiness for that path exists
@@ -146,11 +146,11 @@ possible — see [`docs/releasing.md`](docs/releasing.md).
 
 ## Open source and supporting the project
 
-Museion Binarize is free and open source. The official GitHub builds are
+M PDF Processor is free and open source. The official GitHub builds are
 fully functional and freely available — nothing is held back for a paid
 tier.
 
-If Museion Binarize is useful to you, you can support its continued
+If M PDF Processor is useful to you, you can support its continued
 development through [GitHub Sponsors](https://github.com/sponsors/pei-haoran).
 
 A paid Mac App Store edition is also planned for the future. It is
@@ -161,7 +161,7 @@ App Store submission exists yet (see [`docs/distribution.md`](docs/distribution.
 
 ## Privacy
 
-Museion Binarize is designed to process files entirely on your own machine.
+M PDF Processor is designed to process files entirely on your own machine.
 The core processing pipeline does not upload scans, page images, or output
 files to any network service. The desktop application and CLI operate on
 local files you choose.
@@ -169,10 +169,10 @@ local files you choose.
 ## Repository architecture
 
 ```
-museion-binarize/
+mpdf/
 ├── crates/
-│   ├── museion-binarize-core/   # Tauri-independent Rust processing core
-│   └── museion-binarize-cli/    # Command-line interface built on the core
+│   ├── mpdf-core/   # Tauri-independent Rust processing core
+│   └── mpdf-cli/    # Command-line interface built on the core
 ├── apps/
 │   └── desktop/                 # Tauri 2 + React + TypeScript desktop app
 ├── docs/                        # Architecture, roadmap, algorithms, benchmarking
@@ -205,7 +205,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 ### Run the CLI
 
 ```bash
-cargo run -p museion-binarize-cli -- --help
+cargo run -p mpdf-cli -- --help
 ```
 
 ### Provide PDFium
@@ -220,33 +220,33 @@ downloaded at runtime — you supply it once. See
 [docs/pdfium.md](docs/pdfium.md).
 
 ```bash
-export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
+export MPDF_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
 ```
 
 ### Command-line usage
 
 ```bash
 # Inspect a document: pages, geometry, rotation, render sizes
-museion-binarize inspect input.pdf
+mpdf inspect input.pdf
 
 # Measure a document through the real pipeline without writing an output
 # PDF — useful for choosing settings before a full conversion
-museion-binarize analyze input.pdf --dpi 300 --method otsu --json --pretty
+mpdf analyze input.pdf --dpi 300 --method otsu --json --pretty
 
 # Sample a handful of pages through the real pipeline and extrapolate an
 # experimental output-size estimate, without a full conversion
-museion-binarize estimate input.pdf --dpi 400 --method sauvola --samples 8
+mpdf estimate input.pdf --dpi 400 --method sauvola --samples 8
 
 # Convert to a bilevel CCITT Group 4 PDF
-museion-binarize process input.pdf --output output.pdf \
+mpdf process input.pdf --output output.pdf \
   --method sauvola --dpi 400 --validate render-all
 
 # Save a PNG preview of one processed page (one-based page numbers)
-museion-binarize preview input.pdf --page 12 --output preview.png
+mpdf preview input.pdf --page 12 --output preview.png
 
 # Benchmark binarization fidelity against pixel-accurate ground truth
 # (no PDF/PDFium needed for the raster benchmark level)
-museion-binarize benchmark run \
+mpdf benchmark run \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml
 ```
@@ -259,7 +259,7 @@ The source file is never modified, and the destination is only written after a c
 
 ```bash
 pnpm install
-pnpm --filter museion-binarize-desktop tauri dev
+pnpm --filter mpdf-desktop tauri dev
 ```
 
 ## Contributing
@@ -276,7 +276,7 @@ If you use this software, please cite it using the metadata in
 
 ## Author and maintainer
 
-Museion Binarize is created and maintained by **Pei Haoran** under the
+M PDF Processor is created and maintained by **Pei Haoran** under the
 **Museion Project** organization. See [`AUTHORS.md`](AUTHORS.md).
 
 ## License

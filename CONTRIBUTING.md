@@ -1,6 +1,6 @@
-# Contributing to Museion Binarize
+# Contributing to M PDF Processor
 
-Thank you for your interest in contributing. Museion Binarize is an
+Thank you for your interest in contributing. M PDF Processor is an
 open-source project maintained by Pei Haoran under the Museion Project
 organization. This document explains how to work with the codebase and what
 is expected of contributions.
@@ -38,7 +38,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ```bash
 pnpm install
-pnpm --filter museion-binarize-desktop dev
+pnpm --filter mpdf-desktop dev
 ```
 
 ## Development guidelines
@@ -62,7 +62,7 @@ pnpm --filter museion-binarize-desktop dev
   reproducible benchmark described in [`docs/benchmarking.md`](docs/benchmarking.md).
   Do not add such claims to documentation, commit messages, or release notes
   without the underlying data and method.
-- **Scope.** The processing core (`crates/museion-binarize-core`) must not
+- **Scope.** The processing core (`crates/mpdf-core`) must not
   depend on Tauri or any GUI framework. See [`docs/architecture.md`](docs/architecture.md).
 
 ## Commit and pull request conventions

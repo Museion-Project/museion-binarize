@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Museion Binarize is currently in early Phase 1 development (pre-release).
+M PDF Processor is currently in early Phase 1 development (pre-release).
 There are no tagged releases yet, and no version receives dedicated security
 support at this time. Security fixes will land on the `main` branch.
 
@@ -24,7 +24,7 @@ When reporting, please include:
 
 ## Scope
 
-Museion Binarize processes local files (scanned PDFs) and does not send user
+M PDF Processor processes local files (scanned PDFs) and does not send user
 data to any network service as part of its core processing pipeline. Areas
 of particular security interest include:
 

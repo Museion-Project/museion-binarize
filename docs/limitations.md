@@ -2,7 +2,7 @@
 
 ## Current state (as of the `0.1.0-rc.2` release candidate)
 
-Museion Binarize can perform a complete local PDF conversion, can analyze
+M PDF Processor can perform a complete local PDF conversion, can analyze
 a PDF without converting it, can produce an experimental sampled
 estimate of a conversion's output size before running it, and can
 benchmark binarization fidelity against pixel-accurate ground truth:
@@ -196,7 +196,7 @@ or AI of any kind.
 Unlike the items above, which are simply not built yet, the following are
 explicitly **out of scope for all of Phase 1**, not just this milestone:
 
-- **OCR.** Museion Binarize does not perform optical character recognition
+- **OCR.** M PDF Processor does not perform optical character recognition
   and does not plan to in Phase 1.
 - **Hidden OCR layer preservation.** If an input PDF already contains a
   hidden/invisible OCR text layer, Phase 1 does not preserve it in the

@@ -1,6 +1,6 @@
 # PDF output format
 
-What Museion Binarize writes, and what it does not preserve.
+What M PDF Processor writes, and what it does not preserve.
 Rationale lives in [`adr/0002-bilevel-pdf-output.md`](adr/0002-bilevel-pdf-output.md).
 
 ## Every output page

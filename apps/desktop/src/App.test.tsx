@@ -59,7 +59,7 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation(async (command: string) => {
     if (command === "project_info") {
-      return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+      return { name: "M PDF Processor", phase: "Phase 1 — under development" };
     }
     throw new Error(`unexpected command in this test: ${command}`);
   });
@@ -88,7 +88,7 @@ describe("App — document open", () => {
   it("opens a PDF dropped on the native application window", async () => {
     invokeMock.mockImplementation(async (command: string, args?: { path?: string }) => {
       if (command === "project_info") {
-        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+        return { name: "M PDF Processor", phase: "Phase 1 — under development" };
       }
       if (command === "open_document") {
         expect(args?.path).toBe("/tmp/dropped-book.PDF");
@@ -132,7 +132,7 @@ describe("App — document open", () => {
     openDialogMock.mockResolvedValue("/tmp/book.pdf");
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "project_info") {
-        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+        return { name: "M PDF Processor", phase: "Phase 1 — under development" };
       }
       if (command === "open_document") {
         return sampleDocument();
@@ -156,7 +156,7 @@ describe("App — document open", () => {
     openDialogMock.mockResolvedValue("/tmp/secret.pdf");
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "project_info") {
-        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+        return { name: "M PDF Processor", phase: "Phase 1 — under development" };
       }
       if (command === "open_document") {
         throw {
@@ -181,7 +181,7 @@ describe("App — settings", () => {
     openDialogMock.mockResolvedValue("/tmp/book.pdf");
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "project_info") {
-        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+        return { name: "M PDF Processor", phase: "Phase 1 — under development" };
       }
       if (command === "open_document") {
         return sampleDocument();
@@ -237,7 +237,7 @@ describe("App — error presentation", () => {
     saveDialogMock.mockResolvedValue("/tmp/book-binarized.pdf");
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "project_info") {
-        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+        return { name: "M PDF Processor", phase: "Phase 1 — under development" };
       }
       if (command === "open_document") {
         return sampleDocument();
@@ -286,7 +286,7 @@ describe("App — size estimate", () => {
     openDialogMock.mockResolvedValue("/tmp/book.pdf");
     invokeMock.mockImplementation(async (command: string) => {
       if (command === "project_info") {
-        return { name: "Museion Binarize", phase: "Phase 1 — under development" };
+        return { name: "M PDF Processor", phase: "Phase 1 — under development" };
       }
       if (command === "open_document") {
         return sampleDocument();

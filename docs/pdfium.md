@@ -1,6 +1,6 @@
 # Providing PDFium
 
-Museion Binarize uses [PDFium](https://pdfium.googlesource.com/pdfium/) to
+M PDF Processor uses [PDFium](https://pdfium.googlesource.com/pdfium/) to
 rasterize source PDFs. PDFium is a large C++ library that is **not** bundled
 with the `pdfium-render` crate, **not** committed to this repository, and
 **never downloaded by the application at runtime**. You provide it once; the
@@ -14,7 +14,7 @@ for why.
 In order:
 
 1. an explicit path you pass (`--pdfium-library <path>`);
-2. the `MUSEION_PDFIUM_LIBRARY` environment variable;
+2. the `MPDF_PDFIUM_LIBRARY` environment variable;
 3. `resources/<library>` next to the executable (packaged applications);
 4. `<library>` next to the executable;
 5. the system library search path — **only** with `--allow-system-pdfium`.
@@ -40,11 +40,11 @@ you can always tell.
 ## Developer setup
 
 Obtain a PDFium dynamic library for your platform and point
-`MUSEION_PDFIUM_LIBRARY` at it. This is the recommended setup:
+`MPDF_PDFIUM_LIBRARY` at it. This is the recommended setup:
 
 ```bash
-export MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib
-cargo run -p museion-binarize-cli -- inspect some.pdf
+export MPDF_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib
+cargo run -p mpdf-cli -- inspect some.pdf
 ```
 
 There is also a development location at
@@ -53,7 +53,7 @@ against the working directory it is **not searched by default**. It
 requires a debug build *and* an explicit opt-in:
 
 ```bash
-export MUSEION_ALLOW_CWD_PDFIUM=1
+export MPDF_ALLOW_CWD_PDFIUM=1
 ```
 
 Release builds ignore this variable entirely. Prefer the explicit path

@@ -9,7 +9,7 @@ which would silently discard the signature applied by
 opened" bug that script fixes (see its docstring, and
 docs/desktop-testing.md, "Milestone 7A"). Verified empirically: running
 `--bundles app` then `--bundles dmg` back to back re-runs the "Bundling
-Museion Binarize.app" step before producing the dmg.
+M PDF Processor.app" step before producing the dmg.
 
 So the packaged app and the packaged disk image must be built in this
 order: `tauri build --bundles app`, sign the resulting `.app` in place,
@@ -22,7 +22,7 @@ project does not otherwise use.
 
 Usage:
     python3 scripts/distribution/package_macos_dmg.py \\
-        --app-path "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app" \\
+        --app-path "target/aarch64-apple-darwin/release/bundle/macos/M PDF Processor.app" \\
         --version 0.1.0 --target-triple aarch64-apple-darwin \\
         --out-dir target/aarch64-apple-darwin/release/bundle/dmg
 """

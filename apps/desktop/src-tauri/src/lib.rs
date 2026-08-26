@@ -1,6 +1,6 @@
-//! Tauri backend for the Museion Binarize desktop application.
+//! Tauri backend for the M PDF Processor desktop application.
 //!
-//! This crate depends on `museion-binarize-core` (see the workspace root
+//! This crate depends on `mpdf-core` (see the workspace root
 //! `docs/architecture.md`) and exposes it to the frontend through Tauri
 //! commands. It never duplicates a core algorithm, never shells out to
 //! the CLI, and never sends the source PDF's bytes to the frontend — see
@@ -13,8 +13,8 @@ mod settings;
 mod state;
 mod worker;
 
-use museion_binarize_core::pdfium_backend::pdfium_library_file_name;
-use museion_binarize_core::ProjectInfo;
+use mpdf_core::pdfium_backend::pdfium_library_file_name;
+use mpdf_core::ProjectInfo;
 use serde::Serialize;
 use tauri::Manager;
 
@@ -28,7 +28,7 @@ use state::AppState;
 /// guessing a platform-specific bundle layout ourselves — on macOS this
 /// correctly means `Contents/Resources/`, distinct from
 /// `Contents/MacOS/`, where the generic executable-adjacent search in
-/// `museion_binarize_core::pdfium_backend::resolve_library` looks. A
+/// `mpdf_core::pdfium_backend::resolve_library` looks. A
 /// development run (no such resource staged) returns `None`, and every
 /// caller falls back to the core resolver's existing search/override
 /// behavior unchanged — see `worker::pdfium_config`.
@@ -49,7 +49,7 @@ struct ProjectInfoPayload {
     phase: String,
 }
 
-/// Returns basic project information from `museion-binarize-core`. Kept
+/// Returns basic project information from `mpdf-core`. Kept
 /// from Milestone 0 as a minimal, dependency-free bridge check.
 #[tauri::command]
 fn project_info() -> ProjectInfoPayload {

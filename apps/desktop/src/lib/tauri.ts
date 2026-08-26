@@ -151,14 +151,14 @@ export function onFileDragDrop(
 
 // --- Progress event bridge -------------------------------------------
 //
-// Namespaced `museion://processing-*` events, matching the backend (see
+// Namespaced `mpdf://processing-*` events, matching the backend (see
 // `commands::processing`). Each helper returns the `UnlistenFn` Tauri
 // gives back, so callers can detach cleanly on unmount.
 
 export function onProcessingProgress(
   handler: (payload: ProcessingProgress) => void,
 ): Promise<UnlistenFn> {
-  return listen<ProcessingProgress>("museion://processing-progress", (event) =>
+  return listen<ProcessingProgress>("mpdf://processing-progress", (event) =>
     handler(event.payload),
   );
 }
@@ -166,7 +166,7 @@ export function onProcessingProgress(
 export function onProcessingCompleted(
   handler: (payload: ProcessingCompleted) => void,
 ): Promise<UnlistenFn> {
-  return listen<ProcessingCompleted>("museion://processing-completed", (event) =>
+  return listen<ProcessingCompleted>("mpdf://processing-completed", (event) =>
     handler(event.payload),
   );
 }
@@ -174,7 +174,7 @@ export function onProcessingCompleted(
 export function onProcessingCancelled(
   handler: (payload: ProcessingCancelled) => void,
 ): Promise<UnlistenFn> {
-  return listen<ProcessingCancelled>("museion://processing-cancelled", (event) =>
+  return listen<ProcessingCancelled>("mpdf://processing-cancelled", (event) =>
     handler(event.payload),
   );
 }
@@ -182,7 +182,7 @@ export function onProcessingCancelled(
 export function onProcessingFailed(
   handler: (payload: ProcessingFailed) => void,
 ): Promise<UnlistenFn> {
-  return listen<ProcessingFailed>("museion://processing-failed", (event) =>
+  return listen<ProcessingFailed>("mpdf://processing-failed", (event) =>
     handler(event.payload),
   );
 }

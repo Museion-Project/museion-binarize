@@ -13,11 +13,11 @@ preservation quality on real scholarly material, and in particular are
 ## How to reproduce
 
 ```bash
-cargo build -p museion-binarize-cli --release
-./target/release/museion-binarize benchmark run \
+cargo build -p mpdf-cli --release
+./target/release/mpdf benchmark run \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml \
-  --report /tmp/museion-benchmark.json
+  --report /tmp/mpdf-benchmark.json
 ```
 
 Raster-level benchmarking never touches PDFium, so this reproduces on

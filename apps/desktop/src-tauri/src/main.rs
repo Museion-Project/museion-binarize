@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    museion_binarize_desktop_lib::run()
+    mpdf_desktop_lib::run()
 }

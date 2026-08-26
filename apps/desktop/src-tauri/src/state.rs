@@ -39,7 +39,7 @@ pub struct JobState {
 /// `ProcessingReport::estimate_comparison` automatically — never shown to
 /// the frontend directly from here (the frontend keeps its own estimate
 /// display state independently; see `docs/desktop.md`). Matched by
-/// document id and [`museion_binarize_core::estimation::settings_fingerprint`]
+/// document id and [`mpdf_core::estimation::settings_fingerprint`]
 /// at the moment a conversion actually starts, so a stale estimate from a
 /// different document or different settings is never compared against.
 #[derive(Clone)]
@@ -65,7 +65,7 @@ pub struct AppState {
     /// startup — `None` in a development run with no bundled resource.
     /// See `worker::pdfium_config` and `docs/pdfium-bundling.md`
     /// for how this is used (and why an explicit
-    /// `MUSEION_PDFIUM_LIBRARY` still takes precedence over it, matching
+    /// `MPDF_PDFIUM_LIBRARY` still takes precedence over it, matching
     /// the core resolver's own documented precedence).
     pub bundled_pdfium_path: Option<PathBuf>,
     next_id: AtomicU64,

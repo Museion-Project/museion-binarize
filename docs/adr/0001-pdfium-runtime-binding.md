@@ -1,12 +1,12 @@
 # ADR 0001 — PDFium as a dynamically bound input renderer
 
 **Status:** Accepted (2026-08-07). Proposed during Milestone 2 and accepted
-only after the end-to-end tests in `crates/museion-binarize-core/tests/pdf_pipeline.rs`
+only after the end-to-end tests in `crates/mpdf-core/tests/pdf_pipeline.rs`
 passed against a real PDFium build on the verifying host.
 
 ## Context
 
-Museion Binarize must rasterize arbitrary scanned PDFs. Writing a PDF
+M PDF Processor must rasterize arbitrary scanned PDFs. Writing a PDF
 parser and rasterizer is out of scope; PDFium (the renderer inside
 Chromium) is the mature, permissively licensed option.
 
@@ -69,7 +69,7 @@ integration suite then exercised open, inspect, render, and re-open. See
 ### Resolution order
 
 1. an explicit path passed by the caller (`--pdfium-library`, GUI setting);
-2. the `MUSEION_PDFIUM_LIBRARY` environment variable;
+2. the `MPDF_PDFIUM_LIBRARY` environment variable;
 3. an application-relative bundled resource directory (`resources/`);
 4. a library next to the running executable;
 5. the system library search path — **only** when explicitly allowed.
@@ -114,7 +114,7 @@ That path is resolved against the **current working directory**, which
 makes it a library-injection vector: anyone who can write into a
 directory the user runs the tool from could choose the native code that
 gets loaded. It is therefore not part of ordinary resolution. It is
-consulted only in a debug build *and* only when `MUSEION_ALLOW_CWD_PDFIUM=1`
+consulted only in a debug build *and* only when `MPDF_ALLOW_CWD_PDFIUM=1`
 is set explicitly; release builds ignore it entirely. Every other search
 location is anchored to the running executable or the operating system.
 

@@ -39,17 +39,17 @@ class NamingTests(unittest.TestCase):
     def test_desktop_artifact_name_matches_the_documented_convention(self):
         self.assertEqual(
             naming.desktop_artifact_name("0.1.0", "aarch64-apple-darwin", "dmg"),
-            "Museion-Binarize-0.1.0-macos-arm64.dmg",
+            "mpdf-0.1.0-macos-arm64.dmg",
         )
         self.assertEqual(
             naming.desktop_artifact_name("0.1.0", "x86_64-pc-windows-msvc", "msi"),
-            "Museion-Binarize-0.1.0-windows-x64.msi",
+            "mpdf-0.1.0-windows-x64.msi",
         )
 
     def test_cli_archive_name_matches_the_documented_convention(self):
         self.assertEqual(
             naming.cli_archive_name("0.1.0", "x86_64-unknown-linux-gnu", "tar.gz"),
-            "museion-binarize-cli-0.1.0-linux-x86_64.tar.gz",
+            "mpdf-cli-0.1.0-linux-x86_64.tar.gz",
         )
 
     def test_unknown_target_triple_is_rejected(self):
@@ -139,7 +139,7 @@ class ReleaseManifestTests(unittest.TestCase):
             manifest_path.write_text(json.dumps(data, indent=2))
 
             loaded = json.loads(manifest_path.read_text())
-            self.assertEqual(loaded["schema"], "museion-binarize-release-manifest")
+            self.assertEqual(loaded["schema"], "mpdf-release-manifest")
             self.assertEqual(loaded["schema_version"], "1.0")
             self.assertEqual(
                 loaded["artifacts"][0]["artifact_sha256"],
@@ -172,9 +172,9 @@ class ReleaseManifestTests(unittest.TestCase):
         # so this exercises the exact code path the build workflow runs.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            dmg = tmp_path / "Museion-Binarize-0.1.0-macos-arm64.dmg"
+            dmg = tmp_path / "mpdf-0.1.0-macos-arm64.dmg"
             dmg.write_bytes(b"fake dmg bytes")
-            cli_archive = tmp_path / "museion-binarize-cli-0.1.0-macos-arm64.tar.gz"
+            cli_archive = tmp_path / "mpdf-cli-0.1.0-macos-arm64.tar.gz"
             cli_archive.write_bytes(b"fake cli archive bytes")
             manifest_path = tmp_path / "release-manifest.json"
             script = REPO_ROOT / "scripts" / "distribution" / "release_manifest.py"
@@ -283,7 +283,7 @@ class FetchPdfiumSafetyTests(unittest.TestCase):
             import tomllib
 
             data = tomllib.load(f)
-        self.assertEqual(data["schema"], "museion-binarize-pdfium-manifest")
+        self.assertEqual(data["schema"], "mpdf-pdfium-manifest")
         assets = data["asset"]
         self.assertGreaterEqual(len(assets), 4)
         for asset in assets:
@@ -444,7 +444,7 @@ class FetchPdfiumSafetyTests(unittest.TestCase):
 
 
 class BundleIdentifierConsistencyTests(unittest.TestCase):
-    """The canonical product identity is `me.museion.binarize`, declared
+    """The canonical product identity is `me.mpdf.processor`, declared
     exactly once, in the base `tauri.conf.json` — see
     docs/mac-app-store-readiness.md, "Bundle identifier." Every overlay
     (GitHub dist, MAS) must inherit it rather than redeclaring it, so it
@@ -453,7 +453,7 @@ class BundleIdentifierConsistencyTests(unittest.TestCase):
     `org.museionproject.binarize`, must not reappear in any active
     configuration."""
 
-    CANONICAL_IDENTIFIER = "me.museion.binarize"
+    CANONICAL_IDENTIFIER = "me.mpdf.processor"
     OLD_IDENTIFIER = "org.museionproject.binarize"
 
     BASE_CONFIG = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
@@ -862,7 +862,7 @@ def _write_target_dir(
     for filename in extra_files or []:
         (target_dir / filename).write_bytes(b"unexpected stray file")
     manifest = {
-        "schema": "museion-binarize-release-manifest",
+        "schema": "mpdf-release-manifest",
         "schema_version": "1.0",
         "project_version": project_version,
         "git_sha": git_sha,
@@ -876,19 +876,19 @@ def _write_target_dir(
 class RenderReleaseNotesTests(unittest.TestCase):
     def _manifest(self, **overrides):
         manifest = {
-            "schema": "museion-binarize-release-manifest",
+            "schema": "mpdf-release-manifest",
             "schema_version": "1.0",
             "project_version": "0.1.0-rc.1",
             "release_tag": "v0.1.0-rc.1",
             "git_sha": "a" * 40,
             "artifacts": [
                 _artifact_entry(
-                    "Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg",
+                    "mpdf-0.1.0-rc.1-macos-arm64.dmg",
                     signing_state="ad_hoc",
                     notarization_state="pending_credentials",
                 ),
                 _artifact_entry(
-                    "Museion-Binarize-0.1.0-rc.1-windows-x64.msi",
+                    "mpdf-0.1.0-rc.1-windows-x64.msi",
                     signing_state="unsigned",
                     notarization_state="not_applicable",
                 ),
@@ -899,8 +899,8 @@ class RenderReleaseNotesTests(unittest.TestCase):
 
     def test_lists_every_manifest_artifact_by_filename(self):
         body = render_release_notes.render(self._manifest(), "0.1.0-rc.1")
-        self.assertIn("Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg", body)
-        self.assertIn("Museion-Binarize-0.1.0-rc.1-windows-x64.msi", body)
+        self.assertIn("mpdf-0.1.0-rc.1-macos-arm64.dmg", body)
+        self.assertIn("mpdf-0.1.0-rc.1-windows-x64.msi", body)
 
     def test_does_not_claim_developer_id_signing_or_notarization_occurred(self):
         body = " ".join(render_release_notes.render(self._manifest(), "0.1.0-rc.1").split())
@@ -950,22 +950,22 @@ class AggregateReleaseTests(unittest.TestCase):
         artifacts_dir = tmp_path / "downloaded"
         _write_target_dir(
             artifacts_dir,
-            "museion-binarize-aarch64-apple-darwin",
+            "mpdf-aarch64-apple-darwin",
             project_version=self.VERSION,
             git_sha=self.SHA,
             artifact_filenames=[
-                "Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg",
-                "museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz",
+                "mpdf-0.1.0-rc.1-macos-arm64.dmg",
+                "mpdf-cli-0.1.0-rc.1-macos-arm64.tar.gz",
             ],
         )
         _write_target_dir(
             artifacts_dir,
-            "museion-binarize-x86_64-pc-windows-msvc",
+            "mpdf-x86_64-pc-windows-msvc",
             project_version=self.VERSION,
             git_sha=self.SHA,
             artifact_filenames=[
-                "Museion-Binarize-0.1.0-rc.1-windows-x64.msi",
-                "museion-binarize-cli-0.1.0-rc.1-windows-x64.zip",
+                "mpdf-0.1.0-rc.1-windows-x64.msi",
+                "mpdf-cli-0.1.0-rc.1-windows-x64.zip",
             ],
         )
         return artifacts_dir
@@ -986,10 +986,10 @@ class AggregateReleaseTests(unittest.TestCase):
             self.assertEqual(
                 filenames,
                 {
-                    "Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg",
-                    "museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz",
-                    "Museion-Binarize-0.1.0-rc.1-windows-x64.msi",
-                    "museion-binarize-cli-0.1.0-rc.1-windows-x64.zip",
+                    "mpdf-0.1.0-rc.1-macos-arm64.dmg",
+                    "mpdf-cli-0.1.0-rc.1-macos-arm64.tar.gz",
+                    "mpdf-0.1.0-rc.1-windows-x64.msi",
+                    "mpdf-cli-0.1.0-rc.1-windows-x64.zip",
                 },
             )
             # Every merged artifact file actually landed in out_dir.
@@ -1007,7 +1007,7 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version="0.1.0-rc.2", git_sha=self.SHA,
                 artifact_filenames=["a.dmg"],
             )
@@ -1030,12 +1030,12 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["a.dmg"],
             )
             _write_target_dir(
-                artifacts_dir, "museion-binarize-x86_64-pc-windows-msvc",
+                artifacts_dir, "mpdf-x86_64-pc-windows-msvc",
                 project_version=self.VERSION, git_sha="b" * 40,
                 artifact_filenames=["a.msi"],
             )
@@ -1049,12 +1049,12 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["collision.bin"],
             )
             _write_target_dir(
-                artifacts_dir, "museion-binarize-x86_64-pc-windows-msvc",
+                artifacts_dir, "mpdf-x86_64-pc-windows-msvc",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["collision.bin"],
             )
@@ -1068,10 +1068,10 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["a.dmg"],
-                extra_files=["Museion Binarize_0.1.0_aarch64.dmg"],  # a stale leftover, not in the manifest
+                extra_files=["M PDF Processor_0.1.0_aarch64.dmg"],  # a stale leftover, not in the manifest
             )
             with self.assertRaises(SystemExit):
                 aggregate_release.aggregate(
@@ -1083,7 +1083,7 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["a.dmg", "b.tar.gz"],
                 omit_manifest_entry_for="b.tar.gz",
@@ -1091,7 +1091,7 @@ class AggregateReleaseTests(unittest.TestCase):
             # b.tar.gz exists on disk but has no manifest entry — this is
             # actually the "unexpected file" case; construct the inverse
             # (manifest claims a file that doesn't exist) directly:
-            manifest_path = artifacts_dir / "museion-binarize-aarch64-apple-darwin" / "release-manifest.json"
+            manifest_path = artifacts_dir / "mpdf-aarch64-apple-darwin" / "release-manifest.json"
             manifest = json.loads(manifest_path.read_text())
             manifest["artifacts"].append(_artifact_entry("never-written.bin"))
             manifest_path.write_text(json.dumps(manifest))
@@ -1125,7 +1125,7 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["a.dmg"],
                 artifact_overrides={
@@ -1144,7 +1144,7 @@ class AggregateReleaseTests(unittest.TestCase):
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
             _write_target_dir(
-                artifacts_dir, "museion-binarize-aarch64-apple-darwin",
+                artifacts_dir, "mpdf-aarch64-apple-darwin",
                 project_version=self.VERSION, git_sha=self.SHA,
                 artifact_filenames=["a.dmg"],
                 artifact_overrides={"a.dmg": {"pdfium_sha256": "c" * 64, "pdfium_version": "151.0.7920.0"}},
@@ -1169,7 +1169,7 @@ class AggregateReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             artifacts_dir = tmp_path / "downloaded"
-            bad_target = artifacts_dir / "museion-binarize-aarch64-apple-darwin"
+            bad_target = artifacts_dir / "mpdf-aarch64-apple-darwin"
             bad_target.mkdir(parents=True)
             (bad_target / "a.dmg").write_bytes(b"no manifest for this file")
             with self.assertRaises(SystemExit):
@@ -1190,14 +1190,14 @@ class CollectDesktopArtifactTests(unittest.TestCase):
             tmp_path = Path(tmp)
             bundle_dir = tmp_path / "bundle" / "msi"
             bundle_dir.mkdir(parents=True)
-            (bundle_dir / "Museion Binarize_0.1.0-rc.1_x64_en-US.msi").write_bytes(b"fake msi")
+            (bundle_dir / "M PDF Processor_0.1.0-rc.1_x64_en-US.msi").write_bytes(b"fake msi")
             out_dir = tmp_path / "dist-out"
 
             dest = collect_desktop_artifact.collect(
                 bundle_dir, "*.msi", "0.1.0-rc.1", "x86_64-pc-windows-msvc", "msi", out_dir
             )
 
-            self.assertEqual(dest.name, "Museion-Binarize-0.1.0-rc.1-windows-x64.msi")
+            self.assertEqual(dest.name, "mpdf-0.1.0-rc.1-windows-x64.msi")
             self.assertEqual(dest.read_bytes(), b"fake msi")
 
     def test_rejects_zero_matches(self):

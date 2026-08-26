@@ -1,0 +1,8 @@
+{
+  "arxiv:2509.00909": {"title":"HiPS: Hierarchical PDF Segmentation of Textbooks","score":10,"url":"https://arxiv.org/abs/2509.00909"},
+  "arxiv:2212.02896": {"title":"Multimodal Tree Decoder for Table of Contents Extraction in Document Images","score":9,"url":"https://arxiv.org/abs/2212.02896"},
+  "arxiv:2303.13839": {"title":"HRDoc: Dataset and Baseline Method Toward Hierarchical Reconstruction of Document Structures","score":9,"url":"https://arxiv.org/abs/2303.13839"},
+  "arxiv:2310.18073": {"title":"A Scalable Framework for Table of Contents Extraction from Complex ESG Annual Reports","score":8,"url":"https://arxiv.org/abs/2310.18073"},
+  "arxiv:2206.01062": {"title":"DocLayNet: A Large Human-Annotated Dataset for Document-Layout Analysis","score":7,"url":"https://arxiv.org/abs/2206.01062"},
+  "arxiv:2412.07626": {"title":"OmniDocBench: Benchmarking Diverse PDF Document Parsing with Comprehensive Annotations","score":7,"url":"https://arxiv.org/abs/2412.07626"}
+}

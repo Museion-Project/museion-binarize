@@ -1,4 +1,4 @@
-# cargo-deny configuration for Museion Binarize.
+# cargo-deny configuration for M PDF Processor.
 #
 # This is an initial, conservative baseline for Milestone 0. As dependencies
 # are added (PDF generation, image processing, Tauri, etc.) this file should
@@ -74,7 +74,7 @@ confidence-threshold = 0.8
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
-# In-workspace path dependencies (museion-binarize-core used by the CLI and
+# In-workspace path dependencies (mpdf-core used by the CLI and
 # the desktop backend) intentionally have no version requirement; allow
 # that specific pattern without weakening the "deny" wildcard check for
 # genuine `*` version requirements from external crates.

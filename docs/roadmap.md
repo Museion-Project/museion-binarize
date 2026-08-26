@@ -42,7 +42,7 @@ phase is scoped or committed to yet.
 - **Milestone 1 — Deterministic image-processing core.** Grayscale
   conversion and contrast, Otsu / Sauvola / manual thresholding,
   conservative preprocessing, despeckle cleanup, bilevel packing, and
-  CCITT Group 4 encoding in `museion-binarize-core`, with unit tests.
+  CCITT Group 4 encoding in `mpdf-core`, with unit tests.
   *(Complete.)*
 - **Milestone 2 — End-to-end PDF pipeline.** PDFium rasterization, page
   inspection and geometry, the single page-processing orchestrator,
@@ -103,7 +103,7 @@ phase is scoped or committed to yet.
   Milestone 3; see [`reporting.md`](reporting.md). *(Complete. Adds a
   deterministic, evenly-spaced page sample estimated through the real
   pipeline (no separate fast/approximate estimator), a
-  `museion-binarize-size-estimate` report schema, an `estimate` CLI
+  `mpdf-size-estimate` report schema, an `estimate` CLI
   command reusing `analyze`/`process`'s own settings parsing, an
   "Estimate" panel in the desktop app with caching/staleness/cancellation
   and automatic estimate-vs-actual comparison on the next matching
@@ -146,7 +146,7 @@ phase is scoped or committed to yet.
   repository with no environment variable; the standalone CLI archive
   was verified end to end — inspect/process/benchmark all succeeded
   against a fresh extraction with bundled PDFium and no
-  `MUSEION_PDFIUM_LIBRARY`. Windows/Linux packaging is configured and
+  `MPDF_PDFIUM_LIBRARY`. Windows/Linux packaging is configured and
   CI-targeted but not exercised on real hardware this milestone;
   signing/notarization integration exists but no artifact is actually
   signed or notarized (no credentials available). No public release or

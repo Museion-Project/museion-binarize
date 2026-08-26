@@ -12,12 +12,12 @@ settings before spending minutes or hours on a large scan.
 
 ## What it does
 
-`estimate_output_size` (core), `museion-binarize-cli estimate` (CLI), and
+`estimate_output_size` (core), `mpdf-cli estimate` (CLI), and
 the desktop app's "Estimate" button all do the same thing:
 
 1. Pick a small, deterministic set of pages to sample (see below).
 2. Render, binarize, and CCITT-encode *only those pages*, through
-   [`analyze_one_page`](../crates/museion-binarize-core/src/pipeline.rs) —
+   [`analyze_one_page`](../crates/mpdf-core/src/pipeline.rs) —
    the exact same per-page function `process` and `analyze` use. There is
    no second, faster, approximate page-processing path. If the estimate
    is wrong, it is wrong for the same reasons a full conversion would be
@@ -36,7 +36,7 @@ the desktop app's "Estimate" button all do the same thing:
 Sampling is deterministic — never random — so the same document and
 sample count always sample the same pages and produce the same estimate.
 
-- Default: 8 samples ([`estimation::DEFAULT_SAMPLE_COUNT`](../crates/museion-binarize-core/src/estimation.rs)).
+- Default: 8 samples ([`estimation::DEFAULT_SAMPLE_COUNT`](../crates/mpdf-core/src/estimation.rs)).
 - Evenly spaced across `[0, page_count - 1]` by rounded integer division;
   first and last page are included whenever the sample count allows it.
 - A request larger than the document's page count quietly clamps to
@@ -93,7 +93,7 @@ to only a few dozen bytes — a mostly-blank page, for instance — this fixed
 structure can dwarf the image data itself.
 
 The estimator accounts for this with
-[`pdf_writer::measure_container_overhead`](../crates/museion-binarize-core/src/pdf_writer.rs),
+[`pdf_writer::measure_container_overhead`](../crates/mpdf-core/src/pdf_writer.rs),
 which builds two trivial one-pixel reference pages through the real
 `BilevelPdfBuilder` — the same writer `process` uses — and reads the byte
 deltas to get:
@@ -123,7 +123,7 @@ not a promise about any particular real document:
 | 24-page homogeneous synthetic (uniform page type) | 8 (default) | ≤ 15% | 1.2% (estimated 37,308 vs. actual 37,757 bytes) | Passing |
 
 These are single observed runs against the fixtures as committed
-(`crates/museion-binarize-core/src/test_fixtures.rs`), Otsu/300 DPI —
+(`crates/mpdf-core/src/test_fixtures.rs`), Otsu/300 DPI —
 not a statistical distribution across many runs, and the pass margin is
 comfortably inside the threshold rather than right at the boundary. The
 threshold, not the observed number, is the actual engineering

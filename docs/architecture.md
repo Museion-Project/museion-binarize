@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the intended architecture of Museion Binarize. It
+This document describes the intended architecture of M PDF Processor. It
 reflects the design as of Milestone 0 (repository initialization); most of
 the pipeline described below is **not implemented yet**. See
 [`limitations.md`](limitations.md) for the current state.
@@ -25,10 +25,10 @@ the pipeline described below is **not implemented yet**. See
 ## Workspace layout
 
 ```
-museion-binarize/
+mpdf/
 ├── crates/
-│   ├── museion-binarize-core/   # Pure Rust processing core
-│   └── museion-binarize-cli/    # CLI front end, depends on core
+│   ├── mpdf-core/   # Pure Rust processing core
+│   └── mpdf-cli/    # CLI front end, depends on core
 └── apps/
     └── desktop/
         ├── src/                # React + TypeScript UI
@@ -43,22 +43,22 @@ deviation from the structure requested for Milestone 0 was necessary.
 
 ## Core / CLI / desktop separation
 
-- **`museion-binarize-core`** contains all image and PDF processing logic:
+- **`mpdf-core`** contains all image and PDF processing logic:
   decoding input, thresholding algorithms (Otsu, Sauvola, manual), bilevel
   image construction, CCITT Group 4 encoding, and PDF reconstruction. It
   depends only on general-purpose Rust crates (image processing, PDF
   writing, etc.) — **never** on Tauri, `wry`, or any GUI toolkit.
-- **`museion-binarize-cli`** is a thin binary crate that parses command-line
-  arguments (via `clap`) and calls into `museion-binarize-core`. It is the
+- **`mpdf-cli`** is a thin binary crate that parses command-line
+  arguments (via `clap`) and calls into `mpdf-core`. It is the
   reference implementation for scripting and reproducible benchmarking.
 - **`apps/desktop`** is a Tauri 2 application. Its Rust backend
-  (`src-tauri`) depends on `museion-binarize-core` and exposes a small set
+  (`src-tauri`) depends on `mpdf-core` and exposes a small set
   of Tauri commands that the React/TypeScript frontend calls. The frontend
   contains no processing logic of its own.
 
 ### Why the core is independent of Tauri
 
-1. **Testability.** Pure Rust logic in `museion-binarize-core` can be unit-
+1. **Testability.** Pure Rust logic in `mpdf-core` can be unit-
    and property-tested without spinning up a webview or windowing system,
    which matters for CI across three operating systems.
 2. **Reuse.** The CLI and the desktop app must produce identical output.
@@ -66,7 +66,7 @@ deviation from the structure requested for Milestone 0 was necessary.
    (and risking divergence in) the processing logic.
 3. **Reproducible benchmarking.** The benchmarking framework (see
    [`benchmarking.md`](benchmarking.md)) is expected to run headlessly, most
-   likely via the CLI or by depending on `museion-binarize-core` directly.
+   likely via the CLI or by depending on `mpdf-core` directly.
    A GUI dependency would make that impractical, especially in CI.
 4. **Long-term flexibility.** Keeping the core UI-agnostic leaves room for
    other front ends (e.g. a future batch/server tool) without a rewrite.
@@ -107,7 +107,7 @@ Stages, at a high level:
 
 PDFium is used strictly as a **rasterization** engine: turning existing PDF
 pages into pixels the core can threshold. It is treated as an isolated
-dependency behind a narrow internal interface in `museion-binarize-core`, so
+dependency behind a narrow internal interface in `mpdf-core`, so
 that:
 
 - PDFium binaries can be fetched/built through a separate, documented,
@@ -146,7 +146,7 @@ bound rather than treating this section as up to date on its own.
 
 Tauri 2 is used specifically because it produces small, native-webview-based
 application bundles for macOS, Windows, and Linux from one codebase, and
-because its Rust backend integrates directly with `museion-binarize-core`
+because its Rust backend integrates directly with `mpdf-core`
 without an additional FFI layer. Platform-specific packaging (DMG, MSI,
 AppImage/deb/rpm) is intentionally out of scope for Milestone 0 CI, which
 focuses on build and test correctness; packaging workflows will be added in
@@ -228,7 +228,7 @@ not a new claim — is what makes the diagram above accurate.
 | Module | Responsibility |
 |---|---|
 | `page_geometry.rs` | Points↔pixels, rotation semantics, safety limits. Pure arithmetic, no PDFium. |
-| `document.rs` | Museion-owned document/page/metadata types. |
+| `document.rs` | M PDF-owned document/page/metadata types. |
 | `source_identity.rs` | What was actually opened: canonical path, byte length, modification time, opt-in content hash. |
 | `pdfium_backend.rs` | Library resolution and the process-wide PDFium session. |
 | `document_session.rs` | The persistent, single-open-per-operation document session; the `DocumentSession` trait the rest of the pipeline depends on instead of PDFium types directly. |

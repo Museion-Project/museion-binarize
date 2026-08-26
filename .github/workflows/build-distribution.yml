@@ -98,14 +98,14 @@ jobs:
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
 
       - name: Build CLI (release)
-        run: cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
+        run: cargo build -p mpdf-cli --release --target ${{ matrix.target }}
 
       - name: Package CLI archive
         run: |
           VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
           python3 scripts/distribution/package_cli.py \
             --target-triple ${{ matrix.target }} \
-            --binary target/${{ matrix.target }}/release/museion-binarize \
+            --binary target/${{ matrix.target }}/release/mpdf \
             --pdfium-library target/distribution/pdfium/${{ matrix.target }}/libpdfium.dylib \
             --version "$VERSION" \
             --out-dir dist-out
@@ -263,7 +263,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: museion-binarize-${{ matrix.target }}
+          name: mpdf-${{ matrix.target }}
           path: dist-out/
           retention-days: 14
 
@@ -305,10 +305,10 @@ jobs:
         run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
       - name: Build and package CLI
         run: |
-          cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
+          cargo build -p mpdf-cli --release --target ${{ matrix.target }}
           python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])" > version.txt
           $VERSION = (Get-Content version.txt).Trim()
-          python3 scripts/distribution/package_cli.py --target-triple ${{ matrix.target }} --binary target/${{ matrix.target }}/release/museion-binarize.exe --pdfium-library target/distribution/pdfium/${{ matrix.target }}/pdfium.dll --version $VERSION --out-dir dist-out
+          python3 scripts/distribution/package_cli.py --target-triple ${{ matrix.target }} --binary target/${{ matrix.target }}/release/mpdf.exe --pdfium-library target/distribution/pdfium/${{ matrix.target }}/pdfium.dll --version $VERSION --out-dir dist-out
       - name: Collect MSI installer
         run: |
           $VERSION = (Get-Content version.txt).Trim()
@@ -345,7 +345,7 @@ jobs:
       # certificate is configured; the package below is unsigned.
       - uses: actions/upload-artifact@v4
         with:
-          name: museion-binarize-${{ matrix.target }}
+          name: mpdf-${{ matrix.target }}
           path: dist-out/
           retention-days: 14
 
@@ -391,11 +391,11 @@ jobs:
         run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json
       - name: Build and package CLI
         run: |
-          cargo build -p museion-binarize-cli --release --target ${{ matrix.target }}
+          cargo build -p mpdf-cli --release --target ${{ matrix.target }}
           VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
           python3 scripts/distribution/package_cli.py \
             --target-triple ${{ matrix.target }} \
-            --binary target/${{ matrix.target }}/release/museion-binarize \
+            --binary target/${{ matrix.target }}/release/mpdf \
             --pdfium-library target/distribution/pdfium/${{ matrix.target }}/libpdfium.so \
             --version "$VERSION" \
             --out-dir dist-out
@@ -437,6 +437,6 @@ jobs:
           python3 scripts/distribution/checksums.py dist-out
       - uses: actions/upload-artifact@v4
         with:
-          name: museion-binarize-${{ matrix.target }}
+          name: mpdf-${{ matrix.target }}
           path: dist-out/
           retention-days: 14

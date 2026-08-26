@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/museion-binarize-core",
-    "crates/museion-binarize-cli",
+    "crates/mpdf-core",
+    "crates/mpdf-cli",
     "apps/desktop/src-tauri",
 ]
 

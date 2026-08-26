@@ -6,9 +6,9 @@ file via `--report` — is one `ReportEnvelope` (or, on failure, one
 
 ```json
 {
-  "schema": "museion-binarize-<kind>",
+  "schema": "mpdf-<kind>",
   "schema_version": "1.0",
-  "tool": { "name": "Museion Binarize", "version": "0.1.0" },
+  "tool": { "name": "M PDF Processor", "version": "0.1.0" },
   "result": { ... }
 }
 ```
@@ -48,7 +48,7 @@ than it is.
 
 ## Report kinds
 
-### `museion-binarize-info` (`info --json`)
+### `mpdf-info` (`info --json`)
 
 Static project/build information plus, only if `--probe-pdfium` was
 passed, the result of resolving (and attempting to load) a PDFium
@@ -66,7 +66,7 @@ library. `info` never touches PDFium otherwise.
 | `pdfium.error` | The probe's error message, if it failed. A failed probe still prints the rest of the report but exits non-zero (exit code 4; see [`cli.md`](cli.md)). |
 | `limitations` | Short, human-readable strings — the same claims made in `limitations.md`, kept in sync by convention, not by generation. |
 
-### `museion-binarize-inspect` (`inspect --json`)
+### `mpdf-inspect` (`inspect --json`)
 
 | Field | Meaning |
 |---|---|
@@ -78,7 +78,7 @@ library. `info` never touches PDFium otherwise.
 | `pages[].source_rotation_degrees` | The source `/Rotate`; informational only — never applied a second time. See [`pdf-output.md`](pdf-output.md). |
 | `pages[].render_sizes[]` | Pixel dimensions at each of `supported_dpi`; `null` width/height for a DPI where the page geometry is out of range. |
 
-### `museion-binarize-analysis` (`analyze --json` / `--report`)
+### `mpdf-analysis` (`analyze --json` / `--report`)
 
 Produced by `analyze` — real rendering and binarization through the same
 pipeline `process` uses, without writing a reconstructed output PDF. Not
@@ -121,7 +121,7 @@ document is still analyzed. `process` has the opposite policy (any page
 failure aborts the whole conversion), because a partial output PDF is not
 a valid PDF.
 
-### `museion-binarize-process` (`process --json` / `--report`)
+### `mpdf-process` (`process --json` / `--report`)
 
 | Field | Meaning |
 |---|---|
@@ -166,7 +166,7 @@ A flagged page may simply contain a full-page illustration or a bold
 diagram; it is not evidence of a scanning problem, and no downstream
 consumer should treat it as one.
 
-### `museion-binarize-size-estimate` (`estimate --json` / `--report`)
+### `mpdf-size-estimate` (`estimate --json` / `--report`)
 
 Produced by `estimate` (CLI) and the desktop app's "Estimate" action.
 Always `experimental: true` — see `docs/size-estimation.md` for the full
@@ -200,7 +200,7 @@ Per sampled page:
 | `bytes_per_pixel` | `ccitt_bytes / pixel_count` — the normalized quantity the whole estimate is built from. |
 | `processing_duration_us` | Time to render, binarize, and encode this one sampled page. |
 
-### `museion-binarize-preview` (`preview --json`)
+### `mpdf-preview` (`preview --json`)
 
 | Field | Meaning |
 |---|---|
@@ -208,7 +208,7 @@ Per sampled page:
 | `page_number` | One-based. |
 | `pixel_width`, `pixel_height` | Of the written PNG. |
 
-### `museion-binarize-benchmark` (`benchmark run --json` / `--report`)
+### `mpdf-benchmark` (`benchmark run --json` / `--report`)
 
 Ground-truth binarization-fidelity benchmark results — not the same
 thing as `analyze`, which has no ground truth. See
@@ -260,11 +260,11 @@ tag):
 
 ## Error envelope
 
-Schema `museion-binarize-error`, version `1.0`:
+Schema `mpdf-error`, version `1.0`:
 
 ```json
 {
-  "schema": "museion-binarize-error",
+  "schema": "mpdf-error",
   "schema_version": "1.0",
   "error": {
     "code": "password_required",
@@ -277,7 +277,7 @@ Schema `museion-binarize-error`, version `1.0`:
 `code` is a stable, machine-readable identifier — never an internal Rust
 type name or FFI detail. The full mapping from every `CoreError` variant
 to a `code` and an exit-code category lives in
-`crates/museion-binarize-cli/src/errors.rs::classify` and is documented in
+`crates/mpdf-cli/src/errors.rs::classify` and is documented in
 [`cli.md`](cli.md#exit-codes). `context` carries non-secret, caller-supplied
 detail such as the input path; nothing in this envelope can carry a
 password — see the test
@@ -297,14 +297,14 @@ Every report that names a source path accepts `--path-mode`:
 ## Sample output
 
 ```bash
-$ museion-binarize analyze book.pdf --dpi 300 --method otsu --json --pretty
+$ mpdf analyze book.pdf --dpi 300 --method otsu --json --pretty
 ```
 
 ```json
 {
-  "schema": "museion-binarize-analysis",
+  "schema": "mpdf-analysis",
   "schema_version": "1.0",
-  "tool": { "name": "Museion Binarize", "version": "0.1.0" },
+  "tool": { "name": "M PDF Processor", "version": "0.1.0" },
   "result": {
     "source_path": "book.pdf",
     "source_bytes": 1321,

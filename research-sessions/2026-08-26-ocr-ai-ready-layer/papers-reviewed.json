@@ -1,0 +1,66 @@
+{
+  "docling": {
+    "type": "software_project",
+    "status": "highly_relevant",
+    "score": 10,
+    "recent_version": "2.123.0",
+    "recent_date": "2026-08-26",
+    "found_data": ["canonical document schema", "bbox provenance", "version negotiation", "local/service"]
+  },
+  "paddleocr": {
+    "type": "software_project",
+    "status": "highly_relevant",
+    "score": 10,
+    "recent_version": "3.7.0",
+    "recent_date": "2026-06-11",
+    "found_data": ["block/line polygons", "reading order", "confidence", "local/service/API"]
+  },
+  "marker": {
+    "type": "software_project",
+    "status": "highly_relevant",
+    "score": 9,
+    "recent_version": "2.0.0",
+    "recent_date": "2026-07-20",
+    "found_data": ["page/block tree", "polygons", "section hierarchy", "chunks", "selective OCR"]
+  },
+  "mineru": {
+    "type": "software_project",
+    "status": "highly_relevant",
+    "score": 9,
+    "recent_version": "3.4.5 and 4.0.0 alpha series",
+    "recent_date": "2026-08-14",
+    "found_data": ["middle JSON", "page-oriented content list v2", "normalized bbox", "backend coordinate mismatch risk"]
+  },
+  "mistral-ocr-4": {
+    "type": "api_and_self_hosted_product",
+    "status": "highly_relevant",
+    "score": 9,
+    "recent_version": "OCR 4",
+    "recent_date": "2026-06-23",
+    "found_data": ["block types", "bbox", "page/block/word confidence", "API", "enterprise self-host"]
+  },
+  "olmocr": {
+    "type": "software_project",
+    "status": "relevant",
+    "score": 7,
+    "recent_version": "0.4.27",
+    "recent_date": "2026-03-12",
+    "found_data": ["natural reading order", "page character spans", "benchmark", "GPU local/server"]
+  },
+  "franken-ocr": {
+    "type": "software_project",
+    "status": "relevant_with_adoption_blockers",
+    "score": 7,
+    "recent_version": "0.7.2",
+    "recent_date": "2026-07-12",
+    "found_data": ["pure Rust CPU", "same-decode markdown/layout", "PDF page JSON", "nonstandard license rider"]
+  },
+  "kreuzberg": {
+    "type": "software_project",
+    "status": "relevant",
+    "score": 7,
+    "recent_version": "4.9.x",
+    "recent_date": "2026-05-17",
+    "found_data": ["Rust core", "provider plugins", "pages/elements/chunks", "multi-deployment architecture"]
+  }
+}

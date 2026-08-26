@@ -99,7 +99,7 @@ than a UI-only "hide the progress bar": the same mechanism the CLI's
 
 ## Progress events
 
-Namespaced `museion://processing-progress` / `-completed` / `-cancelled`
+Namespaced `mpdf://processing-progress` / `-completed` / `-cancelled`
 / `-failed` events, one job at a time. Progress granularity is
 stage-level (rendering / binarizing / encoding / writing / validating
 per page), not pixel-level — for a long book this is on the order of a
@@ -199,7 +199,7 @@ does not make it worse by duplicating the source elsewhere.
 
 ## Settings, presets, and CLI parity
 
-`ProcessingSettingsDto` mirrors `museion_binarize_core::settings::
+`ProcessingSettingsDto` mirrors `mpdf_core::settings::
 ProcessingSettings` field-for-field. `settings.rs`'s
 `to_processing_settings` is the one conversion point, and it re-validates
 every field server-side (unsupported DPI, out-of-range contrast, an even
@@ -217,7 +217,7 @@ preset indicator to "Custom".
 
 A dedicated integration test
 (`cli_and_gui_entry_points_produce_byte_identical_output_for_identical_settings`
-in `crates/museion-binarize-core/tests/pdf_pipeline.rs`) converts the
+in `crates/mpdf-core/tests/pdf_pipeline.rs`) converts the
 same fixture through `process_pdf` (the CLI's entry point) and
 `process_with_open_session` (the desktop app's entry point, added this
 milestone specifically so the app can reuse an already-open session) and
@@ -265,7 +265,7 @@ event from a previous job/document can never corrupt newer state.
   Adequate for the automated coverage this milestone has, unverified at
   real scale (hundreds of pages) without a live run.
 - No settings UI for an explicit PDFium library path; only the
-  `MUSEION_PDFIUM_LIBRARY` environment variable (development-only, same
+  `MPDF_PDFIUM_LIBRARY` environment variable (development-only, same
   as the CLI).
 - No packaging, code signing, or notarization — this milestone is GUI
   feature completeness, not release engineering (Milestone 7).

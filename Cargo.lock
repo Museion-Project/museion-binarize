@@ -2158,6 +2158,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "mpdf-cli"
+version = "0.1.0-rc.2"
+dependencies = [
+ "clap",
+ "mpdf-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "mpdf-core"
+version = "0.1.0-rc.2"
+dependencies = [
+ "fax",
+ "image",
+ "pdf-writer",
+ "pdfium-render",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.19",
+ "toml 0.8.2",
+]
+
+[[package]]
+name = "mpdf-desktop"
+version = "0.1.0-rc.2"
+dependencies = [
+ "base64 0.22.1",
+ "image",
+ "mpdf-core",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+]
+
+[[package]]
 name = "muda"
 version = "0.19.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2176,48 +2218,6 @@ dependencies = [
  "serde",
  "thiserror 2.0.19",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "museion-binarize-cli"
-version = "0.1.0-rc.2"
-dependencies = [
- "clap",
- "museion-binarize-core",
- "serde",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "museion-binarize-core"
-version = "0.1.0-rc.2"
-dependencies = [
- "fax",
- "image",
- "pdf-writer",
- "pdfium-render",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.19",
- "toml 0.8.2",
-]
-
-[[package]]
-name = "museion-binarize-desktop"
-version = "0.1.0-rc.2"
-dependencies = [
- "base64 0.22.1",
- "image",
- "museion-binarize-core",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
 ]
 
 [[package]]

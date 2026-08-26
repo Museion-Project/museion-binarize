@@ -1,6 +1,6 @@
 # CLI
 
-`museion-binarize` — commands, global options, the stdout/stderr contract,
+`mpdf` — commands, global options, the stdout/stderr contract,
 and the exit-code table. For JSON report field meanings, see
 [`reporting.md`](reporting.md).
 
@@ -16,7 +16,7 @@ and the exit-code table. For JSON report field meanings, see
 | `preview` | Render and process one page, saving a PNG. |
 | `benchmark run` / `benchmark validate` | Ground-truth binarization-fidelity benchmarking against a dataset/profile manifest. **`benchmark` requires pixel-accurate ground truth; `analyze` is not a benchmark.** See [`benchmark-running.md`](benchmark-running.md). |
 
-Run `museion-binarize <command> --help` for the full flag list.
+Run `mpdf <command> --help` for the full flag list.
 
 ## Global options
 
@@ -41,11 +41,11 @@ same report to a file, atomically, subject to `--overwrite`.
 ## Password
 
 There is no `--password` flag. A password is read only from the
-`MUSEION_PDF_PASSWORD` environment variable, so it never appears in a
+`MPDF_PDF_PASSWORD` environment variable, so it never appears in a
 command line, shell history, or process listing (`ps`):
 
 ```bash
-MUSEION_PDF_PASSWORD=secret museion-binarize inspect protected.pdf
+MPDF_PDF_PASSWORD=secret mpdf inspect protected.pdf
 ```
 
 It is never logged, serialized, or included in an error's JSON `context`.
@@ -64,13 +64,13 @@ all              every page (default)
 Rejected: page `0`, a reversed range (`5-1`), a page beyond the document's
 actual count, and non-numeric input. Duplicate pages (`1,1,2`) are accepted
 and deduplicated. See `PageSelection` in
-`crates/museion-binarize-core/src/page_selection.rs` for the exact rules
+`crates/mpdf-core/src/page_selection.rs` for the exact rules
 and their tests.
 
 ## Estimating output size (`estimate`)
 
 ```bash
-museion-binarize estimate book.pdf --dpi 400 --method sauvola --samples 8
+mpdf estimate book.pdf --dpi 400 --method sauvola --samples 8
 ```
 
 `estimate` parses `--dpi`/`--method`/binarization settings exactly the way
@@ -82,7 +82,7 @@ parser — so an estimate's settings are guaranteed to match what a later
   spaced (default 8, range 1–32; a value above the document's page count
   quietly samples every page instead of erroring). See
   [`size-estimation.md`](size-estimation.md#sampling-policy).
-- `--report <PATH>` — write the `museion-binarize-size-estimate` report to
+- `--report <PATH>` — write the `mpdf-size-estimate` report to
   a file, atomically, subject to `--overwrite`; the same path-aliasing
   check used elsewhere rejects a report path that resolves to the input
   file.
@@ -94,12 +94,12 @@ is not) a guarantee of.
 ## Benchmarking (`benchmark run` / `benchmark validate`)
 
 ```bash
-museion-binarize benchmark run \
+mpdf benchmark run \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml \
-  --report /tmp/museion-benchmark.json
+  --report /tmp/mpdf-benchmark.json
 
-museion-binarize benchmark validate \
+mpdf benchmark validate \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml
 ```
@@ -159,7 +159,7 @@ the error envelope's fields.
 | 7 | cancellation |
 
 The mapping from every `CoreError` variant to one of these codes is
-centralized in `crates/museion-binarize-cli/src/errors.rs::classify`, so
+centralized in `crates/mpdf-cli/src/errors.rs::classify`, so
 no ordinary user-facing failure can escape through Rust's uncontrolled
 panic exit code (101) — a panic here would mean a bug, not a documented
 failure mode. The same function also produces the JSON error `code`

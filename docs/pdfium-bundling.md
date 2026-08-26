@@ -1,7 +1,7 @@
 # PDFium bundling (Milestone 7A)
 
 How official packaged builds carry their own trusted PDFium, so a normal
-end user never sets `MUSEION_PDFIUM_LIBRARY`, searches for a library, or
+end user never sets `MPDF_PDFIUM_LIBRARY`, searches for a library, or
 launches from a terminal. See [`pdfium.md`](pdfium.md) for the
 unchanged developer-setup story and the resolver's full precedence
 order, and [`releasing.md`](releasing.md) for how this fits into the
@@ -12,7 +12,7 @@ release pipeline.
 Milestone 2's `pdfium_backend::resolve_library` already implements
 exactly the "explicit override -> packaged resource -> [system, if
 allowed] -> reject" precedence Milestone 7A needs (see
-`crates/museion-binarize-core/src/pdfium_backend.rs`), including a
+`crates/mpdf-core/src/pdfium_backend.rs`), including a
 `LibrarySource::BundledResource` candidate (`<exe_dir>/resources/<lib>`)
 and a `LibrarySource::ExecutableAdjacent` candidate (`<exe_dir>/<lib>`)
 — both already anchored to the running executable, never the current
@@ -27,8 +27,8 @@ The CLI resolver's `ExecutableAdjacent` candidate already matches the
 milestone's desired archive layout exactly:
 
 ```
-museion-binarize-cli-<version>-<os>-<arch>/
-  museion-binarize            (or museion-binarize.exe)
+mpdf-cli-<version>-<os>-<arch>/
+  mpdf            (or mpdf.exe)
   libpdfium.dylib              (or pdfium.dll / libpdfium.so)
   LICENSE-MIT
   LICENSE-APACHE
@@ -40,7 +40,7 @@ No core code changed to support this — `scripts/distribution/package_cli.py`
 only assembles the archive; `resolve_library` finds the sibling library
 automatically. Verified directly: extracting a packaged archive to a
 fresh location and running `inspect`/`process` with no
-`MUSEION_PDFIUM_LIBRARY` set actually works — see
+`MPDF_PDFIUM_LIBRARY` set actually works — see
 `docs/desktop-testing.md`'s "Milestone 7A" section for the exact
 transcript.
 
@@ -64,17 +64,17 @@ is stored once in `AppState` and threaded into every worker-thread
 
 **Precedence, implemented in `worker::pdfium_config`:**
 
-1. `MUSEION_PDFIUM_LIBRARY`, if set — unchanged development/support
+1. `MPDF_PDFIUM_LIBRARY`, if set — unchanged development/support
    override, still honored even in a packaged build (useful for
    diagnosing a bad bundled copy without needing a whole new release).
 2. The trusted bundled resource, if Tauri found one at startup.
 3. Otherwise, `PdfiumConfig::default()` — the core resolver's own
-   unchanged search (executable-adjacent, `MUSEION_ALLOW_CWD_PDFIUM`
+   unchanged search (executable-adjacent, `MPDF_ALLOW_CWD_PDFIUM`
    development tree, system library only if explicitly allowed).
 
 Verified directly against a real build: `cargo tauri build --bundles
 app` produces
-`Museion Binarize.app/Contents/Resources/libpdfium.dylib`; a copy of
+`M PDF Processor.app/Contents/Resources/libpdfium.dylib`; a copy of
 that `.app` launched outside the repository, with no environment
 variable set, starts without crashing (see
 `docs/desktop-testing.md`). Full interactive click-through (open a
@@ -146,7 +146,7 @@ ever tracked in git.
 ## No production runtime dependency on an environment variable
 
 A packaged build's primary path never requires
-`MUSEION_PDFIUM_LIBRARY` to be set — the bundled resource is used
+`MPDF_PDFIUM_LIBRARY` to be set — the bundled resource is used
 automatically. If the bundled resource is somehow missing or invalid
 (a broken package), the failure is the core resolver's existing
 structured `PdfiumNotFound`/`PdfiumLoadFailed` error, surfaced through

@@ -1,13 +1,13 @@
 //! The one conversion point from [`ProcessingSettingsDto`] to the real
-//! [`ProcessingSettings`], mirroring `museion-binarize-cli`'s
+//! [`ProcessingSettings`], mirroring `mpdf-cli`'s
 //! `SettingsArgs::to_settings` validation. The frontend constrains its
 //! controls to sane ranges, but every bound here is re-checked
 //! server-side — a frontend control range is a convenience, never trusted
 //! as the actual limit (see `docs/desktop.md`).
 
-use museion_binarize_core::binarization::SauvolaParams;
-use museion_binarize_core::cleanup::{CleanupSettings, DespeckleLevel};
-use museion_binarize_core::settings::{
+use mpdf_core::binarization::SauvolaParams;
+use mpdf_core::cleanup::{CleanupSettings, DespeckleLevel};
+use mpdf_core::settings::{
     BinarizationMethod, PreprocessingSettings, ProcessingSettings, SUPPORTED_DPI,
 };
 
@@ -51,9 +51,9 @@ pub fn to_processing_settings(dto: &ProcessingSettingsDto) -> Result<ProcessingS
             BinarizationMethod::Manual { threshold }
         }
         "sauvola" => {
-            let window_size = dto.sauvola_window_size.unwrap_or_else(|| {
-                museion_binarize_core::binarization::sauvola_window_for_dpi(dto.dpi)
-            });
+            let window_size = dto
+                .sauvola_window_size
+                .unwrap_or_else(|| mpdf_core::binarization::sauvola_window_for_dpi(dto.dpi));
             if window_size == 0 || window_size % 2 == 0 {
                 return Err(format!(
                     "sauvolaWindowSize must be a positive odd number, got {window_size}"
@@ -178,7 +178,7 @@ mod tests {
             BinarizationMethod::Sauvola(p) => {
                 assert_eq!(
                     p.window_size,
-                    museion_binarize_core::binarization::sauvola_window_for_dpi(400)
+                    mpdf_core::binarization::sauvola_window_for_dpi(400)
                 );
                 assert_eq!(p.k, SauvolaParams::default().k);
             }

@@ -1,7 +1,7 @@
 //! Serializable types crossing the Tauri IPC boundary.
 //!
 //! Every type here is project-owned and UI-appropriate — never a raw
-//! `museion_binarize_core` type serialized directly, so a core refactor
+//! `mpdf_core` type serialized directly, so a core refactor
 //! cannot silently change the frontend's contract. Field names are
 //! `camelCase` for TypeScript ergonomics; doc comments note units.
 //!
@@ -12,9 +12,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use museion_binarize_core::document::PdfDocumentInfo;
-use museion_binarize_core::estimation::{PageSizeEstimateSample, SizeEstimateReport};
-use museion_binarize_core::pipeline::ProcessingReport;
+use mpdf_core::document::PdfDocumentInfo;
+use mpdf_core::estimation::{PageSizeEstimateSample, SizeEstimateReport};
+use mpdf_core::pipeline::ProcessingReport;
 
 /// One page's geometry, as reported after a document opens.
 #[derive(Debug, Clone, Serialize)]
@@ -75,7 +75,7 @@ impl DocumentSummaryDto {
 }
 
 /// The processing settings the frontend can express, mirroring
-/// `museion_binarize_core::settings::ProcessingSettings` field-for-field.
+/// `mpdf_core::settings::ProcessingSettings` field-for-field.
 /// One conversion point (`settings::to_processing_settings`) turns this
 /// into the real settings type; nothing downstream ever sees this DTO.
 /// The backend validates every field itself — frontend control ranges are
@@ -164,7 +164,7 @@ pub struct ProcessingStartedDto {
     pub page_count: u32,
 }
 
-/// Progress payload emitted on the `museion://processing-progress` event.
+/// Progress payload emitted on the `mpdf://processing-progress` event.
 /// Deliberately coarse — see `docs/desktop.md` on event granularity.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -310,7 +310,7 @@ pub struct EstimateRequestDto {
     pub document_id: String,
     pub settings: ProcessingSettingsDto,
     /// How many pages to sample. Validated and clamped server-side by
-    /// `museion_binarize_core::estimation::resolve_sample_count` —
+    /// `mpdf_core::estimation::resolve_sample_count` —
     /// exactly the same bounds the CLI's `estimate --samples` enforces.
     pub samples: u32,
     /// A generation id the frontend assigns and increments per request,
@@ -373,12 +373,8 @@ impl EstimateResultDto {
             estimated_lower_bytes: report.estimated_lower_bytes,
             estimated_upper_bytes: report.estimated_upper_bytes,
             range_method: match report.range_method {
-                museion_binarize_core::estimation::EstimationRangeMethod::Quartiles => {
-                    "quartiles".to_string()
-                }
-                museion_binarize_core::estimation::EstimationRangeMethod::MinMax => {
-                    "min_max".to_string()
-                }
+                mpdf_core::estimation::EstimationRangeMethod::Quartiles => "quartiles".to_string(),
+                mpdf_core::estimation::EstimationRangeMethod::MinMax => "min_max".to_string(),
             },
             dpi: report.dpi,
             method: report.method.clone(),

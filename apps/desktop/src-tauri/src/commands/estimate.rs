@@ -2,7 +2,7 @@
 //!
 //! Unlike `start_processing`, this command awaits the worker thread's
 //! reply directly and returns the result as its own return value — no
-//! `museion://estimate-*` events. Estimation is bounded (a handful of
+//! `mpdf://estimate-*` events. Estimation is bounded (a handful of
 //! sampled pages, not the whole document) and fast enough that the same
 //! request/response pattern `render_preview` already uses is a better
 //! fit than `start_processing`'s fire-and-forget/event bridge. Staleness
@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use tauri::State;
 
-use museion_binarize_core::progress::{ProgressEvent, ProgressReporter};
+use mpdf_core::progress::{ProgressEvent, ProgressReporter};
 
 use crate::dto::{EstimateRequestDto, EstimateResultDto, UiErrorDto};
 use crate::errors::{classify_core_error, request_error};

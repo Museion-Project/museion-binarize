@@ -1,0 +1,82 @@
+{
+  "guji-tools": {
+    "repo": "Ivan666jjj/guji-tools",
+    "status": "core_seed_minimal_prototype",
+    "last_commit": "2026-08-05",
+    "license": "MIT",
+    "surface": "CLI",
+    "artifacts": ["txt", "markdown", "page/block JSON"]
+  },
+  "xiaohuan-tools": {
+    "repo": "Ivan666jjj/xiaohuan-tools",
+    "status": "adjacent_seed",
+    "last_commit": "2026-08-07",
+    "license": "MIT",
+    "surface": "desktop toolbox",
+    "artifacts": ["txt"]
+  },
+  "octo-ocr": {
+    "repo": "1ampa55ag3/octo-ocr",
+    "status": "closest_peer",
+    "last_commit": "2026-08-17",
+    "license": "Apache-2.0",
+    "surface": "localhost web workbench",
+    "artifacts": ["mdun-project-v2 JSON", "markdown", "txt", "docx", "pdf", "xlsx"]
+  },
+  "folio-ocr": {
+    "repo": "vorojar/Folio-OCR",
+    "status": "highly_relevant",
+    "last_commit": "2026-06-18",
+    "license": "MIT",
+    "surface": "localhost proofreading workbench",
+    "artifacts": ["SQLite text/regions", "markdown", "txt", "docx", "epub"]
+  },
+  "deepseek-ocr-dashboard": {
+    "repo": "Cross2pro/DeepSeek-OCR-Dashboard",
+    "status": "relevant_model_playground",
+    "last_commit": "2026-04-06",
+    "license": "MIT",
+    "surface": "FastAPI + Vue local web",
+    "artifacts": ["history JSON", "markdown", "raw text", "bbox overlay"]
+  },
+  "local-llm-pdf-ocr": {
+    "repo": "ahnafnafee/local-llm-pdf-ocr",
+    "status": "highly_relevant_geometry_pipeline",
+    "last_commit": "2026-07-15",
+    "license": "MIT",
+    "surface": "FastAPI web + CLI",
+    "artifacts": ["searchable PDF", "HTML overlay", "markdown", "txt"]
+  },
+  "pdf-converter": {
+    "repo": "cyanyux/pdf-converter",
+    "status": "highly_relevant_service_architecture",
+    "last_commit": "2026-07-07",
+    "license": "none found at reviewed commit",
+    "surface": "self-hosted web + REST + MCP",
+    "artifacts": ["searchable PDF", "markdown+images ZIP", "docx", "job JSON"]
+  },
+  "paddle-ocr-ui": {
+    "repo": "egore4606/paddle-ocr-ui",
+    "status": "relevant_thin_wrapper",
+    "last_commit": "2026-07-11",
+    "license": "MIT",
+    "surface": "FastAPI + Docker local web",
+    "artifacts": ["Paddle result JSON", "markdown", "txt", "images", "zip"]
+  },
+  "mdflux": {
+    "repo": "ibrahimqureshae/mdflux",
+    "status": "highly_relevant_desktop_packaging",
+    "last_commit": "2026-08-25",
+    "license": "MIT",
+    "surface": "Tauri + Svelte desktop",
+    "artifacts": ["AI-ready markdown"]
+  },
+  "pdf-ocr-llm": {
+    "repo": "hz01/pdf-ocr-llm",
+    "status": "relevant_multimodel_playground",
+    "last_commit": "2026-03-15",
+    "license": "MIT",
+    "surface": "Gradio web + CLI",
+    "artifacts": ["markdown", "txt", "OCRFlux JSON", "schema-extraction JSON"]
+  }
+}

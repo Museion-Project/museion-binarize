@@ -1,8 +1,8 @@
 [English](README.md) | 简体中文
 
-# Museion Binarize
+# M PDF 处理器
 
-**Museion Binarize** 是一款开源、跨平台的应用程序，用于将扫描的学术书籍转换为
+**M PDF 处理器** 是一款开源、跨平台的应用程序，用于将扫描的学术书籍转换为
 干净、紧凑的双色（bilevel）PDF 文件。
 
 **当前状态：Phase 1 功能已完成——当前公开发行候选版为
@@ -31,7 +31,7 @@ Silicon）** 完成了人工端到端运行验收——桌面 GUI 的原生应�
 - 在处理大型扫描书籍时，具有可预测、有边界的资源占用。
 - 默认跨平台：macOS、Windows 和 Linux 都是一等目标，而非事后添加的支持。
 
-Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是经典、确定性的
+M PDF 处理器 不会将自身描述为“AI 驱动”。Phase 1 使用的是经典、确定性的
 图像处理方法，而非机器学习模型。
 
 ## Phase 1 功能
@@ -60,9 +60,9 @@ Museion Binarize 不会将自身描述为“AI 驱动”。Phase 1 使用的是�
 
 | 平台 | 下载 | 人工运行验收 | 签名情况 |
 |---|---|---|---|
-| macOS（Apple Silicon / arm64） | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-macos-arm64.dmg)（桌面应用）· [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-macos-arm64.tar.gz) | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
-| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-windows-x64.msi) 安装包 · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-windows-x64.zip) | 尚未完成——仅为发行候选构建 | 未签名 |
-| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/Museion-Binarize-0.1.0-rc.2-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/museion-binarize-cli-0.1.0-rc.2-linux-x86_64.tar.gz) | 尚未完成——仅为发行候选构建 | 不适用 |
+| macOS（Apple Silicon / arm64） | [`.dmg`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-macos-arm64.dmg)（桌面应用）· [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-cli-0.1.0-rc.2-macos-arm64.tar.gz) | 已完成——主要验证平台 | ad-hoc 签名，**未**经 Developer ID 签名或公证（见下） |
+| Windows x64 | [`.msi`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-windows-x64.msi) 安装包 · [CLI `.zip`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-cli-0.1.0-rc.2-windows-x64.zip) | 尚未完成——仅为发行候选构建 | 未签名 |
+| Linux x86_64 | [`.AppImage`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-linux-x86_64.AppImage) · [`.deb`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-0.1.0-rc.2-linux-x86_64.deb) · [CLI `.tar.gz`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/mpdf-cli-0.1.0-rc.2-linux-x86_64.tar.gz) | 尚未完成——仅为发行候选构建 | 不适用 |
 
 [Release 页面](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.1.0-rc.2)
 还提供 [`SHA256SUMS`](https://github.com/Museion-Project/museion-binarize/releases/download/v0.1.0-rc.2/SHA256SUMS)
@@ -89,8 +89,8 @@ Developer ID 证书签名，也未经公证），因此首次启动时会出现 
 
 在后续、以基准测试为驱动的研究阶段，项目将评估能够更好地保留**多音调古希腊语
 （polytonic Ancient Greek）**、**校勘说明（critical apparatuses）**以及其他
-容易被激进二值化破坏的细小印刷细节的方法。目前项目**不**声称 Museion
-Binarize 能够保留此类排版细节——这一结论只有在可复现的基准测试数据出现之后
+容易被激进二值化破坏的细小印刷细节的方法。目前项目**不**声称 M PDF 处理器能够
+保留此类排版细节——这一结论只有在可复现的基准测试数据出现之后
 才会给出。详见 [`docs/roadmap.md`](docs/roadmap.md) 与
 [`docs/benchmarking.md`](docs/benchmarking.md)。
 
@@ -109,7 +109,7 @@ Phase 1 **不包括**：
 
 ## 分发
 
-Museion Binarize 的源代码保持开源（MIT OR Apache-2.0），GitHub 构建版本
+M PDF 处理器 的源代码保持开源（MIT OR Apache-2.0），GitHub 构建版本
 保持功能完整；未来计划推出的付费 Mac App Store 版本是一种便利性的
 分发渠道，而非另立的闭源功能层级——该路径的技术沙盒就绪工作已完成
 （详见 [`docs/mac-app-store-readiness.md`](docs/mac-app-store-readiness.md)），
@@ -120,10 +120,10 @@ Museion Binarize 的源代码保持开源（MIT OR Apache-2.0），GitHub 构建
 
 ## 开源与支持项目
 
-Museion Binarize 是免费且开源的软件，GitHub 提供的官方版本功能完整并
+M PDF 处理器 是免费且开源的软件，GitHub 提供的官方版本功能完整并
 免费提供——不存在任何为付费版本保留的功能。
 
-如果 Museion Binarize 对您有所帮助，欢迎通过
+如果 M PDF 处理器 对您有所帮助，欢迎通过
 [GitHub Sponsors](https://github.com/sponsors/pei-haoran) 支持项目的持续开发。
 
 未来也计划提供付费的 Mac App Store 版本。它主要作为更方便的安装、
@@ -133,17 +133,17 @@ Museion Binarize 是免费且开源的软件，GitHub 提供的官方版本功�
 
 ## 隐私
 
-Museion Binarize 的设计目标是完全在您自己的设备上处理文件。核心处理流程不会
+M PDF 处理器 的设计目标是完全在您自己的设备上处理文件。核心处理流程不会
 将扫描件、页面图像或输出文件上传到任何网络服务。桌面应用与命令行工具均仅处理
 您本地选择的文件。
 
 ## 仓库架构
 
 ```
-museion-binarize/
+mpdf/
 ├── crates/
-│   ├── museion-binarize-core/   # 不依赖 Tauri 的 Rust 处理核心
-│   └── museion-binarize-cli/    # 基于核心库构建的命令行界面
+│   ├── mpdf-core/   # 不依赖 Tauri 的 Rust 处理核心
+│   └── mpdf-cli/    # 基于核心库构建的命令行界面
 ├── apps/
 │   └── desktop/                 # Tauri 2 + React + TypeScript 桌面应用
 ├── docs/                        # 架构、路线图、算法、基准测试文档
@@ -175,7 +175,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 ### 运行命令行工具
 
 ```bash
-cargo run -p museion-binarize-cli -- --help
+cargo run -p mpdf-cli -- --help
 ```
 
 ### 提供 PDFium
@@ -186,32 +186,32 @@ cargo run -p museion-binarize-cli -- --help
 PDF 渲染需要 PDFium 动态库。从源码构建时，本项目不捆绑该库、不将其提交到仓库，也绝不在运行时下载——需要您自行提供一次。详见 [docs/pdfium.md](docs/pdfium.md)。
 
 ```bash
-export MUSEION_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
+export MPDF_PDFIUM_LIBRARY=/path/to/libpdfium.dylib
 ```
 
 ### 命令行用法
 
 ```bash
 # 检查文档：页数、页面几何、旋转、各 DPI 下的渲染尺寸
-museion-binarize inspect input.pdf
+mpdf inspect input.pdf
 
 # 通过真实处理流程测量文档，不写出转换后的 PDF——适合在正式转换前挑选参数
-museion-binarize analyze input.pdf --dpi 300 --method otsu --json --pretty
+mpdf analyze input.pdf --dpi 300 --method otsu --json --pretty
 
 # 通过真实处理流程对少量抽样页面进行处理，推算出实验性的输出体积预估，
 # 同样不写出转换后的 PDF
-museion-binarize estimate input.pdf --dpi 400 --method sauvola --samples 8
+mpdf estimate input.pdf --dpi 400 --method sauvola --samples 8
 
 # 转换为双色（bilevel）CCITT Group 4 PDF
-museion-binarize process input.pdf --output output.pdf \
+mpdf process input.pdf --output output.pdf \
   --method sauvola --dpi 400 --validate render-all
 
 # 将处理后的某一页保存为 PNG 预览（页码从 1 开始）
-museion-binarize preview input.pdf --page 12 --output preview.png
+mpdf preview input.pdf --page 12 --output preview.png
 
 # 基于像素级标准答案，对二值化保真度进行基准测试
 # （光栅级基准测试无需 PDF/PDFium）
-museion-binarize benchmark run \
+mpdf benchmark run \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml
 ```
@@ -224,7 +224,7 @@ museion-binarize benchmark run \
 
 ```bash
 pnpm install
-pnpm --filter museion-binarize-desktop tauri dev
+pnpm --filter mpdf-desktop tauri dev
 ```
 
 ## 贡献
@@ -240,7 +240,7 @@ pnpm --filter museion-binarize-desktop tauri dev
 
 ## 作者与维护者
 
-Museion Binarize 由 **Pei Haoran（裴浩然）** 在 **Museion Project** 组织下
+M PDF 处理器 由 **Pei Haoran（裴浩然）** 在 **Museion Project** 组织下
 创建并维护。详见 [`AUTHORS.md`](AUTHORS.md)。
 
 ## 许可证

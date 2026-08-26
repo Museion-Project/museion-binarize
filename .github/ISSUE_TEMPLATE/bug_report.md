@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a problem with Museion Binarize
+about: Report a problem with M PDF Processor
 title: "[Bug] "
 labels: bug
 assignees: ""
@@ -26,7 +26,7 @@ What actually happened, including any error messages or logs.
 
 ## Environment
 
-- Museion Binarize version / commit:
+- M PDF Processor version / commit:
 - OS and version (macOS / Windows / Linux):
 - Installed via: (CLI build / desktop app / built from source)
 

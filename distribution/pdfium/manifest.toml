@@ -1,4 +1,4 @@
-# Pinned PDFium release dependencies for official Museion Binarize
+# Pinned PDFium release dependencies for official M PDF Processor
 # packaging (desktop bundles and CLI distribution archives).
 #
 # This is distinct from `third_party/pdfium/manifest.toml`, which records
@@ -20,7 +20,7 @@
 #
 # Never write "latest" anywhere in this file or the scripts that read it.
 
-schema = "museion-binarize-pdfium-manifest"
+schema = "mpdf-pdfium-manifest"
 schema_version = "1.0"
 
 [[asset]]

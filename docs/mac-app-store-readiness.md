@@ -53,7 +53,7 @@ does not mean an App Store submission exists or has been attempted.
 
 ## READY / IMPLEMENTED (repository-side technical work completed this milestone)
 
-- **Permanent product identifier finalized**: `me.museion.binarize`
+- **Permanent product identifier finalized**: `me.mpdf.processor`
   (previously `org.museionproject.binarize`), owner-approved, changed
   before any Apple App ID or App Store Connect identity was created.
   Declared exactly once, in the base `tauri.conf.json`; every overlay
@@ -62,9 +62,9 @@ does not mean an App Store submission exists or has been attempted.
   a repo-wide `git grep` assertion that the old identifier does not
   reappear in any active file. The GitHub-distributed macOS app and the
   future Mac App Store version share this one identity, per the intended
-  `me.museion.<product>` namespace for future Museion apps.
+  `me.mpdf.<product>` namespace for future PDF tools.
 - **Sandboxed output-save architecture — human-verified**: `OutputWriteStrategy`
-  in `crates/museion-binarize-core/src/pipeline.rs`, selected at compile
+  in `crates/mpdf-core/src/pipeline.rs`, selected at compile
   time by the `mas-sandbox` Cargo feature (MAS build only). Real,
   credential-free App Sandbox enforcement was demonstrated locally
   (ad-hoc signing plus the sandbox entitlement — no Apple Developer
@@ -235,7 +235,7 @@ rather than asserted:
 
 This reconfirms, rather than merely repeats, M7A's own "no runtime
 network access" finding (`docs/limitations.md`) and the earlier
-Entitlements audit above: Museion Binarize itself has no intended
+Entitlements audit above: M PDF Processor itself has no intended
 runtime networking, telemetry, updater, or remote dependency fetch of
 any kind. `network.client` exists solely to let the sandboxed
 `WKWebView` process render the app's own bundled, local frontend — a
@@ -278,9 +278,9 @@ one open BLOCKING finding for M7B1.
 
 #### The original risk
 
-`crates/museion-binarize-core/src/pipeline.rs`'s write path used to
+`crates/mpdf-core/src/pipeline.rs`'s write path used to
 unconditionally create a **new temp file in the same directory** as the
-destination (`.museion-binarize-<random>.pdf.partial`), then
+destination (`.mpdf-<random>.pdf.partial`), then
 `rename(2)` it onto the final path — for atomicity (see
 `docs/pdf-output.md`). Correct and unaffected for M0–M7A (the CLI and
 the GitHub-distributed desktop app never run under App Sandbox at all),
@@ -303,7 +303,7 @@ credentials were required. They are not, for this purpose:
 ```
 codesign --force --deep --sign - \
   --entitlements entitlements.local-sandbox-test.plist \
-  "Museion Binarize.app"
+  "M PDF Processor.app"
 ```
 
 with `entitlements.local-sandbox-test.plist` containing only
@@ -316,8 +316,8 @@ still succeeded and still carried the sandbox entitlement). Launching
 this ad-hoc-signed build produced, immediately and reproducibly:
 
 ```
-~/Library/Containers/me.museion.binarize/Data/{Documents,Desktop,Downloads,Library,...}
-~/Library/Containers/me.museion.binarize/.com.apple.containermanagerd.metadata.plist
+~/Library/Containers/me.mpdf.processor/Data/{Documents,Desktop,Downloads,Library,...}
+~/Library/Containers/me.mpdf.processor/.com.apple.containermanagerd.metadata.plist
 ```
 
 — a real sandbox container, created by `containermanagerd`, which only
@@ -376,7 +376,7 @@ crash-window gap proves unacceptable once real testing is possible,
 that FFI integration is the identified upgrade path, not a hypothetical
 one.
 
-**Regression tests** (`crates/museion-binarize-core/src/pipeline.rs`):
+**Regression tests** (`crates/mpdf-core/src/pipeline.rs`):
 `direct_write_strategy_writes_bytes_straight_to_the_destination`,
 `direct_write_strategy_overwrite_replaces_the_destination_contents`,
 `direct_write_strategy_failure_before_persistence_leaves_the_old_destination_intact`
@@ -385,7 +385,7 @@ one.
 `apps/desktop/src-tauri/src/worker.rs`'s
 `output_write_strategy_tests::ordinary_build_keeps_the_atomic_same_directory_rename_default`
 proves the GitHub build's default is unaffected; `cargo check -p
-museion-binarize-desktop --features mas-sandbox` (run this session)
+mpdf-desktop --features mas-sandbox` (run this session)
 independently proves the other branch compiles and is reachable.
 
 #### How the interactive test was actually run
@@ -407,9 +407,9 @@ APPLE_TEAM_ID=LOCALTEST01 python3 scripts/distribution/package_mas.py \
 # ID/App ID, nothing faked.
 codesign --force --deep --sign - \
   --entitlements entitlements.local-sandbox-test.plist \
-  "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app"
+  "target/aarch64-apple-darwin/release/bundle/macos/M PDF Processor.app"
 
-open "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app"
+open "target/aarch64-apple-darwin/release/bundle/macos/M PDF Processor.app"
 ```
 
 This exercises real kernel sandbox enforcement and the real
@@ -438,7 +438,7 @@ step passing:
 | Overwrite an existing destination | PASS |
 | Quit / relaunch | PASS |
 | Open and convert a second PDF after relaunch | PASS |
-| Bundled PDFium, `MUSEION_PDFIUM_LIBRARY` unset | PASS |
+| Bundled PDFium, `MPDF_PDFIUM_LIBRARY` unset | PASS |
 
 This directly exercises and confirms `DirectWriteToDestination`: new
 output, overwrite of an existing destination, and cancel-then-reconvert
@@ -485,13 +485,13 @@ there is none here.
 ## PDFium strategy
 
 Identical trust model to M7A, reused rather than re-implemented:
-`museion_binarize_core::pdfium_backend::resolve_library`'s precedence
-(explicit path → `MUSEION_PDFIUM_LIBRARY` env var → packaged resource →
+`mpdf_core::pdfium_backend::resolve_library`'s precedence
+(explicit path → `MPDF_PDFIUM_LIBRARY` env var → packaged resource →
 executable-adjacent → dev-tree opt-in → system if allowed) is unchanged
 — zero diff to `pdfium_backend.rs`. The desktop app's own
 `worker::pdfium_config` (also unchanged) resolves the bundled resource
 path once at startup via Tauri's `BaseDirectory::Resource` API and uses
-it explicitly, with the `MUSEION_PDFIUM_LIBRARY` override still winning
+it explicitly, with the `MPDF_PDFIUM_LIBRARY` override still winning
 when set (unchanged developer/support behavior, `worker.rs`).
 
 No MAS-specific resolver code was written, because none is needed: the
@@ -505,7 +505,7 @@ was true in the M7A audit and remains true here; it has not been
 independently re-verified against a real sandboxed process this
 session.
 
-**Developer/test override preserved, not weakened**: `MUSEION_PDFIUM_LIBRARY`
+**Developer/test override preserved, not weakened**: `MPDF_PDFIUM_LIBRARY`
 still exists in code, for local development builds — this is
 unconditional and unchanged. In a *real, entitled, sandboxed* MAS
 production build, App Sandbox itself neutralizes any attempt to point
@@ -522,7 +522,7 @@ Distinguishing implementation from completion, as required:
 | App code signing | `package_mas.py --sign` requires `APPLE_SIGNING_IDENTITY` in the environment (an **Apple Distribution** certificate identity — the current unified Apple terminology that replaced the older separate "3rd Party Mac Developer Application" cert name; confirmed against current third-party Tauri/Apple documentation, not assumed from memory) already imported into the local keychain. Tauri's own bundler picks this up and signs the `.app` with the rendered entitlements as part of its `tauri build` step — not a separate re-signing pass afterward, avoiding the exact "bundler re-bundles and discards a prior signature" failure mode M7A hit (`docs/desktop-testing.md`). | Owner must enroll in the Apple Developer Program, generate/download an Apple Distribution certificate, and have it in the build machine's keychain. |
 | Installer (`.pkg`) signing | `package_mas.py --package-pkg` requires `APPLE_INSTALLER_SIGNING_IDENTITY` (a **Mac Installer Distribution** certificate — a separate cert type from Apple Distribution, specifically for `productbuild`/`pkgbuild`) and calls `xcrun productbuild --sign ...`, then verifies with `pkgutil --check-signature`. | Owner must generate a Mac Installer Distribution certificate separately from the app-signing one. |
 | Provisioning profile | Not embedded by any script in this milestone — `tauri.mas.conf.json` deliberately does not reference `bundle.macOS.files.embedded.provisionprofile` for a file that does not exist in this repository. | Owner must register the App ID (with App Sandbox capability enabled) in the Apple Developer portal, create a Mac App Store provisioning profile, download it to `apps/desktop/src-tauri/embedded.provisionprofile` (gitignored — see `.gitignore`), and add the `files` mapping to `tauri.mas.conf.json` (or a further local-only overlay) before attempting a real submission build. |
-| Team ID / App ID / bundle identifier consistency | `render_mas_entitlements.py` reads the bundle identifier from `tauri.conf.json` (single source of truth, cannot drift) and reads the Team ID from `APPLE_TEAM_ID` — both are cross-checked into the rendered entitlements' `com.apple.application-identifier` (`$TEAM_ID.$IDENTIFIER`). | Owner must register the App ID `me.museion.binarize` under their own Team ID in the Apple Developer portal, with App Sandbox capability enabled, before either matters at build time. |
+| Team ID / App ID / bundle identifier consistency | `render_mas_entitlements.py` reads the bundle identifier from `tauri.conf.json` (single source of truth, cannot drift) and reads the Team ID from `APPLE_TEAM_ID` — both are cross-checked into the rendered entitlements' `com.apple.application-identifier` (`$TEAM_ID.$IDENTIFIER`). | Owner must register the App ID `me.mpdf.processor` under their own Team ID in the Apple Developer portal, with App Sandbox capability enabled, before either matters at build time. |
 
 **No certificate, private key, Team ID, Apple ID, password, or
 provisioning-profile UUID is committed anywhere in this repository.**
@@ -579,7 +579,7 @@ and none of it exists in this repository:
 - Apple Developer Program membership (individual or organization).
 - Apple Distribution certificate + Mac Installer Distribution
   certificate, generated and kept in a build keychain.
-- App ID registration for `me.museion.binarize` with App
+- App ID registration for `me.mpdf.processor` with App
   Sandbox capability enabled, under the owner's Team ID.
 - Mac App Store provisioning profile for that App ID.
 - App Store Connect app record creation.
@@ -613,10 +613,10 @@ and none of it exists in this repository:
 
 ## Bundle identifier
 
-**Finalized this milestone, owner-approved**: `me.museion.binarize`
+**Finalized this milestone, owner-approved**: `me.mpdf.processor`
 (previously `org.museionproject.binarize`, M7A's original value). The
 owner explicitly approved this permanent identifier and the
-`me.museion.<product>` namespace convention for future Museion apps, and
+`me.mpdf.<product>` namespace convention for future PDF tools, and
 asked for the change to happen now, before any Apple App ID or App
 Store Connect identity is created against the old name. See "READY /
 IMPLEMENTED" above for the single-source-of-truth mechanism and the

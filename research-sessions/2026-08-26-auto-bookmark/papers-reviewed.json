@@ -1,0 +1,18 @@
+{
+  "arxiv:2509.00909": {"title":"HiPS: Hierarchical PDF Segmentation of Textbooks","score":10,"status":"highly_relevant","source":"arxiv","found_data":["TOC versus LLM comparison","structure-aware preprocessing"]},
+  "arxiv:2212.02896": {"title":"Multimodal Tree Decoder for Table of Contents Extraction in Document Images","score":9,"status":"highly_relevant","source":"arxiv","found_data":["HierDoc dataset","TEDS and F1"]},
+  "arxiv:2303.13839": {"title":"HRDoc: Dataset and Baseline Method Toward Hierarchical Reconstruction of Document Structures","score":9,"status":"highly_relevant","source":"arxiv","found_data":["multi-page hierarchy task","dataset"]},
+  "arxiv:2206.01062": {"title":"DocLayNet: A Large Human-Annotated Dataset for Document-Layout Analysis","score":7,"status":"relevant","source":"arxiv","found_data":["layout dataset","section-header detection"]},
+  "arxiv:2412.07626": {"title":"OmniDocBench: Benchmarking Diverse PDF Document Parsing with Comprehensive Annotations","score":7,"status":"relevant","source":"arxiv","found_data":["diverse parsing benchmark"]},
+  "arxiv:2310.18073": {"title":"A Scalable Framework for Table of Contents Extraction from Complex ESG Annual Reports","score":8,"status":"highly_relevant","source":"arxiv","found_data":["construction-modelling-modification tree method"]},
+  "github:docling-project/docling": {"title":"Docling releases and heading hierarchy implementation","score":10,"status":"highly_relevant","source":"github","found_data":["bookmark-numbering-style precedence","deep outline hardening"]},
+  "github:krrome/docling-hierarchical-pdf": {"title":"docling-hierarchical-pdf","score":9,"status":"highly_relevant","source":"github","found_data":["rule hierarchy","60+ PDF case report","limitations"]},
+  "github:Krasjet/pdf.tocgen": {"title":"pdf.tocgen","score":8,"status":"highly_relevant","source":"github","found_data":["extract-generate-write separation","license and scan limitation"]},
+  "github:dillettante/pdf-bookmarks": {"title":"pdf-bookmarks","score":8,"status":"highly_relevant","source":"github","found_data":["TOC page parsing","offset mapping","platform OCR caveats"]},
+  "github:PaddlePaddle/PaddleOCR": {"title":"PaddleOCR releases / PP-StructureV3","score":7,"status":"relevant","source":"github","found_data":["layout and reading-order provider"]},
+  "github:opendatalab/MinerU": {"title":"MinerU 3.x","score":6,"status":"possibly_relevant","source":"github","found_data":["server-side document parsing","license caveat"]},
+  "product:MarginNote4": {"title":"MarginNote 4 automatic virtual TOC","score":9,"status":"highly_relevant","source":"official_manual","found_data":["virtual TOC","AI generation","optional editing"]},
+  "product:Foxit2026": {"title":"Foxit PDF Editor Auto Create Bookmarks","score":7,"status":"relevant","source":"official_manual","found_data":["style and text based rules"]},
+  "product:PDF-XChange": {"title":"PDF-XChange bookmark tools","score":7,"status":"relevant","source":"official_manual","found_data":["separate TOC and page-text workflows"]},
+  "product:EverMap": {"title":"EverMap AutoBookmark","score":7,"status":"relevant","source":"official_site","found_data":["local processing","format and indentation rules"]}
+}

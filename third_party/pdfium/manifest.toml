@@ -1,4 +1,4 @@
-# PDFium binary provenance for Museion Binarize.
+# PDFium binary provenance for M PDF Processor.
 #
 # PDFium is NOT bundled with pdfium-render and is NOT committed to this
 # repository (see .gitignore and docs/adr/0001-pdfium-runtime-binding.md).

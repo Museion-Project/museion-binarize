@@ -1,0 +1,10 @@
+{
+  "query": "automatic PDF bookmark / TOC reconstruction",
+  "relationships": [
+    {"from":"arxiv:2509.00909","to":"TOC-based segmentation","type":"evaluates"},
+    {"from":"arxiv:2303.13839","to":"hierarchical document reconstruction","type":"defines_task"},
+    {"from":"arxiv:2212.02896","to":"HierDoc","type":"introduces_dataset"},
+    {"from":"arxiv:2206.01062","to":"layout heading detection","type":"supports_subtask"},
+    {"from":"arxiv:2412.07626","to":"diverse PDF evaluation","type":"supports_benchmarking"}
+  ]
+}

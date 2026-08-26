@@ -8,7 +8,7 @@ round-trips, PDF dictionary construction, destination safety, atomic
 persistence, and CLI argument validation. They must always pass on a clean
 machine.
 
-**PDFium integration tests** (`crates/museion-binarize-core/tests/pdf_pipeline.rs`)
+**PDFium integration tests** (`crates/mpdf-core/tests/pdf_pipeline.rs`)
 need a real PDFium library, so every one of them is marked `#[ignore]`.
 An ordinary run reports them as **ignored** — never as passed:
 
@@ -20,11 +20,11 @@ test result: ok. 0 passed; 0 failed; 16 ignored
 Run them explicitly, with a library:
 
 ```bash
-MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib \
+MPDF_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib \
   cargo test --test pdf_pipeline -- --ignored
 ```
 
-If `MUSEION_PDFIUM_LIBRARY` is unset or does not point at a file, these
+If `MPDF_PDFIUM_LIBRARY` is unset or does not point at a file, these
 tests **fail** with a message telling you how to fix it. They cannot pass
 without exercising PDFium.
 
@@ -121,7 +121,7 @@ committed.** Fixtures are written into temporary directories at test time.
   presets, and CLI parity".
 
 The desktop backend's own Rust unit tests (`cargo test -p
-museion-binarize-desktop`) need no PDFium at all — DTO/settings
+mpdf-desktop`) need no PDFium at all — DTO/settings
 conversion and error classification are ordinary, ignore-free tests. See
 [`desktop-testing.md`](desktop-testing.md) for what is and is not
 verified about the GUI as a whole, including the parts that need an
@@ -130,7 +130,7 @@ actual running native window.
 ## Proving "one session, not one open per page" without PDFium
 
 Most of the single-session claim is proven by **ordinary** tests in
-`crates/museion-binarize-core/src/pipeline.rs`, not by the `#[ignore]`d
+`crates/mpdf-core/src/pipeline.rs`, not by the `#[ignore]`d
 integration tests above. `process_with_session`/`analyze_with_session`
 are generic over the `DocumentSession` trait; the tests construct a
 `MockSession` backed by synthetic in-memory pages with an atomic
@@ -166,14 +166,14 @@ milestone.
 ## Manual end-to-end check
 
 ```bash
-export MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib
-cargo run -q -p museion-binarize-core --example gen_fixtures -- /tmp/fx
-cargo run -p museion-binarize-cli -- inspect /tmp/fx/mixed.pdf
-cargo run -p museion-binarize-cli -- process /tmp/fx/mixed.pdf \
+export MPDF_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib
+cargo run -q -p mpdf-core --example gen_fixtures -- /tmp/fx
+cargo run -p mpdf-cli -- inspect /tmp/fx/mixed.pdf
+cargo run -p mpdf-cli -- process /tmp/fx/mixed.pdf \
   --output /tmp/fx/out.pdf --method otsu --dpi 300 --validate render-all
-cargo run -p museion-binarize-cli -- preview /tmp/fx/out.pdf \
+cargo run -p mpdf-cli -- preview /tmp/fx/out.pdf \
   --page 1 --output /tmp/fx/page1.png --method manual --threshold 128
-cargo run -p museion-binarize-cli -- analyze /tmp/fx/mixed.pdf \
+cargo run -p mpdf-cli -- analyze /tmp/fx/mixed.pdf \
   --dpi 300 --method otsu --json --pretty
 ```
 

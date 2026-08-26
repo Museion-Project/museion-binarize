@@ -1,7 +1,7 @@
 # Benchmark metrics
 
 This document defines every fidelity metric the benchmark framework
-(`crates/museion-binarize-core/src/benchmark/metrics.rs`) computes: the
+(`crates/mpdf-core/src/benchmark/metrics.rs`) computes: the
 exact formula, the polarity/alignment assumptions, edge-case behavior,
 and — where the metric has a canonical external definition — its
 source. See [`benchmark-datasets.md`](benchmark-datasets.md) for dataset
@@ -20,16 +20,16 @@ specifically because that gap needed a real answer.
 ## Benchmark levels
 
 - **Level A — raster benchmark** (`BenchmarkLevel::Raster`, implemented
-  in this milestone). `degraded input raster -> Museion image pipeline
+  in this milestone). `degraded input raster -> M PDF image pipeline
   -> binary output`, compared directly against ground truth. This never
-  touches PDFium: [`image_pipeline::process_rendered_page`](../crates/museion-binarize-core/src/image_pipeline.rs)
+  touches PDFium: [`image_pipeline::process_rendered_page`](../crates/mpdf-core/src/image_pipeline.rs)
   — the exact function `process`/`analyze`/`estimate` already use — runs
   directly on the input PNG. This is the **primary** fidelity benchmark:
   it isolates binarization-pipeline quality from PDF-rendering behavior,
   so a result cannot be confused for a PDFium artifact or vice versa.
 - **Level B — end-to-end PDF benchmark** (`BenchmarkLevel::Pdf`,
   **not implemented in this milestone**). `PDF -> PDFium render ->
-  Museion pipeline -> binary output`, would measure the full
+  M PDF pipeline -> binary output`, would measure the full
   application path and would be PDFium/platform-sensitive.
   **Deferred, not silently dropped**: this milestone's own priority
   ("correct and tested over more features" — see the milestone
@@ -52,7 +52,7 @@ field says which one produced it; nothing in this framework computes
 
 Unchanged from the rest of the crate: `true` = black / foreground / ink,
 `false` = white / background (see
-[`bilevel.rs`](../crates/museion-binarize-core/src/bilevel.rs)). Every
+[`bilevel.rs`](../crates/mpdf-core/src/bilevel.rs)). Every
 metric function is defined against this convention:
 
 ```
@@ -63,7 +63,7 @@ TN = output white AND ground-truth white
 ```
 
 Ground-truth PNGs are loaded and normalized to this convention by
-[`mask_io.rs`](../crates/museion-binarize-core/src/benchmark/mask_io.rs)
+[`mask_io.rs`](../crates/mpdf-core/src/benchmark/mask_io.rs)
 *before* any metric function sees them — a file's own pixel-value
 convention (`0`/`255`, or reversed via `ground_truth_polarity` in the
 dataset manifest) never leaks into the metric math itself.
@@ -101,7 +101,7 @@ F1        = 2 * precision * recall / (precision + recall)
 
 "Output empty" means the output raster has zero black pixels;
 "GT empty" means the ground truth does. See
-`crates/museion-binarize-core/src/benchmark/metrics.rs`'s
+`crates/mpdf-core/src/benchmark/metrics.rs`'s
 `f_measure` doc comment for the reasoning behind each branch, and its
 tests for one worked example per row of the table above, each computed
 by hand — not by calling the production function to generate its own
@@ -238,7 +238,7 @@ compare it directly to a whole converted PDF's file size.
 `processing_duration_us` sums the same per-stage timings
 `process`/`analyze` already measure (grayscale/contrast/preprocessing,
 binarization, cleanup, CCITT encoding — see
-[`timing.rs`](../crates/museion-binarize-core/src/timing.rs)).
+[`timing.rs`](../crates/mpdf-core/src/timing.rs)).
 `render_duration_us` is `null` (not `0`) at the raster level, since
 there is no PDFium render stage to measure — `null` and `0` are
 different claims, and this framework never conflates "not applicable"
@@ -271,7 +271,7 @@ platform-specific runner hook, but neither is claimed here.
 
 ## OCR CER
 
-Not implemented. Museion Binarize performs no OCR of its own (see
+Not implemented. M PDF Processor performs no OCR of its own (see
 `docs/limitations.md`); OCR CER, if ever added, would be an explicitly
 labeled downstream/external measurement (running a third-party OCR
 engine on the *output*), never a claim about this project's own

@@ -2,7 +2,7 @@
 
 **Status: implemented and wired into the end-to-end PDF pipeline.** Every
 algorithm described below is implemented and unit-tested in
-`museion-binarize-core`, and as of Milestone 2 they run on real rasterized
+`mpdf-core`, and as of Milestone 2 they run on real rasterized
 PDF pages through a single orchestrator (`image_pipeline.rs`), reachable
 from the CLI. The desktop UI is not connected yet.
 

@@ -29,7 +29,7 @@ claim on its own.
 
 ## What exists
 
-- **Metrics** (`crates/museion-binarize-core/src/benchmark/metrics.rs`):
+- **Metrics** (`crates/mpdf-core/src/benchmark/metrics.rs`):
   a foreground confusion matrix, precision/recall/F1 (with an explicit,
   documented, tested edge-case policy — never `NaN`), PSNR (perfect
   match represented as a tagged result, never `Infinity`), and DRD
@@ -45,8 +45,8 @@ claim on its own.
   involved) and Level B (end-to-end PDF via PDFium — not implemented in
   this milestone, deferred for the same "correct and tested over more
   features" reason as pseudo-F).
-- **Versioned manifests**: `museion-binarize-benchmark-dataset` and
-  `museion-binarize-benchmark-profile`, both schema `1.0`, with
+- **Versioned manifests**: `mpdf-benchmark-dataset` and
+  `mpdf-benchmark-profile`, both schema `1.0`, with
   dataset-root path containment (rejects traversal and symlink escape),
   resource limits on untrusted manifest input, and required
   license/provenance/ground-truth-method fields.
@@ -59,15 +59,15 @@ claim on its own.
   generated categories including polytonic-diacritic-*like* and dense-
   apparatus-*like* stress shapes — geometric stand-ins, not real
   rendered Greek text; see that directory's own README for exactly why).
-- **CLI**: `museion-binarize benchmark run`/`benchmark validate`.
+- **CLI**: `mpdf benchmark run`/`benchmark validate`.
 - **Reproducibility digests** (SHA-256 of dataset/profile manifests and
   referenced files) recorded in every report.
 
 ## Reporting
 
-Benchmark results are produced by running `museion-binarize benchmark
+Benchmark results are produced by running `mpdf benchmark
 run` against a dataset and profile manifest, and are recorded in the
-versioned `museion-binarize-benchmark` JSON schema (see
+versioned `mpdf-benchmark` JSON schema (see
 [`reporting.md`](reporting.md)) alongside the tool version and
 environment used. See
 [`benchmark-results/synthetic-v1.md`](benchmark-results/synthetic-v1.md)

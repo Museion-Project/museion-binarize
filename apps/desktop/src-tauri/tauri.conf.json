@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Museion Binarize",
+  "productName": "M PDF Processor",
   "version": "0.1.0-rc.2",
-  "identifier": "me.museion.binarize",
+  "identifier": "me.mpdf.processor",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Museion Binarize",
+        "title": "M PDF Processor",
         "width": 1200,
         "height": 800,
         "minWidth": 900,

@@ -1,0 +1,25 @@
+[package]
+name = "mpdf-core"
+description = "Tauri-independent processing core for M PDF Processor"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "mpdf_core"
+
+[dependencies]
+fax = "0.3"
+image = { version = "0.25", default-features = false, features = ["png"] }
+pdf-writer = "0.15"
+pdfium-render = { version = "0.9.3", default-features = false, features = ["pdfium_7881", "image_025", "thread_safe"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+thiserror = "2"
+toml = "0.8"

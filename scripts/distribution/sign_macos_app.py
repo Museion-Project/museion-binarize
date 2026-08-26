@@ -28,7 +28,7 @@ script does not have or claim to provide.
 
 Usage:
     python3 scripts/distribution/sign_macos_app.py \\
-        --app-path "target/aarch64-apple-darwin/release/bundle/macos/Museion Binarize.app" \\
+        --app-path "target/aarch64-apple-darwin/release/bundle/macos/M PDF Processor.app" \\
         [--identity "Developer ID Application: ..."]
 """
 
