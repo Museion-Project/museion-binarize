@@ -2,14 +2,14 @@
 """Assembles one standalone CLI release archive: the CLI executable next
 to its matching PDFium library, license files, and a short README — see
 docs/pdfium-bundling.md, "CLI distribution." The CLI's own resolver
-(`museion_binarize_core::pdfium_backend::resolve_library`) already
+(`mpdf_core::pdfium_backend::resolve_library`) already
 searches next to its own executable (`LibrarySource::ExecutableAdjacent`),
 so this layout needs no new resolution code — only correct packaging.
 
 Usage:
     python3 scripts/distribution/package_cli.py \\
         --target-triple aarch64-apple-darwin \\
-        --binary target/release/museion-binarize \\
+        --binary target/release/mpdf \\
         --pdfium-library target/distribution/pdfium/aarch64-apple-darwin/libpdfium.dylib \\
         --version 0.1.0 \\
         --out-dir /tmp/cli-release
@@ -29,7 +29,7 @@ import naming  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-README_TEMPLATE = """Museion Binarize CLI {version} ({target_triple})
+README_TEMPLATE = """M PDF Processor CLI {version} ({target_triple})
 
 This archive is self-contained: the CLI executable and its matching
 PDFium library are in the same directory, and the CLI finds it
@@ -64,7 +64,7 @@ def package(
     out_dir: Path,
 ) -> Path:
     is_windows = "windows" in target_triple
-    exe_name = "museion-binarize.exe" if is_windows else "museion-binarize"
+    exe_name = "mpdf.exe" if is_windows else "mpdf"
     lib_name = library_filename_for(target_triple)
 
     if pdfium_library_path.name != lib_name:
@@ -73,7 +73,7 @@ def package(
             f"'{target_triple}', got '{pdfium_library_path.name}'"
         )
 
-    staging_name = f"museion-binarize-cli-{version}-{'-'.join(naming.os_arch_label(target_triple))}"
+    staging_name = f"mpdf-cli-{version}-{'-'.join(naming.os_arch_label(target_triple))}"
     staging_dir = out_dir / staging_name
     if staging_dir.exists():
         shutil.rmtree(staging_dir)

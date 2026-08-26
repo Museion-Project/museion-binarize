@@ -1,8 +1,8 @@
 {
-  "name": "museion-binarize-desktop",
+  "name": "mpdf-desktop",
   "private": true,
   "version": "0.1.0-rc.2",
-  "description": "Museion Binarize desktop application (Tauri 2 + React + TypeScript)",
+  "description": "M PDF Processor desktop application (Tauri 2 + React + TypeScript)",
   "license": "MIT OR Apache-2.0",
   "author": "Pei Haoran",
   "type": "module",

@@ -14,7 +14,7 @@ Apple Silicon macOS machine, launching the real Tauri application (not
 the browser-only check below) with:
 
 ```bash
-MUSEION_PDFIUM_LIBRARY="/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib" \
+MPDF_PDFIUM_LIBRARY="/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib" \
   pnpm --dir apps/desktop tauri dev
 ```
 
@@ -57,13 +57,13 @@ sizes, and the output reopens successfully via `inspect` reporting
 
 ## What has been verified
 
-**Automated, non-PDFium (`cargo test -p museion-binarize-desktop`):**
+**Automated, non-PDFium (`cargo test -p mpdf-desktop`):**
 DTO conversion and validation (`settings.rs`), error classification and
 the guarantee that no error DTO ever serializes a password
 (`errors.rs`) — 13 tests, all passing, requiring no PDFium library.
 
 **Automated, provisioned PDFium (`cargo test --test pdf_pipeline --
---ignored`, run with `MUSEION_PDFIUM_LIBRARY` pointed at a real library):**
+--ignored`, run with `MPDF_PDFIUM_LIBRARY` pointed at a real library):**
 the full Milestone 2/3 integration suite, plus two Milestone 4 additions
 run against the same provisioned macOS Apple Silicon environment:
 
@@ -85,7 +85,7 @@ all passing.
 
 **Static analysis:** `cargo fmt --check`, `cargo clippy --workspace
 --all-targets -- -D warnings`, `cargo deny check`, `cargo check -p
-museion-binarize-desktop`, `pnpm lint`, `pnpm typecheck`, `pnpm build` —
+mpdf-desktop`, `pnpm lint`, `pnpm typecheck`, `pnpm build` —
 all clean as of this milestone's last commit. A `grep` sweep of
 `apps/desktop` and every core/CLI crate for `http://`, `https://`,
 `fetch(`, `axios`, `reqwest`, `Command::new`, and `shell` found no
@@ -202,7 +202,7 @@ To perform that verification, launch the real application the same way
 Milestone 4's acceptance run did:
 
 ```bash
-MUSEION_PDFIUM_LIBRARY="/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib" \
+MPDF_PDFIUM_LIBRARY="/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib" \
   pnpm --dir apps/desktop tauri dev
 ```
 
@@ -246,7 +246,7 @@ The first real human runtime check of the packaged macOS arm64 build —
 installing the `.dmg` from this milestone and double-clicking the
 `.app` in Finder — did not pass. Finder reported:
 
-> "Museion Binarize" is damaged and can't be opened. You should move it
+> "M PDF Processor" is damaged and can't be opened. You should move it
 > to the Trash.
 
 This is a real defect, not a false alarm from an expected "unidentified
@@ -324,20 +324,20 @@ python3 scripts/distribution/stage_desktop_pdfium.py aarch64-apple-darwin
 cd apps/desktop && pnpm tauri build --bundles app
 ```
 
-- **Bundle inspected directly**: `Museion Binarize.app/Contents/Resources/libpdfium.dylib`
+- **Bundle inspected directly**: `M PDF Processor.app/Contents/Resources/libpdfium.dylib`
   present (`file`: `Mach-O 64-bit dynamically linked shared library
   arm64`, matching the app binary's own architecture).
 - An initial `tauri.conf.json` resources mapping placed the library one
   directory too deep (`Contents/Resources/resources/libpdfium.dylib`);
   this was caught by inspecting the actual built bundle, not assumed,
   and fixed — see [`pdfium-bundling.md`](pdfium-bundling.md).
-- **`.dmg` built**: `Museion Binarize_0.1.0_aarch64.dmg`, 7,345,743
+- **`.dmg` built**: `M PDF Processor_0.1.0_aarch64.dmg`, 7,345,743
   bytes, SHA-256
   `a040ed1ccaf6c5a8c76fdf53516d96b05e8c82b9223e8ada597540d179f99bd9`.
 - **Launch smoke test**: the built `.app` was copied to `/tmp` (outside
   the repository, simulating an install location), launched directly
   (not via `pnpm tauri dev`, no dev server, no Cargo/Node/pnpm on the
-  launch path) with `MUSEION_PDFIUM_LIBRARY` explicitly unset, and
+  launch path) with `MPDF_PDFIUM_LIBRARY` explicitly unset, and
   observed still running 3+ seconds later with no crash. This is
   automated evidence of a clean startup, not a substitute for the
   interactive checklist below.
@@ -353,24 +353,24 @@ cd apps/desktop && pnpm tauri build --bundles app
 ```bash
 python3 scripts/distribution/package_cli.py \
   --target-triple aarch64-apple-darwin \
-  --binary target/release/museion-binarize \
+  --binary target/release/mpdf \
   --pdfium-library target/distribution/pdfium/aarch64-apple-darwin/libpdfium.dylib \
   --version 0.1.0 --out-dir /tmp/cli-release
 ```
 
 Extracted to a fresh directory (not the repository), with
-`MUSEION_PDFIUM_LIBRARY` unset:
+`MPDF_PDFIUM_LIBRARY` unset:
 
-- `museion-binarize --help` / `info` — succeeded.
-- `museion-binarize inspect rotations.pdf` — succeeded, reported
+- `mpdf --help` / `info` — succeeded.
+- `mpdf inspect rotations.pdf` — succeeded, reported
   `PDFium: .../libpdfium.dylib (directory containing the executable)`
   — confirming `LibrarySource::ExecutableAdjacent` resolution with no
   environment variable and no code change (see
   [`pdfium-bundling.md`](pdfium-bundling.md)).
-- `museion-binarize process rotations.pdf --output out.pdf --method
-  otsu --dpi 300` — succeeded; `museion-binarize inspect out.pdf`
+- `mpdf process rotations.pdf --output out.pdf --method
+  otsu --dpi 300` — succeeded; `mpdf inspect out.pdf`
   confirmed the 4-page output PDF was valid.
-- `museion-binarize benchmark validate`/`run` against the committed
+- `mpdf benchmark validate`/`run` against the committed
   `test-data/benchmark/synthetic-v1` suite — both succeeded (Level A
   benchmarking needs no PDFium at all, so this was expected to work
   regardless of bundling, and did).

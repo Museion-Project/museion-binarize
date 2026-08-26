@@ -10,14 +10,14 @@ for the full framework this dataset feeds into.
 - **Dataset ID**: `synthetic-document-v1`
 - **License**: CC0-1.0 (public domain dedication)
 - **Provenance**: every pixel is drawn procedurally by
-  `crates/museion-binarize-core/src/benchmark_fixtures.rs`, via
-  `cargo run -p museion-binarize-core --example gen_benchmark_fixtures --
+  `crates/mpdf-core/src/benchmark_fixtures.rs`, via
+  `cargo run -p mpdf-core --example gen_benchmark_fixtures --
   test-data/benchmark/synthetic-v1`. No font, scan, screenshot, or
   third-party image was used anywhere in this dataset.
 - **Ground truth**: the exact procedural shape drawn *before* any
   degradation is applied. It is stored losslessly (strictly binary PNG,
   `0` = black/foreground, `255` = white/background) and is never derived
-  by running Museion Binarize's own binarization pipeline — doing so
+  by running M PDF Processor's own binarization pipeline — doing so
   would make the benchmark circular (see `docs/benchmark-metrics.md`).
 - **Dimensions**: every page is 160x200 pixels.
 
@@ -57,10 +57,10 @@ for the full framework this dataset feeds into.
 ## Regenerating
 
 ```bash
-cargo run -p museion-binarize-core --example gen_benchmark_fixtures -- /tmp/regen
+cargo run -p mpdf-core --example gen_benchmark_fixtures -- /tmp/regen
 ```
 
 Rerunning against the same generator version reproduces every PNG in
 this directory byte-for-byte; this is verified automatically by
 `benchmark_fixture_suite_regenerates_byte_identical_pngs` in
-`crates/museion-binarize-core/tests/benchmark_suite.rs`.
+`crates/mpdf-core/tests/benchmark_suite.rs`.

@@ -1,0 +1,12 @@
+{
+  "closest_peer": ["1ampa55ag3/octo-ocr"],
+  "ux_references": ["vorojar/Folio-OCR", "Cross2pro/DeepSeek-OCR-Dashboard"],
+  "job_and_api_references": ["cyanyux/pdf-converter", "egore4606/paddle-ocr-ui"],
+  "desktop_and_sidecar_reference": ["ibrahimqureshae/mdflux"],
+  "geometry_reference": ["ahnafnafee/local-llm-pdf-ocr"],
+  "minimal_and_failure_mode_references": [
+    "Ivan666jjj/guji-tools",
+    "Ivan666jjj/xiaohuan-tools",
+    "hz01/pdf-ocr-llm"
+  ]
+}

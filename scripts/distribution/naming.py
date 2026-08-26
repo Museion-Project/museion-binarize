@@ -4,8 +4,8 @@ like. See docs/releasing.md, "Artifact naming."
 
 Convention:
 
-    Museion-Binarize-<version>-<os>-<arch>.<ext>          (desktop)
-    museion-binarize-cli-<version>-<os>-<arch>.<ext>      (CLI archive)
+    mpdf-<version>-<os>-<arch>.<ext>          (desktop)
+    mpdf-cli-<version>-<os>-<arch>.<ext>      (CLI archive)
 
 No workflow-run-number, timestamp, or commit hash in the filename —
 those live in the release manifest instead, so the same version+target
@@ -30,9 +30,9 @@ def os_arch_label(target_triple: str) -> tuple[str, str]:
 
 def desktop_artifact_name(version: str, target_triple: str, ext: str) -> str:
     os_label, arch_label = os_arch_label(target_triple)
-    return f"Museion-Binarize-{version}-{os_label}-{arch_label}.{ext}"
+    return f"mpdf-{version}-{os_label}-{arch_label}.{ext}"
 
 
 def cli_archive_name(version: str, target_triple: str, ext: str) -> str:
     os_label, arch_label = os_arch_label(target_triple)
-    return f"museion-binarize-cli-{version}-{os_label}-{arch_label}.{ext}"
+    return f"mpdf-cli-{version}-{os_label}-{arch_label}.{ext}"

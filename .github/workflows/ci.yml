@@ -58,7 +58,7 @@ jobs:
         # The end-to-end tests are currently run on a provisioned local
         # macOS environment:
         #
-        #   MUSEION_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib \
+        #   MPDF_PDFIUM_LIBRARY=/absolute/path/to/libpdfium.dylib \
         #     cargo test --test pdf_pipeline -- --ignored
         #
         # See docs/testing-pdf-pipeline.md. Automatic, checksum-verified

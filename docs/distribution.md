@@ -3,11 +3,11 @@
 For the longer-term Museion product, open-source, mobile, institution,
 and sustainability direction (which is deliberately broader than the
 features in the current release), see
-[`museion-product-strategy.zh-CN.md`](museion-product-strategy.zh-CN.md).
+[`product-strategy.zh-CN.md`](product-strategy.zh-CN.md).
 That strategy document is forward-looking; this file remains the source
 of truth for the distribution policy of the software that exists today.
 
-Museion Binarize's intended long-term distribution model:
+M PDF Processor's intended long-term distribution model:
 
 - **GitHub source remains open source** (MIT OR Apache-2.0 — unchanged
   by anything in this document; see [`limitations.md`](limitations.md)'s

@@ -1,7 +1,7 @@
 # The persistent PDF document session
 
 Milestone 3 replaced `PdfRenderer` (Milestone 2) with
-`crates/museion-binarize-core/src/document_session.rs`'s
+`crates/mpdf-core/src/document_session.rs`'s
 `PdfDocumentSession`. This document records why, what changed, and what it
 means for memory use and source-file mutation.
 
@@ -55,7 +55,7 @@ afterwards is served from that same in-memory snapshot:
 
 This was verified against a real PDFium library, not just asserted: see
 `source_mutation_after_open_does_not_affect_an_in_progress_session` in
-`crates/museion-binarize-core/tests/pdf_pipeline.rs` — it opens a 3-page
+`crates/mpdf-core/tests/pdf_pipeline.rs` — it opens a 3-page
 document, overwrites the file on disk with an entirely different 1-page
 document, and confirms every page still renders successfully from the
 original snapshot.

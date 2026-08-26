@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {"id": "mpdf-mdp", "type": "proposed_design"},
+    {"id": "guji-tools", "type": "product_repo"},
+    {"id": "xiaohuan-tools", "type": "product_repo"},
+    {"id": "octo-ocr", "type": "product_repo"},
+    {"id": "folio-ocr", "type": "product_repo"},
+    {"id": "deepseek-dashboard", "type": "product_repo"},
+    {"id": "local-llm-pdf-ocr", "type": "product_repo"},
+    {"id": "pdf-converter", "type": "product_repo"},
+    {"id": "paddle-ocr-ui", "type": "product_repo"},
+    {"id": "mdflux", "type": "product_repo"},
+    {"id": "pdf-ocr-llm", "type": "product_repo"}
+  ],
+  "edges": [
+    {"from": "guji-tools", "to": "mpdf-mdp", "relation": "motivates_bounded_page_processing_and_schema"},
+    {"from": "xiaohuan-tools", "to": "mpdf-mdp", "relation": "motivates_per_page_selective_ocr"},
+    {"from": "octo-ocr", "to": "mpdf-mdp", "relation": "demonstrates_versioned_local_project_json"},
+    {"from": "folio-ocr", "to": "mpdf-mdp", "relation": "demonstrates_proofreading_ux_and_page_cache"},
+    {"from": "deepseek-dashboard", "to": "mpdf-mdp", "relation": "motivates_asset_refs_over_base64"},
+    {"from": "local-llm-pdf-ocr", "to": "mpdf-mdp", "relation": "demonstrates_text_box_alignment"},
+    {"from": "pdf-converter", "to": "mpdf-mdp", "relation": "demonstrates_durable_queue_and_agent_surface"},
+    {"from": "paddle-ocr-ui", "to": "mpdf-mdp", "relation": "demonstrates_raw_provider_artifact_retention"},
+    {"from": "mdflux", "to": "mpdf-mdp", "relation": "demonstrates_tauri_sidecar_packaging"},
+    {"from": "pdf-ocr-llm", "to": "mpdf-mdp", "relation": "motivates_provider_neutral_output_schema"}
+  ]
+}

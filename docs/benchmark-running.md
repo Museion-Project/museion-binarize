@@ -7,11 +7,11 @@ dataset/profile manifest formats.
 ## Quick start (no PDFium required)
 
 ```bash
-cargo build -p museion-binarize-cli --release
-./target/release/museion-binarize benchmark run \
+cargo build -p mpdf-cli --release
+./target/release/mpdf benchmark run \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml \
-  --report /tmp/museion-benchmark.json
+  --report /tmp/mpdf-benchmark.json
 ```
 
 The raster benchmark level never touches PDFium — this reproduces on
@@ -27,7 +27,7 @@ and debug timings must never be published as performance evidence.
 ## Validating a dataset/profile without running anything
 
 ```bash
-museion-binarize benchmark validate \
+mpdf benchmark validate \
   --dataset test-data/benchmark/synthetic-v1/dataset.toml \
   --profile test-data/benchmark/profiles/baseline.toml
 ```
@@ -40,7 +40,7 @@ page. Useful before committing or sharing a new dataset.
 ## `--json` and `--report`
 
 ```bash
-museion-binarize benchmark run --dataset ... --profile ... --json --pretty
+mpdf benchmark run --dataset ... --profile ... --json --pretty
 ```
 
 follows the same stdout/stderr contract as every other command (see
@@ -81,14 +81,14 @@ Running the same dataset/profile twice produces identical content
 fields (confusion counts, F1, PSNR, DRD, compressed bytes, category/ROI
 aggregates) — verified by
 `running_the_committed_suite_twice_is_deterministic_in_content_fields`
-in `crates/museion-binarize-core/tests/benchmark_suite.rs`. Timing
+in `crates/mpdf-core/tests/benchmark_suite.rs`. Timing
 fields are runtime-dependent and are not part of that guarantee.
 
 Regenerating the committed `synthetic-document-v1` suite from its
 generator reproduces every PNG byte-for-byte:
 
 ```bash
-cargo run -p museion-binarize-core --example gen_benchmark_fixtures -- /tmp/regen
+cargo run -p mpdf-core --example gen_benchmark_fixtures -- /tmp/regen
 diff -r /tmp/regen test-data/benchmark/synthetic-v1
 ```
 

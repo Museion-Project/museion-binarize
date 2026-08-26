@@ -1,16 +1,16 @@
-# Museion Binarize — Desktop Application
+# M PDF Processor — Desktop Application
 
-Tauri 2 + React + TypeScript + Vite desktop shell for Museion Binarize.
+Tauri 2 + React + TypeScript + Vite desktop shell for M PDF Processor.
 
 See the [repository root README](../../README.md) for project context, and
 [`docs/architecture.md`](../../docs/architecture.md) for how this app relates
-to `museion-binarize-core` and `museion-binarize-cli`.
+to `mpdf-core` and `mpdf-cli`.
 
 ## Development
 
 ```bash
 pnpm install
-pnpm --filter museion-binarize-desktop tauri dev
+pnpm --filter mpdf-desktop tauri dev
 ```
 
 ## Status

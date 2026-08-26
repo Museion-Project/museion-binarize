@@ -21,17 +21,15 @@
 use std::path::PathBuf;
 use std::thread;
 
-use museion_binarize_core::document::PdfDocumentInfo;
-use museion_binarize_core::document_session::{PdfDocumentSession, PdfOpenOptions};
-use museion_binarize_core::error::{CoreError, Result as CoreResult};
-use museion_binarize_core::estimation::SizeEstimateReport;
-use museion_binarize_core::image_pipeline::process_rendered_page;
-use museion_binarize_core::pdfium_backend::PdfiumConfig;
-use museion_binarize_core::pipeline::{
-    self, EstimationOptions, PdfProcessingOptions, ProcessingReport,
-};
-use museion_binarize_core::progress::ProgressReporter;
-use museion_binarize_core::settings::ProcessingSettings;
+use mpdf_core::document::PdfDocumentInfo;
+use mpdf_core::document_session::{PdfDocumentSession, PdfOpenOptions};
+use mpdf_core::error::{CoreError, Result as CoreResult};
+use mpdf_core::estimation::SizeEstimateReport;
+use mpdf_core::image_pipeline::process_rendered_page;
+use mpdf_core::pdfium_backend::PdfiumConfig;
+use mpdf_core::pipeline::{self, EstimationOptions, PdfProcessingOptions, ProcessingReport};
+use mpdf_core::progress::ProgressReporter;
+use mpdf_core::settings::ProcessingSettings;
 
 /// A single-use reply channel back to the command handler that issued a
 /// [`WorkerCommand`]. An ordinary `std::sync::mpsc` sender rather than an
@@ -102,7 +100,7 @@ impl WorkerHandle {
     pub fn spawn(bundled_pdfium_path: Option<PathBuf>) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel::<WorkerCommand>();
         thread::Builder::new()
-            .name("museion-pdfium-worker".to_string())
+            .name("mpdf-pdfium-worker".to_string())
             .spawn(move || run(receiver, bundled_pdfium_path))
             .expect("failed to spawn the PDFium worker thread");
         Self { sender }
@@ -211,7 +209,7 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: 
 /// Builds the [`PdfiumConfig`] this desktop backend actually uses,
 /// applying one precedence rule on top of the core resolver's own
 /// (`resolve_library`'s explicit-path-then-env-var-then-search order):
-/// an explicit `MUSEION_PDFIUM_LIBRARY` still wins when set (unchanged
+/// an explicit `MPDF_PDFIUM_LIBRARY` still wins when set (unchanged
 /// developer/support override behavior — see `docs/pdfium-bundling.md`),
 /// but otherwise a packaged build's trusted bundled resource (resolved
 /// once at startup via Tauri's own resource-directory API — see
@@ -219,10 +217,10 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: 
 /// core resolver's generic executable-adjacent search, which does not
 /// know macOS's `Contents/Resources` bundle layout. A development run
 /// with no bundled resource falls back to `PdfiumConfig::default()`
-/// unchanged, so `MUSEION_ALLOW_CWD_PDFIUM`/executable-adjacent search
+/// unchanged, so `MPDF_ALLOW_CWD_PDFIUM`/executable-adjacent search
 /// keep working exactly as before.
 pub(crate) fn pdfium_config(bundled_pdfium_path: Option<&std::path::Path>) -> PdfiumConfig {
-    if std::env::var_os(museion_binarize_core::pdfium_backend::PDFIUM_LIBRARY_ENV).is_some() {
+    if std::env::var_os(mpdf_core::pdfium_backend::PDFIUM_LIBRARY_ENV).is_some() {
         return PdfiumConfig::default();
     }
     match bundled_pdfium_path {
@@ -264,8 +262,7 @@ fn open(
     };
     let session = PdfDocumentSession::open(path, &options)?;
     let info = session.info().clone();
-    let pdfium_library =
-        museion_binarize_core::pdfium_backend::describe_resolved(session.resolved_library());
+    let pdfium_library = mpdf_core::pdfium_backend::describe_resolved(session.resolved_library());
     Ok((
         session,
         OpenedDocument {
@@ -306,7 +303,7 @@ fn process(
     let options = PdfProcessingOptions {
         password: None,
         overwrite,
-        validation: museion_binarize_core::validation::ValidationMode::default(),
+        validation: mpdf_core::validation::ValidationMode::default(),
         pdfium: pdfium_config(bundled_pdfium_path),
         prior_estimate,
         output_write_strategy: output_write_strategy(),
@@ -337,13 +334,13 @@ fn no_open_document() -> CoreError {
 #[cfg(test)]
 mod output_write_strategy_tests {
     use super::output_write_strategy;
-    use museion_binarize_core::pipeline::OutputWriteStrategy;
+    use mpdf_core::pipeline::OutputWriteStrategy;
 
     // `output_write_strategy` is a compile-time `cfg` branch, not a
     // runtime toggle, so one `#[test]` cannot exercise both arms in the
     // same binary — each half below only compiles for the matching
-    // feature state, and `cargo test -p museion-binarize-desktop` /
-    // `cargo test -p museion-binarize-desktop --features mas-sandbox`
+    // feature state, and `cargo test -p mpdf-desktop` /
+    // `cargo test -p mpdf-desktop --features mas-sandbox`
     // each give the other its real, non-`#[cfg]`-skipped coverage.
 
     #[cfg(not(feature = "mas-sandbox"))]
@@ -371,11 +368,11 @@ mod output_write_strategy_tests {
 #[cfg(test)]
 mod pdfium_config_tests {
     use super::pdfium_config;
-    use museion_binarize_core::pdfium_backend::PDFIUM_LIBRARY_ENV;
+    use mpdf_core::pdfium_backend::PDFIUM_LIBRARY_ENV;
     use std::path::PathBuf;
 
     /// Serializes tests that touch the shared process-global
-    /// `MUSEION_PDFIUM_LIBRARY` environment variable, the same
+    /// `MPDF_PDFIUM_LIBRARY` environment variable, the same
     /// discipline `pdfium_backend`'s own tests use.
     static ENV_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 

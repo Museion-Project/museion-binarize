@@ -1,4 +1,4 @@
-// Subscribes once to the museion://processing-* event namespace and turns
+// Subscribes once to the mpdf://processing-* event namespace and turns
 // each event into a reducer action. The reducer itself drops any event
 // whose jobId does not match the job currently in state, so a stale event
 // from a previous job can never corrupt newer state (docs/desktop.md,

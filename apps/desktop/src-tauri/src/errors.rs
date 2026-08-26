@@ -1,19 +1,19 @@
 //! Maps [`CoreError`] and desktop-local failures to the stable
 //! [`UiErrorDto`] the frontend switches on.
 //!
-//! Mirrors `museion-binarize-cli`'s `errors::classify` (same stable code
+//! Mirrors `mpdf-cli`'s `errors::classify` (same stable code
 //! strings, independently maintained per crate since the CLI exposes no
 //! library target to share one with) — see `docs/cli.md`'s exit-code
 //! table for the sibling mapping.
 
-use museion_binarize_core::error::CoreError;
+use mpdf_core::error::CoreError;
 
 use crate::dto::UiErrorDto;
 
 /// Maps a [`CoreError`] to a stable, machine-readable code the frontend
 /// can switch on, plus a short actionable hint where one exists. Never
 /// includes a password or other secret — `CoreError`'s own `Display`
-/// impl already guarantees that (see `museion_binarize_core::error`).
+/// impl already guarantees that (see `mpdf_core::error`).
 pub fn classify_core_error(error: &CoreError) -> UiErrorDto {
     let code = match error {
         CoreError::InvalidParameter(_) => "invalid_parameter",
@@ -49,7 +49,7 @@ pub fn classify_core_error(error: &CoreError) -> UiErrorDto {
     };
     let hint = match error {
         CoreError::PdfiumNotFound { .. } | CoreError::PdfiumLoadFailed { .. } => Some(
-            "For a development build, set MUSEION_PDFIUM_LIBRARY to a local PDFium library \
+            "For a development build, set MPDF_PDFIUM_LIBRARY to a local PDFium library \
              before launching the app. See docs/pdfium.md."
                 .to_string(),
         ),

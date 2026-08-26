@@ -1,4 +1,4 @@
-schema = "museion-binarize-benchmark-profile"
+schema = "mpdf-benchmark-profile"
 schema_version = "1.0"
 id = "baseline-method-comparison"
 description = "Otsu, Sauvola (defaults), and a fixed manual threshold, at 300 DPI (metadata only for the raster benchmark level — see docs/benchmark-metrics.md)."

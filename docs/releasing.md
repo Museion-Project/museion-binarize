@@ -50,9 +50,9 @@ whether it accepts a SemVer prerelease identifier cleanly:
 | `apps/desktop/package.json` | Accepts it natively (node-semver). |
 | `tauri.conf.json` `version` | Accepts it; flows through to `CFBundleShortVersionString`/`CFBundleVersion` unchanged on macOS. Verified with a real local build. |
 | macOS bundle (`.app`, `.dmg`) | Full build/sign/package pipeline verified locally with `0.1.0-rc.1` end to end — no rejection, no transformation. |
-| **Windows MSI (WiX)** | **Rejects a non-numeric prerelease identifier in `ProductVersion`** — Windows Installer's `ProductVersion` is strictly `major.minor.build`, numeric only (Microsoft's own documented limit: build field ≤ 65,535, no fourth field recognized). Tauri's `tauri-bundler` added msi-specific prerelease/build-metadata support that must also be numeric-only. `0.1.0-rc.1`'s `rc.1` prerelease identifier is neither. **Fix**: `bundle.windows.wix.version` (`tauri.dist.conf.json`) overrides the MSI-internal `ProductVersion` with a numeric-only value (`0.1.0.1` for this RC) while every other version field — including the installer's own filename — keeps the real `0.1.0-rc.1`. Verified via a real Windows CI build: `Museion Binarize_0.1.0-rc.1_x64_en-US.msi` built successfully. |
-| Windows NSIS | Accepts `0.1.0-rc.1` directly, no override needed — verified via the same real Windows CI build (`Museion Binarize_0.1.0-rc.1_x64-setup.exe`). |
-| Linux `.deb`/`.rpm`/AppImage | Accepts `0.1.0-rc.1` directly — verified via a real Linux CI build (`Museion Binarize_0.1.0-rc.1_amd64.deb`, `...-0.1.0-rc.1-1.x86_64.rpm`, `..._0.1.0-rc.1_amd64.AppImage`). |
+| **Windows MSI (WiX)** | **Rejects a non-numeric prerelease identifier in `ProductVersion`** — Windows Installer's `ProductVersion` is strictly `major.minor.build`, numeric only (Microsoft's own documented limit: build field ≤ 65,535, no fourth field recognized). Tauri's `tauri-bundler` added msi-specific prerelease/build-metadata support that must also be numeric-only. `0.1.0-rc.1`'s `rc.1` prerelease identifier is neither. **Fix**: `bundle.windows.wix.version` (`tauri.dist.conf.json`) overrides the MSI-internal `ProductVersion` with a numeric-only value (`0.1.0.1` for this RC) while every other version field — including the installer's own filename — keeps the real `0.1.0-rc.1`. Verified via a real Windows CI build: `M PDF Processor_0.1.0-rc.1_x64_en-US.msi` built successfully. |
+| Windows NSIS | Accepts `0.1.0-rc.1` directly, no override needed — verified via the same real Windows CI build (`M PDF Processor_0.1.0-rc.1_x64-setup.exe`). |
+| Linux `.deb`/`.rpm`/AppImage | Accepts `0.1.0-rc.1` directly — verified via a real Linux CI build (`M PDF Processor_0.1.0-rc.1_amd64.deb`, `...-0.1.0-rc.1-1.x86_64.rpm`, `..._0.1.0-rc.1_amd64.AppImage`). |
 
 For `0.1.0-rc.2`, the same MSI mapping advances the WiX-only numeric
 version to `0.1.0.2`; the public SemVer remains `0.1.0-rc.2` everywhere
@@ -71,15 +71,15 @@ by every packaging script — never a workflow-run-number or timestamp in
 a filename:
 
 ```
-Museion-Binarize-<version>-macos-arm64.dmg
-Museion-Binarize-<version>-macos-x64.dmg
-Museion-Binarize-<version>-windows-x64.msi
-Museion-Binarize-<version>-linux-x86_64.AppImage
-Museion-Binarize-<version>-linux-x86_64.deb
-museion-binarize-cli-<version>-macos-arm64.tar.gz
-museion-binarize-cli-<version>-macos-x64.tar.gz
-museion-binarize-cli-<version>-windows-x64.zip
-museion-binarize-cli-<version>-linux-x86_64.tar.gz
+mpdf-<version>-macos-arm64.dmg
+mpdf-<version>-macos-x64.dmg
+mpdf-<version>-windows-x64.msi
+mpdf-<version>-linux-x86_64.AppImage
+mpdf-<version>-linux-x86_64.deb
+mpdf-cli-<version>-macos-arm64.tar.gz
+mpdf-cli-<version>-macos-x64.tar.gz
+mpdf-cli-<version>-windows-x64.zip
+mpdf-cli-<version>-linux-x86_64.tar.gz
 ```
 
 **Fixed this milestone**: the Windows and Linux jobs previously never
@@ -121,7 +121,7 @@ checksum is never published as if it described the signed file.
 
 ## Release manifest
 
-Schema `museion-binarize-release-manifest` v1.0
+Schema `mpdf-release-manifest` v1.0
 (`scripts/distribution/release_manifest.py`). Per artifact:
 
 ```json
@@ -129,7 +129,7 @@ Schema `museion-binarize-release-manifest` v1.0
   "target_triple": "aarch64-apple-darwin",
   "os": "macos",
   "arch": "arm64",
-  "artifact_filename": "Museion-Binarize-0.1.0-macos-arm64.dmg",
+  "artifact_filename": "mpdf-0.1.0-macos-arm64.dmg",
   "artifact_sha256": "...",
   "pdfium_build": "7920",
   "pdfium_version": "151.0.7920.0",

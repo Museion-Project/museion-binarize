@@ -15,12 +15,12 @@ Expected input layout (exactly what `gh run download --dir <X>` with no
 `--name` produces: one subdirectory per uploaded artifact name):
 
     <artifacts-dir>/
-      museion-binarize-aarch64-apple-darwin/
-        Museion-Binarize-0.1.0-rc.1-macos-arm64.dmg
-        museion-binarize-cli-0.1.0-rc.1-macos-arm64.tar.gz
+      mpdf-aarch64-apple-darwin/
+        mpdf-0.1.0-rc.1-macos-arm64.dmg
+        mpdf-cli-0.1.0-rc.1-macos-arm64.tar.gz
         release-manifest.json
         SHA256SUMS
-      museion-binarize-x86_64-pc-windows-msvc/
+      mpdf-x86_64-pc-windows-msvc/
         ...
 
 Fails closed (non-zero exit, no partial output) on:
@@ -56,7 +56,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import checksums  # noqa: E402
 
-SCHEMA = "museion-binarize-release-manifest"
+SCHEMA = "mpdf-release-manifest"
 SCHEMA_VERSION = "1.0"
 
 # Files a per-target job's dist-out/ legitimately contains that are not

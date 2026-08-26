@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for Museion Binarize
+about: Suggest an idea for M PDF Processor
 title: "[Feature] "
 labels: enhancement
 assignees: ""

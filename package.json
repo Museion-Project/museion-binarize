@@ -1,5 +1,5 @@
 {
-  "name": "museion-binarize",
+  "name": "mpdf",
   "private": true,
   "description": "Open-source, cross-platform desktop application for converting scanned scholarly books into clean, compact, bilevel PDFs.",
   "license": "MIT OR Apache-2.0",
@@ -14,9 +14,9 @@
   },
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "lint": "pnpm --filter museion-binarize-desktop lint",
-    "typecheck": "pnpm --filter museion-binarize-desktop typecheck",
-    "test": "pnpm --filter museion-binarize-desktop test",
-    "build": "pnpm --filter museion-binarize-desktop build"
+    "lint": "pnpm --filter mpdf-desktop lint",
+    "typecheck": "pnpm --filter mpdf-desktop typecheck",
+    "test": "pnpm --filter mpdf-desktop test",
+    "build": "pnpm --filter mpdf-desktop build"
   }
 }

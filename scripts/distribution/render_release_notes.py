@@ -31,7 +31,7 @@ from pathlib import Path
 TEMPLATE = """\
 ## What this is
 
-Museion Binarize converts scanned scholarly books into clean, compact,
+M PDF Processor converts scanned scholarly books into clean, compact,
 true 1-bit (bilevel) PDFs using deterministic thresholding — no OCR, no
 AI, no generative restoration. This is a **public release candidate**.
 
@@ -80,7 +80,7 @@ provenance and signing state per artifact).
 
 ## Open source and supporting the project
 
-Museion Binarize is free and open source, and the official GitHub
+M PDF Processor is free and open source, and the official GitHub
 builds are fully functional and freely available.
 
 GitHub Sponsors support is available at

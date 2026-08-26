@@ -1,0 +1,10 @@
+{
+  "docling": {"score": 10, "role": "canonical IR and provider architecture reference"},
+  "paddleocr": {"score": 10, "role": "local OCR/layout and detailed result reference"},
+  "marker": {"score": 9, "role": "tree/chunk outputs and selective OCR reference"},
+  "mineru": {"score": 9, "role": "intermediate-versus-consumer views and coordinate caution"},
+  "mistral-ocr-4": {"score": 9, "role": "future API result capabilities reference"},
+  "olmocr": {"score": 7, "role": "reading-order benchmark and negative example for geometry-poor output"},
+  "franken-ocr": {"score": 7, "role": "Rust CPU feasibility reference only"},
+  "kreuzberg": {"score": 7, "role": "plugin and deployment boundary reference"}
+}

@@ -6,8 +6,8 @@ reproducible benchmarking framework and its results, described in
 
 ## What will live here
 
-- Scripts/tooling to run `museion-binarize-cli` (or
-  `museion-binarize-core` directly) against a fixed, documented dataset and
+- Scripts/tooling to run `mpdf-cli` (or
+  `mpdf-core` directly) against a fixed, documented dataset and
   parameter set.
 - Structured, versioned output recording the metrics described in
   [`docs/benchmarking.md`](../docs/benchmarking.md): F-measure,

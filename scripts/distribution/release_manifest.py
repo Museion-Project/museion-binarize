@@ -2,7 +2,7 @@
 """Builds/updates `release-manifest.json`: the versioned, machine-readable
 provenance record for one release's artifacts. See docs/releasing.md.
 
-Schema `museion-binarize-release-manifest` v1.0. Deliberately excludes:
+Schema `mpdf-release-manifest` v1.0. Deliberately excludes:
 username, hostname, home directory, secret names/values, and absolute
 developer filesystem paths — only project version, git SHA, target
 triple, artifact filename/digest, and PDFium dependency provenance.
@@ -12,7 +12,7 @@ Usage:
         --manifest release-manifest.json \\
         --project-version 0.1.0 --git-sha <sha> \\
         --target-triple aarch64-apple-darwin --os macos --arch arm64 \\
-        --artifact-filename Museion-Binarize-0.1.0-macos-arm64.dmg \\
+        --artifact-filename mpdf-0.1.0-macos-arm64.dmg \\
         --artifact-path /path/to/the.dmg \\
         --pdfium-build 7920 --pdfium-version 151.0.7920.0 \\
         --pdfium-sha256 <sha256> \\
@@ -26,7 +26,7 @@ import hashlib
 import json
 from pathlib import Path
 
-SCHEMA = "museion-binarize-release-manifest"
+SCHEMA = "mpdf-release-manifest"
 SCHEMA_VERSION = "1.0"
 
 VALID_SIGNING_STATES = {"unsigned", "ad_hoc", "signed", "pending_credentials"}

@@ -4,7 +4,7 @@
 //! `start_processing` returns as soon as the job is handed to the PDFium
 //! worker thread — it does not wait for the conversion to finish. Progress,
 //! completion, cancellation, and failure are all delivered later as events
-//! on the `museion://processing-*` namespace (see `docs/desktop.md`).
+//! on the `mpdf://processing-*` namespace (see `docs/desktop.md`).
 //! Only one job may be active at a time; a second `start_processing` call
 //! while one is running is rejected immediately with a structured error,
 //! never silently queued.
@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use museion_binarize_core::pipeline::PriorEstimate;
-use museion_binarize_core::progress::{ProcessingStage, ProgressEvent, ProgressReporter};
+use mpdf_core::pipeline::PriorEstimate;
+use mpdf_core::progress::{ProcessingStage, ProgressEvent, ProgressReporter};
 
 use crate::dto::{
     ProcessingCancelledDto, ProcessingCompletedDto, ProcessingFailedDto, ProcessingProgressDto,
@@ -27,10 +27,10 @@ use crate::settings::to_processing_settings;
 use crate::state::{AppState, JobState};
 use crate::worker::WorkerCommand;
 
-pub const EVENT_PROGRESS: &str = "museion://processing-progress";
-pub const EVENT_COMPLETED: &str = "museion://processing-completed";
-pub const EVENT_CANCELLED: &str = "museion://processing-cancelled";
-pub const EVENT_FAILED: &str = "museion://processing-failed";
+pub const EVENT_PROGRESS: &str = "mpdf://processing-progress";
+pub const EVENT_COMPLETED: &str = "mpdf://processing-completed";
+pub const EVENT_CANCELLED: &str = "mpdf://processing-cancelled";
+pub const EVENT_FAILED: &str = "mpdf://processing-failed";
 
 #[tauri::command]
 pub async fn start_processing(
@@ -114,8 +114,7 @@ pub async fn start_processing(
             .unwrap()
             .as_ref()
             .and_then(|cached| {
-                let fingerprint =
-                    museion_binarize_core::estimation::settings_fingerprint(&settings);
+                let fingerprint = mpdf_core::estimation::settings_fingerprint(&settings);
                 (cached.document_id == request.document_id
                     && cached.settings_fingerprint == fingerprint)
                     .then(|| PriorEstimate {
@@ -168,7 +167,7 @@ pub async fn start_processing(
                         ),
                     );
                 }
-                Some(Err(museion_binarize_core::error::CoreError::Cancelled)) => {
+                Some(Err(mpdf_core::error::CoreError::Cancelled)) => {
                     let _ = app_for_task.emit(
                         EVENT_CANCELLED,
                         ProcessingCancelledDto {
@@ -223,7 +222,7 @@ pub fn cancel_processing(job_id: String, state: State<'_, AppState>) -> Result<(
     }
 }
 
-/// Bridges the core [`ProgressReporter`] trait to `museion://processing-*`
+/// Bridges the core [`ProgressReporter`] trait to `mpdf://processing-*`
 /// Tauri events. Runs on the PDFium worker thread (see `worker.rs`), so
 /// `report`/`is_cancelled` must stay cheap and non-blocking.
 struct TauriProgressReporter {
