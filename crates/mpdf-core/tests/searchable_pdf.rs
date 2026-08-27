@@ -232,6 +232,7 @@ fn m5_pdfium_source_preserving_reopen_and_rotation_fixture(
         &output,
         &PdfOpenOptions {
             pdfium: config,
+            compute_source_hash: true,
             ..Default::default()
         },
     )?;
@@ -265,6 +266,26 @@ fn m5_pdfium_source_preserving_reopen_and_rotation_fixture(
     assert_eq!(outline[1].page_index, 1);
     assert_eq!(outline[2].title, "2. Appendix");
     assert_eq!(outline[2].page_index, 3);
+
+    let imported_package =
+        DocumentPackage::create_from_session(&reopened, Some("searchable-rotations.pdf".into()))?;
+    let imported_outline = &imported_package.pages[0].existing_outline_evidence;
+    assert_eq!(imported_outline.len(), 3);
+    assert_eq!(imported_outline[0].title, "1. Ἀρχὴ");
+    assert_eq!(imported_outline[0].level, 0);
+    assert_eq!(
+        imported_outline[0].target_page_id.as_deref(),
+        Some(imported_package.pages[0].page_id.as_str())
+    );
+    assert_eq!(imported_outline[1].title, "1.1 Πολιτείας");
+    assert_eq!(imported_outline[1].level, 1);
+    assert_eq!(
+        imported_outline[1].target_page_id.as_deref(),
+        Some(imported_package.pages[1].page_id.as_str())
+    );
+    assert!(imported_outline
+        .iter()
+        .all(|item| item.source == "source-pdf"));
 
     let source_pdf = lopdf::Document::load(&source)?;
     let output_pdf = lopdf::Document::load(&output)?;

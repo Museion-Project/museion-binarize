@@ -292,6 +292,7 @@ impl DocumentPackage {
             .clone()
             .ok_or_else(|| package_error("source digest was not captured"))?;
         let document_id = document_id(&digest);
+        let native_outline = session.native_outline()?;
         let mut pages = Vec::with_capacity(session.info().pages.len());
         for page in &session.info().pages {
             let width = f64::from(page.geometry.width_points);
@@ -338,6 +339,27 @@ impl DocumentPackage {
                 region_evidence: Vec::new(),
                 asset_ids: Vec::new(),
             });
+        }
+        let outline_evidence = native_outline
+            .into_iter()
+            .map(|item| {
+                let target_page_id = pages
+                    .get(item.page_index as usize)
+                    .map(|page| page.page_id.clone())
+                    .ok_or_else(|| package_error("source outline target page is out of range"))?;
+                Ok(ExistingOutlineEvidence {
+                    title: item.title,
+                    level: item.level,
+                    target_page_id: Some(target_page_id),
+                    source: "source-pdf".to_owned(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        if !outline_evidence.is_empty() {
+            pages
+                .first_mut()
+                .ok_or_else(|| package_error("source outline exists without any pages"))?
+                .existing_outline_evidence = outline_evidence;
         }
         let source = Source {
             source_id: source_id(&digest),

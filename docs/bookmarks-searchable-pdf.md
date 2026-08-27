@@ -10,6 +10,14 @@ Only human-confirmed effective candidates are written to a PDF outline.
 Unreviewed and low-confidence candidates remain visible in the CLI and desktop
 review queue but cannot silently become document navigation.
 
+When an MDP is created directly from a PDF session, actionable native outline
+items are imported as `source-pdf` evidence in source tree order. Items without
+a resolvable destination are hierarchy containers only: they are not emitted
+as candidates, and actionable descendants attach to the nearest actionable
+ancestor. Invalid page destinations fail the package build closed. Source
+titles remain byte-for-byte equivalent to PDFium's Unicode result; a trimmed
+effective title is used only for display and review.
+
 Searchable output is always a new file unless `--overwrite` explicitly permits
 replacing an existing output. The source PDF must be the exact source recorded
 by the MDP. Existing page content and image streams are preserved, while an

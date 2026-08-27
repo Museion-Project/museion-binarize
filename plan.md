@@ -187,9 +187,12 @@ revision overlay，以及 JSON、JSONL、Markdown、TXT、HTML、hOCR、ALTO 七
 本地全量门禁、真实 PDFium 重开验证和 GitHub CI 全部通过。
 
 严格出口复核（2026-08-27）：自动化 conformance fixture 与 PDFium、PDFKit、qpdf、Poppler、
-Ghostscript 引擎矩阵通过，并修复 fixture `/Resources` 与 CIDFont `CIDSystemInfo` 互操作问题；
-但仓库尚无最低 20 本双人独立标注并仲裁的真实文档金标准，Acrobat UI、固定 PDF.js 及
-Foxit/iOS 矩阵也未完成。详见 `docs/benchmark-results/m5-exit-acceptance-2026-08-27.md`。
+Ghostscript、固定 PDF.js 5.4.624 引擎矩阵通过；Foxit PDF Editor 2026.1 UI 的打开、
+书签层级、目标页跳转和希腊文搜索也通过。翻译 agent 2 的 20 份真实 PDF（4,869 页）
+已加入外部语料 manifest：19 份共 574 条原生 outline 的标题、层级、物理目标页全部精确
+保留，1 份无效目标按预期 fail closed。但这批语料只覆盖 existing outline，尚非双人独立
+标注并仲裁且跨 digital/scanned TOC 与 safe-refusal 的金标准；Acrobat、Preview UI 与 iOS
+矩阵仍未完成。详见 `docs/benchmark-results/m5-exit-acceptance-2026-08-27.md`。
 因此 M5 代码已合并，但严格产品出口门仍为 blocked，M6 不启动。
 
 交付：
@@ -242,12 +245,13 @@ Foxit/iOS 矩阵也未完成。详见 `docs/benchmark-results/m5-exit-acceptance
 | M2 任务与 provider | 已合并 | [PR #15](https://github.com/Museion-Project/museion-binarize/pull/15) | GitHub CI 全绿；merge `72576e3` |
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
-| M5 自动书签/PDF | 代码已合并；严格出口门 blocked | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18) | 补真实金标准与目标阅读器矩阵 |
+| M5 自动书签/PDF | 代码已合并；严格出口门 blocked | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18) | 补双人标注 TOC/拒绝金标准与 Acrobat/Preview/iOS |
 | M6 API | 未开始（blocked） | — | M5 严格出口门通过 |
 | M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
 
 ## 5. 当前阻塞
 
-M5 严格产品出口门缺少最低 20 本双人标注真实金标准，以及 Acrobat、固定 PDF.js、
-Foxit/iOS 的完整目标阅读器矩阵；在补齐前不启动 M6。GitHub 权限不是阻塞：2026-08-26
+M5 严格产品出口门已有 20 份真实原生 outline 语料、固定 PDF.js 及 Foxit 证据，但仍缺少
+双人独立标注并仲裁的 digital/scanned TOC 与 safe-refusal 金标准，以及 Acrobat、Preview UI、
+iOS 的完整目标阅读器矩阵；在补齐前不启动 M6。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。
