@@ -32,6 +32,18 @@ The MDP 0.1 evidence-package slice is available from the CLI:
 geometry evidence and SHA-256 references without OCR or copying the source
 PDF; see [`docs/document-package.md`](docs/document-package.md).
 
+The M3 local OCR route is available without a network dependency. It preserves
+reliable native text, renders only pages that need OCR, and writes typed
+block/line/word evidence under `ocr/` while checkpointing pages in the M2
+SQLite store:
+
+```bash
+mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 --provider reference
+```
+
+Use `--provider rapidocr --provider-executable PATH --model-dir PATH` only
+when an explicitly provisioned local RapidOCR/ONNX sidecar is available.
+
 The M2 development job store can be exercised without an OCR provider:
 
 ```bash

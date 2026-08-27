@@ -75,6 +75,14 @@ pub struct PdfOpenOptions {
     pub compute_source_hash: bool,
 }
 
+/// Text recovered from a PDF's native text layer.  This is deliberately an
+/// owned, backend-neutral value: PDFium handles never cross the session
+/// boundary or enter a persisted MDP record.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NativeTextPage {
+    pub text: String,
+}
+
 /// A project-owned seam between the pipeline and the concrete PDF backend.
 ///
 /// Exists so `process`/`analyze` can be tested with an in-memory mock
@@ -94,6 +102,13 @@ pub trait DocumentSession {
     /// this from the single session opened for the whole operation —
     /// never by reopening the source document.
     fn render_page(&self, index: u32, dpi: u16) -> Result<DynamicImage>;
+
+    /// Extracts the native text layer for one page.  Test sessions may use
+    /// the default empty result; an empty or suspicious result is routed to
+    /// the local OCR provider by the M3 pipeline.
+    fn native_text(&self, _index: u32) -> Result<NativeTextPage> {
+        Ok(NativeTextPage::default())
+    }
 }
 
 /// One PDFium document, opened once from an in-memory snapshot of the
@@ -237,6 +252,18 @@ impl DocumentSession for PdfDocumentSession {
 
     fn render_page(&self, index: u32, dpi: u16) -> Result<DynamicImage> {
         PdfDocumentSession::render_page(self, index, dpi)
+    }
+
+    fn native_text(&self, index: u32) -> Result<NativeTextPage> {
+        let page =
+            self.document.pages().get(index as i32).map_err(|e| {
+                CoreError::InvalidDocument(format!("could not access page text: {e}"))
+            })?;
+        let text = page
+            .text()
+            .map_err(|e| CoreError::InvalidDocument(format!("could not extract page text: {e}")))?
+            .all();
+        Ok(NativeTextPage { text })
     }
 }
 

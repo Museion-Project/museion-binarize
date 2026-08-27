@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mpdf.example/schemas/mpdf-ocr-run-0.1.schema.json",
+  "title": "MPDF OCR run summary 0.1",
+  "type": "object",
+  "required": ["protocol", "protocol_version", "pages", "errors"],
+  "properties": {
+    "protocol": {"const": "mpdf-ocr"},
+    "protocol_version": {"type": "string", "pattern": "^0\\.[0-9]+$"},
+    "pages": {"type": "array", "maxItems": 100000, "items": {"$ref": "mpdf-ocr-0.1.schema.json"}},
+    "errors": {"type": "array", "maxItems": 100000, "items": {"$ref": "#/$defs/error"}}
+  },
+  "$defs": {
+    "error": {"type": "object", "required": ["page_index", "route_reason", "code", "message"], "properties": {"page_index": {"type": "integer", "minimum": 0}, "route_reason": {"enum": ["missing_text", "too_little_text", "garbled_text"]}, "code": {"type": "string", "minLength": 1}, "message": {"type": "string", "minLength": 1, "maxLength": 1024}}, "additionalProperties": false}
+  },
+  "additionalProperties": false
+}

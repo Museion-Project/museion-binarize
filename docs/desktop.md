@@ -269,7 +269,10 @@ event from a previous job/document can never corrupt newer state.
   as the CLI).
 - No packaging, code signing, or notarization — this milestone is GUI
   feature completeness, not release engineering (Milestone 7).
-- No OCR, hidden-text-layer preservation, or structural PDF preservation
+- The M3 local OCR controller remains CLI-owned, but the desktop exposes
+  provider readiness plus durable status, cancellation, and page-error query
+  commands. It does not claim to start OCR from a background desktop worker;
+  partial output and restart semantics are defined by the CLI/job store.
   (bookmarks, annotations, forms, attachments) — unchanged from prior
   milestones.
 - No Ancient Greek / polytonic typography preservation claim — unchanged

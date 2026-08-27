@@ -9,6 +9,7 @@ pub mod estimate;
 pub mod info;
 pub mod inspect;
 pub mod job;
+pub mod ocr;
 pub mod package;
 pub mod preview;
 pub mod process;

@@ -47,6 +47,8 @@ pub enum Command {
     /// Inspect and exercise the local persistent job store (development API).
     #[command(subcommand)]
     Job(JobCommand),
+    /// Run the local OCR routing pipeline and write an MDP OCR extension.
+    Ocr(OcrArgs),
 }
 
 #[derive(Subcommand)]
@@ -65,6 +67,43 @@ pub enum JobCommand {
     Status(JobStatusArgs),
     /// Request cancellation while retaining already committed pages.
     Cancel(JobCancelArgs),
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum OcrProviderArg {
+    /// Deterministic offline provider for development and tests.
+    Reference,
+    /// Explicit RapidOCR/ONNX sidecar executable.
+    Rapidocr,
+}
+
+#[derive(Args)]
+pub struct OcrArgs {
+    /// Input PDF.
+    pub input: PathBuf,
+    /// New MDP package directory.
+    #[arg(long)]
+    pub output: PathBuf,
+    /// SQLite WAL job database used for page checkpoints.
+    #[arg(long)]
+    pub jobs_db: PathBuf,
+    /// Stable job identifier.
+    #[arg(long)]
+    pub job_id: String,
+    /// Production default. `reference` is an offline deterministic provider
+    /// intended for development and tests only.
+    #[arg(long, value_enum, default_value = "rapidocr")]
+    pub provider: OcrProviderArg,
+    /// RapidOCR/ONNX executable (required with --provider rapidocr).
+    #[arg(long)]
+    pub provider_executable: Option<PathBuf>,
+    /// RapidOCR model directory (required with --provider rapidocr).
+    #[arg(long)]
+    pub model_dir: Option<PathBuf>,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
 }
 
 #[derive(Args)]
@@ -730,5 +769,42 @@ mod tests {
             cancel.command,
             Some(Command::Job(JobCommand::Cancel(_)))
         ));
+    }
+
+    #[test]
+    fn local_ocr_command_parses_provider_and_job_arguments() {
+        use clap::Parser;
+        let cli = Cli::try_parse_from([
+            "mpdf",
+            "ocr",
+            "book.pdf",
+            "--output",
+            "book.mdp",
+            "--jobs-db",
+            "jobs.sqlite",
+            "--job-id",
+            "demo",
+            "--provider",
+            "reference",
+        ])
+        .unwrap();
+        assert!(matches!(cli.command, Some(Command::Ocr(_))));
+
+        let default_cli = Cli::try_parse_from([
+            "mpdf",
+            "ocr",
+            "book.pdf",
+            "--output",
+            "book.mdp",
+            "--jobs-db",
+            "jobs.sqlite",
+            "--job-id",
+            "demo",
+        ])
+        .unwrap();
+        match default_cli.command {
+            Some(Command::Ocr(args)) => assert!(matches!(args.provider, OcrProviderArg::Rapidocr)),
+            _ => panic!("expected OCR command"),
+        }
     }
 }

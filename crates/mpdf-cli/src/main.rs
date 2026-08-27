@@ -42,5 +42,6 @@ fn main() -> ExitCode {
         Some(Command::Job(JobCommand::Create(args))) => commands::job::create(args),
         Some(Command::Job(JobCommand::Status(args))) => commands::job::status(args),
         Some(Command::Job(JobCommand::Cancel(args))) => commands::job::cancel(args),
+        Some(Command::Ocr(args)) => commands::ocr::run(args),
     }
 }

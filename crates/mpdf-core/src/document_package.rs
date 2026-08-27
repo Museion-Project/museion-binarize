@@ -272,6 +272,20 @@ impl DocumentPackage {
                 ..options.clone()
             },
         )?;
+        let source_name = input
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(str::to_owned);
+        Self::create_from_session(&session, source_name)
+    }
+
+    /// Builds the base package from an already-open session. OCR and other
+    /// page consumers use this entry point to guarantee one source snapshot
+    /// and one PDFium document for the whole operation.
+    pub fn create_from_session(
+        session: &PdfDocumentSession,
+        source_name: Option<String>,
+    ) -> Result<Self> {
         let identity = session.source_identity();
         let digest = identity
             .content_sha256
@@ -325,10 +339,6 @@ impl DocumentPackage {
                 asset_ids: Vec::new(),
             });
         }
-        let source_name = input
-            .file_name()
-            .and_then(|n| n.to_str())
-            .map(str::to_owned);
         let source = Source {
             source_id: source_id(&digest),
             kind: SourceKind::Pdf,
@@ -701,6 +711,41 @@ impl DocumentPackage {
                 "validation summary does not match package contents",
             ));
         }
+        // M3 OCR records are an additive typed extension. Validate them when
+        // present so `package validate` cannot bless a corrupt OCR summary,
+        // while packages without the extension remain valid MDP 0.1.
+        let ocr_dir = root.join("ocr");
+        if let Ok(metadata) = fs::symlink_metadata(&ocr_dir) {
+            if !metadata.is_dir() || metadata.file_type().is_symlink() {
+                return Err(package_error(
+                    "OCR extension directory is not a real directory",
+                ));
+            }
+        }
+        let ocr_summary = ocr_dir.join("summary.json");
+        if let Ok(metadata) = fs::symlink_metadata(&ocr_summary) {
+            if !metadata.is_file() || metadata.file_type().is_symlink() {
+                return Err(package_error("OCR summary is not a real file"));
+            }
+            let ocr = crate::ocr::read_ocr_records(root)
+                .map_err(|error| package_error(error.to_string()))?;
+            if !ocr.is_complete(package.manifest.page_count) {
+                return Err(package_error(
+                    "OCR extension summary does not contain a complete run",
+                ));
+            }
+            if ocr
+                .pages
+                .iter()
+                .any(|page| page.page_index >= package.manifest.page_count)
+                || ocr
+                    .errors
+                    .iter()
+                    .any(|error| error.page_index >= package.manifest.page_count)
+            {
+                return Err(package_error("OCR extension references a missing page"));
+            }
+        }
         Ok(package)
     }
 
@@ -742,6 +787,14 @@ fn ensure_directory(root: &Path, name: &str) -> Result<()> {
 
 pub fn validate_directory(root: &Path) -> Result<ValidationSummary> {
     let package = DocumentPackage::read_from(root)?;
+    let ocr_dir = root.join("ocr");
+    if fs::symlink_metadata(&ocr_dir).is_ok()
+        && fs::symlink_metadata(ocr_dir.join("summary.json")).is_err()
+    {
+        return Err(package_error(
+            "OCR extension is incomplete: summary.json is missing",
+        ));
+    }
     package.validation_report()
 }
 

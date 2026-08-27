@@ -2,7 +2,7 @@
 
 **状态：** Active
 **日期：** 2026-08-26
-**当前分支：** `codex/m-pdf-m2-jobs-provider`
+**当前分支：** `codex/m-pdf-m3-local-ocr`
 
 本文把当前 OCR + AI-ready 中间层方案拆成可以独立审查、测试、回退的 milestones。
 每个 milestone 必须先通过本地检查，再提交 GitHub Pull Request；只有远端 CI 全绿并合并后，
@@ -121,7 +121,8 @@ JSON Schema 位于 `schemas/mpdf-document-package-0.1.schema.json`。完整本�
 reference/fake provider 及完整失败模式测试。CLI 的 `job create/status/cancel` 仅操作本地
 任务状态，桌面侧提供可恢复的任务进度 DTO；provider attempt provenance 已与成功
 checkpoint 或失败结果原子写入 SQLite；真实 OCR provider 和 process 联动仍等待后续里程碑。
-完整本地门禁、500 页恢复验收和 CLI 正负向冒烟测试均已通过，等待 GitHub CI。
+完整本地门禁、500 页恢复验收、CLI 正负向冒烟测试和 GitHub CI 均已通过，并由
+PR #15 合并。
 
 出口条件：模拟 500 页任务中止后能从最后已提交页恢复；取消不会删除已确认产物；sidecar
 崩溃不会形成伪成功任务。
@@ -138,6 +139,17 @@ checkpoint 或失败结果原子写入 SQLite；真实 OCR provider 和 process 
 - block/line/word 文本、bbox、confidence、reading order 和原始 provider artifact 写入 MDP；
 - 原文、Unicode 规范化文本和人工/AI revision 分层保存；
 - CLI 一键处理路径，以及最小桌面设置、进度、取消和逐页错误显示。
+
+实现进度（进行中，等待 CI）：`mpdf ocr` 已接入 PDFium 原生文字优先路由、逐页
+300 DPI 渲染、typed `ocr/` MDP 扩展记录、离线 reference provider，以及显式 argv
+调用的 RapidOCR/ONNX sidecar runner；单个 PDF session 按页写入 M2 SQLite job
+checkpoint，支持重跑跳过已校验页、取消保留已提交页，失败页保留为可诊断错误而不伪造
+成功。桌面已有 provider 设置、持久状态/取消/逐页错误查询 wiring（实际启动仍由 CLI
+控制）；真实 RapidOCR fixture 仍是可选门禁（不下载模型），而 reference provider
+已覆盖基于 checkpoint 的重启跳过。
+page JSON 是提交标记，raw artifact 先落盘并可幂等校验；崩溃留下的合法 page+raw 可被
+同源新 job adopt，临时 provider 失败按 M2 retryable 语义在后续运行重试。RapidOCR
+指纹包含协议、DPI、配置和三个 ONNX 模型内容摘要；原生文字的行/词框明确是近似几何。
 
 出口条件：扫描 PDF、混合 PDF 和 born-digital PDF fixture 全部通过；重跑可复用已完成页；
 内存随并发页数有界；没有模型时基础二值化仍可用。
@@ -208,8 +220,8 @@ checkpoint 或失败结果原子写入 SQLite；真实 OCR provider 和 process 
 |---|---|---|---|
 | M0 命名与 CI | 已合并 | [PR #13](https://github.com/Museion-Project/museion-binarize/pull/13) | GitHub CI 全绿；merge `f37a72e` |
 | M1 MDP 0.1 | 已合并 | [PR #14](https://github.com/Museion-Project/museion-binarize/pull/14) | GitHub CI 全绿；merge `8179b44` |
-| M2 任务与 provider | 本地完成，等待 CI | `codex/m-pdf-m2-jobs-provider` | 提交 PR 并等待 GitHub CI 全绿 |
-| M3 本地 OCR | 未开始 | — | M2 CI 全绿并合并 |
+| M2 任务与 provider | 已合并 | [PR #15](https://github.com/Museion-Project/museion-binarize/pull/15) | GitHub CI 全绿；merge `72576e3` |
+| M3 本地 OCR | 进行中 | `codex/m-pdf-m3-local-ocr` | 完成实现和本地门禁后提交 PR |
 | M4 AI-ready/校对 | 未开始 | — | M3 CI 全绿并合并 |
 | M5 自动书签/PDF | 未开始 | — | M4 CI 全绿并合并 |
 | M6 API | 未开始 | — | M5 CI 全绿并合并 |

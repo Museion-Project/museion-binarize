@@ -36,6 +36,15 @@ mpdf job status --db .mpdf/jobs.sqlite --job-id demo
 mpdf job cancel --db .mpdf/jobs.sqlite --job-id demo
 ```
 
+M3 本地 OCR 最小入口会优先复用 PDF 原生文字层，只对空白、极少文字或乱码页逐页
+渲染并写入 typed block/line/word 证据；默认使用需显式提供本地可执行文件和模型目录的
+RapidOCR，`reference` provider 仅用于开发和测试。每页结果与 raw artifact 在 SQLite
+checkpoint 前持久化，支持取消后保留已完成页并安全重跑：
+
+```bash
+mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 --provider reference
+```
+
 ## 核心原则
 
 - **处理过程透明，结果可复现，不对源文档进行生成式改写。**

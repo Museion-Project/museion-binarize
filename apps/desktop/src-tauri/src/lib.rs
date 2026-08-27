@@ -79,6 +79,9 @@ pub fn run() {
             commands::estimate::start_estimate,
             commands::processing::start_processing,
             commands::processing::cancel_processing,
+            commands::ocr::local_ocr_provider_status,
+            commands::ocr::local_ocr_status,
+            commands::ocr::local_ocr_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
