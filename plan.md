@@ -1,8 +1,8 @@
 # Plan：M PDF 处理器分阶段实施与 GitHub CI 门禁
 
 **状态：** Active
-**日期：** 2026-08-26
-**当前分支：** `codex/m-pdf-m4-ai-ready-review`
+**日期：** 2026-08-27
+**当前分支：** `codex/m-pdf-m5-bookmarks-searchable-pdf`
 
 本文把当前 OCR + AI-ready 中间层方案拆成可以独立审查、测试、回退的 milestones。
 每个 milestone 必须先通过本地检查，再提交 GitHub Pull Request；只有远端 CI 全绿并合并后，
@@ -154,7 +154,7 @@ page JSON 是提交标记，raw artifact 先落盘并可幂等校验；崩溃留
 出口条件：扫描 PDF、混合 PDF 和 born-digital PDF fixture 全部通过；重跑可复用已完成页；
 内存随并发页数有界；没有模型时基础二值化仍可用。
 
-### M4 — AI-ready 派生物与校对工作台
+### M4 — AI-ready 派生物与校对工作台（已合并）
 
 **目标：** 把证据 IR 转为机器和人都能消费的产物，但不以 Markdown 取代 IR。
 
@@ -166,13 +166,13 @@ page JSON 是提交标记，raw artifact 先落盘并可幂等校验；崩溃留
 - 低置信、阅读顺序冲突、Unicode 差异和疑似漏识别的审核队列；
 - 修改日志和派生产物失效/重建机制。
 
-实现进度（本分支，本地门禁已通过）：`mpdf-core::derived` 已提供版本化 typed IR、稳定
+实现结果（PR #17 已合并，merge `181265f`）：`mpdf-core::derived` 已提供版本化 typed IR、稳定
 page/region/block/line/word/chunk 引用、母版坐标反查、四类审核问题、append-only human/AI
 revision overlay，以及 JSON、JSONL、Markdown、TXT、HTML、hOCR、ALTO 七种确定性导出。
 `mpdf export/review/revision` 已完成二进制级闭环；全格式 bundle 使用精确白名单、内容摘要、
 输入/修订摘要和原子目录替换来检测 stale/corrupt 状态。桌面加入三栏本地校对工作台；没有
 预览资产时明确显示 page/bbox 证据，不伪造页面图像。本地 Rust、前端、分发、cargo-deny
-和真实 PDFium → OCR → derived → 七格式集成门禁均已通过，等待 GitHub PR CI。
+和真实 PDFium → OCR → derived → 七格式集成门禁均已通过，GitHub CI 全绿。
 
 出口条件：所有导出均能定位回源页与 bbox；人工修订不会覆盖原始 OCR；从同一 MDP 重建
 派生物结果确定。
@@ -180,6 +180,11 @@ revision overlay，以及 JSON、JSONL、Markdown、TXT、HTML、hOCR、ALTO 七
 ### M5 — 证据化自动书签与可搜索 PDF
 
 **目标：** 使用 M1–M4 已保存的材料生成可审查书签，而非让模型自由猜目录。
+
+实现进度（当前分支）：已接受 ADR 0007，冻结版本化候选/证据/append-only review 契约、
+确定性离线规则、旋转与页面坐标映射、嵌入式 Unicode Type-0 字体、不可见文字层、outline
+目的地、源摘要绑定和原子 no-clobber 输出规则；core、CLI、桌面与真实 PDFium 闭环已经完成，
+本地全量门禁与真实 PDFium 重开验证通过，等待本 PR 的 GitHub CI。
 
 交付：
 
@@ -230,8 +235,8 @@ revision overlay，以及 JSON、JSONL、Markdown、TXT、HTML、hOCR、ALTO 七
 | M1 MDP 0.1 | 已合并 | [PR #14](https://github.com/Museion-Project/museion-binarize/pull/14) | GitHub CI 全绿；merge `8179b44` |
 | M2 任务与 provider | 已合并 | [PR #15](https://github.com/Museion-Project/museion-binarize/pull/15) | GitHub CI 全绿；merge `72576e3` |
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
-| M4 AI-ready/校对 | 进行中 | `codex/m-pdf-m4-ai-ready-review` | 完成 core/CLI/桌面与全量门禁 |
-| M5 自动书签/PDF | 未开始 | — | M4 CI 全绿并合并 |
+| M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
+| M5 自动书签/PDF | 进行中 | `codex/m-pdf-m5-bookmarks-searchable-pdf` | 完成 core/CLI/桌面、真实 PDFium 与全量门禁 |
 | M6 API | 未开始 | — | M5 CI 全绿并合并 |
 | M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
 

@@ -83,6 +83,17 @@ pub struct NativeTextPage {
     pub text: String,
 }
 
+/// Backend-neutral outline information used to validate searchable-PDF
+/// write-back without leaking PDFium handles beyond the session.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NativeOutlineItem {
+    pub title: String,
+    pub level: u16,
+    pub page_index: u32,
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+}
+
 /// A project-owned seam between the pipeline and the concrete PDF backend.
 ///
 /// Exists so `process`/`analyze` can be tested with an in-memory mock
@@ -177,6 +188,47 @@ impl PdfDocumentSession {
     /// Identity of the exact byte snapshot this session opened.
     pub fn source_identity(&self) -> &SourceIdentity {
         &self.source_identity
+    }
+
+    pub fn native_outline(&self) -> Result<Vec<NativeOutlineItem>> {
+        let mut items = Vec::new();
+        for bookmark in self.document.bookmarks().iter() {
+            let title = bookmark.title().ok_or_else(|| {
+                CoreError::InvalidDocument("PDF outline item has no Unicode title".into())
+            })?;
+            let mut level = 0u16;
+            let mut parent = bookmark.parent();
+            while let Some(ancestor) = parent {
+                level = level.checked_add(1).ok_or_else(|| {
+                    CoreError::InvalidDocument("PDF outline hierarchy is too deep".into())
+                })?;
+                parent = ancestor.parent();
+            }
+            let destination = bookmark.destination().ok_or_else(|| {
+                CoreError::InvalidDocument("PDF outline item has no destination".into())
+            })?;
+            let page_index = destination
+                .page_index()
+                .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
+                as u32;
+            let (x, y) = match destination
+                .view_settings()
+                .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
+            {
+                PdfDestinationViewSettings::SpecificCoordinatesAndZoom(x, y, _) => {
+                    (x.map(|value| value.value), y.map(|value| value.value))
+                }
+                _ => (None, None),
+            };
+            items.push(NativeOutlineItem {
+                title,
+                level,
+                page_index,
+                x,
+                y,
+            });
+        }
+        Ok(items)
     }
 
     /// Renders one zero-indexed page at `dpi` onto an opaque white

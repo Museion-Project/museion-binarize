@@ -14,7 +14,10 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
-use cli::{BenchmarkCommand, Cli, Command, JobCommand, PackageCommand, RevisionCommand};
+use cli::{
+    BenchmarkCommand, BookmarkCommand, Cli, Command, JobCommand, PackageCommand, PdfCommand,
+    RevisionCommand,
+};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -50,6 +53,21 @@ fn main() -> ExitCode {
         }
         Some(Command::Revision(RevisionCommand::List(args))) => {
             commands::derived::revision_list(args)
+        }
+        Some(Command::Bookmark(BookmarkCommand::Generate(args))) => {
+            commands::bookmarks::generate(args)
+        }
+        Some(Command::Bookmark(BookmarkCommand::List(args))) => commands::bookmarks::list(args),
+        Some(Command::Bookmark(BookmarkCommand::Confirm(args))) => {
+            commands::bookmarks::confirm(args)
+        }
+        Some(Command::Bookmark(BookmarkCommand::Reject(args))) => commands::bookmarks::reject(args),
+        Some(Command::Bookmark(BookmarkCommand::Edit(args))) => commands::bookmarks::edit(args),
+        Some(Command::Bookmark(BookmarkCommand::Reparent(args))) => {
+            commands::bookmarks::reparent(args)
+        }
+        Some(Command::Pdf(PdfCommand::BuildSearchable(args))) => {
+            commands::pdf::build_searchable(args)
         }
     }
 }

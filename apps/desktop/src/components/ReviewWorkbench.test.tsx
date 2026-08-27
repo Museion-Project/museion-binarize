@@ -1,12 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ReviewIssue } from "../app/types";
+import type { BookmarkCandidate, ReviewIssue } from "../app/types";
 import { ReviewWorkbench } from "./ReviewWorkbench";
 
 const mocks = vi.hoisted(() => ({
   loadReviewQueue: vi.fn(),
   addReviewRevision: vi.fn(),
+  loadBookmarks: vi.fn(),
+  confirmBookmark: vi.fn(),
+  rejectBookmark: vi.fn(),
+  editBookmark: vi.fn(),
+  reparentBookmark: vi.fn(),
 }));
 
 vi.mock("../lib/tauri", () => mocks);
@@ -46,6 +51,43 @@ const issues: ReviewIssue[] = [
   },
 ];
 
+const bookmarkCandidates: BookmarkCandidate[] = [
+  {
+    candidateId: "bookmark-root",
+    sourceTitle: "Αρχή",
+    effectiveTitle: "Ἀρχή",
+    sourceLevel: 0,
+    effectiveLevel: 0,
+    sourceParentId: null,
+    effectiveParentId: null,
+    targetPageId: "page-1",
+    physicalPageIndex: 0,
+    masterBbox: { x: 10, y: 20, width: 80, height: 14 },
+    evidence: [{ kind: "derived_line", line_id: "line-1" }],
+    confidence: 0.96,
+    status: "proposed",
+    reasonCodes: ["numbering_pattern"],
+    ruleTrace: ["typography", "ocr_confidence"],
+  },
+  {
+    candidateId: "bookmark-child",
+    sourceTitle: "1.1 Child",
+    effectiveTitle: "1.1 Child",
+    sourceLevel: 1,
+    effectiveLevel: 1,
+    sourceParentId: "bookmark-root",
+    effectiveParentId: "bookmark-root",
+    targetPageId: "page-2",
+    physicalPageIndex: 1,
+    masterBbox: null,
+    evidence: [{ kind: "mdp_outline" }],
+    confidence: 0.55,
+    status: "needs_review",
+    reasonCodes: ["existing_outline"],
+    ruleTrace: ["existing_outline"],
+  },
+];
+
 function loadFixture() {
   fireEvent.change(screen.getByLabelText("MDP package path"), {
     target: { value: "/tmp/book.mdp" },
@@ -57,6 +99,11 @@ describe("ReviewWorkbench", () => {
   beforeEach(() => {
     mocks.loadReviewQueue.mockReset().mockResolvedValue(issues);
     mocks.addReviewRevision.mockReset().mockResolvedValue(undefined);
+    mocks.loadBookmarks.mockReset().mockResolvedValue(bookmarkCandidates);
+    mocks.confirmBookmark.mockReset().mockResolvedValue(undefined);
+    mocks.rejectBookmark.mockReset().mockResolvedValue(undefined);
+    mocks.editBookmark.mockReset().mockResolvedValue(undefined);
+    mocks.reparentBookmark.mockReset().mockResolvedValue(undefined);
   });
 
   it("renders the three columns and loads a local queue", async () => {
@@ -125,5 +172,52 @@ describe("ReviewWorkbench", () => {
       text: "ai proposal",
       aiSuggested: true,
     });
+  });
+
+  it("filters, selects, edits, confirms, rejects, and reparents durable bookmark candidates", async () => {
+    render(<ReviewWorkbench />);
+    fireEvent.change(screen.getByLabelText("MDP package path"), {
+      target: { value: "/tmp/book.mdp" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Load bookmarks" }));
+    expect(await screen.findByText("2 bookmark(s)")).toBeTruthy();
+    expect(mocks.loadBookmarks).toHaveBeenCalledWith("/tmp/book.mdp");
+
+    fireEvent.change(screen.getByLabelText("Bookmark status"), {
+      target: { value: "needs_review" },
+    });
+    expect(screen.getByText("1 bookmark(s)")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /1.1 Child/ }));
+    expect(screen.getByText("Confidence: 0.55")).toBeTruthy();
+    expect(screen.getByText("BBox: not available")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Bookmark title"), {
+      target: { value: "Edited child" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save bookmark title" }));
+    expect(mocks.editBookmark).toHaveBeenCalledWith(
+      "/tmp/book.mdp",
+      "bookmark-child",
+      "Edited child",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm bookmark" }));
+    expect(mocks.confirmBookmark).toHaveBeenCalledWith("/tmp/book.mdp", "bookmark-child");
+    fireEvent.click(screen.getByRole("button", { name: "Reject bookmark" }));
+    expect(mocks.rejectBookmark).toHaveBeenCalledWith("/tmp/book.mdp", "bookmark-child");
+
+    fireEvent.change(screen.getByLabelText("Parent candidate ID"), {
+      target: { value: "" },
+    });
+    fireEvent.change(screen.getByLabelText("Bookmark level"), {
+      target: { value: "0" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save bookmark parent" }));
+    expect(mocks.reparentBookmark).toHaveBeenCalledWith(
+      "/tmp/book.mdp",
+      "bookmark-child",
+      null,
+      0,
+    );
   });
 });

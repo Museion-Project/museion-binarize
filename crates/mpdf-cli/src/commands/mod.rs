@@ -5,6 +5,7 @@
 
 pub mod analyze;
 pub mod benchmark;
+pub mod bookmarks;
 pub mod derived;
 pub mod estimate;
 pub mod info;
@@ -12,6 +13,7 @@ pub mod inspect;
 pub mod job;
 pub mod ocr;
 pub mod package;
+pub mod pdf;
 pub mod preview;
 pub mod process;
 

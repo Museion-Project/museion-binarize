@@ -123,6 +123,24 @@ export interface ReviewIssue {
   confidence?: number | null;
 }
 
+export interface BookmarkCandidate {
+  candidateId: string;
+  sourceTitle: string;
+  effectiveTitle: string;
+  sourceLevel: number;
+  effectiveLevel: number;
+  sourceParentId: string | null;
+  effectiveParentId: string | null;
+  targetPageId: string;
+  physicalPageIndex: number;
+  masterBbox: { x: number; y: number; width: number; height: number } | null;
+  evidence: unknown[];
+  confidence: number;
+  status: "proposed" | "needs_review" | "confirmed" | "rejected";
+  reasonCodes: string[];
+  ruleTrace: string[];
+}
+
 export interface ProcessingFailed {
   jobId: string;
   error: UiError;

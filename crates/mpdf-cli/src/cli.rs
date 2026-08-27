@@ -56,6 +56,83 @@ pub enum Command {
     /// Append or inspect local revision overlays.
     #[command(subcommand)]
     Revision(RevisionCommand),
+    /// Generate and review evidence-backed bookmark candidates.
+    #[command(subcommand)]
+    Bookmark(BookmarkCommand),
+    /// Build a searchable derivative while preserving the source PDF.
+    #[command(subcommand)]
+    Pdf(PdfCommand),
+}
+
+#[derive(Subcommand)]
+pub enum BookmarkCommand {
+    Generate(BookmarkGenerateArgs),
+    List(BookmarkListArgs),
+    Confirm(BookmarkMutationArgs),
+    Reject(BookmarkMutationArgs),
+    Edit(BookmarkEditArgs),
+    Reparent(BookmarkReparentArgs),
+}
+#[derive(Args)]
+pub struct BookmarkGenerateArgs {
+    pub input: PathBuf,
+    #[arg(long)]
+    pub overwrite: bool,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct BookmarkListArgs {
+    pub input: PathBuf,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct BookmarkMutationArgs {
+    pub input: PathBuf,
+    #[arg(long)]
+    pub candidate: String,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct BookmarkEditArgs {
+    pub input: PathBuf,
+    #[arg(long)]
+    pub candidate: String,
+    #[arg(long)]
+    pub title: String,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct BookmarkReparentArgs {
+    pub input: PathBuf,
+    #[arg(long)]
+    pub candidate: String,
+    #[arg(long)]
+    pub parent: Option<String>,
+    #[arg(long)]
+    pub level: u16,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct PdfBuildSearchableArgs {
+    pub input: PathBuf,
+    #[arg(long)]
+    pub source: PathBuf,
+    #[arg(long)]
+    pub output: PathBuf,
+    #[arg(long)]
+    pub overwrite: bool,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Subcommand)]
+pub enum PdfCommand {
+    #[command(name = "build-searchable")]
+    BuildSearchable(PdfBuildSearchableArgs),
 }
 
 #[derive(Clone, Copy, ValueEnum)]

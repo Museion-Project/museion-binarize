@@ -255,6 +255,14 @@ state. Every event carries an id (`documentId`, `jobId`, preview
 before applying the update, so a stale async response or a stale Tauri
 event from a previous job/document can never corrupt newer state.
 
+## M5 bookmark review
+
+The workbench can load the persisted bookmark tree and invoke the core-backed
+`confirm_bookmark`, `reject_bookmark`, `edit_bookmark`, and
+`reparent_bookmark` commands. Candidate source title, page, master bbox,
+evidence count, confidence, and rule trace remain visible; no preview asset
+means no overlay is drawn. Every mutation is an append-only review record.
+
 ## Known limitations (honest, as of this milestone)
 
 - **Not yet run as a live application.** See

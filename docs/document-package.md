@@ -75,3 +75,9 @@ resume a partial run without invoking the provider for verified completed
 pages. It returns a processing/cancelled result for partial runs and never changes the existing
 `process` binary output, and a missing local OCR model leaves the base MDP and
 binarization commands usable.
+
+M5 bookmark extensions are optional additive directories under `bookmarks/`:
+`candidates.json` is an immutable `mpdf-bookmarks` 0.1 generation snapshot
+and `reviews.json` is an append-only `mpdf-bookmark-reviews` 0.1 operation log.
+Both are source/digest-bound and are rejected when stale, corrupt, partial, or
+symlinked.

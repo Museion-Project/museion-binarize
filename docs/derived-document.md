@@ -33,3 +33,7 @@ tree. A present but incomplete `ocr/` directory is rejected (only a completely
 absent extension means no-OCR input). HTML, hOCR and ALTO escape document text
 and include page/bbox attributes. No exporter writes a PDF or calls a network
 service.
+
+M5 consumes this derived record as bookmark evidence. Bookmark candidates
+retain both source/effective title and typed line/word references; only human
+confirmed effective candidates are eligible for searchable-PDF outlines.
