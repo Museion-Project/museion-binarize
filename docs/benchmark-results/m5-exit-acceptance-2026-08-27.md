@@ -44,8 +44,9 @@ printed-label TOC target, and one deliberately low-confidence candidate.
 | Unicode outline title round trip | 3/3 (100%) | Includes polytonic Greek |
 
 These numbers cannot be compared with the research release thresholds. The
-real corpus below has 20 documents, but not the required two independent
-annotations and adjudication across every evidence class. In particular, the
+native-outline corpus below has 20 documents. A separate 12-document
+single-authoritative-annotator pack now covers the three missing evidence
+classes, but its human tables are not filled yet. In particular, the
 0% automatic confirmation coverage is an intentional M5 contract, not an
 accuracy failure: only human-confirmed candidates are eligible for PDF
 write-back.
@@ -81,8 +82,28 @@ and the reproduction contract is documented with the
 This is a real-document preservation benchmark, not the full product-quality
 benchmark: all accepted documents already have native outlines. It does not
 measure title inference from digital/scanned TOCs, target-y accuracy, or
-no-outline safe refusal, and it does not have two independent human
-annotations plus adjudication.
+no-outline safe refusal.
+
+## Single-authoritative-annotator pack
+
+The product owner chose one authoritative annotator and will perform the
+Acrobat, Preview, and iOS checks. The repository therefore does not claim an
+inter-annotator agreement score or adjudication. The frozen pack adds 12
+different PDFs from the same Translation Agent 2 input tree: four digital-TOC,
+four scanned-TOC, and four preliminary safe-refusal cases (2,149 pages total).
+Together with the existing-outline corpus, M5 now has 32 distinct real-PDF
+cases; the original 20-document preservation result is unchanged.
+
+Source PDF bytes remain external. The manifest pins relative paths, hashes,
+page counts, and non-authoritative TOC hints. `human_acceptance.py prepare`
+verifies those pins and atomically creates a no-clobber working pack. Its
+validator requires one annotator, complete document decisions, traceable
+bookmark coordinates and hierarchy, genuine safe refusals, and passing manual
+results from all three target readers. Empty templates fail closed.
+
+The local working pack is intentionally outside Git. Until the owner fills it
+and `validation-report.json` reports `pass`, these 12 documents are an
+acceptance assignment, not a completed gold-standard result.
 
 ## Reader and engine matrix
 
@@ -107,13 +128,12 @@ diagnostics.
 
 ## Work required to clear the strict gate
 
-1. Extend the versioned real corpus beyond native outlines to digital TOC,
-   scanned TOC, and safe-refusal documents.
-2. Obtain two independent annotations per document and adjudicate titles,
-   hierarchy, physical target page, target y coordinate, and printed label.
-3. Freeze dev/test splits and thresholds, then report target-page accuracy,
+1. Complete the single authoritative annotation of titles, hierarchy,
+   physical target page, target y coordinate, printed label, and safe refusals
+   in the frozen 12-document pack.
+2. Freeze dev/test splits and thresholds, then report target-page accuracy,
    title precision, edge-F1, coverage, zero-edit success, and hallucinations.
-4. Complete UI-level checks in Acrobat, Preview, and iOS. PDF.js and Foxit are
+3. Complete UI-level checks in Acrobat, Preview, and iOS. PDF.js and Foxit are
    now covered with recorded versions and passing evidence.
 
 Until those items are complete, the truthful result is: M5 implementation is

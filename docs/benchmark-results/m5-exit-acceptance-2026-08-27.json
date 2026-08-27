@@ -38,6 +38,20 @@
     "scope": "existing native PDF outlines only",
     "source_bytes_committed": false
   },
+  "single_authoritative_annotation_pack": {
+    "status": "prepared_not_annotated",
+    "documents": 12,
+    "pages": 2149,
+    "evidence_classes": {
+      "digital_toc": 4,
+      "scanned_toc": 4,
+      "safe_refusal": 4
+    },
+    "annotation_policy": "single_authoritative_user_acceptance",
+    "inter_annotator_agreement_claimed": false,
+    "source_bytes_committed": false,
+    "manual_readers": ["Adobe Acrobat", "Preview", "iOS PDF reader"]
+  },
   "automated_reader_matrix": [
     {"engine": "PDFium", "version": "151.0.7920.0", "status": "pass", "checks": ["page_count", "page_boxes", "rotation", "unicode_text", "outline_hierarchy", "destinations", "visible_pixels"]},
     {"engine": "Apple PDFKit", "platform": "macOS 27.0 (26A5421a)", "status": "pass", "checks": ["open", "page_count", "unicode_text", "outline_hierarchy", "destinations"]},
@@ -53,8 +67,8 @@
     {"reader": "iOS", "status": "not_run", "reason": "device/runtime unavailable"}
   ],
   "blocking_conditions": [
-    "The 20-document real corpus covers existing native outlines only and lacks two independent annotations plus adjudication.",
-    "Digital TOC, scanned TOC, target-y, and safe-refusal gold cases remain incomplete.",
+    "The 20-document preservation corpus covers existing native outlines only; the separate 12-document single-authoritative-annotator pack is prepared but not filled.",
+    "Digital TOC, scanned TOC, target-y, and safe-refusal annotations remain incomplete; no inter-annotator agreement is claimed or required for this owner-accepted gate.",
     "Synthetic conformance metrics must not be compared with production release thresholds.",
     "M5 deliberately auto-confirms no candidates, so automatically confirmed coverage is zero by contract.",
     "Acrobat, Preview UI, and iOS checks remain incomplete."
