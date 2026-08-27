@@ -196,6 +196,7 @@ Acrobat/Preview/iOS 固定 fixture 已制作。按产品负责人决定，本轮
 标注者间一致性指标；但人工标注表和三端 UI 结果尚未填写，故严格出口门仍未完成。详见
 `docs/benchmark-results/m5-exit-acceptance-2026-08-27.md`。
 验收补充 PR #21 已合并，merge `a4ce00a`。
+单一权威标注与三端人工验收包 PR #23 已合并，merge `2ff7001`。
 因此 M5 代码已合并，但严格产品出口门仍为 blocked，M6 不启动。
 
 交付：
@@ -248,7 +249,7 @@ Acrobat/Preview/iOS 固定 fixture 已制作。按产品负责人决定，本轮
 | M2 任务与 provider | 已合并 | [PR #15](https://github.com/Museion-Project/museion-binarize/pull/15) | GitHub CI 全绿；merge `72576e3` |
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
-| M5 自动书签/PDF | 代码已合并；单人验收包待填写 | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)，merge `a4ce00a` | 产品负责人填写 12 份 TOC/拒绝金标准与 Acrobat/Preview/iOS |
+| M5 自动书签/PDF | 代码已合并；单人验收包待填写 | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人填写 12 份 TOC/拒绝金标准与 Acrobat/Preview/iOS |
 | M6 API | 未开始（blocked） | — | M5 严格出口门通过 |
 | M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
 
