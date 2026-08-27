@@ -258,3 +258,22 @@ versioned `mpdf-job` NDJSON contract and report engine/model/version,
 parameters, input asset SHA-256 and execution location. See
 [`document-jobs.md`](document-jobs.md) and
 [`adr/0004-persistent-jobs-and-provider-contract.md`](adr/0004-persistent-jobs-and-provider-contract.md).
+
+## Evidence bookmarks and searchable PDFs
+
+M5 persists deterministic candidates and append-only reviews in
+`bookmarks/candidates.json` and `bookmarks/reviews.json`:
+
+```bash
+mpdf bookmark generate book.mdp --json
+mpdf bookmark list book.mdp --json
+mpdf bookmark confirm book.mdp --candidate bookmark-...
+mpdf bookmark edit book.mdp --candidate bookmark-... --title "Human title"
+mpdf bookmark reparent book.mdp --candidate bookmark-... --level 2 --parent bookmark-...
+mpdf pdf build-searchable book.mdp --source source.pdf --output searchable.pdf --json
+```
+
+The PDF command checks the source SHA-256 binding, writes invisible Unicode
+text and confirmed outline entries without rasterizing existing pages, and
+uses a same-directory temporary file plus PDFium reopen validation. Existing
+outputs require `--overwrite`; the source can never be replaced.

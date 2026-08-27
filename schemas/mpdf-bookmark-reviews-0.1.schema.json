@@ -1,0 +1,14 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://mpdf.example/schema/bookmark-reviews/0.1",
+  "type":"object","additionalProperties":false,
+  "required":["schema","schema_version","base_generation_digest","operations"],
+  "properties":{
+    "schema":{"const":"mpdf-bookmark-reviews"},"schema_version":{"const":"0.1"},
+    "base_generation_digest":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "operations":{"type":"array","maxItems":100000,"items":{"$ref":"#/$defs/operation"}}
+  },
+  "$defs":{
+    "operation":{"type":"object","additionalProperties":false,"required":["operation_id","candidate_id","operation"],"properties":{"operation_id":{"type":"string","minLength":1},"candidate_id":{"type":"string","minLength":1},"operation":{"oneOf":[{"type":"object","additionalProperties":false,"required":["kind"],"properties":{"kind":{"const":"confirm"}}},{"type":"object","additionalProperties":false,"required":["kind"],"properties":{"kind":{"const":"reject"}}},{"type":"object","additionalProperties":false,"required":["kind","title"],"properties":{"kind":{"const":"edit"},"title":{"type":"string","minLength":1}}},{"type":"object","additionalProperties":false,"required":["kind","parent_id","level"],"properties":{"kind":{"const":"reparent"},"parent_id":{"type":["string","null"]},"level":{"type":"integer","minimum":0,"maximum":64}}}]}}}
+  }
+}

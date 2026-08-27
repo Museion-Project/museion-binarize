@@ -44,6 +44,11 @@ ignore = [
     "RUSTSEC-2025-0081",
     "RUSTSEC-2025-0098",
     "RUSTSEC-2025-0100",
+    # ttf-parser is used only as a bounded, zero-allocation parser for the
+    # pinned local font. No maintained release currently exposes the small
+    # glyph-index/advance API needed here; runtime font input is never
+    # accepted. Revisit when the upstream replacement is production-ready.
+    "RUSTSEC-2026-0192",
 ]
 
 [licenses]

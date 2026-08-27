@@ -21,6 +21,7 @@ import type {
   ReviewIssue,
   PreviewResult,
   UiError,
+  BookmarkCandidate,
 } from "../app/types";
 
 /** Thrown for every failed command; `error` is the backend's structured DTO. */
@@ -47,6 +48,12 @@ export function addReviewRevision(request: {
 }): Promise<void> {
   return call("add_review_revision", request);
 }
+
+export function loadBookmarks(packagePath: string): Promise<BookmarkCandidate[]> { return call("load_bookmarks", { packagePath }); }
+export function confirmBookmark(packagePath: string, candidateId: string): Promise<void> { return call("confirm_bookmark", { packagePath, candidateId }); }
+export function rejectBookmark(packagePath: string, candidateId: string): Promise<void> { return call("reject_bookmark", { packagePath, candidateId }); }
+export function editBookmark(packagePath: string, candidateId: string, title: string): Promise<void> { return call("edit_bookmark", { packagePath, candidateId, title }); }
+export function reparentBookmark(packagePath: string, candidateId: string, parentId: string | null, level: number): Promise<void> { return call("reparent_bookmark", { packagePath, candidateId, parentId, level }); }
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   try {
