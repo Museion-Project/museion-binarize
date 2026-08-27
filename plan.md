@@ -193,6 +193,7 @@ Ghostscript、固定 PDF.js 5.4.624 引擎矩阵通过；Foxit PDF Editor 2026.1
 保留，1 份无效目标按预期 fail closed。但这批语料只覆盖 existing outline，尚非双人独立
 标注并仲裁且跨 digital/scanned TOC 与 safe-refusal 的金标准；Acrobat、Preview UI 与 iOS
 矩阵仍未完成。详见 `docs/benchmark-results/m5-exit-acceptance-2026-08-27.md`。
+验收补充 PR #21 已合并，merge `a4ce00a`。
 因此 M5 代码已合并，但严格产品出口门仍为 blocked，M6 不启动。
 
 交付：
@@ -245,7 +246,7 @@ Ghostscript、固定 PDF.js 5.4.624 引擎矩阵通过；Foxit PDF Editor 2026.1
 | M2 任务与 provider | 已合并 | [PR #15](https://github.com/Museion-Project/museion-binarize/pull/15) | GitHub CI 全绿；merge `72576e3` |
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
-| M5 自动书签/PDF | 代码已合并；严格出口门 blocked | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18) | 补双人标注 TOC/拒绝金标准与 Acrobat/Preview/iOS |
+| M5 自动书签/PDF | 代码已合并；严格出口门 blocked | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)，merge `a4ce00a` | 补双人标注 TOC/拒绝金标准与 Acrobat/Preview/iOS |
 | M6 API | 未开始（blocked） | — | M5 严格出口门通过 |
 | M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
 
