@@ -82,6 +82,8 @@ pub fn run() {
             commands::ocr::local_ocr_provider_status,
             commands::ocr::local_ocr_status,
             commands::ocr::local_ocr_cancel,
+            commands::derived::load_review_queue,
+            commands::derived::add_review_revision,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

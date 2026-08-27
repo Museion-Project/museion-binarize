@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mpdf.example/schema/review/0.1",
+  "type": "array", "maxItems": 100000,
+  "items": {
+    "type": "object", "additionalProperties": false,
+    "required": ["issue_id", "target_ref", "page_id", "page_index", "bbox", "base_evidence_digest", "kind", "severity", "reason", "status"],
+    "properties": {
+      "issue_id": {"type": "string", "minLength": 1}, "target_ref": {"type": "string", "minLength": 1}, "page_id": {"type": "string", "minLength": 1}, "page_index": {"type": "integer", "minimum": 0}, "base_evidence_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "kind": {"enum": ["low_confidence", "reading_order_gap", "unicode_normalization", "empty_region"]}, "severity": {"enum": ["info", "warning", "error"]}, "reason": {"type": "string"}, "status": {"const": "open"}, "coordinate_space": {"type": ["string", "null"]}, "source_text": {"type": ["string", "null"]}, "effective_text": {"type": ["string", "null"]}, "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1}, "bbox": {"type": "object", "additionalProperties": false, "required": ["x", "y", "width", "height"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}, "width": {"type": "number", "minimum": 0}, "height": {"type": "number", "minimum": 0}}}
+    }
+  }
+}

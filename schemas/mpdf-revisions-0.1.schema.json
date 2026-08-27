@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mpdf.example/schema/revisions/0.1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "schema_version", "revisions"],
+  "properties": {
+    "schema": {"const": "mpdf-revisions"}, "schema_version": {"const": "0.1"},
+    "revisions": {"type": "array", "maxItems": 100000, "items": {"type": "object", "additionalProperties": false, "required": ["revision_id", "target_ref", "kind", "text", "base_evidence_digest"], "properties": {"revision_id": {"type": "string", "minLength": 1}, "target_ref": {"type": "string", "minLength": 1}, "kind": {"enum": ["human", "ai_suggested"]}, "text": {"type": "string"}, "base_evidence_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}}
+  }
+}

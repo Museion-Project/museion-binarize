@@ -49,6 +49,106 @@ pub enum Command {
     Job(JobCommand),
     /// Run the local OCR routing pipeline and write an MDP OCR extension.
     Ocr(OcrArgs),
+    /// Build deterministic AI-ready derived records and export them.
+    Export(ExportArgs),
+    /// Generate a typed local review queue from MDP/OCR evidence.
+    Review(ReviewArgs),
+    /// Append or inspect local revision overlays.
+    #[command(subcommand)]
+    Revision(RevisionCommand),
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum ExportFormatArg {
+    All,
+    Json,
+    Jsonl,
+    Markdown,
+    Txt,
+    Html,
+    Hocr,
+    Alto,
+}
+
+impl ExportFormatArg {
+    pub fn as_core(self) -> mpdf_core::derived::ExportFormat {
+        match self {
+            Self::All => unreachable!("all is expanded by the export command"),
+            Self::Json => mpdf_core::derived::ExportFormat::Json,
+            Self::Jsonl => mpdf_core::derived::ExportFormat::Jsonl,
+            Self::Markdown => mpdf_core::derived::ExportFormat::Markdown,
+            Self::Txt => mpdf_core::derived::ExportFormat::Text,
+            Self::Html => mpdf_core::derived::ExportFormat::Html,
+            Self::Hocr => mpdf_core::derived::ExportFormat::Hocr,
+            Self::Alto => mpdf_core::derived::ExportFormat::Alto,
+        }
+    }
+}
+
+#[derive(Args)]
+pub struct ExportArgs {
+    /// Existing MDP package directory.
+    pub input: PathBuf,
+    /// Destination file (or directory with --format all).
+    #[arg(long)]
+    pub output: PathBuf,
+    /// Derived output format.
+    #[arg(long, value_enum)]
+    pub format: ExportFormatArg,
+    /// Replace existing export files atomically.
+    #[arg(long)]
+    pub overwrite: bool,
+}
+
+#[derive(Args)]
+pub struct ReviewArgs {
+    /// Existing MDP package directory.
+    pub input: PathBuf,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Subcommand)]
+pub enum RevisionCommand {
+    /// Append a human or AI-suggested revision without changing OCR evidence.
+    Add(RevisionAddArgs),
+    /// List append-only revision records.
+    List(RevisionListArgs),
+}
+
+#[derive(Args)]
+pub struct RevisionAddArgs {
+    /// Existing MDP package directory.
+    pub input: PathBuf,
+    /// Stable word/block/line reference from `mpdf export --format json`.
+    #[arg(long)]
+    pub target_ref: String,
+    /// Evidence digest shown by the derived record for this page.
+    #[arg(long)]
+    pub base_evidence_digest: String,
+    /// Replacement or suggested text.
+    #[arg(long)]
+    pub text: String,
+    /// Human revisions are applied by default; AI suggestions are preserved.
+    #[arg(long, value_enum, default_value = "human")]
+    pub kind: RevisionKindArg,
+    /// Stable caller-supplied revision id.
+    #[arg(long)]
+    pub revision_id: Option<String>,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum RevisionKindArg {
+    Human,
+    AiSuggested,
+}
+
+#[derive(Args)]
+pub struct RevisionListArgs {
+    /// Existing MDP package directory.
+    pub input: PathBuf,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
 }
 
 #[derive(Subcommand)]
@@ -720,6 +820,40 @@ mod tests {
             validate.command,
             Some(Command::Package(PackageCommand::Validate(_)))
         ));
+    }
+
+    #[test]
+    fn derived_export_review_and_revision_commands_parse() {
+        use clap::Parser;
+        let export = Cli::try_parse_from([
+            "mpdf",
+            "export",
+            "book.mdp",
+            "--output",
+            "book.html",
+            "--format",
+            "html",
+        ])
+        .unwrap();
+        assert!(matches!(export.command, Some(Command::Export(_))));
+        let review = Cli::try_parse_from(["mpdf", "review", "book.mdp", "--json"]).unwrap();
+        assert!(matches!(review.command, Some(Command::Review(_))));
+        let revision = Cli::try_parse_from([
+            "mpdf",
+            "revision",
+            "add",
+            "book.mdp",
+            "--target-ref",
+            "word-abc",
+            "--base-evidence-digest",
+            &"a".repeat(64),
+            "--text",
+            "corrected",
+            "--revision-id",
+            "r1",
+        ])
+        .unwrap();
+        assert!(matches!(revision.command, Some(Command::Revision(_))));
     }
 
     #[test]

@@ -45,6 +45,11 @@ checkpoint 前持久化，支持取消后保留已完成页并安全重跑：
 mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 --provider reference
 ```
 
+M4 提供确定性的 AI-ready 派生导出和本地校对队列：
+`mpdf export scan.mdp --format all --output scan-derived`、
+`mpdf review scan.mdp --json` 以及 `mpdf revision`。派生 IR 保留页、bbox
+和不可变 OCR 原文，不调用云服务；详见 [`docs/derived-document.md`](docs/derived-document.md)。
+
 ## 核心原则
 
 - **处理过程透明，结果可复现，不对源文档进行生成式改写。**

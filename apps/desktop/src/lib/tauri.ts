@@ -18,6 +18,7 @@ import type {
   ProcessingProgress,
   ProcessingSettings,
   ProcessingStarted,
+  ReviewIssue,
   PreviewResult,
   UiError,
 } from "../app/types";
@@ -30,6 +31,21 @@ export class BackendError extends Error {
     this.name = "BackendError";
     this.error = error;
   }
+}
+
+export function loadReviewQueue(packagePath: string): Promise<ReviewIssue[]> {
+  return call("load_review_queue", { packagePath });
+}
+
+export function addReviewRevision(request: {
+  packagePath: string;
+  revisionId?: string;
+  targetRef: string;
+  baseEvidenceDigest: string;
+  text: string;
+  aiSuggested: boolean;
+}): Promise<void> {
+  return call("add_review_revision", request);
 }
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {

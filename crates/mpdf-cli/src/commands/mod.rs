@@ -5,6 +5,7 @@
 
 pub mod analyze;
 pub mod benchmark;
+pub mod derived;
 pub mod estimate;
 pub mod info;
 pub mod inspect;

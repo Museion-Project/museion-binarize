@@ -106,6 +106,23 @@ export interface UiError {
   detail: string | null;
 }
 
+export interface ReviewIssue {
+  issueId: string;
+  targetRef: string;
+  pageId: string;
+  pageIndex: number;
+  bbox: { x: number; y: number; width: number; height: number };
+  baseEvidenceDigest: string;
+  kind: "low_confidence" | "reading_order_gap" | "unicode_normalization" | "empty_region";
+  severity: "info" | "warning" | "error";
+  reason: string;
+  status: "open";
+  coordinateSpace?: string | null;
+  sourceText?: string | null;
+  effectiveText?: string | null;
+  confidence?: number | null;
+}
+
 export interface ProcessingFailed {
   jobId: string;
   error: UiError;
