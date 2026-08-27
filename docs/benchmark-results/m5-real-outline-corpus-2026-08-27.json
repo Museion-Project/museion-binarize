@@ -1,0 +1,20 @@
+{
+  "schema": "mpdf-m5-real-outline-result",
+  "schema_version": "1.0",
+  "date": "2026-08-27",
+  "corpus_title": "Translation Agent 2 real native-outline corpus",
+  "documents": 20,
+  "accepted_documents": 19,
+  "rejected_documents": 1,
+  "pages": 4869,
+  "outline_entries": 574,
+  "exact_titles": 574,
+  "exact_levels": 574,
+  "exact_target_pages": 574,
+  "unresolved_evidence": 0,
+  "automatically_confirmed": 0,
+  "deterministic_regenerations": 19,
+  "scope": "existing native PDF outlines only",
+  "independent_reference": "qpdf semantic-outline SHA-256",
+  "source_bytes_committed": false
+}

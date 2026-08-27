@@ -1,6 +1,6 @@
 {
   "schema": "mpdf-m5-exit-acceptance",
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "date": "2026-08-27",
   "verdict": "blocked",
   "engineering_conformance_fixture": {
@@ -8,7 +8,8 @@
     "documents": 1,
     "pages": 4,
     "ground_truth_sha256": "0a663542eaba0e5c022730ef76c91c3d4054ffd538e6d33bc7e923f59addc729",
-    "searchable_pdf_sha256": "9f1ef31502cef2a9c3b4ca79b905b02883ac759f19dde1efd2e029cfd437c00a",
+    "source_pdf_sha256": "32dbf30f8360dc8a314f9de42e302c410302df023c9da7b0e063a6b5c242ad15",
+    "searchable_pdf_sha256": "aec99bbf5a2a2381b5f84b7841d1608eb758b57a68c324004c37b0768d8c377b",
     "metrics": {
       "candidate_target_page_accuracy": {"numerator": 3, "denominator": 3, "value": 1.0},
       "candidate_title_precision": {"numerator": 3, "denominator": 3, "value": 1.0},
@@ -20,6 +21,23 @@
       "unicode_outline_title_round_trip": {"numerator": 3, "denominator": 3, "value": 1.0}
     }
   },
+  "real_native_outline_corpus": {
+    "documents": 20,
+    "accepted_documents": 19,
+    "rejected_documents": 1,
+    "pages": 4869,
+    "outline_entries": 574,
+    "metrics": {
+      "exact_titles": {"numerator": 574, "denominator": 574, "value": 1.0},
+      "exact_levels": {"numerator": 574, "denominator": 574, "value": 1.0},
+      "exact_target_pages": {"numerator": 574, "denominator": 574, "value": 1.0},
+      "unresolved_evidence": 0,
+      "automatically_confirmed": 0,
+      "deterministic_regenerations": {"numerator": 19, "denominator": 19, "value": 1.0}
+    },
+    "scope": "existing native PDF outlines only",
+    "source_bytes_committed": false
+  },
   "automated_reader_matrix": [
     {"engine": "PDFium", "version": "151.0.7920.0", "status": "pass", "checks": ["page_count", "page_boxes", "rotation", "unicode_text", "outline_hierarchy", "destinations", "visible_pixels"]},
     {"engine": "Apple PDFKit", "platform": "macOS 27.0 (26A5421a)", "status": "pass", "checks": ["open", "page_count", "unicode_text", "outline_hierarchy", "destinations"]},
@@ -30,13 +48,15 @@
   "target_reader_matrix": [
     {"reader": "Preview", "status": "engine_pass_ui_not_run", "evidence": "Apple PDFKit automated result"},
     {"reader": "Adobe Acrobat", "version": "25.001.20476", "status": "blocked", "reason": "AppleEvent automation timed out; manual UI validation not completed"},
-    {"reader": "PDF.js", "status": "not_run", "reason": "not installed or vendored"},
-    {"reader": "Foxit/iOS", "status": "not_run", "reason": "reader/device unavailable"}
+    {"reader": "PDF.js", "version": "5.4.624", "status": "pass", "checks": ["open", "page_count", "rotation", "unicode_text", "outline_hierarchy", "page_destinations", "xyz_destinations"]},
+    {"reader": "Foxit PDF Editor", "version": "2026.1.0.70169", "status": "pass", "checks": ["ui_open", "page_count", "unicode_outline", "outline_hierarchy", "bookmark_page_navigation", "polytonic_greek_search"]},
+    {"reader": "iOS", "status": "not_run", "reason": "device/runtime unavailable"}
   ],
   "blocking_conditions": [
-    "No versioned 20-document minimum independently annotated real-document gold corpus exists.",
+    "The 20-document real corpus covers existing native outlines only and lacks two independent annotations plus adjudication.",
+    "Digital TOC, scanned TOC, target-y, and safe-refusal gold cases remain incomplete.",
     "Synthetic conformance metrics must not be compared with production release thresholds.",
     "M5 deliberately auto-confirms no candidates, so automatically confirmed coverage is zero by contract.",
-    "The named professional-reader UI matrix is incomplete."
+    "Acrobat, Preview UI, and iOS checks remain incomplete."
   ]
 }

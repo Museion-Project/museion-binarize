@@ -48,6 +48,8 @@ done
 
 swift "$script_dir/pdfkit_check.swift" "$searchable_pdf" \
   >"$output_dir/pdfkit.json"
+node "$script_dir/pdfjs_check.mjs" "$searchable_pdf" \
+  "$output_dir/ground-truth.json" "$output_dir/pdfjs.json"
 shasum -a 256 "$source_pdf" "$searchable_pdf" "$output_dir/ground-truth.json" \
   >"$output_dir/sha256.txt"
 

@@ -18,5 +18,8 @@
     "typecheck": "pnpm --filter mpdf-desktop typecheck",
     "test": "pnpm --filter mpdf-desktop test",
     "build": "pnpm --filter mpdf-desktop build"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "5.4.624"
   }
 }

@@ -13,6 +13,8 @@ pub use persistence::*;
 pub use review::*;
 pub use transform::*;
 
+use std::collections::BTreeMap;
+
 use crate::derived::{Bbox, DerivedDocument, DerivedLine};
 use crate::document_package::DocumentPackage;
 use crate::error::{CoreError, Result};
@@ -249,8 +251,8 @@ pub fn generate(
                 .ok_or_else(|| {
                     CoreError::InvalidDocument("outline target page is unresolved".into())
                 })?;
-            let title = outline.title.trim();
-            if title.is_empty() {
+            let effective_title = outline.title.trim();
+            if effective_title.is_empty() {
                 return Err(CoreError::InvalidDocument("outline title is empty".into()));
             }
             let ev = EvidenceRef::MdpOutline {
@@ -267,7 +269,7 @@ pub fn generate(
             let parent = outline_stack.last().map(|(_, id)| id.clone());
             let mut c = candidate(
                 package,
-                title,
+                &outline.title,
                 outline.level,
                 parent,
                 target_page,
@@ -277,8 +279,16 @@ pub fn generate(
                 vec!["existing_outline".into()],
                 vec!["existing_outline".into()],
             );
+            c.candidate_id = stable_outline_id(
+                &package.source.content_sha256,
+                &page.page_id,
+                i as u32,
+                &target_page.page_id,
+                &outline.title,
+            );
+            c.effective_title = effective_title.to_owned();
             c.outline_evidence = Some(OutlineEvidence {
-                title: title.into(),
+                title: outline.title.clone(),
                 level: outline.level,
                 target_page_id: outline.target_page_id.clone(),
                 source: outline.source.clone(),
@@ -494,7 +504,35 @@ pub fn generate(
             }
         }
     }
+    let page_orders = package
+        .pages
+        .iter()
+        .map(|page| (page.page_id.as_str(), page.order))
+        .collect::<BTreeMap<_, _>>();
     candidates.sort_by(|a, b| {
+        let outline_position = |candidate: &BookmarkCandidate| {
+            candidate
+                .evidence
+                .iter()
+                .find_map(|evidence| match evidence {
+                    EvidenceRef::MdpOutline {
+                        page_id, ordinal, ..
+                    } => Some((
+                        page_orders
+                            .get(page_id.as_str())
+                            .copied()
+                            .unwrap_or(u32::MAX),
+                        *ordinal,
+                    )),
+                    _ => None,
+                })
+        };
+        match (outline_position(a), outline_position(b)) {
+            (Some(left), Some(right)) => return left.cmp(&right),
+            (Some(_), None) => return std::cmp::Ordering::Less,
+            (None, Some(_)) => return std::cmp::Ordering::Greater,
+            (None, None) => {}
+        }
         a.physical_page_index
             .cmp(&b.physical_page_index)
             .then_with(|| {
@@ -604,6 +642,21 @@ fn stable_id(source: &str, page: u32, title: &str, bbox: Option<Bbox>) -> String
             b.x, b.y, b.width, b.height
         ));
     }
+    format!("bookmark-{}", hex(&h.finalize())[..32].to_owned())
+}
+fn stable_outline_id(
+    source: &str,
+    evidence_page_id: &str,
+    ordinal: u32,
+    target_page_id: &str,
+    title: &str,
+) -> String {
+    let mut h = Sha256::new();
+    h.update(source);
+    h.update(evidence_page_id);
+    h.update(ordinal.to_le_bytes());
+    h.update(target_page_id);
+    h.update(title.as_bytes());
     format!("bookmark-{}", hex(&h.finalize())[..32].to_owned())
 }
 fn digest(bytes: &[u8]) -> String {

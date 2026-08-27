@@ -51,6 +51,7 @@
 //! reopen design; it no longer describes this crate and is corrected in
 //! `docs/pdf-pipeline-session.md` and `docs/limitations.md`.
 
+use std::collections::HashSet;
 use std::path::Path;
 
 use image::DynamicImage;
@@ -191,43 +192,80 @@ impl PdfDocumentSession {
     }
 
     pub fn native_outline(&self) -> Result<Vec<NativeOutlineItem>> {
-        let mut items = Vec::new();
-        for bookmark in self.document.bookmarks().iter() {
-            let title = bookmark.title().ok_or_else(|| {
-                CoreError::InvalidDocument("PDF outline item has no Unicode title".into())
-            })?;
-            let mut level = 0u16;
-            let mut parent = bookmark.parent();
-            while let Some(ancestor) = parent {
-                level = level.checked_add(1).ok_or_else(|| {
-                    CoreError::InvalidDocument("PDF outline hierarchy is too deep".into())
-                })?;
-                parent = ancestor.parent();
+        fn walk<'a>(
+            mut bookmark: Option<PdfBookmark<'a>>,
+            actionable_level: u16,
+            physical_depth: u16,
+            items: &mut Vec<NativeOutlineItem>,
+            visited: &mut HashSet<PdfBookmark<'a>>,
+        ) -> Result<()> {
+            if bookmark.is_some() && (actionable_level > 64 || physical_depth > 256) {
+                return Err(CoreError::InvalidDocument(
+                    "PDF outline hierarchy is too deep".into(),
+                ));
             }
-            let destination = bookmark.destination().ok_or_else(|| {
-                CoreError::InvalidDocument("PDF outline item has no destination".into())
-            })?;
-            let page_index = destination
-                .page_index()
-                .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
-                as u32;
-            let (x, y) = match destination
-                .view_settings()
-                .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
-            {
-                PdfDestinationViewSettings::SpecificCoordinatesAndZoom(x, y, _) => {
-                    (x.map(|value| value.value), y.map(|value| value.value))
+            while let Some(current) = bookmark {
+                if !visited.insert(current.clone()) {
+                    return Err(CoreError::InvalidDocument(
+                        "PDF outline hierarchy contains a cycle".into(),
+                    ));
                 }
-                _ => (None, None),
-            };
-            items.push(NativeOutlineItem {
-                title,
-                level,
-                page_index,
-                x,
-                y,
-            });
+
+                let destination = current.destination();
+                let is_actionable = destination.is_some();
+                if let Some(destination) = destination {
+                    let title = current.title().ok_or_else(|| {
+                        CoreError::InvalidDocument("PDF outline item has no Unicode title".into())
+                    })?;
+                    let page_index = destination.page_index().map_err(|error| {
+                        CoreError::InvalidDocument(format!(
+                            "outline destination for {title:?} is invalid: {error}"
+                        ))
+                    })? as u32;
+                    let (x, y) = match destination
+                        .view_settings()
+                        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
+                    {
+                        PdfDestinationViewSettings::SpecificCoordinatesAndZoom(x, y, _) => {
+                            (x.map(|value| value.value), y.map(|value| value.value))
+                        }
+                        _ => (None, None),
+                    };
+                    items.push(NativeOutlineItem {
+                        title,
+                        level: actionable_level,
+                        page_index,
+                        x,
+                        y,
+                    });
+                }
+
+                if let Some(child) = current.first_child() {
+                    let child_level = if is_actionable {
+                        actionable_level.checked_add(1).ok_or_else(|| {
+                            CoreError::InvalidDocument("PDF outline hierarchy is too deep".into())
+                        })?
+                    } else {
+                        actionable_level
+                    };
+                    let child_depth = physical_depth.checked_add(1).ok_or_else(|| {
+                        CoreError::InvalidDocument("PDF outline hierarchy is too deep".into())
+                    })?;
+                    walk(Some(child), child_level, child_depth, items, visited)?;
+                }
+                bookmark = current.next_sibling();
+            }
+            Ok(())
         }
+
+        let mut items = Vec::new();
+        walk(
+            self.document.bookmarks().root(),
+            0,
+            0,
+            &mut items,
+            &mut HashSet::new(),
+        )?;
         Ok(items)
     }
 

@@ -2,9 +2,9 @@
 
 ## Verdict
 
-**The engineering conformance subset passes; the strict M5 product exit gate
-is blocked. M6 must not start under the strict interpretation selected for
-this audit.**
+**The engineering conformance and real native-outline subsets pass; the strict
+M5 product exit gate is blocked. M6 must not start under the strict
+interpretation selected for this audit.**
 
 The machine-readable companion report is
 [`m5-exit-acceptance-2026-08-27.json`](m5-exit-acceptance-2026-08-27.json).
@@ -44,10 +44,45 @@ printed-label TOC target, and one deliberately low-confidence candidate.
 | Unicode outline title round trip | 3/3 (100%) | Includes polytonic Greek |
 
 These numbers cannot be compared with the research release thresholds. The
-repository does not yet contain the required minimum 20 real documents with
-two independent annotations and adjudication. In particular, the 0% automatic
-confirmation coverage is an intentional M5 contract, not an accuracy failure:
-only human-confirmed candidates are eligible for PDF write-back.
+real corpus below has 20 documents, but not the required two independent
+annotations and adjudication across every evidence class. In particular, the
+0% automatic confirmation coverage is an intentional M5 contract, not an
+accuracy failure: only human-confirmed candidates are eligible for PDF
+write-back.
+
+## Real native-outline corpus
+
+The versioned manifest selects 20 PDFs (4,869 pages) from Translation Agent
+2's existing `input/` tree without copying copyrighted source bytes into Git.
+Source SHA-256 values pin the inputs. qpdf independently supplies an
+actionable-outline semantic digest; PDFium then feeds the MDP and bookmark
+generator.
+
+| Metric | Result |
+|---|---:|
+| Documents exercised | 20 |
+| Accepted documents | 19 |
+| Safely rejected invalid-outline documents | 1 |
+| Accepted outline entries | 574 |
+| Exact source titles preserved | 574/574 (100%) |
+| Exact hierarchy levels preserved | 574/574 (100%) |
+| Exact physical target pages preserved | 574/574 (100%) |
+| Unresolved evidence | 0 |
+| Automatically confirmed | 0 |
+| Deterministic repeat generations | 19/19 (100%) |
+
+The rejected PDF contains a bookmark destination for which PDFium cannot
+resolve a page index; the MDP build fails closed instead of inventing a
+target. The machine-readable result is
+[`m5-real-outline-corpus-2026-08-27.json`](m5-real-outline-corpus-2026-08-27.json),
+and the reproduction contract is documented with the
+[manifest](../../test-data/benchmark/m5-real-outline-v1/README.md).
+
+This is a real-document preservation benchmark, not the full product-quality
+benchmark: all accepted documents already have native outlines. It does not
+measure title inference from digital/scanned TOCs, target-y accuracy, or
+no-outline safe refusal, and it does not have two independent human
+annotations plus adjudication.
 
 ## Reader and engine matrix
 
@@ -60,8 +95,9 @@ only human-confirmed candidates are eligible for PDF write-back.
 | Ghostscript 10.07.1 | Pass | Four pages render; source and searchable render files are byte-identical |
 | Preview UI | Partial | PDFKit engine passes; UI navigation was not manually exercised |
 | Adobe Acrobat 25.001.20476 | Blocked | Installed, but AppleEvent automation timed out; no manual result claimed |
-| PDF.js | Not run | No pinned/vendored test runtime |
-| Foxit/iOS | Not run | Reader/device unavailable |
+| PDF.js 5.4.624 | Pass | Pinned automated runtime: page count, 0/90/180/270 rotation, Unicode text, hierarchy, page and `/XYZ` destinations |
+| Foxit PDF Editor 2026.1.0.70169 | Pass | Manual UI: open, four pages, Unicode outline hierarchy, child bookmark navigation to page 2, polytonic Greek text search |
+| iOS | Not run | Device/runtime unavailable |
 
 The audit found two issues that PDFium alone did not expose and fixed both:
 synthetic pages lacked explicit empty `/Resources` dictionaries, and the
@@ -71,14 +107,14 @@ diagnostics.
 
 ## Work required to clear the strict gate
 
-1. Build and license a versioned minimum 20-document real corpus spanning
-   native outline, digital TOC, scanned TOC, and safe-refusal documents.
+1. Extend the versioned real corpus beyond native outlines to digital TOC,
+   scanned TOC, and safe-refusal documents.
 2. Obtain two independent annotations per document and adjudicate titles,
    hierarchy, physical target page, target y coordinate, and printed label.
 3. Freeze dev/test splits and thresholds, then report target-page accuracy,
    title precision, edge-F1, coverage, zero-edit success, and hallucinations.
-4. Complete UI-level checks in Acrobat, Preview, a pinned PDF.js runtime, and
-   Foxit/iOS, recording versions and results.
+4. Complete UI-level checks in Acrobat, Preview, and iOS. PDF.js and Foxit are
+   now covered with recorded versions and passing evidence.
 
 Until those items are complete, the truthful result is: M5 implementation is
 merged and its automated conformance matrix passes, but its strict product
