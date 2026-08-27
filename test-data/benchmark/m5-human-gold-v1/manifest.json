@@ -1,0 +1,21 @@
+{
+  "schema": "mpdf-m5-human-gold-corpus",
+  "schema_version": "1.0",
+  "title": "M5 single-authoritative-annotator TOC and safe-refusal corpus",
+  "annotation_policy": "single_authoritative_user_acceptance",
+  "physical_page_index_base": 0,
+  "documents": [
+    {"id":"digital-aristotle-many-senses","evidence_class":"digital_toc","path":"articles/Aristotle On The Many Senses Of Being.pdf","sha256":"345d0c5216cb54f0ce083eb3037fe4811c575295a37ae32318402a77f604bb8d","page_count":78,"toc_hint_page_indices":[6]},
+    {"id":"digital-corcilius-timaeus","evidence_class":"digital_toc","path":"articles/Klaus Corcilius. Ideal Intellectual Cognition in Timaeus 37 a 2–c 5.pdf","sha256":"f2231cc33895ec272a9b5dd6a04d887e4b1f41de6e1003455842f7f484f70dc4","page_count":55,"toc_hint_page_indices":[4]},
+    {"id":"digital-de-ideis","evidence_class":"digital_toc","path":"articles/ON ARISTOTLE’S DE IDEIS (ΠΕΡI IΔΕΩΝ).pdf","sha256":"e178c7fac5cde4f0c6a504b4baa2be10366b2df7645f1c11e8b06c790cf64bef","page_count":68,"toc_hint_page_indices":[2,4]},
+    {"id":"digital-proclus-timaeus","evidence_class":"digital_toc","path":"monographs/Proclus. Commentary on Plato's Timaeus Vol 1 - Proclus.pdf","sha256":"26eddf42b8a81f7ee038b2994e7d2095162b58d5c796577dde01583bcee6811a","page_count":360,"toc_hint_page_indices":[6]},
+    {"id":"scanned-cornford-timaeus","evidence_class":"scanned_toc","path":"monographs/0 【Cornford】评注：蒂迈欧.pdf","sha256":"b1005c234f75fbb3c19bd15cde42f681bb9e8f1fbe5f856fca035ac5af14f064","page_count":412,"toc_hint_page_indices":[18,21,22]},
+    {"id":"scanned-speusippo-1980","evidence_class":"scanned_toc","path":"monographs/10. Margherita Isnardi Parente. Speusippo. Frammenti. Edizione, traduzione, commento. 1980.pdf","sha256":"72896b3b918b74e669e14fc3e003bb75da5a8bfefac59b54a9c28300cd4d6f89","page_count":415,"toc_hint_page_indices":[4,5]},
+    {"id":"scanned-platonism-neoplatonism","evidence_class":"scanned_toc","path":"monographs/9. From Platonism to Neoplatonism.1975.pdf","sha256":"1162378811beb2c214a7afb4c1fc67afc8af2197e4ab36fdf26b1d59c10fc71b","page_count":267,"toc_hint_page_indices":[9,10,11,12,13,14,15,16]},
+    {"id":"scanned-timee-critias","evidence_class":"scanned_toc","path":"monographs/Timée; Critias -- Platon; Luc Brisson; Michel Patillon -- Garnier Flammarion, 618., 3, 1996 -- GF Flammarion -- 9782080706188 -- d7e1d6f10a3a17e42ba10f1af5e89443 -- Anna’s Archive.pdf","sha256":"5f214c1615661c5873764ee7e6955bb13220be89f2336d175616d3cc32ccb846","page_count":433,"toc_hint_page_indices":[]},
+    {"id":"refusal-code-lambda5","evidence_class":"safe_refusal","path":"articles/Code_Some_Remarks_on_Metaphysics_Lambda5.pdf","sha256":"035ed7aa8eceb086942c126510e08a15bbc25c5c53f187abc0086d120da7ab60","page_count":19,"toc_hint_page_indices":[]},
+    {"id":"refusal-telos","evidence_class":"safe_refusal","path":"articles/Die Entdeckung des Telos: Platons Kritik der vorsokratischen Ursachenlehren.pdf","sha256":"96ed633f37697d7703d7b89637765c1d9eb9bd4dfa731a974bf22fd1ff3b670b","page_count":13,"toc_hint_page_indices":[]},
+    {"id":"refusal-judson-formlessness","evidence_class":"safe_refusal","path":"articles/Judson_Formlessness_Priority_of_Form_MetZ7-9_Lambda3.pdf","sha256":"8eda28c03e013bb88e67605492cba6a9fcd93465c3a857d406757a832e1ecaec","page_count":25,"toc_hint_page_indices":[]},
+    {"id":"refusal-lambda-preface","evidence_class":"safe_refusal","path":"articles/SympArist_Lambda_Preface.pdf","sha256":"2e9f1792954453353938b574f625fad4f23b5768accea80245e899531fa2de1f","page_count":4,"toc_hint_page_indices":[]}
+  ]
+}

@@ -1,0 +1,13 @@
+document_id,annotator,review_status,expected_behavior,toc_physical_page_indices,printed_label_notes,document_notes
+digital-aristotle-many-senses,,pending,,6,,
+digital-corcilius-timaeus,,pending,,4,,
+digital-de-ideis,,pending,,2;4,,
+digital-proclus-timaeus,,pending,,6,,
+scanned-cornford-timaeus,,pending,,18;21;22,,
+scanned-speusippo-1980,,pending,,4;5,,
+scanned-platonism-neoplatonism,,pending,,9;10;11;12;13;14;15;16,,
+scanned-timee-critias,,pending,,,,
+refusal-code-lambda5,,pending,safe_refusal,,,
+refusal-telos,,pending,safe_refusal,,,
+refusal-judson-formlessness,,pending,safe_refusal,,,
+refusal-lambda-preface,,pending,safe_refusal,,,

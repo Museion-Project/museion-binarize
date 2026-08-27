@@ -92,6 +92,9 @@ jobs:
       - name: Distribution scripts unit tests
         run: python3 scripts/distribution/test_distribution.py
 
+      - name: M5 human acceptance package unit tests
+        run: python3 scripts/m5/test_human_acceptance.py
+
   frontend:
     name: Frontend (lint, typecheck, test, build)
     runs-on: ubuntu-latest
