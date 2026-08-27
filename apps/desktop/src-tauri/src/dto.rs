@@ -180,6 +180,50 @@ pub struct PersistentJobProgressDto {
     pub cancelled_pages: u32,
 }
 
+/// Local OCR settings shown by the desktop controller. Paths are explicit
+/// operator configuration; the backend never discovers or downloads a
+/// provider executable/model.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(dead_code)] // consumed by the forthcoming durable OCR controller
+pub struct LocalOcrSettingsDto {
+    pub provider: String,
+    pub provider_executable: Option<String>,
+    pub model_dir: Option<String>,
+    pub jobs_db: String,
+    pub output_path: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalOcrProviderStatusDto {
+    pub provider: String,
+    pub available: bool,
+    pub diagnostic: String,
+}
+
+/// Durable OCR status returned from the SQLite job store. Page errors are
+/// intentionally separate from provider settings so the UI can refresh them
+/// after a restart without retaining document content in memory.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalOcrJobStatusDto {
+    pub job_id: String,
+    pub status: String,
+    pub total_pages: u32,
+    pub completed_pages: u32,
+    pub failed_pages: u32,
+    pub cancelled_pages: u32,
+    pub page_errors: Vec<LocalOcrPageErrorDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalOcrPageErrorDto {
+    pub page_number: u32,
+    pub message: String,
+}
+
 impl From<JobProgress> for PersistentJobProgressDto {
     fn from(progress: JobProgress) -> Self {
         let status = match progress.status {

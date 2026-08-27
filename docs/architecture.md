@@ -262,6 +262,7 @@ archives), `naming.py` (artifact naming), `checksums.py`/
 | `report.rs` | The versioned `ReportEnvelope`/`ErrorEnvelope` shared by every JSON report; path-rendering modes. |
 | `page_selection.rs` | Parses and validates `--pages` syntax into zero-based indices. |
 | `jobs.rs` | SQLite-WAL job/page state, leases, checkpoints, cancellation/recovery, and the versioned provider/sidecar contract. No OCR implementation. |
+| `ocr.rs` | Per-page native-text routing, bounded raster handoff, typed OCR block/line/word evidence, and explicit offline Reference/RapidOCR runners. |
 
 PDFium types never escape `pdfium_backend.rs` and `document_session.rs`.
 The core remains free of Tauri, and the CLI and (future) desktop app share

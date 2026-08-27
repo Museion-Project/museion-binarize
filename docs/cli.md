@@ -16,6 +16,7 @@ and the exit-code table. For JSON report field meanings, see
 | `preview` | Render and process one page, saving a PNG. |
 | `benchmark run` / `benchmark validate` | Ground-truth binarization-fidelity benchmarking against a dataset/profile manifest. **`benchmark` requires pixel-accurate ground truth; `analyze` is not a benchmark.** See [`benchmark-running.md`](benchmark-running.md). |
 | `package create <PDF> --output <DIR>` / `package validate <DIR>` | Create or validate an MDP 0.1 evidence package. Creation records source digest and real page geometry without copying the PDF. See [`document-package.md`](document-package.md). |
+| `ocr <PDF> --output <DIR> --jobs-db <FILE> --job-id <ID>` | Run durable local per-page text routing and write typed `ocr/` MDP extension records. The default `rapidocr` provider requires explicit executable and model paths; `reference` is deterministic/offline for development and tests. |
 
 Run `mpdf <command> --help` for the full flag list.
 
@@ -62,6 +63,32 @@ mpdf package validate book.mdp
 available PDFium library, and refuses to overwrite the destination. `package
 validate` is local and does not open PDFium. Both commands support `--json`,
 `--pretty`, and `--quiet`.
+
+## Local OCR
+
+```bash
+mpdf ocr book.pdf --output book.mdp --jobs-db .mpdf/jobs.sqlite --job-id book-1 --provider reference
+mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 \
+  --provider rapidocr --provider-executable /opt/rapidocr-provider \
+  --model-dir /opt/rapidocr-models
+```
+
+The pipeline first asks PDFium for the native text layer. Reliable text is
+recorded without rasterization; empty, very short, or garbled pages are
+rendered one at a time and sent to the selected local provider. The
+`ocr/summary.json` record is incomplete when any page fails, and the command
+returns a processing error rather than claiming success. Provider execution
+uses argv directly and never invokes a shell or downloads a model.
+The SQLite job is source/provider-fingerprint scoped: rerunning the same
+command verifies completed page files and skips their provider calls. A
+missing file or digest mismatch fails closed; cancellation leaves committed
+pages and returns the distinct cancelled exit category.
+Transient provider failures are recorded as retryable page failures; a later
+run with the same job id retries them and retains both provider-run records.
+After cancellation, a new job id may adopt valid page files already present in
+the same source-matching MDP directory; it never adopts malformed or
+out-of-range files. RapidOCR fingerprints include the source, protocol,
+configuration, and SHA-256 of each provisioned ONNX model file.
 
 ## Page selection (`analyze --pages`)
 

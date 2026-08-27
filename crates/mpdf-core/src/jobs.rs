@@ -139,20 +139,17 @@ impl JobStore {
         connection.execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")?;
         let schema_version: i64 =
             connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
-        if schema_version > 1 {
+        if schema_version > 2 {
             return Err(JobError::Invalid(format!(
                 "unsupported job schema version: {schema_version}"
             )));
-        }
-        if schema_version == 0 {
-            connection.pragma_update(None, "user_version", 1_i64)?;
         }
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS jobs (
                job_id TEXT PRIMARY KEY, status TEXT NOT NULL, page_count INTEGER NOT NULL,
                completed_pages INTEGER NOT NULL DEFAULT 0, cancel_requested INTEGER NOT NULL DEFAULT 0,
                heartbeat_at INTEGER, lease_owner TEXT, lease_until INTEGER, retries INTEGER NOT NULL DEFAULT 0,
-               last_error TEXT
+               last_error TEXT, job_fingerprint TEXT
              );
              CREATE TABLE IF NOT EXISTS pages (
                job_id TEXT NOT NULL REFERENCES jobs(job_id) ON DELETE CASCADE,
@@ -162,6 +159,26 @@ impl JobStore {
              );
              CREATE INDEX IF NOT EXISTS pages_claim ON pages(job_id, status, lease_until);",
         )?;
+        let has_fingerprint: bool = connection
+            .prepare("PRAGMA table_info(jobs)")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .collect::<Result<Vec<_>, _>>()?
+            .iter()
+            .any(|name| name == "job_fingerprint");
+        if !has_fingerprint {
+            if schema_version == 1 {
+                connection.execute_batch(
+                    "BEGIN IMMEDIATE; ALTER TABLE jobs ADD COLUMN job_fingerprint TEXT; PRAGMA user_version=2; COMMIT;",
+                )?;
+            } else {
+                connection.execute("ALTER TABLE jobs ADD COLUMN job_fingerprint TEXT", [])?;
+            }
+        } else if schema_version <= 1 {
+            connection.pragma_update(None, "user_version", 2_i64)?;
+        }
+        if schema_version == 0 {
+            connection.pragma_update(None, "user_version", 2_i64)?;
+        }
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS provider_runs (
                run_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,11 +215,60 @@ impl JobStore {
             .ok_or_else(|| JobError::Invalid("created job disappeared".into()))
     }
 
+    /// Opens or creates a job for one OCR input/configuration. Reusing a job
+    /// with different source/provider parameters is rejected rather than
+    /// mixing checkpoints from unrelated documents.
+    pub fn ensure_job(
+        &self,
+        job_id: &str,
+        page_count: u32,
+        fingerprint: &str,
+    ) -> JobResult<JobRecord> {
+        if fingerprint.is_empty() || fingerprint.len() > MAX_CHECKPOINT_BYTES {
+            return Err(JobError::Invalid("job fingerprint is out of range".into()));
+        }
+        if let Some(job) = self.job(job_id)? {
+            if job.page_count != page_count
+                || self.job_fingerprint(job_id)?.as_deref() != Some(fingerprint)
+            {
+                return Err(JobError::Invalid(
+                    "existing job source/provider configuration does not match".into(),
+                ));
+            }
+            return Ok(job);
+        }
+        let job = self.create_job(job_id, page_count)?;
+        self.connection.execute(
+            "UPDATE jobs SET job_fingerprint=?2 WHERE job_id=?1",
+            params![job_id, fingerprint],
+        )?;
+        Ok(job)
+    }
+
+    fn job_fingerprint(&self, job_id: &str) -> JobResult<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT job_fingerprint FROM jobs WHERE job_id=?1",
+                params![job_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(Into::into)
+    }
+
     pub fn job(&self, job_id: &str) -> JobResult<Option<JobRecord>> {
         self.connection.query_row("SELECT job_id,status,page_count,completed_pages,cancel_requested,heartbeat_at,retries FROM jobs WHERE job_id=?1", params![job_id], row_job).optional().map_err(Into::into)
     }
     pub fn page(&self, job_id: &str, page_index: u32) -> JobResult<Option<PageRecord>> {
         self.connection.query_row("SELECT job_id,page_index,status,attempts,checkpoint,artifact_digest,error FROM pages WHERE job_id=?1 AND page_index=?2", params![job_id,page_index], row_page).optional().map_err(Into::into)
+    }
+
+    /// Returns terminal page errors for a durable UI status view. The query
+    /// is intentionally scoped by job id; no document text is stored here.
+    pub fn page_errors(&self, job_id: &str) -> JobResult<Vec<PageRecord>> {
+        let mut statement = self.connection.prepare("SELECT job_id,page_index,status,attempts,checkpoint,artifact_digest,error FROM pages WHERE job_id=?1 AND status='failed' ORDER BY page_index")?;
+        let rows = statement.query_map(params![job_id], row_page)?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
     pub fn provider_runs(&self, job_id: &str) -> JobResult<Vec<ProviderRunRecord>> {
@@ -234,6 +300,32 @@ impl JobStore {
         &self,
         job_id: &str,
         owner: &str,
+        now: i64,
+        lease_seconds: i64,
+    ) -> JobResult<Option<PageRecord>> {
+        self.claim_page_internal(job_id, owner, None, now, lease_seconds)
+    }
+
+    /// Claims exactly `page_index` under the same immediate transaction as
+    /// the worker lease check. Durable orchestrators use this when adopting a
+    /// page written before its SQLite checkpoint; claiming the next queued
+    /// page could otherwise accidentally lease a different page.
+    pub fn claim_page_at(
+        &self,
+        job_id: &str,
+        owner: &str,
+        page_index: u32,
+        now: i64,
+        lease_seconds: i64,
+    ) -> JobResult<Option<PageRecord>> {
+        self.claim_page_internal(job_id, owner, Some(page_index), now, lease_seconds)
+    }
+
+    fn claim_page_internal(
+        &self,
+        job_id: &str,
+        owner: &str,
+        target_page: Option<u32>,
         now: i64,
         lease_seconds: i64,
     ) -> JobResult<Option<PageRecord>> {
@@ -281,11 +373,17 @@ impl JobStore {
                     "job is already leased by another worker".into(),
                 ));
             }
-            let found: Option<u32> = self.connection.query_row("SELECT page_index FROM pages WHERE job_id=?1 AND (status='queued' OR (status='running' AND lease_until<=?2)) ORDER BY page_index LIMIT 1", params![job_id,now], |row| row.get(0)).optional()?;
+            let found: Option<u32> = match target_page {
+                Some(page_index) => self.connection.query_row("SELECT page_index FROM pages WHERE job_id=?1 AND page_index=?2 AND (status='queued' OR (status='running' AND (lease_until<=?3 OR (lease_owner=?4 AND lease_until>?3))))", params![job_id,page_index,now,owner], |row| row.get(0)).optional()?,
+                None => self.connection.query_row("SELECT page_index FROM pages WHERE job_id=?1 AND (status='queued' OR (status='running' AND lease_until<=?2)) ORDER BY page_index LIMIT 1", params![job_id,now], |row| row.get(0)).optional()?,
+            };
             let Some(index) = found else {
                 return Ok(None);
             };
-            let changed = self.connection.execute("UPDATE pages SET status='running',attempts=attempts+1,lease_owner=?3,lease_until=?2 WHERE job_id=?1 AND page_index=?4 AND (status='queued' OR (status='running' AND lease_until<=?5))", params![job_id,lease_until,owner,index,now])?;
+            let changed = match target_page {
+                Some(_) => self.connection.execute("UPDATE pages SET status='running',attempts=attempts+1,lease_owner=?3,lease_until=?2 WHERE job_id=?1 AND page_index=?4 AND (status='queued' OR (status='running' AND (lease_until<=?5 OR (lease_owner=?3 AND lease_until>?5))))", params![job_id,lease_until,owner,index,now])?,
+                None => self.connection.execute("UPDATE pages SET status='running',attempts=attempts+1,lease_owner=?3,lease_until=?2 WHERE job_id=?1 AND page_index=?4 AND (status='queued' OR (status='running' AND lease_until<=?5))", params![job_id,lease_until,owner,index,now])?,
+            };
             if changed != 1 {
                 return Ok(None);
             }
@@ -1441,6 +1539,31 @@ mod tests {
     }
 
     #[test]
+    fn claim_page_at_targets_requested_page_for_adoption() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        store.create_job("j", 3).unwrap();
+        let claimed = store.claim_page_at("j", "worker", 2, 10, 60).unwrap();
+        assert_eq!(claimed.as_ref().map(|page| page.page_index), Some(2));
+        assert_eq!(
+            store
+                .claim_page_at("j", "worker", 2, 20, 60)
+                .unwrap()
+                .as_ref()
+                .map(|page| page.page_index),
+            Some(2)
+        );
+        assert_eq!(
+            store.page("j", 0).unwrap().unwrap().status,
+            PageStatus::Queued
+        );
+        assert_eq!(
+            store.page("j", 1).unwrap().unwrap().status,
+            PageStatus::Queued
+        );
+    }
+
+    #[test]
     fn provider_success_and_failure_records_survive_database_reopen() {
         let dir = tempfile::tempdir().unwrap();
         let db = dir.path().join("jobs.sqlite");
@@ -1490,7 +1613,7 @@ mod tests {
         let db = dir.path().join("jobs.sqlite");
         let connection = rusqlite::Connection::open(&db).unwrap();
         connection
-            .pragma_update(None, "user_version", 2_i64)
+            .pragma_update(None, "user_version", 3_i64)
             .unwrap();
         drop(connection);
         assert!(JobStore::open(&db).is_err());
@@ -1524,5 +1647,25 @@ mod tests {
             execution_location: ExecutionLocation::Local,
         };
         assert!(validate_provenance(&provenance).is_err());
+    }
+
+    #[test]
+    fn v1_job_schema_migrates_to_v2_transactionally() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = dir.path().join("v1.sqlite");
+        let connection = rusqlite::Connection::open(&db).unwrap();
+        connection
+            .execute_batch(
+                "CREATE TABLE jobs (job_id TEXT PRIMARY KEY, status TEXT NOT NULL, page_count INTEGER NOT NULL, completed_pages INTEGER NOT NULL DEFAULT 0, cancel_requested INTEGER NOT NULL DEFAULT 0, heartbeat_at INTEGER, lease_owner TEXT, lease_until INTEGER, retries INTEGER NOT NULL DEFAULT 0, last_error TEXT); PRAGMA user_version=1;",
+            )
+            .unwrap();
+        drop(connection);
+        let store = JobStore::open(&db).unwrap();
+        let version: i64 = store
+            .connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 2);
+        store.create_job("migrated", 1).unwrap();
     }
 }
