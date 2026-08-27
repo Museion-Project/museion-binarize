@@ -44,6 +44,12 @@ mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 
 Use `--provider rapidocr --provider-executable PATH --model-dir PATH` only
 when an explicitly provisioned local RapidOCR/ONNX sidecar is available.
 
+M4 can derive deterministic AI-ready records and a local review queue without
+cloud access. Use `mpdf export book.mdp --format all --output book-derived`,
+`mpdf review book.mdp --json`, and the `mpdf revision` commands. The typed IR
+preserves page/bbox references and immutable OCR source text; see
+[`docs/derived-document.md`](docs/derived-document.md).
+
 The M2 development job store can be exercised without an OCR provider:
 
 ```bash

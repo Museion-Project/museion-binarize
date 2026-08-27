@@ -10,6 +10,7 @@ import { EstimatePanel } from "./components/EstimatePanel";
 import { PageSidebar } from "./components/PageSidebar";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { PreviewPane } from "./components/PreviewPane";
+import { ReviewWorkbench } from "./components/ReviewWorkbench";
 import { ProcessingProgress } from "./components/ProcessingProgress";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Toolbar } from "./components/Toolbar";
@@ -357,6 +358,8 @@ function App() {
             )}
           </div>
         )}
+
+        {state.kind === "ready" && <ReviewWorkbench />}
 
         <footer className="status-bar">
           {state.kind === "processing" && (

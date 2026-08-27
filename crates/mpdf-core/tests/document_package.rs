@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use mpdf_core::derived::{export, DerivedDocument, ExportFormat};
 use mpdf_core::document_package::DocumentPackage;
 use mpdf_core::document_session::PdfOpenOptions;
 use mpdf_core::jobs::JobStore;
@@ -60,4 +61,17 @@ fn creates_and_validates_package_from_real_pdfium_geometry() {
     .unwrap();
     assert!(ocr_run.is_complete(session.info().page_count));
     DocumentPackage::read_from(&output).unwrap();
+    let derived = DerivedDocument::from_package(&package, Some(&ocr_run)).unwrap();
+    derived.validate().unwrap();
+    for format in [
+        ExportFormat::Json,
+        ExportFormat::Jsonl,
+        ExportFormat::Markdown,
+        ExportFormat::Text,
+        ExportFormat::Html,
+        ExportFormat::Hocr,
+        ExportFormat::Alto,
+    ] {
+        assert!(!export(&derived, format).unwrap().is_empty());
+    }
 }

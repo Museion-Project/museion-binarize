@@ -241,6 +241,28 @@ legend {
   overflow: hidden;
 }
 
+/* --- M4 review workbench ------------------------------------------- */
+
+.review-workbench {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+  max-height: 36vh;
+  overflow: auto;
+}
+
+.review-workbench-header h2 { margin: 0; font-size: 1em; }
+.review-workbench-header p { margin: var(--space-1) 0; color: var(--text-muted); font-size: .85em; }
+.review-workbench-header label { display: inline-block; margin-right: var(--space-2); }
+.review-workbench-header input { margin-left: var(--space-2); min-width: 24em; }
+.review-workbench-columns { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: var(--space-3); margin-top: var(--space-3); }
+.review-issues, .review-structure, .review-properties { min-width: 0; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius); }
+.review-issues { display: flex; flex-direction: column; gap: var(--space-1); }
+.review-issues button { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review-issues button.selected { border-color: var(--accent); }
+.review-properties textarea { display: block; width: 100%; min-height: 3em; margin: var(--space-2) 0; }
+.review-properties p { margin: var(--space-1) 0; font-size: .85em; }
+
 .document-info {
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--border);

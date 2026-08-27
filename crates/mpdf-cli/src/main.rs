@@ -14,7 +14,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
-use cli::{BenchmarkCommand, Cli, Command, JobCommand, PackageCommand};
+use cli::{BenchmarkCommand, Cli, Command, JobCommand, PackageCommand, RevisionCommand};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -43,5 +43,13 @@ fn main() -> ExitCode {
         Some(Command::Job(JobCommand::Status(args))) => commands::job::status(args),
         Some(Command::Job(JobCommand::Cancel(args))) => commands::job::cancel(args),
         Some(Command::Ocr(args)) => commands::ocr::run(args),
+        Some(Command::Export(args)) => commands::derived::export(args),
+        Some(Command::Review(args)) => commands::derived::review(args),
+        Some(Command::Revision(RevisionCommand::Add(args))) => {
+            commands::derived::revision_add(args)
+        }
+        Some(Command::Revision(RevisionCommand::List(args))) => {
+            commands::derived::revision_list(args)
+        }
     }
 }

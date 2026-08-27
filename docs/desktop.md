@@ -273,6 +273,11 @@ event from a previous job/document can never corrupt newer state.
   provider readiness plus durable status, cancellation, and page-error query
   commands. It does not claim to start OCR from a background desktop worker;
   partial output and restart semantics are defined by the CLI/job store.
+  M4 adds a local three-column review workbench for loading typed review
+  issues and submitting human or AI-suggested revision records. It shows
+  page/bbox coordinates rather than inventing an image overlay when no MDP
+  preview asset is available; persistence is performed by the registered
+  `load_review_queue` and `add_review_revision` commands.
   (bookmarks, annotations, forms, attachments) — unchanged from prior
   milestones.
 - No Ancient Greek / polytonic typography preservation claim — unchanged

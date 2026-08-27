@@ -17,6 +17,9 @@ and the exit-code table. For JSON report field meanings, see
 | `benchmark run` / `benchmark validate` | Ground-truth binarization-fidelity benchmarking against a dataset/profile manifest. **`benchmark` requires pixel-accurate ground truth; `analyze` is not a benchmark.** See [`benchmark-running.md`](benchmark-running.md). |
 | `package create <PDF> --output <DIR>` / `package validate <DIR>` | Create or validate an MDP 0.1 evidence package. Creation records source digest and real page geometry without copying the PDF. See [`document-package.md`](document-package.md). |
 | `ocr <PDF> --output <DIR> --jobs-db <FILE> --job-id <ID>` | Run durable local per-page text routing and write typed `ocr/` MDP extension records. The default `rapidocr` provider requires explicit executable and model paths; `reference` is deterministic/offline for development and tests. |
+| `export <MDP> --format <FORMAT> --output <PATH>` | Build deterministic JSON/JSONL/Markdown/TXT/HTML/hOCR/ALTO derived records; use `--format all` with an output directory. |
+| `review <MDP>` | Emit the typed local review queue (`--json` for machine-readable output). |
+| `revision add/list <MDP>` | Append a human or AI-suggested revision, or inspect the revision overlay; stale base evidence is rejected. |
 
 Run `mpdf <command> --help` for the full flag list.
 
@@ -212,6 +215,22 @@ against every other one before any work begins: two different outputs
 pointed at the same file would silently corrupt whichever is written
 second. This is in addition to the core's own input/output same-file
 protection (see [`pdf-output.md`](pdf-output.md)).
+
+## Derived exports and review
+
+```bash
+mpdf export book.mdp --format all --output book-derived
+mpdf review book.mdp --json
+mpdf revision add book.mdp --revision-id r1 --target-ref word-... \
+  --base-evidence-digest <page-evidence-sha256> --text corrected
+mpdf revision list book.mdp --json
+```
+
+The derived IR retains page/bbox references and the artifact manifest records
+input and output digests. `all` installs a complete export directory
+atomically. Human revisions affect only the effective derived text; AI
+suggestions remain append-only and stale base evidence is rejected. See
+[`derived-document.md`](derived-document.md).
 
 ## Persistent document session
 

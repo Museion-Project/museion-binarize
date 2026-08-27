@@ -19,6 +19,7 @@ pub mod bilevel;
 pub mod binarization;
 pub mod ccitt;
 pub mod cleanup;
+pub mod derived;
 pub mod document;
 pub mod document_package;
 pub mod document_session;
