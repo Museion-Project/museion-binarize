@@ -1,0 +1,42 @@
+{
+  "schema": "mpdf-m5-exit-acceptance",
+  "schema_version": "0.1",
+  "date": "2026-08-27",
+  "verdict": "blocked",
+  "engineering_conformance_fixture": {
+    "kind": "synthetic",
+    "documents": 1,
+    "pages": 4,
+    "ground_truth_sha256": "0a663542eaba0e5c022730ef76c91c3d4054ffd538e6d33bc7e923f59addc729",
+    "searchable_pdf_sha256": "9f1ef31502cef2a9c3b4ca79b905b02883ac759f19dde1efd2e029cfd437c00a",
+    "metrics": {
+      "candidate_target_page_accuracy": {"numerator": 3, "denominator": 3, "value": 1.0},
+      "candidate_title_precision": {"numerator": 3, "denominator": 3, "value": 1.0},
+      "hierarchy_edge_f1": {"true_positive": 1, "false_positive": 0, "false_negative": 0, "value": 1.0},
+      "candidate_coverage": {"numerator": 3, "denominator": 3, "value": 1.0},
+      "automatically_confirmed_coverage": {"numerator": 0, "denominator": 3, "value": 0.0},
+      "zero_edit_document_success": {"numerator": 0, "denominator": 1, "value": 0.0},
+      "unsupported_evidence_titles": 0,
+      "unicode_outline_title_round_trip": {"numerator": 3, "denominator": 3, "value": 1.0}
+    }
+  },
+  "automated_reader_matrix": [
+    {"engine": "PDFium", "version": "151.0.7920.0", "status": "pass", "checks": ["page_count", "page_boxes", "rotation", "unicode_text", "outline_hierarchy", "destinations", "visible_pixels"]},
+    {"engine": "Apple PDFKit", "platform": "macOS 27.0 (26A5421a)", "status": "pass", "checks": ["open", "page_count", "unicode_text", "outline_hierarchy", "destinations"]},
+    {"engine": "qpdf", "version": "12.3.2", "status": "pass", "checks": ["syntax", "streams", "outline_hierarchy", "xyz_destinations"]},
+    {"engine": "Poppler", "version": "25.08.0", "status": "pass", "checks": ["page_boxes", "rotation", "unicode_text", "font_diagnostics"]},
+    {"engine": "Ghostscript", "version": "10.07.1", "status": "pass", "checks": ["open", "four_page_render", "source_output_pixel_identity"]}
+  ],
+  "target_reader_matrix": [
+    {"reader": "Preview", "status": "engine_pass_ui_not_run", "evidence": "Apple PDFKit automated result"},
+    {"reader": "Adobe Acrobat", "version": "25.001.20476", "status": "blocked", "reason": "AppleEvent automation timed out; manual UI validation not completed"},
+    {"reader": "PDF.js", "status": "not_run", "reason": "not installed or vendored"},
+    {"reader": "Foxit/iOS", "status": "not_run", "reason": "reader/device unavailable"}
+  ],
+  "blocking_conditions": [
+    "No versioned 20-document minimum independently annotated real-document gold corpus exists.",
+    "Synthetic conformance metrics must not be compared with production release thresholds.",
+    "M5 deliberately auto-confirms no candidates, so automatically confirmed coverage is zero by contract.",
+    "The named professional-reader UI matrix is incomplete."
+  ]
+}

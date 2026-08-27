@@ -48,6 +48,11 @@ fn build(pages: Vec<PageSpec>) -> Vec<u8> {
         if spec.rotation != 0 {
             page.rotate(spec.rotation);
         }
+        // Even pages whose content uses only device colors need an explicit
+        // empty resource dictionary for strict readers such as qpdf. Keeping
+        // the synthetic source structurally valid lets interoperability tests
+        // distinguish source defects from searchable-PDF write-back defects.
+        page.resources();
         page.finish();
 
         pdf.stream(content_id, &spec.content);

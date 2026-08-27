@@ -281,5 +281,29 @@ fn m5_pdfium_source_preserving_reopen_and_rotation_fixture(
             output_page.get(b"Rotate").ok()
         );
     }
+    if let Some(acceptance_dir) = std::env::var_os("MPDF_M5_ACCEPTANCE_OUTPUT") {
+        let acceptance_dir = std::path::PathBuf::from(acceptance_dir);
+        fs::create_dir_all(&acceptance_dir)?;
+        fs::copy(&source, acceptance_dir.join("source-rotations.pdf"))?;
+        fs::copy(&output, acceptance_dir.join("searchable-rotations.pdf"))?;
+        let ground_truth = serde_json::json!({
+            "schema": "mpdf-m5-acceptance-fixture",
+            "schema_version": "0.1",
+            "page_count": 4,
+            "candidate_count": 3,
+            "automatically_confirmed_count": 0,
+            "needs_review_count": 1,
+            "expected_text": ["1. Ἀρχὴ", "1.1 Πολιτείας", "2. Appendix iv"],
+            "outline": [
+                {"title": "1. Ἀρχὴ", "level": 0, "page_index": 0},
+                {"title": "1.1 Πολιτείας", "level": 1, "page_index": 1},
+                {"title": "2. Appendix", "level": 0, "page_index": 3}
+            ]
+        });
+        fs::write(
+            acceptance_dir.join("ground-truth.json"),
+            serde_json::to_vec_pretty(&ground_truth)?,
+        )?;
+    }
     Ok(())
 }

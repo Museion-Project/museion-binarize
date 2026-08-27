@@ -320,7 +320,12 @@ fn add_font(pdf: &mut Document, scalars: &BTreeSet<char>) -> Result<EmbeddedFont
         w.push(cid.into());
         w.push(Object::Array(vec![width.into()]));
     }
-    let cidfont=pdf.add_object(dictionary!{"Type"=>"Font","Subtype"=>"CIDFontType2","BaseFont"=>"NotoSans","CIDSystemInfo"=>dictionary!{"Registry"=>"Adobe","Ordering"=>"Identity","Supplement"=>0},"FontDescriptor"=>desc,"CIDToGIDMap"=>cid_map_id,"DW"=>1000,"W"=>Object::Array(w)});
+    let cid_system_info = dictionary! {
+        "Registry" => Object::String(b"Adobe".to_vec(), StringFormat::Literal),
+        "Ordering" => Object::String(b"Identity".to_vec(), StringFormat::Literal),
+        "Supplement" => 0,
+    };
+    let cidfont=pdf.add_object(dictionary!{"Type"=>"Font","Subtype"=>"CIDFontType2","BaseFont"=>"NotoSans","CIDSystemInfo"=>cid_system_info,"FontDescriptor"=>desc,"CIDToGIDMap"=>cid_map_id,"DW"=>1000,"W"=>Object::Array(w)});
     let object_id=pdf.add_object(dictionary!{"Type"=>"Font","Subtype"=>"Type0","BaseFont"=>"NotoSans","Encoding"=>"Identity-H","DescendantFonts"=>vec![cidfont.into()],"ToUnicode"=>cmap_id});
     Ok(EmbeddedFont {
         object_id,
@@ -626,5 +631,31 @@ mod tests {
             fonts.get(b"MPDFHiddenM5").unwrap(),
             &Object::Reference(font)
         );
+    }
+
+    #[test]
+    fn cid_system_info_uses_required_pdf_strings() {
+        let mut pdf = Document::with_version("1.7");
+        add_font(&mut pdf, &BTreeSet::from(['A'])).unwrap();
+        let cid_font = pdf
+            .objects
+            .values()
+            .filter_map(|object| object.as_dict().ok())
+            .find(|dict| {
+                dict.get(b"Subtype")
+                    .ok()
+                    .and_then(|value| value.as_name().ok())
+                    == Some(b"CIDFontType2".as_slice())
+            })
+            .unwrap();
+        let system_info = cid_font.get(b"CIDSystemInfo").unwrap().as_dict().unwrap();
+        assert!(matches!(
+            system_info.get(b"Registry").unwrap(),
+            Object::String(value, StringFormat::Literal) if value == b"Adobe"
+        ));
+        assert!(matches!(
+            system_info.get(b"Ordering").unwrap(),
+            Object::String(value, StringFormat::Literal) if value == b"Identity"
+        ));
     }
 }
