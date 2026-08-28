@@ -1,3 +1,12 @@
+# Remote API task state (M6)
+
+Remote OCR uses the same durable-job principles as local OCR, with a separate
+SQLite v3 `api_tasks`/append-only `api_audit` set. State transitions and cost
+updates are transactional; budget exhaustion is `paused_budget`, not success.
+Raw provider responses are bounded, digest-addressed artifacts installed via
+same-directory temporary files and no-clobber persistence before MDP OCR page
+records reference them.
+
 # Persistent jobs and provider protocol
 
 M2 provides the durable orchestration boundary for future OCR adapters. The

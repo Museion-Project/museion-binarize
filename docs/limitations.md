@@ -2,6 +2,18 @@
 
 ## Current state (as of the `0.1.0-rc.2` release candidate)
 
+M6 does not ship a vendor integration or make paid calls. The reusable client
+speaks the provider-neutral `mpdf-api` 0.1 contract and CI validates it with a
+deterministic loopback HTTP fixture. It uses the platform-native
+Keychain/Credential Manager/Secret Service; an unavailable or locked store
+fails visibly and never falls back to a plaintext token. Endpoint discovery,
+OAuth, telemetry, cloud bookmark generation, and automatic upload remain out
+of scope.
+
+The desktop does not retain PDF passwords. Consequently, it rejects remote
+OCR for a password-protected open session before upload; the CLI can still be
+used with its existing environment-only password input when appropriate.
+
 M PDF Processor can perform a complete local PDF conversion, can analyze
 a PDF without converting it, can produce an experimental sampled
 estimate of a conversion's output size before running it, and can
@@ -214,3 +226,7 @@ Whether and how any of these might be addressed is a question for later
 phases (see [`roadmap.md`](roadmap.md)) — most notably Phase 2's benchmark
 work on preserving Ancient Greek typography — and no commitment is made
 here about if or when that will happen.
+M6 desktop `api_then_local` uses the deterministic bundled reference OCR
+provider when the remote service cannot complete. It is a safe, offline,
+audited fallback and never downloads a model, but production-quality scanned
+OCR still requires an explicitly configured RapidOCR/ONNX installation.

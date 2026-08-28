@@ -197,7 +197,8 @@ Acrobat/Preview/iOS 固定 fixture 已制作。按产品负责人决定，本轮
 `docs/benchmark-results/m5-exit-acceptance-2026-08-27.md`。
 验收补充 PR #21 已合并，merge `a4ce00a`。
 单一权威标注与三端人工验收包 PR #23 已合并，merge `2ff7001`。
-因此 M5 代码已合并，但严格产品出口门仍为 blocked，M6 不启动。
+M5 人工 PDF 阅读器结果由产品负责人后补；2026-08-28 产品负责人明确授权该结果不再阻塞
+M6。M5 的待填验收包仍保留并继续如实标记为 pending，不把未完成的人工测试写成通过。
 
 交付：
 
@@ -214,6 +215,11 @@ Acrobat/Preview/iOS 固定 fixture 已制作。按产品负责人决定，本轮
 ### M6 — API provider 与跨设备任务
 
 **目标：** 在不改变 MDP 和 UI 语义的前提下增加 API 路径。
+
+状态（2026-08-28）：进行中，分支 `codex/m-pdf-m6-api-cross-device`。ADR 0008 已冻结
+network-free core、独立 HTTPS client、显式摘要绑定上传许可、原生 credential store、整数预算、
+append-only audit、portable task receipt、可见 retention 与显式 fallback 契约。首个远程操作仅为
+OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
 
 交付：
 
@@ -249,14 +255,14 @@ Acrobat/Preview/iOS 固定 fixture 已制作。按产品负责人决定，本轮
 | M2 任务与 provider | 已合并 | [PR #15](https://github.com/Museion-Project/museion-binarize/pull/15) | GitHub CI 全绿；merge `72576e3` |
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
-| M5 自动书签/PDF | 代码已合并；单人验收包待填写 | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人填写 12 份 TOC/拒绝金标准与 Acrobat/Preview/iOS |
-| M6 API | 未开始（blocked） | — | M5 严格出口门通过 |
+| M5 自动书签/PDF | 代码已合并；人工结果后补（不阻塞 M6） | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人之后提供 Acrobat/Preview/iOS 与单人标注结果 |
+| M6 API | 进行中 | `codex/m-pdf-m6-api-cross-device` | ADR 0008 契约、实现、全量门禁和独立 PR |
 | M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
 
 ## 5. 当前阻塞
 
 M5 严格产品出口门已有 20 份真实原生 outline 语料、12 份单一权威标注者验收样本、固定
-PDF.js 及 Foxit 证据。当前只需产品负责人完成 digital/scanned TOC 与 safe-refusal 表，并在
-Acrobat、Preview UI、iOS 填写固定 fixture 的结果；不要求第二名标注者，但也不声明标注者间
-一致性。在校验报告通过前不启动 M6。GitHub 权限不是阻塞：2026-08-26
+PDF.js 及 Foxit 证据。产品负责人将之后补充 digital/scanned TOC、safe-refusal、Acrobat、
+Preview UI 和 iOS 结果；这些结果仍不得伪报通过，但按 2026-08-28 的明确授权不再阻塞 M6。
+M6 当前没有外部阻塞。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。

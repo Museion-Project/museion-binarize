@@ -3,6 +3,7 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import "./App.css";
 import { initialState, reducer } from "./app/reducer";
 import { CompletionPanel } from "./components/CompletionPanel";
+import { ApiRoutingPanel } from "./components/ApiRoutingPanel";
 import { DocumentInfo } from "./components/DocumentInfo";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ErrorPanel } from "./components/ErrorPanel";
@@ -353,6 +354,7 @@ function App() {
                     dispatch({ type: "SET_SETTINGS", settings, preset })
                   }
                 />
+                <ApiRoutingPanel documentId={state.document.documentId} disabled={false} />
                 <EstimatePanel estimate={state.estimate} disabled={false} onEstimate={runEstimate} />
               </div>
             )}

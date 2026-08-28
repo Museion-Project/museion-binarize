@@ -4,6 +4,7 @@
 //! `crate::errors`. Each command function here only wires those together.
 
 pub mod analyze;
+pub mod api;
 pub mod benchmark;
 pub mod bookmarks;
 pub mod derived;

@@ -24,6 +24,7 @@ sha2 = "0.10"
 tempfile = "3"
 thiserror = "2"
 toml = "0.8"
+url = "2"
 unicode-normalization = "0.1"
 lopdf = { version = "0.44", default-features = false }
 ttf-parser = "0.25"

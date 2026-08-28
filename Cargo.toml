@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/mpdf-core",
     "crates/mpdf-cli",
+    "crates/mpdf-api-client",
     "apps/desktop/src-tauri",
 ]
 
