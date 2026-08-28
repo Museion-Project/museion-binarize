@@ -256,7 +256,7 @@ OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
 | M5 自动书签/PDF | 代码已合并；人工结果后补（不阻塞 M6） | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人之后提供 Acrobat/Preview/iOS 与单人标注结果 |
-| M6 API | 进行中 | `codex/m-pdf-m6-api-cross-device` | ADR 0008 契约、实现、全量门禁和独立 PR |
+| M6 API | 已合并 | [PR #25](https://github.com/Museion-Project/museion-binarize/pull/25) | GitHub CI 全绿；merge `3dd3389` |
 | M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
 
 ## 5. 当前阻塞
