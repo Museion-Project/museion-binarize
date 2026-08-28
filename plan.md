@@ -216,7 +216,8 @@ M6。M5 的待填验收包仍保留并继续如实标记为 pending，不把未�
 
 **目标：** 在不改变 MDP 和 UI 语义的前提下增加 API 路径。
 
-状态（2026-08-28）：进行中，分支 `codex/m-pdf-m6-api-cross-device`。ADR 0008 已冻结
+状态（2026-08-28）：代码已合并（PR #25，merge `3dd3389`）。发布准备（M7）尚未开始。
+ADR 0008 已冻结
 network-free core、独立 HTTPS client、显式摘要绑定上传许可、原生 credential store、整数预算、
 append-only audit、portable task receipt、可见 retention 与显式 fallback 契约。首个远程操作仅为
 OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
@@ -231,6 +232,43 @@ OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
 
 出口条件：关闭云端时产品完整成立；相同任务可切换 provider；隐私、失败语义、成本和删除
 策略均有自动化测试与用户可见说明。
+
+### 自动书签目录 v2（独立功能，非 milestone 编号）
+
+**目标：** 把 M3–M6 已保存的 OCR/原生文字证据，编译成可验证、可自动写入 PDF 的标准
+outline；不是让模型自由生成语义目录。
+
+状态（2026-08-28）：代码、schema、CLI、桌面、测试与文档已在 M6 基线上一次性完成，
+尚未提交/推送/开 PR。本功能刻意不复用 M7 编号：`plan.md` 已把 M7 定义为发布硬化与正式
+命名，具体编号由项目负责人之后决定。
+
+交付：
+
+- ADR 0009 冻结三种业务结果（`existing_outline` / `toc_aligned` / `safe_refusal`）、
+  provider-neutral 证据、`auto_confirmed` 与人工 `confirmed` 的区别、固定整数评分、
+  分段页码映射、单调对齐，以及 PDF 重开验证；
+- `mpdf-core::bookmarks` 拆分为 text_index / toc_detect / toc_parse / align /
+  hierarchy / scoring / engine / assembly / config 模块，磁盘装配与 PDF 安全写入各只有
+  一处实现（`load_auto_bookmark_inputs`、`searchable_output`）；
+- bookmark snapshot 0.2 与 `mpdf-bookmark-generation-report` 0.1 两个新 schema；0.1
+  快照与 review 继续可读、可审阅、可构建，且不能凭改标签取得自动状态；
+- CLI 新增 `mpdf bookmark auto`（一条命令生成并写出已验证 PDF），`bookmark generate`
+  改为调用同一 v2 engine；`--overwrite` 与 `--regenerate` 权限分离；
+- 桌面新增"自动添加目录书签"单按钮入口、原生路径选择、阶段进度、取消、忙碌门禁、
+  安全拒绝结果面板与自动/人工状态区分；
+- 新增 23 个 core 契约测试、7 个无 PDFium 的 CLI 集成测试、6 个桌面 Rust 测试、
+  10 个 React 测试，以及自动书签评测入口 `scripts/bookmarks/auto_bookmark_eval.py`
+  （含公式自测）。
+
+未完成/未运行（如实记录）：
+
+- 本机（x86_64 Linux 容器）没有 `third_party/pdfium/manifest.toml` 认可的 PDFium
+  二进制，因此 PDFium 相关集成测试（`auto_bookmarks_pdf`、`bookmarks_cli`、
+  `pdf_pipeline`、`searchable_pdf`）与 `scripts/m5/check_reader_matrix.sh`
+  **未运行**，按仓库惯例标记为 ignored，不得视为通过；
+- 没有真实人工金标准语料，因此没有任何真实准确率数字；评测脚本在语料缺失时输出
+  `not_run`/`pending`；
+- 评分阈值是保守冻结基线，未按语料校准。
 
 ### M7 — 发布硬化与正式命名
 
@@ -256,13 +294,18 @@ OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
 | M3 本地 OCR | 已合并 | PR #16；merge `dfc186c` | 后续回归门禁继续保持绿色 |
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
 | M5 自动书签/PDF | 代码已合并；人工结果后补（不阻塞 M6） | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人之后提供 Acrobat/Preview/iOS 与单人标注结果 |
-| M6 API | 进行中 | `codex/m-pdf-m6-api-cross-device` | ADR 0008 契约、实现、全量门禁和独立 PR |
-| M7 发布/正式命名 | 未开始 | — | M6 CI 全绿并合并 |
+| M6 API | 已合并 | [PR #25](https://github.com/Museion-Project/museion-binarize/pull/25)；merge `3dd3389` | 发布准备留待 M7 |
+| 自动书签目录 v2 | 已实现，未提交/未开 PR | `claude/auto-bookmark-feature-fb2533` | 本机无 PDFium 二进制：PDFium 集成门与 reader matrix 未运行 |
+| M7 发布/正式命名 | 未开始 | — | 自动书签目录 v2 合并后与 M6 一起做发布轮 |
 
 ## 5. 当前阻塞
 
 M5 严格产品出口门已有 20 份真实原生 outline 语料、12 份单一权威标注者验收样本、固定
 PDF.js 及 Foxit 证据。产品负责人将之后补充 digital/scanned TOC、safe-refusal、Acrobat、
 Preview UI 和 iOS 结果；这些结果仍不得伪报通过，但按 2026-08-28 的明确授权不再阻塞 M6。
+自动书签目录 v2 当前的阻塞是环境性的：本机没有仓库认可的 PDFium 二进制（manifest 只
+记录了 aarch64-apple-darwin 资产），因此 PDFium 集成门与阅读器矩阵必须在具备该库的机器
+上补跑；同时真实人工金标准语料仍未标注完成，本轮不产出任何真实准确率数字。
+
 M6 当前没有外部阻塞。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。

@@ -268,13 +268,54 @@ state. Every event carries an id (`documentId`, `jobId`, preview
 before applying the update, so a stale async response or a stale Tauri
 event from a previous job/document can never corrupt newer state.
 
-## M5 bookmark review
+## Bookmark review and automatic table of contents
 
-The workbench can load the persisted bookmark tree and invoke the core-backed
-`confirm_bookmark`, `reject_bookmark`, `edit_bookmark`, and
-`reparent_bookmark` commands. Candidate source title, page, master bbox,
-evidence count, confidence, and rule trace remain visible; no preview asset
-means no overlay is drawn. Every mutation is an append-only review record.
+The workbench loads the persisted bookmark tree through `load_bookmark_tree`
+and invokes the core-backed `confirm_bookmark`, `reject_bookmark`,
+`edit_bookmark`, and `reparent_bookmark` commands. Candidate source title,
+page, master bbox, evidence count, confidence, score breakdown, alignment
+evidence, and reason codes remain visible; no preview asset means no overlay
+is drawn. Every mutation is an append-only review record.
+
+`auto_confirmed` (added by the deterministic engine) and `confirmed` (decided
+by a person) are separate filter values and are labelled distinctly —
+"Added automatically" versus "Confirmed by you" — in the tree, the status
+filter, and the selected-candidate panel.
+
+### The automatic path
+
+One button, `Add bookmarks automatically`, maps to `start_auto_bookmark`. The
+user picks the MDP package folder and where to save the new PDF through native
+pickers; the raw text field beside them is retained and labelled
+"(advanced)". The user is never asked for an OCR provider, a threshold, a page
+offset, or a contents page.
+
+- The request DTO is project-owned and carries the current `document_id`, the
+  package path, the output path, and explicit `overwrite`/`regenerate`
+  booleans. The **source PDF path comes from `AppState::OpenDocumentState`**,
+  never from the frontend, and no source path or byte ever travels back out.
+- A request for a document that is no longer open is rejected
+  (`document_stale`/`document_not_open`) rather than applied to whatever is
+  open now.
+- `AppState::auto_bookmark` is an atomic check-and-set slot. A second run, a
+  running conversion (`job_active`), or an in-flight remote OCR task
+  (`api_task_active`) is refused with an actionable structured error, never
+  queued silently.
+- The run executes on the single PDFium worker thread, so the UI never
+  freezes while a long book is matched or a PDF is written. Stages arrive as
+  `mpdf://auto-bookmark-stage` events (`analyzing_toc`, `aligning`,
+  `writing_pdf`, `validating`), and the result, failure, or cancellation as
+  `mpdf://auto-bookmark-completed` / `-failed` / `-cancelled`.
+- `cancel_auto_bookmark` takes both the job id and the document id, so a stale
+  window cannot cancel a newer document's run. Cancellation leaves no
+  candidates, report, output, or temporary file behind.
+- The result panel reports mode, status, contents pages found, and the
+  automatically-added / needs-review / skipped counts, then reloads the
+  bookmark tree. A **safe refusal is a normal result panel**, not a red error:
+  it states plainly that no reliable structure was found and that nothing was
+  written.
+- Errors are classified through the existing `UiErrorDto`; no OCR text, token,
+  credential, or raw API response reaches the frontend.
 
 ## Known limitations (honest, as of this milestone)
 

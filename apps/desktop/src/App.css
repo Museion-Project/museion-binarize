@@ -725,3 +725,41 @@ legend {
   padding: var(--space-3);
   border-radius: var(--radius);
 }
+
+/* Automatic table-of-contents panel (bookmarks v2). One primary action;
+   the advanced evidence stays in the tree below it. */
+.auto-bookmark-panel {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.auto-bookmark-panel h3 { margin: 0; font-size: 1em; }
+.auto-bookmark-panel p { margin: var(--space-1) 0; color: var(--text-muted); font-size: .85em; }
+.auto-bookmark-paths { display: grid; gap: var(--space-1); margin-top: var(--space-2); }
+.auto-bookmark-paths label { font-size: .85em; }
+.auto-bookmark-path-row { display: flex; gap: var(--space-2); align-items: center; }
+.auto-bookmark-path-row input { flex: 1 1 auto; min-width: 0; }
+.auto-bookmark-options { display: grid; gap: var(--space-1); margin-top: var(--space-2); font-size: .85em; }
+.auto-bookmark-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.auto-bookmark-stage { font-style: italic; }
+.auto-bookmark-result {
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius);
+}
+/* A refusal is a normal outcome: it is set apart, never styled as a crash. */
+.auto-bookmark-result.succeeded { border-left-color: var(--accent, #2f855a); }
+.auto-bookmark-result.refused { border-left-color: var(--text-muted); }
+.auto-bookmark-summary { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-2) 0 0; }
+.auto-bookmark-summary div { display: flex; gap: var(--space-1); align-items: baseline; }
+.auto-bookmark-summary dt { color: var(--text-muted); font-size: .8em; }
+.auto-bookmark-summary dd { margin: 0; font-variant-numeric: tabular-nums; }
+.auto-bookmark-report { font-size: .75em; word-break: break-all; }
+.auto-bookmark-error { color: var(--danger, #c53030); }
+.bookmark-review dl { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-1) 0; }
+.bookmark-review dl div { display: flex; gap: var(--space-1); align-items: baseline; }
+.bookmark-review dt { color: var(--text-muted); font-size: .8em; }
+.bookmark-review dd { margin: 0; font-variant-numeric: tabular-nums; }

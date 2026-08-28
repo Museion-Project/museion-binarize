@@ -132,22 +132,103 @@ export interface ReviewIssue {
   confidence?: number | null;
 }
 
+/** One bookmark candidate as the backend's `BookmarkCandidateDto`. */
 export interface BookmarkCandidate {
   candidateId: string;
   sourceTitle: string;
   effectiveTitle: string;
-  sourceLevel: number;
   effectiveLevel: number;
-  sourceParentId: string | null;
   effectiveParentId: string | null;
   targetPageId: string;
   physicalPageIndex: number;
   masterBbox: { x: number; y: number; width: number; height: number } | null;
-  evidence: unknown[];
+  /**
+   * `auto_confirmed` is a deterministic rule decision; `confirmed` is a
+   * person's. The two are always displayed distinctly.
+   */
+  status:
+    | "proposed"
+    | "needs_review"
+    | "confirmed"
+    | "rejected"
+    | "auto_confirmed"
+    | "skipped";
   confidence: number;
-  status: "proposed" | "needs_review" | "confirmed" | "rejected";
+  score: BookmarkScore | null;
+  alignment: BookmarkAlignment | null;
+  automaticReason: string | null;
   reasonCodes: string[];
-  ruleTrace: string[];
+  evidenceCount: number;
+}
+
+/** Integer score components behind an automatic decision. */
+export interface BookmarkScore {
+  titleMatch: number;
+  pageMapping: number;
+  numberingHierarchy: number;
+  bodyLayout: number;
+  ocrQuality: number;
+  sequenceUniqueness: number;
+  total: number;
+  maximum: number;
+}
+
+/** Where a compiled entry came from and how its printed page mapped. */
+export interface BookmarkAlignment {
+  tocPageIndex: number;
+  bodyPageIndex: number | null;
+  printedLabel: string | null;
+  pageResidual: number | null;
+  mappingOffset: number | null;
+  runnerUpMargin: number;
+  secondaryKeyOnly: boolean;
+  geometryQuality: string;
+}
+
+export interface AutoBookmarkRequest {
+  documentId: string;
+  packagePath: string;
+  outputPath: string;
+  overwrite: boolean;
+  regenerate: boolean;
+}
+
+export interface AutoBookmarkStarted {
+  jobId: string;
+  documentId: string;
+}
+
+export type AutoBookmarkStage =
+  | "analyzing_toc"
+  | "aligning"
+  | "writing_pdf"
+  | "validating"
+  | "cancelled";
+
+export interface AutoBookmarkStageEvent {
+  jobId: string;
+  stage: AutoBookmarkStage;
+}
+
+export interface AutoBookmarkResult {
+  jobId: string;
+  documentId: string;
+  mode: "existing_outline" | "toc_aligned" | "safe_refusal";
+  status: "auto_confirmed" | "needs_review" | "safe_refusal";
+  tocPageCount: number;
+  parsedEntries: number;
+  autoConfirmed: number;
+  needsReview: number;
+  skipped: number;
+  writtenBookmarks: number;
+  safeRefusalReason: string | null;
+  reportPath: string;
+  outputPath: string | null;
+}
+
+export interface AutoBookmarkFailed {
+  jobId: string;
+  error: UiError;
 }
 
 export interface ProcessingFailed {

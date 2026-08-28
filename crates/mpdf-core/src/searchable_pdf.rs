@@ -127,9 +127,12 @@ pub fn build_with_cancel(
             add_page_stream(&mut pdf, *id, font.object_id, sid)?;
         }
     }
+    // Human `confirmed` and deterministic `auto_confirmed` are the only
+    // statuses that reach a PDF outline; proposals, review items, skipped
+    // evidence, and rejections never do.
     let confirmed: Vec<_> = candidates
         .iter()
-        .filter(|c| matches!(c.status, bookmarks::BookmarkStatus::Confirmed))
+        .filter(|c| c.status.writes_to_pdf())
         .collect();
     if !confirmed.is_empty() {
         add_outline(&mut pdf, &pages, &placements, package, &confirmed)?;

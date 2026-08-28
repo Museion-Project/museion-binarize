@@ -67,6 +67,11 @@ beforeEach(() => {
   saveDialogMock.mockReset();
   dragDropMock.mockReset();
   dragDropMock.mockResolvedValue(() => {});
+  // `restoreAllMocks` in afterEach drops the resolved-value implementation,
+  // and an open document now subscribes to the automatic-bookmark events as
+  // soon as the review workbench mounts.
+  listenMock.mockReset();
+  listenMock.mockResolvedValue(() => {});
 });
 
 afterEach(() => {

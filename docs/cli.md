@@ -290,8 +290,46 @@ parameters, input asset SHA-256 and execution location. See
 
 ## Evidence bookmarks and searchable PDFs
 
-M5 persists deterministic candidates and append-only reviews in
-`bookmarks/candidates.json` and `bookmarks/reviews.json`:
+### One command: compile a table of contents and write the PDF
+
+```bash
+mpdf bookmark auto book.mdp \
+  --source source.pdf --output bookmarked.pdf [--overwrite] [--regenerate] --json
+```
+
+`bookmark auto` validates the package and its source binding, compiles
+bookmarks from the document's own evidence, saves `bookmarks/candidates.json`
+(schema 0.2) plus `bookmarks/generation-report.json`, and — when at least one
+entry passed the deterministic gate — writes and verifies a searchable,
+outlined PDF. It reports one of three outcomes:
+
+| `status` | Meaning | Output written |
+|---|---|---|
+| `written` | A native outline was preserved, or a printed contents list was compiled | yes |
+| `needs_review` | Entries were found but none reached the confidence gate | no |
+| `safe_refusal` | No usable contents structure; nothing was guessed | no |
+
+A refusal is a **successful command** with a structured result — exit code 0,
+`"output_path": null`, and a `safe_refusal_reason` — not an internal error.
+Text mode prints how many bookmarks were added, how many need review, how
+many were skipped, and where the output went.
+
+`--overwrite` authorizes replacing an existing regular *output file*;
+`--regenerate` authorizes replacing existing *candidates and report*. Neither
+implies the other, and `--regenerate` is still refused while human review
+decisions exist for the current generation — the reviews are never deleted or
+migrated by guesswork. Input/output aliases, symlinks, directories, digest
+mismatches, and stale or partial OCR all fail closed.
+
+The user does not choose an OCR provider, a font-size threshold, a page-number
+offset, or a contents page: those are the engine's decisions, recorded in the
+generation report. See
+[`adr/0009-deterministic-automatic-toc-compilation.md`](adr/0009-deterministic-automatic-toc-compilation.md).
+
+### Generation and review
+
+`bookmark generate` runs the same engine and writes the same snapshot and
+report, without producing a PDF:
 
 ```bash
 mpdf bookmark generate book.mdp --json
@@ -305,4 +343,14 @@ mpdf pdf build-searchable book.mdp --source source.pdf --output searchable.pdf -
 The PDF command checks the source SHA-256 binding, writes invisible Unicode
 text and confirmed outline entries without rasterizing existing pages, and
 uses a same-directory temporary file plus PDFium reopen validation. Existing
-outputs require `--overwrite`; the source can never be replaced.
+outputs require `--overwrite`; the source can never be replaced. `bookmark
+auto`, `pdf build-searchable`, and the desktop application all go through the
+one shared output boundary in `mpdf_core::searchable_output`.
+
+`bookmark list` labels each entry with its effective status. `auto_confirmed`
+means the frozen deterministic gate added it; `confirmed` means a person did.
+Both are written to the outline; `proposed`, `needs_review`, `skipped`, and
+`rejected` are not. Confirming, editing, or reparenting an automatic entry
+makes it `confirmed`, and its automatic score and reason remain in the record.
+`bookmark list`, `confirm`, `reject`, `edit`, and `reparent` work with both
+schema 0.1 and 0.2 snapshots.

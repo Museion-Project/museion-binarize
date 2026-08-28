@@ -75,6 +75,14 @@ pub enum WorkerCommand {
         progress: Box<dyn ProgressReporter>,
         reply: Reply<ProcessingReport>,
     },
+    /// Compiles bookmarks from MDP/OCR evidence and, when anything reaches
+    /// the deterministic gate, writes and verifies an outlined PDF. Runs on
+    /// the worker thread because its output verification reopens the finished
+    /// file with PDFium, which this crate keeps serialized.
+    AutoBookmark {
+        request: AutoBookmarkWork,
+        reply: Reply<AutoBookmarkOutcome>,
+    },
     /// Renders, processes, and CCITT-encodes a deterministic sample of
     /// pages to estimate the converted output's size — never writes or
     /// validates an output PDF. See `docs/size-estimation.md`.
@@ -84,6 +92,33 @@ pub enum WorkerCommand {
         progress: Box<dyn ProgressReporter>,
         reply: Reply<SizeEstimateReport>,
     },
+}
+
+/// Everything the worker needs for one automatic bookmark run. The source
+/// path comes from the open document's own state, never from the frontend.
+pub struct AutoBookmarkWork {
+    pub package_root: PathBuf,
+    pub source: PathBuf,
+    pub output: PathBuf,
+    pub overwrite: bool,
+    pub regenerate: bool,
+    pub cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub stage: Box<dyn Fn(&str) + Send>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AutoBookmarkOutcome {
+    pub mode: &'static str,
+    pub status: &'static str,
+    pub toc_page_count: u32,
+    pub parsed_entries: u32,
+    pub auto_confirmed: u32,
+    pub needs_review: u32,
+    pub skipped: u32,
+    pub written_bookmarks: u32,
+    pub safe_refusal_reason: Option<String>,
+    pub report_path: PathBuf,
+    pub output_path: Option<PathBuf>,
 }
 
 /// A handle the rest of the backend uses to talk to the worker thread.
@@ -185,6 +220,10 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: 
                     progress.as_ref(),
                     bundled_pdfium_path.as_deref(),
                 );
+                let _ = reply.send(result);
+            }
+            WorkerCommand::AutoBookmark { request, reply } => {
+                let result = auto_bookmark(&request, bundled_pdfium_path.as_deref());
                 let _ = reply.send(result);
             }
             WorkerCommand::Estimate {
@@ -327,6 +366,87 @@ fn estimate(
     pipeline::estimate_with_open_session(session, settings, &options, progress)
 }
 
+/// One automatic bookmark run: compile, persist, and — only when something
+/// reached the gate — write and verify the outlined PDF. Every core rule
+/// (source binding, no-clobber, atomic install, reopen verification) lives
+/// in `mpdf_core`; this function adds cancellation and stage reporting only.
+pub(crate) fn auto_bookmark(
+    work: &AutoBookmarkWork,
+    bundled_pdfium_path: Option<&std::path::Path>,
+) -> CoreResult<AutoBookmarkOutcome> {
+    use mpdf_core::bookmarks::{self, AutoBookmarkConfig};
+    use mpdf_core::searchable_output::{build_searchable_output_observed, SearchableOutputRequest};
+    use std::sync::atomic::Ordering;
+
+    let cancelled = work.cancelled.clone();
+    let is_cancelled = move || cancelled.load(Ordering::SeqCst);
+    (work.stage)("analyzing_toc");
+    let existing = bookmarks::candidates_path(&work.package_root).exists();
+    if existing && !work.regenerate {
+        return Err(CoreError::DestinationConflict(
+            "bookmark candidates already exist for this package; regeneration must be \
+             authorized explicitly"
+                .to_string(),
+        ));
+    }
+    if existing {
+        let snapshot = bookmarks::load_snapshot(&work.package_root)?;
+        let reviews = bookmarks::load_reviews(&work.package_root, &snapshot)?;
+        if !reviews.operations.is_empty() {
+            return Err(CoreError::DestinationConflict(format!(
+                "{} human review decision(s) exist for the current bookmarks; export or \
+                 remove them before regenerating",
+                reviews.operations.len()
+            )));
+        }
+    }
+    let inputs = bookmarks::load_auto_bookmark_inputs(&work.package_root)?;
+    (work.stage)("aligning");
+    let result = bookmarks::generate_auto_with_cancel(
+        &inputs.as_input(),
+        &AutoBookmarkConfig::default(),
+        &is_cancelled,
+    )?;
+    bookmarks::save_generation(&work.package_root, &result, existing)?;
+    let reviews = bookmarks::load_reviews(&work.package_root, &result.snapshot)?;
+    let effective = bookmarks::effective(&result.snapshot, &reviews)?;
+    let writable = effective
+        .iter()
+        .filter(|candidate| candidate.status.writes_to_pdf())
+        .count() as u32;
+    let output_path = if writable == 0 {
+        None
+    } else {
+        let summary = build_searchable_output_observed(
+            &SearchableOutputRequest {
+                package: &inputs.package,
+                source: &work.source,
+                output: &work.output,
+                overwrite: work.overwrite,
+                candidates: &effective,
+                derived: inputs.derived.as_ref(),
+                pdfium: pdfium_config(bundled_pdfium_path),
+            },
+            &is_cancelled,
+            &|stage| (work.stage)(stage.as_str()),
+        )?;
+        Some(summary.output_path)
+    };
+    Ok(AutoBookmarkOutcome {
+        mode: result.report.mode.as_str(),
+        status: result.report.status.as_str(),
+        toc_page_count: result.report.toc_pages.len() as u32,
+        parsed_entries: result.report.parsed_entries,
+        auto_confirmed: result.report.auto_confirmed,
+        needs_review: result.report.needs_review,
+        skipped: result.report.skipped,
+        written_bookmarks: if output_path.is_some() { writable } else { 0 },
+        safe_refusal_reason: result.report.safe_refusal_reason.clone(),
+        report_path: bookmarks::generation_report_path(&work.package_root),
+        output_path,
+    })
+}
+
 fn no_open_document() -> CoreError {
     CoreError::InvalidParameter("no document is open".to_string())
 }
@@ -410,5 +530,113 @@ mod pdfium_config_tests {
         // handling takes over — it must not shadow that with the
         // bundled path.
         assert_eq!(config.library_path, None);
+    }
+}
+
+#[cfg(test)]
+mod auto_bookmark_tests {
+    use super::*;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    use mpdf_core::bookmark_fixtures::{self as fixtures, FixtureLine, FixturePage};
+
+    fn work(root: PathBuf, stages: Arc<std::sync::Mutex<Vec<String>>>) -> AutoBookmarkWork {
+        AutoBookmarkWork {
+            source: root.join("never-read.pdf"),
+            output: root.join("out.pdf"),
+            package_root: root,
+            overwrite: false,
+            regenerate: false,
+            cancelled: Arc::new(AtomicBool::new(false)),
+            stage: Box::new(move |stage| stages.lock().unwrap().push(stage.to_owned())),
+        }
+    }
+
+    /// A document with no printed contents produces a normal, explained
+    /// result — not an error — and never touches the output path. This needs
+    /// no PDFium because nothing reaches the writer.
+    #[test]
+    fn a_safe_refusal_is_a_result_not_a_failure_and_writes_no_pdf() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("book.mdp");
+        let mut pages = vec![FixturePage::new(vec![FixtureLine::new(
+            "A Book Without Contents",
+            100.0,
+            100.0,
+        )])];
+        for index in 0..4 {
+            pages.push(FixturePage::new(vec![FixtureLine::new(
+                &format!("page {index} body"),
+                60.0,
+                300.0,
+            )]));
+        }
+        let package = fixtures::package("desktop-refusal", pages.len() as u32);
+        package.write_to(&root).unwrap();
+        mpdf_core::ocr::write_ocr_records(&root, &fixtures::ocr_run(&pages, None)).unwrap();
+
+        let stages = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let outcome = auto_bookmark(&work(root.clone(), stages.clone()), None)
+            .expect("a refusal is a successful command result");
+        assert_eq!(outcome.mode, "safe_refusal");
+        assert_eq!(outcome.status, "safe_refusal");
+        assert_eq!(outcome.written_bookmarks, 0);
+        assert!(outcome.output_path.is_none());
+        assert!(outcome.safe_refusal_reason.is_some());
+        assert!(!root.join("out.pdf").exists());
+        assert!(std::path::Path::new(&outcome.report_path).is_file());
+        assert_eq!(
+            *stages.lock().unwrap(),
+            vec!["analyzing_toc".to_owned(), "aligning".to_owned()],
+            "the write and validate stages are not reported for a refusal"
+        );
+    }
+
+    #[test]
+    fn regeneration_over_existing_candidates_must_be_authorized() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("book.mdp");
+        let (package, pages) = fixtures::aligned_book();
+        package.write_to(&root).unwrap();
+        mpdf_core::ocr::write_ocr_records(&root, &fixtures::ocr_run(&pages, None)).unwrap();
+        let stages = Arc::new(std::sync::Mutex::new(Vec::new()));
+        // The first run stops at the writer, which needs a real source PDF.
+        let first = auto_bookmark(&work(root.clone(), stages.clone()), None);
+        assert!(
+            first.is_err(),
+            "the fake source path cannot be written from"
+        );
+        assert!(mpdf_core::bookmarks::candidates_path(&root).exists());
+
+        let refused = auto_bookmark(&work(root.clone(), stages.clone()), None)
+            .expect_err("existing candidates are protected");
+        assert!(matches!(refused, CoreError::DestinationConflict(_)));
+        let mut authorized = work(root.clone(), stages);
+        authorized.regenerate = true;
+        // Regeneration is allowed once authorized; it still fails later at
+        // the writer for the same missing-source reason, not at the guard.
+        let outcome = auto_bookmark(&authorized, None).unwrap_err();
+        assert!(!matches!(outcome, CoreError::DestinationConflict(_)));
+    }
+
+    #[test]
+    fn cancellation_produces_a_cancelled_error_and_no_output() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("book.mdp");
+        let (package, pages) = fixtures::aligned_book();
+        package.write_to(&root).unwrap();
+        mpdf_core::ocr::write_ocr_records(&root, &fixtures::ocr_run(&pages, None)).unwrap();
+        let stages = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let request = work(root.clone(), stages);
+        request
+            .cancelled
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        assert!(matches!(
+            auto_bookmark(&request, None),
+            Err(CoreError::Cancelled)
+        ));
+        assert!(!mpdf_core::bookmarks::candidates_path(&root).exists());
+        assert!(!root.join("out.pdf").exists());
     }
 }

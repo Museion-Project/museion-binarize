@@ -287,3 +287,42 @@ API 不应暴露“选模型、选 OCR、调 temperature”。用户只选择“
 第一笔开发投入应放在 P1 + P2，而不是模型采购：现有 Rust 依赖已经能读取原 outline/文字并写标准 outline，核心缺口是自有的证据 schema、页码对齐器和验证器。API 也不应成为另一套算法，而只是同一引擎的强证据 provider 与跨端执行环境。
 
 判断功能是否值得付费的标准不是“AI 生成了多少”，而是：用户点击一次，得到可以直接交付的 PDF；不确定项被安静、诚实地跳过；绝大多数支持范围内的书不需要再打开编辑器。
+
+---
+
+## 10. 实现状态（2026-08-28，自动书签目录 v2）
+
+本节记录本研究文档的方案与仓库实际实现之间的差异，以便日后审阅时不必反推。
+
+**已经实现的部分**
+
+- §4.1 的证据优先级已冻结为三种模式：`existing_outline` > `toc_aligned` >
+  `safe_refusal`，见 `docs/adr/0009-deterministic-automatic-toc-compilation.md`。
+- §4.2 的最小管线已落地为 `mpdf-core::bookmarks` 内的独立模块：
+  `text_index`、`toc_detect`、`toc_parse`、`align`、`hierarchy`、`scoring`、
+  `engine`、`assembly`。
+- §4.3 目录页检测为多信号整数评分（关键词、可解析尾页码行数、点线 leader、
+  右边界聚类、相邻页版面、短行比例），关键词单独不足以判定目录页。
+- §4.4 目录行解析支持单/双栏、点线、跨行标题合并（最多 3 行）、阿拉伯与罗马
+  页码、页码范围取起始页；`raw_title` 只删除 leader 和尾页码。
+- §4.5 页码映射按 numbering family 分组，用确定性 DP 求分段常量 offset，并用
+  第二个 DP 保证目标页全局单调；正文标题证据是自动写入的必要条件。
+- §4.6 fail closed 已实现为 `safe_refusal` 与 `needs_review`/`skipped` 状态，
+  外加 `bookmarks/generation-report.json` 的可解释报告。
+- §5.1 本地版与 §5.2 API 版共用同一引擎：M3 本地 OCR 与 M6 安装的远程 OCR 是
+  同一份 typed 证据，provider 身份只进入报告的 provenance 摘要。
+- §6.2 的指标公式已实现于 `scripts/bookmarks/auto_bookmark_eval.py`，每个指标
+  都带显式分母，并有独立的公式自测。
+
+**尚未实现或与本文不同的部分**
+
+- §6.1 的金标准语料尚未标注完成，因此本轮**没有**任何真实语料准确率数字；
+  评测脚本在语料缺失时输出 `not_run`/`pending`，CI 只跑合成数据的公式自测。
+- 本轮的评分阈值是保守的冻结基线，不是按语料校准的结果（见
+  `docs/limitations.md`）。
+- §7 的 P4（把同一引擎部署到 job 服务与手机端）不在本轮范围内；M6 的远程操作
+  仍然只有 OCR，没有新增云端 bookmark/VLM operation。
+- §7 的 P5（无目录 fallback）按本文要求保持"最多 needs_review"：没有印刷目录
+  时不会自动确认任何条目，也不会让模型创作目录。
+- 目录页扫描范围只覆盖前置区域；书末目录不在支持范围内。
+- 栏位处理只覆盖一栏与两栏。

@@ -10,6 +10,40 @@ fails visibly and never falls back to a plaintext token. Endpoint discovery,
 OAuth, telemetry, cloud bookmark generation, and automatic upload remain out
 of scope.
 
+### Automatic table of contents (bookmarks v2)
+
+Automatic bookmarks depend on the document's own evidence: **either a valid
+native PDF outline, or a complete OCR run containing a recognizable printed
+contents list.** There is no claim that an arbitrary PDF yields a correct
+table of contents, and there is no mode in which a model reads the book and
+composes one.
+
+Known boundaries of this feature:
+
+- A document with no printed contents list is a **safe refusal**: nothing is
+  written to a PDF. Heading-like lines may be proposed for human review, but
+  large or bold text alone is never confirmed automatically.
+- A partial OCR run is refused rather than padded with guesses; the automatic
+  contents mode needs evidence for every page.
+- The scan window for contents pages is the front matter only
+  (`min(pages, min(40, max(8, ceil(pages × 15%))))`). A contents list printed
+  only at the back of the book is not found.
+- Native-text pages (born-digital, no OCR) have approximate line and word
+  boxes. They are usable as text evidence but not as strong column or
+  font-size evidence, so a two-column contents list on such a page is read as
+  a single column and its entries are marked for review.
+- Column handling covers one and two columns; three or more are not modelled.
+- The thresholds shipped here are a deliberately conservative frozen
+  baseline, **not calibrated against a real annotated corpus**. Expect
+  entries that a person would accept to arrive as `needs_review`. Loosening
+  them requires a new rule version, which invalidates prior automatic
+  decisions rather than silently reinterpreting them.
+- Accuracy metrics for this feature have **not** been measured against an
+  external human-gold corpus in this change; the evaluation entry point
+  (`scripts/bookmarks/auto_bookmark_eval.py`) reports `not_run`/`pending`
+  when the corpus or its annotations are absent, and CI only verifies the
+  metric formulas against synthetic data.
+
 The desktop does not retain PDF passwords. Consequently, it rejects remote
 OCR for a password-protected open session before upload; the CLI can still be
 used with its existing environment-only password input when appropriate.

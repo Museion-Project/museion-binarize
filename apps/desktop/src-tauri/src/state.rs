@@ -35,6 +35,16 @@ pub struct JobState {
     pub cancelled: Arc<AtomicBool>,
 }
 
+/// The one in-flight automatic bookmark run. `cancelled` is shared with the
+/// worker thread and checked between pages, contents entries, alignment
+/// steps, and the PDF write, so cancelling never leaves a half-written
+/// snapshot, report, or output file behind.
+pub struct AutoBookmarkState {
+    pub job_id: String,
+    pub document_id: String,
+    pub cancelled: Arc<AtomicBool>,
+}
+
 /// The most recently completed size estimate for the open document, kept
 /// only so a matching `process` call can report
 /// `ProcessingReport::estimate_comparison` automatically — never shown to
@@ -64,6 +74,11 @@ pub struct AppState {
     /// Cancellation handle for the one consented remote OCR request. The
     /// handle contains no credential or document bytes.
     pub api_cancellation: Mutex<Option<mpdf_api_client::Cancellation>>,
+    /// The one automatic bookmark run this window may have in flight. Held
+    /// under the same check-and-set discipline as `job`, so a conversion, a
+    /// remote OCR install, and a bookmark run can never overlap on the one
+    /// serialized PDFium worker thread.
+    pub auto_bookmark: Mutex<Option<AutoBookmarkState>>,
     /// The trusted bundled PDFium library path for this packaged build,
     /// if one was found under Tauri's resolved resource directory at
     /// startup — `None` in a development run with no bundled resource.
@@ -84,6 +99,7 @@ impl AppState {
             estimate_job: Mutex::new(None),
             estimate_cache: Mutex::new(None),
             api_cancellation: Mutex::new(None),
+            auto_bookmark: Mutex::new(None),
             bundled_pdfium_path,
             next_id: AtomicU64::new(1),
         }

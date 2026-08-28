@@ -1,9 +1,27 @@
 import { useState } from "react";
 
 import type { BookmarkCandidate, ReviewIssue } from "../app/types";
-import { addReviewRevision, loadReviewQueue, loadBookmarks, confirmBookmark, rejectBookmark, editBookmark, reparentBookmark } from "../lib/tauri";
+import { addReviewRevision, loadReviewQueue, loadBookmarkTree, confirmBookmark, rejectBookmark, editBookmark, reparentBookmark } from "../lib/tauri";
+import { AutoBookmarkPanel } from "./AutoBookmarkPanel";
 
-export function ReviewWorkbench() {
+/** How each status is named to a person. An automatic decision and a human
+ * one are never shown with the same word. */
+const STATUS_LABELS: Record<BookmarkCandidate["status"], string> = {
+  proposed: "Proposed",
+  needs_review: "Needs review",
+  confirmed: "Confirmed by you",
+  rejected: "Rejected",
+  auto_confirmed: "Added automatically",
+  skipped: "Skipped (insufficient evidence)",
+};
+
+export interface ReviewWorkbenchProps {
+  /** The document this workbench belongs to; a response for any other
+   * document is refused by the backend rather than applied here. */
+  documentId: string;
+}
+
+export function ReviewWorkbench({ documentId }: ReviewWorkbenchProps) {
   const [packagePath, setPackagePath] = useState("");
   const [issues, setIssues] = useState<ReviewIssue[]>([]);
   const [selected, setSelected] = useState<ReviewIssue | null>(null);
@@ -33,7 +51,7 @@ export function ReviewWorkbench() {
   }
 
   function selectBookmark(candidate: BookmarkCandidate | null) { setSelectedBookmark(candidate); setBookmarkTitle(candidate?.effectiveTitle ?? ""); setBookmarkParent(candidate?.effectiveParentId ?? ""); setBookmarkLevel(candidate?.effectiveLevel ?? 0); }
-  async function refreshBookmarks() { if (!packagePath.trim()) return; try { const next = await loadBookmarks(packagePath.trim()); setBookmarks(next); selectBookmark(next.find((candidate) => candidate.candidateId === selectedBookmark?.candidateId) ?? next[0] ?? null); setMessage(null); } catch (error) { setMessage(String(error)); } }
+  async function refreshBookmarks() { if (!packagePath.trim()) return; try { const next = await loadBookmarkTree(packagePath.trim()); setBookmarks(next); selectBookmark(next.find((candidate) => candidate.candidateId === selectedBookmark?.candidateId) ?? next[0] ?? null); setMessage(null); } catch (error) { setMessage(String(error)); } }
   async function bookmarkAction(action: "confirm" | "reject") { if (!selectedBookmark) return; try { if (action === "confirm") await confirmBookmark(packagePath.trim(), selectedBookmark.candidateId); else await rejectBookmark(packagePath.trim(), selectedBookmark.candidateId); await refreshBookmarks(); } catch (error) { setMessage(String(error)); } }
   async function saveBookmarkEdit() { if (!selectedBookmark || !bookmarkTitle.trim()) return; try { await editBookmark(packagePath.trim(), selectedBookmark.candidateId, bookmarkTitle.trim()); await refreshBookmarks(); } catch (error) { setMessage(String(error)); } }
   async function saveBookmarkParent() { if (!selectedBookmark) return; try { await reparentBookmark(packagePath.trim(), selectedBookmark.candidateId, bookmarkParent.trim() || null, bookmarkLevel); await refreshBookmarks(); } catch (error) { setMessage(String(error)); } }
@@ -61,7 +79,7 @@ export function ReviewWorkbench() {
         <h2>Review workbench</h2>
         <p>Local evidence only. Page and bbox references are shown; no fake image geometry is rendered.</p>
         <label>
-          MDP package path
+          MDP package path (advanced)
           <input value={packagePath} onChange={(event) => setPackagePath(event.target.value)} placeholder="/path/to/package" />
         </label>
         <button type="button" onClick={() => void refresh()}>Load review queue</button>
@@ -75,11 +93,17 @@ export function ReviewWorkbench() {
           </select>
         </label>
       </header>
+      <AutoBookmarkPanel
+        documentId={documentId}
+        packagePath={packagePath}
+        onPackagePathChange={setPackagePath}
+        onFinished={() => void refreshBookmarks()}
+      />
       <section aria-label="Bookmark tree" className="bookmark-review">
-        <label>Bookmark status <select value={bookmarkFilter} onChange={(event) => setBookmarkFilter(event.target.value as BookmarkCandidate["status"] | "all")}><option value="all">All</option><option value="proposed">Proposed</option><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
+        <label>Bookmark status <select value={bookmarkFilter} onChange={(event) => setBookmarkFilter(event.target.value as BookmarkCandidate["status"] | "all")}><option value="all">All</option><option value="auto_confirmed">Added automatically</option><option value="proposed">Proposed</option><option value="needs_review">Needs review</option><option value="confirmed">Confirmed by you</option><option value="rejected">Rejected</option><option value="skipped">Skipped</option></select></label>
         <strong>{visibleBookmarks.length} bookmark(s)</strong>
         <nav aria-label="Bookmark candidates">{visibleBookmarks.map((candidate) => <button type="button" key={candidate.candidateId} onClick={() => selectBookmark(candidate)}>{" ".repeat(candidate.effectiveLevel)}{candidate.effectiveTitle} — page {candidate.physicalPageIndex + 1}</button>)}</nav>
-        {selectedBookmark && <div aria-label="Bookmark evidence"><h3>{selectedBookmark.effectiveTitle}</h3><p>Source title: {selectedBookmark.sourceTitle}</p><p>Page: {selectedBookmark.targetPageId} ({selectedBookmark.physicalPageIndex + 1})</p><p>BBox: {selectedBookmark.masterBbox ? `${selectedBookmark.masterBbox.x}, ${selectedBookmark.masterBbox.y}, ${selectedBookmark.masterBbox.width} × ${selectedBookmark.masterBbox.height}` : "not available"}</p><p>Confidence: {selectedBookmark.confidence}</p><p>Evidence: {selectedBookmark.evidence.length} ref(s)</p><p>Rules: {selectedBookmark.ruleTrace.join(", ") || "none"}</p><button type="button" onClick={() => void bookmarkAction("confirm")}>Confirm bookmark</button><button type="button" onClick={() => void bookmarkAction("reject")}>Reject bookmark</button><label>Bookmark title<input value={bookmarkTitle} onChange={(event) => setBookmarkTitle(event.target.value)} /></label><button type="button" onClick={() => void saveBookmarkEdit()}>Save bookmark title</button><label>Parent candidate ID<input value={bookmarkParent} onChange={(event) => setBookmarkParent(event.target.value)} /></label><label>Bookmark level<input type="number" min={0} max={64} value={bookmarkLevel} onChange={(event) => setBookmarkLevel(Number(event.target.value))} /></label><button type="button" onClick={() => void saveBookmarkParent()}>Save bookmark parent</button></div>}
+        {selectedBookmark && <div aria-label="Bookmark evidence"><h3>{selectedBookmark.effectiveTitle}</h3><p>Source title: {selectedBookmark.sourceTitle}</p><p>Page: {selectedBookmark.targetPageId} ({selectedBookmark.physicalPageIndex + 1})</p><p>BBox: {selectedBookmark.masterBbox ? `${selectedBookmark.masterBbox.x}, ${selectedBookmark.masterBbox.y}, ${selectedBookmark.masterBbox.width} × ${selectedBookmark.masterBbox.height}` : "not available"}</p><p>Status: {STATUS_LABELS[selectedBookmark.status]}</p><p>Confidence: {selectedBookmark.confidence}</p><p>Evidence: {selectedBookmark.evidenceCount} ref(s)</p>{selectedBookmark.score && <dl aria-label="Bookmark score breakdown"><div><dt>Title match</dt><dd>{selectedBookmark.score.titleMatch}</dd></div><div><dt>Printed page mapping</dt><dd>{selectedBookmark.score.pageMapping}</dd></div><div><dt>Numbering and level</dt><dd>{selectedBookmark.score.numberingHierarchy}</dd></div><div><dt>Heading layout</dt><dd>{selectedBookmark.score.bodyLayout}</dd></div><div><dt>OCR quality</dt><dd>{selectedBookmark.score.ocrQuality}</dd></div><div><dt>Sequence and uniqueness</dt><dd>{selectedBookmark.score.sequenceUniqueness}</dd></div><div><dt>Total</dt><dd>{selectedBookmark.score.total} of {selectedBookmark.score.maximum}</dd></div></dl>}{selectedBookmark.alignment && <div aria-label="Bookmark alignment evidence"><p>Contents page: {selectedBookmark.alignment.tocPageIndex + 1}</p><p>Heading page: {selectedBookmark.alignment.bodyPageIndex === null ? "not found" : selectedBookmark.alignment.bodyPageIndex + 1}</p><p>Printed page label: {selectedBookmark.alignment.printedLabel ?? "none"}</p><p>Runner-up margin: {selectedBookmark.alignment.runnerUpMargin}</p><p>Geometry: {selectedBookmark.alignment.geometryQuality}</p></div>}<p>Reasons: {selectedBookmark.reasonCodes.join(", ") || "none"}</p><button type="button" onClick={() => void bookmarkAction("confirm")}>Confirm bookmark</button><button type="button" onClick={() => void bookmarkAction("reject")}>Reject bookmark</button><label>Bookmark title<input value={bookmarkTitle} onChange={(event) => setBookmarkTitle(event.target.value)} /></label><button type="button" onClick={() => void saveBookmarkEdit()}>Save bookmark title</button><label>Parent candidate ID<input value={bookmarkParent} onChange={(event) => setBookmarkParent(event.target.value)} /></label><label>Bookmark level<input type="number" min={0} max={64} value={bookmarkLevel} onChange={(event) => setBookmarkLevel(Number(event.target.value))} /></label><button type="button" onClick={() => void saveBookmarkParent()}>Save bookmark parent</button></div>}
       </section>
       <div className="review-workbench-columns">
         <aside className="review-issues" aria-label="Review issues">

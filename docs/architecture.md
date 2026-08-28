@@ -7,6 +7,35 @@ credential-store trait; frontends do not duplicate protocol code. The only
 remote operation implemented in M6 is OCR, whose verified result is installed
 before it is admitted to the existing MDP OCR extension.
 
+# Automatic table-of-contents compilation (bookmarks v2)
+
+`mpdf-core::bookmarks` compiles a PDF outline from evidence the document
+itself supplies, with one engine behind every front end and no network,
+vendor, or model dependency. Internally it is a pipeline of single-purpose
+modules: `text_index` (a bounded, searchable line view over `OcrRun` plus the
+M4 `DerivedDocument` overlay), `toc_detect` (multi-signal front-matter
+contents detection), `toc_parse` (columns, continuations, numbering, printed
+labels), `align` (inverted-index shortlists, printed-page mapping segments,
+and a globally monotone target assignment), `hierarchy`, `scoring` (the
+frozen integer gate), `engine` (existing-outline / TOC-aligned /
+safe-refusal), and `assembly` (the one place that turns an MDP directory into
+engine input). `config` holds every threshold, serialized into the
+`rule_config_digest` that binds each generation.
+
+Disk assembly and PDF write-back each exist exactly once:
+`bookmarks::load_auto_bookmark_inputs` is the only staleness/digest path, and
+`searchable_output::build_searchable_output` is the only source-boundary,
+temporary-file, atomic-install, and reopen-verification path. The CLI
+(`bookmark auto`, `bookmark generate`, `pdf build-searchable`) and the Tauri
+backend both call them; neither reimplements a rule. See
+[`adr/0009-deterministic-automatic-toc-compilation.md`](adr/0009-deterministic-automatic-toc-compilation.md)
+and [`bookmarks-searchable-pdf.md`](bookmarks-searchable-pdf.md).
+
+Local (M3) and consented API (M6) OCR enter this engine as the same typed
+`ocr/` records. Provider identity reaches only the generation report's
+provenance summary and the input digests; `provider_raw_artifact` is never
+parsed, and OCR text is never treated as an instruction.
+
 # Architecture
 
 This document describes the intended architecture of M PDF Processor. It

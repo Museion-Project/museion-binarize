@@ -55,6 +55,7 @@ fn main() -> ExitCode {
         Some(Command::Revision(RevisionCommand::List(args))) => {
             commands::derived::revision_list(args)
         }
+        Some(Command::Bookmark(BookmarkCommand::Auto(args))) => commands::bookmarks::auto(args),
         Some(Command::Bookmark(BookmarkCommand::Generate(args))) => {
             commands::bookmarks::generate(args)
         }

@@ -1,4 +1,5 @@
 pub mod api;
+pub mod auto_bookmarks;
 pub mod bookmarks;
 pub mod derived;
 pub mod document;

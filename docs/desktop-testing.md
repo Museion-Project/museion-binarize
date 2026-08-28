@@ -215,6 +215,50 @@ If that is done, record the observation here in the same style as the
 Milestone 4 baseline above, rather than silently assuming this document
 already covers it.
 
+## Automatic table of contents (bookmarks v2)
+
+The automatic bookmark path has full automated coverage and **has not been
+exercised on a live native Tauri window** in this environment, for exactly the
+reason documented above for Milestones 4 and 5: this environment cannot open,
+click through, or screenshot a real native window. This is the same standing
+gap, not a new one.
+
+**What has been verified automatically:**
+
+- Backend command layer (`commands/auto_bookmarks.rs`): path validation, the
+  stable error codes for a stale or missing document, and the atomic
+  single-slot claim that refuses a second concurrent run.
+- Worker layer (`worker.rs`): a safe refusal returns a *result* rather than an
+  error and writes no PDF (and reports only the `analyzing_toc`/`aligning`
+  stages); regeneration over existing candidates is refused until authorized;
+  a cancelled run leaves no candidates, report, or output behind. These need
+  no PDFium because nothing reaches the writer.
+- Review commands (`commands/bookmarks.rs`): bounded path and candidate-id
+  validation, structured `UiErrorDto` failures.
+- Frontend (`ReviewWorkbench.test.tsx`): the native pickers filling both
+  paths, one button starting a run with the exact request payload, stage
+  rendering, the success summary, a safe refusal rendered as a normal result
+  panel (no `role="alert"`), cancellation appearing only while a run is in
+  flight, a backend failure rendered as an alert without losing the panel, the
+  `auto_confirmed` filter, the distinct "Added automatically" versus
+  "Confirmed by you" labels, and the score/alignment evidence for a selected
+  candidate. Components still reach IPC only through `src/lib/tauri.ts`.
+
+**What has not been verified:** no live-window run; no observation of the real
+native folder/file pickers; no real PDF written from the desktop application.
+The PDFium-backed write-back path is covered by `#[ignore]`d integration tests
+(`crates/mpdf-core/tests/auto_bookmarks_pdf.rs`,
+`crates/mpdf-cli/tests/bookmarks_cli.rs`), which require a provisioned PDFium
+library and are reported as *ignored*, never as passed, in an ordinary run.
+
+To perform the live verification, launch the real application as the
+Milestone 4 acceptance run did, then: open a PDF, choose its MDP package and
+an output path, click **Add bookmarks automatically**, and confirm the stage
+text, the summary counts, the reloaded bookmark tree, and the written PDF in a
+real reader. Repeat with a document that has no printed contents list to
+confirm the refusal panel. Record the observation here rather than assuming
+this document already covers it.
+
 ## Milestone 7A: packaged-build verification
 
 See [`distribution.md`](distribution.md), [`pdfium-bundling.md`](pdfium-bundling.md),

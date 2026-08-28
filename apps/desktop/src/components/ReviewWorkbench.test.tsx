@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { BookmarkCandidate, ReviewIssue } from "../app/types";
@@ -7,11 +7,19 @@ import { ReviewWorkbench } from "./ReviewWorkbench";
 const mocks = vi.hoisted(() => ({
   loadReviewQueue: vi.fn(),
   addReviewRevision: vi.fn(),
-  loadBookmarks: vi.fn(),
+  loadBookmarkTree: vi.fn(),
   confirmBookmark: vi.fn(),
   rejectBookmark: vi.fn(),
   editBookmark: vi.fn(),
   reparentBookmark: vi.fn(),
+  startAutoBookmark: vi.fn(),
+  cancelAutoBookmark: vi.fn(),
+  onAutoBookmarkStage: vi.fn(),
+  onAutoBookmarkCompleted: vi.fn(),
+  onAutoBookmarkCancelled: vi.fn(),
+  onAutoBookmarkFailed: vi.fn(),
+  pickPackageDirectory: vi.fn(),
+  pickOutputDestination: vi.fn(),
 }));
 
 vi.mock("../lib/tauri", () => mocks);
@@ -56,40 +64,62 @@ const bookmarkCandidates: BookmarkCandidate[] = [
     candidateId: "bookmark-root",
     sourceTitle: "Αρχή",
     effectiveTitle: "Ἀρχή",
-    sourceLevel: 0,
     effectiveLevel: 0,
-    sourceParentId: null,
     effectiveParentId: null,
     targetPageId: "page-1",
     physicalPageIndex: 0,
     masterBbox: { x: 10, y: 20, width: 80, height: 14 },
-    evidence: [{ kind: "derived_line", line_id: "line-1" }],
+    evidenceCount: 3,
     confidence: 0.96,
-    status: "proposed",
-    reasonCodes: ["numbering_pattern"],
-    ruleTrace: ["typography", "ocr_confidence"],
+    status: "auto_confirmed",
+    score: {
+      titleMatch: 3900,
+      pageMapping: 2000,
+      numberingHierarchy: 1000,
+      bodyLayout: 900,
+      ocrQuality: 960,
+      sequenceUniqueness: 1000,
+      total: 9760,
+      maximum: 10000,
+    },
+    alignment: {
+      tocPageIndex: 1,
+      bodyPageIndex: 3,
+      printedLabel: "1",
+      pageResidual: 0,
+      mappingOffset: 2,
+      runnerUpMargin: 1200,
+      secondaryKeyOnly: false,
+      geometryQuality: "measured",
+    },
+    automaticReason: "toc_body_alignment_consensus",
+    reasonCodes: ["toc_body_alignment_consensus"],
   },
   {
     candidateId: "bookmark-child",
     sourceTitle: "1.1 Child",
     effectiveTitle: "1.1 Child",
-    sourceLevel: 1,
     effectiveLevel: 1,
-    sourceParentId: "bookmark-root",
     effectiveParentId: "bookmark-root",
     targetPageId: "page-2",
     physicalPageIndex: 1,
     masterBbox: null,
-    evidence: [{ kind: "mdp_outline" }],
+    evidenceCount: 1,
     confidence: 0.55,
     status: "needs_review",
-    reasonCodes: ["existing_outline"],
-    ruleTrace: ["existing_outline"],
+    score: null,
+    alignment: null,
+    automaticReason: "runner_up_margin_too_small",
+    reasonCodes: ["runner_up_margin_too_small"],
   },
 ];
 
+/** Handlers the component registered, in registration order:
+ * stage, completed, cancelled, failed. */
+const handlers: Array<(payload: unknown) => void> = [];
+
 function loadFixture() {
-  fireEvent.change(screen.getByLabelText("MDP package path"), {
+  fireEvent.change(screen.getByLabelText("MDP package path (advanced)"), {
     target: { value: "/tmp/book.mdp" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Load review queue" }));
@@ -99,7 +129,26 @@ describe("ReviewWorkbench", () => {
   beforeEach(() => {
     mocks.loadReviewQueue.mockReset().mockResolvedValue(issues);
     mocks.addReviewRevision.mockReset().mockResolvedValue(undefined);
-    mocks.loadBookmarks.mockReset().mockResolvedValue(bookmarkCandidates);
+    mocks.loadBookmarkTree.mockReset().mockResolvedValue(bookmarkCandidates);
+    mocks.startAutoBookmark.mockReset().mockResolvedValue({
+      jobId: "auto-bookmark-1",
+      documentId: "doc-1",
+    });
+    mocks.cancelAutoBookmark.mockReset().mockResolvedValue(undefined);
+    mocks.pickPackageDirectory.mockReset().mockResolvedValue("/picked/book.mdp");
+    mocks.pickOutputDestination.mockReset().mockResolvedValue("/picked/out.pdf");
+    for (const listener of [
+      mocks.onAutoBookmarkStage,
+      mocks.onAutoBookmarkCompleted,
+      mocks.onAutoBookmarkCancelled,
+      mocks.onAutoBookmarkFailed,
+    ]) {
+      listener.mockReset().mockImplementation((handler: unknown) => {
+        handlers.push(handler as (payload: unknown) => void);
+        return Promise.resolve(() => {});
+      });
+    }
+    handlers.length = 0;
     mocks.confirmBookmark.mockReset().mockResolvedValue(undefined);
     mocks.rejectBookmark.mockReset().mockResolvedValue(undefined);
     mocks.editBookmark.mockReset().mockResolvedValue(undefined);
@@ -107,7 +156,7 @@ describe("ReviewWorkbench", () => {
   });
 
   it("renders the three columns and loads a local queue", async () => {
-    render(<ReviewWorkbench />);
+    render(<ReviewWorkbench documentId="doc-1" />);
     expect(screen.getByRole("heading", { name: "Review workbench" })).toBeTruthy();
     expect(screen.getByLabelText("Review issues")).toBeTruthy();
     expect(screen.getByLabelText("Evidence structure")).toBeTruthy();
@@ -118,7 +167,7 @@ describe("ReviewWorkbench", () => {
   });
 
   it("filters issues by kind and shows selected source/effective evidence", async () => {
-    render(<ReviewWorkbench />);
+    render(<ReviewWorkbench documentId="doc-1" />);
     loadFixture();
     await screen.findByText("2 issue(s)");
     fireEvent.change(screen.getByLabelText("Filter kind"), {
@@ -140,7 +189,7 @@ describe("ReviewWorkbench", () => {
   });
 
   it("submits a human revision with the selected stable target and base digest", async () => {
-    render(<ReviewWorkbench />);
+    render(<ReviewWorkbench documentId="doc-1" />);
     loadFixture();
     await screen.findByText("2 issue(s)");
     fireEvent.change(screen.getByPlaceholderText("Revision text"), {
@@ -157,7 +206,7 @@ describe("ReviewWorkbench", () => {
   });
 
   it("submits an AI suggestion explicitly without changing its target metadata", async () => {
-    render(<ReviewWorkbench />);
+    render(<ReviewWorkbench documentId="doc-1" />);
     loadFixture();
     await screen.findByText("2 issue(s)");
     fireEvent.change(screen.getByPlaceholderText("Revision text"), {
@@ -175,13 +224,13 @@ describe("ReviewWorkbench", () => {
   });
 
   it("filters, selects, edits, confirms, rejects, and reparents durable bookmark candidates", async () => {
-    render(<ReviewWorkbench />);
-    fireEvent.change(screen.getByLabelText("MDP package path"), {
+    render(<ReviewWorkbench documentId="doc-1" />);
+    fireEvent.change(screen.getByLabelText("MDP package path (advanced)"), {
       target: { value: "/tmp/book.mdp" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Load bookmarks" }));
     expect(await screen.findByText("2 bookmark(s)")).toBeTruthy();
-    expect(mocks.loadBookmarks).toHaveBeenCalledWith("/tmp/book.mdp");
+    expect(mocks.loadBookmarkTree).toHaveBeenCalledWith("/tmp/book.mdp");
 
     fireEvent.change(screen.getByLabelText("Bookmark status"), {
       target: { value: "needs_review" },
@@ -219,5 +268,168 @@ describe("ReviewWorkbench", () => {
       null,
       0,
     );
+  });
+
+  it("runs the automatic path from one button and reports what was added", async () => {
+    render(<ReviewWorkbench documentId="doc-1" />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose folder…" }));
+    await waitFor(() =>
+      expect((screen.getByLabelText("MDP package folder") as HTMLInputElement).value).toBe(
+        "/picked/book.mdp",
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Choose file…" }));
+    await waitFor(() =>
+      expect((screen.getByLabelText("Save the new PDF as") as HTMLInputElement).value).toBe(
+        "/picked/out.pdf",
+      ),
+    );
+
+    const start = screen.getByRole("button", { name: "Add bookmarks automatically" });
+    fireEvent.click(start);
+    expect(mocks.startAutoBookmark).toHaveBeenCalledWith({
+      documentId: "doc-1",
+      packagePath: "/picked/book.mdp",
+      outputPath: "/picked/out.pdf",
+      overwrite: false,
+      regenerate: false,
+    });
+    expect(
+      await screen.findByText("Looking for a printed table of contents…"),
+    ).toBeTruthy();
+
+    const [stage, completed] = handlers;
+    act(() => stage({ jobId: "auto-bookmark-1", stage: "writing_pdf" }));
+    expect(screen.getByText("Writing the outlined PDF…")).toBeTruthy();
+    act(() =>
+      completed({
+        jobId: "auto-bookmark-1",
+        documentId: "doc-1",
+        mode: "toc_aligned",
+        status: "auto_confirmed",
+        tocPageCount: 2,
+        parsedEntries: 50,
+        autoConfirmed: 47,
+        needsReview: 3,
+        skipped: 0,
+        writtenBookmarks: 47,
+        safeRefusalReason: null,
+        reportPath: "/picked/book.mdp/bookmarks/generation-report.json",
+        outputPath: "/picked/out.pdf",
+      }),
+    );
+    expect(
+      await screen.findByText(/Added 47 reliable bookmark\(s\) automatically/),
+    ).toBeTruthy();
+    expect(screen.getByText("Saved to /picked/out.pdf")).toBeTruthy();
+    // A finished run reloads the tree without the user asking.
+    expect(mocks.loadBookmarkTree).toHaveBeenCalledWith("/picked/book.mdp");
+  });
+
+  it("shows a safe refusal as a normal result, not a failure", async () => {
+    render(<ReviewWorkbench documentId="doc-1" />);
+    fireEvent.change(screen.getByLabelText("MDP package folder"), {
+      target: { value: "/tmp/book.mdp" },
+    });
+    fireEvent.change(screen.getByLabelText("Save the new PDF as"), {
+      target: { value: "/tmp/out.pdf" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add bookmarks automatically" }));
+    await screen.findByText("Looking for a printed table of contents…");
+    const completed = handlers[1];
+    act(() =>
+      completed({
+        jobId: "auto-bookmark-1",
+        documentId: "doc-1",
+        mode: "safe_refusal",
+        status: "safe_refusal",
+        tocPageCount: 0,
+        parsedEntries: 0,
+        autoConfirmed: 0,
+        needsReview: 0,
+        skipped: 0,
+        writtenBookmarks: 0,
+        safeRefusalReason: "no printed table of contents was detected",
+        reportPath: "/tmp/book.mdp/bookmarks/generation-report.json",
+        outputPath: null,
+      }),
+    );
+    expect(
+      await screen.findByText(/No sufficiently reliable table of contents was found/),
+    ).toBeTruthy();
+    expect(screen.getByText("no printed table of contents was detected")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("offers cancellation while a run is in flight and clears it afterwards", async () => {
+    render(<ReviewWorkbench documentId="doc-1" />);
+    fireEvent.change(screen.getByLabelText("MDP package folder"), {
+      target: { value: "/tmp/book.mdp" },
+    });
+    fireEvent.change(screen.getByLabelText("Save the new PDF as"), {
+      target: { value: "/tmp/out.pdf" },
+    });
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add bookmarks automatically" }));
+    const cancel = await screen.findByRole("button", { name: "Cancel" });
+    expect(
+      (screen.getByRole("button", { name: "Add bookmarks automatically" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    fireEvent.click(cancel);
+    expect(mocks.cancelAutoBookmark).toHaveBeenCalledWith("auto-bookmark-1", "doc-1");
+    act(() => handlers[2]({ jobId: "auto-bookmark-1", stage: "cancelled" }));
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  });
+
+  it("distinguishes an automatic entry from a human one and shows its score", async () => {
+    render(<ReviewWorkbench documentId="doc-1" />);
+    fireEvent.change(screen.getByLabelText("MDP package path (advanced)"), {
+      target: { value: "/tmp/book.mdp" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Load bookmarks" }));
+    await screen.findByText("2 bookmark(s)");
+
+    fireEvent.change(screen.getByLabelText("Bookmark status"), {
+      target: { value: "auto_confirmed" },
+    });
+    expect(screen.getByText("1 bookmark(s)")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Ἀρχή/ }));
+    expect(screen.getByText("Status: Added automatically")).toBeTruthy();
+    const breakdown = screen.getByLabelText("Bookmark score breakdown");
+    expect(breakdown.textContent).toContain("3900");
+    expect(breakdown.textContent).toContain("9760 of 10000");
+    const alignment = screen.getByLabelText("Bookmark alignment evidence");
+    expect(alignment.textContent).toContain("Contents page: 2");
+    expect(alignment.textContent).toContain("Heading page: 4");
+    expect(alignment.textContent).toContain("Runner-up margin: 1200");
+    expect(alignment.textContent).toContain("Geometry: measured");
+  });
+
+  it("reports a backend failure as an alert without losing the panel", async () => {
+    render(<ReviewWorkbench documentId="doc-1" />);
+    fireEvent.change(screen.getByLabelText("MDP package folder"), {
+      target: { value: "/tmp/book.mdp" },
+    });
+    fireEvent.change(screen.getByLabelText("Save the new PDF as"), {
+      target: { value: "/tmp/out.pdf" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add bookmarks automatically" }));
+    await screen.findByText("Looking for a printed table of contents…");
+    act(() =>
+      handlers[3]({
+        jobId: "auto-bookmark-1",
+        error: {
+          code: "destination_conflict",
+          message: "output exists or is unsafe",
+          hint: "Choose a different output location.",
+          detail: null,
+        },
+      }),
+    );
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("output exists or is unsafe");
+    expect(alert.textContent).toContain("Choose a different output location.");
+    expect(screen.getByRole("button", { name: "Add bookmarks automatically" })).toBeTruthy();
   });
 });

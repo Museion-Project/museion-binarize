@@ -22,6 +22,11 @@ import type {
   PreviewResult,
   UiError,
   BookmarkCandidate,
+  AutoBookmarkRequest,
+  AutoBookmarkStarted,
+  AutoBookmarkStageEvent,
+  AutoBookmarkResult,
+  AutoBookmarkFailed,
   ApiRouteOptions,
   ApiCredentialPresence,
   ApiConsentSummary,
@@ -55,7 +60,61 @@ export function addReviewRevision(request: {
   return call("add_review_revision", request);
 }
 
-export function loadBookmarks(packagePath: string): Promise<BookmarkCandidate[]> { return call("load_bookmarks", { packagePath }); }
+/** The effective bookmark tree for a package, as project-owned DTOs. */
+export function loadBookmarkTree(packagePath: string): Promise<BookmarkCandidate[]> {
+  return call("load_bookmark_tree", { packagePath });
+}
+
+/**
+ * Starts one automatic table-of-contents run. Resolves as soon as the run is
+ * handed to the worker thread; stages and the result arrive as
+ * `mpdf://auto-bookmark-*` events, so the UI never blocks on a long book.
+ */
+export function startAutoBookmark(request: AutoBookmarkRequest): Promise<AutoBookmarkStarted> {
+  return call("start_auto_bookmark", { request });
+}
+
+export function cancelAutoBookmark(jobId: string, documentId: string): Promise<void> {
+  return call("cancel_auto_bookmark", { jobId, documentId });
+}
+
+export function onAutoBookmarkStage(
+  handler: (payload: AutoBookmarkStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkStageEvent>("mpdf://auto-bookmark-stage", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onAutoBookmarkCompleted(
+  handler: (payload: AutoBookmarkResult) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkResult>("mpdf://auto-bookmark-completed", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onAutoBookmarkCancelled(
+  handler: (payload: AutoBookmarkStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkStageEvent>("mpdf://auto-bookmark-cancelled", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onAutoBookmarkFailed(
+  handler: (payload: AutoBookmarkFailed) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkFailed>("mpdf://auto-bookmark-failed", (event) =>
+    handler(event.payload),
+  );
+}
+
+/** Opens the native "choose an MDP package folder" dialog. */
+export async function pickPackageDirectory(): Promise<string | null> {
+  const selection = await openDialog({ multiple: false, directory: true });
+  return typeof selection === "string" ? selection : null;
+}
 export function confirmBookmark(packagePath: string, candidateId: string): Promise<void> { return call("confirm_bookmark", { packagePath, candidateId }); }
 export function rejectBookmark(packagePath: string, candidateId: string): Promise<void> { return call("reject_bookmark", { packagePath, candidateId }); }
 export function editBookmark(packagePath: string, candidateId: string, title: string): Promise<void> { return call("edit_bookmark", { packagePath, candidateId, title }); }

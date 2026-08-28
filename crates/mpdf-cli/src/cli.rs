@@ -69,6 +69,8 @@ pub enum Command {
 
 #[derive(Subcommand)]
 pub enum BookmarkCommand {
+    /// Compile bookmarks from evidence and write an outlined PDF in one step.
+    Auto(BookmarkAutoArgs),
     Generate(BookmarkGenerateArgs),
     List(BookmarkListArgs),
     Confirm(BookmarkMutationArgs),
@@ -76,10 +78,39 @@ pub enum BookmarkCommand {
     Edit(BookmarkEditArgs),
     Reparent(BookmarkReparentArgs),
 }
+/// One command for the whole automatic path: validate the package, compile
+/// bookmarks from a native outline or a printed contents list, and — when
+/// anything reached the confidence gate — write and verify a searchable,
+/// outlined PDF. A document with no reliable structure returns a normal,
+/// explained refusal and writes no output.
+#[derive(Args)]
+pub struct BookmarkAutoArgs {
+    /// Existing MDP package directory.
+    pub input: PathBuf,
+    /// The source PDF this package was built from.
+    #[arg(long)]
+    pub source: PathBuf,
+    /// Destination for the new outlined PDF. The source is never modified.
+    #[arg(long)]
+    pub output: PathBuf,
+    /// Authorize replacing an existing regular output file.
+    #[arg(long)]
+    pub overwrite: bool,
+    /// Authorize replacing existing bookmark candidates and report.
+    /// Independent of --overwrite, and still refused when reviews exist.
+    #[arg(long)]
+    pub regenerate: bool,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
 #[derive(Args)]
 pub struct BookmarkGenerateArgs {
     pub input: PathBuf,
-    #[arg(long)]
+    /// Authorize replacing existing bookmark candidates and report.
+    #[arg(long, alias = "regenerate")]
     pub overwrite: bool,
     #[command(flatten)]
     pub output_mode: OutputArgs,
@@ -129,6 +160,8 @@ pub struct PdfBuildSearchableArgs {
     pub output: PathBuf,
     #[arg(long)]
     pub overwrite: bool,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
     #[command(flatten)]
     pub output_mode: OutputArgs,
 }

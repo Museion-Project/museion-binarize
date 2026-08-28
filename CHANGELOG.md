@@ -8,7 +8,38 @@ once a first tagged release is published.
 
 ## [Unreleased]
 
-Nothing yet since `0.1.0-rc.2`.
+### Added
+
+- **Automatic table of contents (bookmarks v2).** `mpdf bookmark auto` and a
+  single desktop button compile a PDF outline from the document's own
+  evidence: an existing native outline is preserved exactly, or a printed
+  contents list is detected, parsed, and aligned against the headings in the
+  text and the printed page labels. Only entries where title, page mapping,
+  numbering, layout, OCR confidence, and a monotone position all agree are
+  written; anything ambiguous is kept for review.
+- A document with no reliable structure produces an explained **safe
+  refusal** — a normal result that writes no PDF and invents no title. There
+  is no mode in which a model composes a table of contents.
+- Bookmark snapshot schema **0.2** with an integer score breakdown, typed
+  alignment evidence, and a new `auto_confirmed` status that stays
+  distinguishable from a human `confirmed`; plus a separate
+  `bookmarks/generation-report.json` explaining every run. Schema 0.1 records
+  remain readable, reviewable, and buildable, and cannot acquire an automatic
+  status.
+- Local and consented API OCR are the same typed evidence to the engine:
+  identical records produce identical decisions, and provider identity never
+  branches the algorithm.
+- Output verification now also re-reads the written `/Outlines` tree with
+  lopdf and compares its titles, nesting, and destination pages against the
+  effective bookmark tree, alongside the existing PDFium reopen check.
+
+### Changed
+
+- `mpdf bookmark generate` now runs the same engine as `bookmark auto`; there
+  is no second, simplified generator. `--regenerate` is refused while human
+  review decisions exist, and is independent of `--overwrite`.
+- The CLI, the desktop application, and `pdf build-searchable` share one safe
+  output boundary in `mpdf_core::searchable_output`.
 
 ## [0.1.0-rc.2] - 2026-08-25
 

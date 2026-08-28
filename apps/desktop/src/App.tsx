@@ -361,7 +361,7 @@ function App() {
           </div>
         )}
 
-        {state.kind === "ready" && <ReviewWorkbench />}
+        {state.kind === "ready" && <ReviewWorkbench documentId={state.document.documentId} />}
 
         <footer className="status-bar">
           {state.kind === "processing" && (

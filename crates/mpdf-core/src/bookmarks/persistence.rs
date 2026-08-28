@@ -60,10 +60,60 @@ pub fn candidates_path(root: &Path) -> PathBuf {
 pub fn reviews_path(root: &Path) -> PathBuf {
     root.join("bookmarks/reviews.json")
 }
+pub fn generation_report_path(root: &Path) -> PathBuf {
+    root.join("bookmarks/generation-report.json")
+}
+pub fn load_generation_report(root: &Path) -> Result<super::BookmarkGenerationReport> {
+    let report: super::BookmarkGenerationReport = read_json(&generation_report_path(root))?;
+    report.validate()?;
+    Ok(report)
+}
+/// Writes the report with the same atomic, same-directory, no-symlink rules
+/// as the snapshot, and only when both describe the same generation.
+pub fn save_generation_report(
+    root: &Path,
+    report: &super::BookmarkGenerationReport,
+    snapshot: &BookmarkSnapshot,
+    overwrite: bool,
+) -> Result<()> {
+    report.validate()?;
+    snapshot.validate()?;
+    if report.generation_digest != snapshot.generation_digest
+        || report.source_digest != snapshot.source_digest
+        || report.package_digest != snapshot.package_digest
+    {
+        return Err(CoreError::InvalidDocument(
+            "bookmark report and snapshot describe different generations".into(),
+        ));
+    }
+    let directory = safe_dir(root)?;
+    let path = directory.join("generation-report.json");
+    if !overwrite && fs::symlink_metadata(&path).is_ok() {
+        return Err(CoreError::DestinationConflict(
+            "bookmark generation report already exists".into(),
+        ));
+    }
+    write_atomic(&path, report)
+}
+/// Saves a snapshot and its report together. Neither is written unless both
+/// validate and agree, so a report can never describe a snapshot that is not
+/// on disk.
+pub fn save_generation(
+    root: &Path,
+    result: &super::AutoBookmarkResult,
+    overwrite: bool,
+) -> Result<()> {
+    result.snapshot.validate()?;
+    result.report.validate()?;
+    save_snapshot(root, &result.snapshot, overwrite)?;
+    save_generation_report(root, &result.report, &result.snapshot, true)
+}
 pub fn load_snapshot(root: &Path) -> Result<BookmarkSnapshot> {
     let package = crate::document_package::DocumentPackage::read_from(root)?;
     let s: BookmarkSnapshot = read_json(&candidates_path(root))?;
     s.validate()?;
+    // 0.1 and 0.2 snapshots load through exactly the same path; the
+    // derived document is rebuilt only when the snapshot bound one.
     let derived = if s.derived_digest.is_some() {
         let ocr = crate::ocr::read_ocr_records(root)
             .map_err(|e| CoreError::InvalidDocument(e.to_string()))?;
