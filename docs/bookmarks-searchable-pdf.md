@@ -87,8 +87,10 @@ declared affine transform and the source page's box and rotation.
 The build fails closed for a mismatched source, partial OCR, stale derived or
 bookmark state, unresolved evidence, invalid/cyclic review hierarchy, unsafe
 paths, unsupported geometry, missing font data, cancellation, or PDFium reopen
-validation failure. Temporary output is created beside the destination and is
-removed on failure.
+validation failure. The writer receives an explicit `OutputWriteStrategy`:
+ordinary CLI and desktop builds stage beside the destination and atomically
+rename after validation; the MAS build validates in container/system temp and
+writes directly to the exact NSSavePanel-authorized destination.
 
 M5 is offline. It does not call an LLM, upload a document, or download a model
 or font. AI generator provenance is reserved for a later milestone and cannot
@@ -101,10 +103,15 @@ M4 revision is still never applied automatically.
 
 ## Output verification
 
-After the derivative is written to a same-directory temporary file, two
+After the derivative is written to a strategy-specific temporary file, two
 independent checks run before it is installed: PDFium reopens it and re-reads
 page count, page geometry, and rotation; lopdf walks the written `/Outlines`
 tree and compares its titles, nesting depth, and destination pages against the
-effective bookmark tree. Only then is the file atomically moved into place,
-and the source bytes are re-read to confirm they did not change. Cancellation
-or any failure leaves no output and no temporary file.
+effective bookmark tree. Source bytes are checked again immediately before the
+final commit. Cancellation or validation failure leaves an existing
+destination untouched and removes the temporary file. Candidates and report
+are each fully staged and safely replaced, then loaded and checked as one
+matching pair; if the subsequent PDF operation fails, the old pair is
+restored byte-for-byte. A process crash between the two replacements can
+expose a half-pair, which the next run rejects closed rather than repairing or
+guessing.

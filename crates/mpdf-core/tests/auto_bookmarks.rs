@@ -121,6 +121,47 @@ fn existing_outline_short_circuits_without_ocr() {
 }
 
 #[test]
+fn derived_only_without_an_outline_refuses_without_fabricating_ocr() {
+    let (package, pages) = fixtures::aligned_book();
+    let ocr = fixtures::ocr_run(&pages, None);
+    let derived = derived_of(&package, &ocr);
+    let result = bookmarks::generate_auto(
+        &AutoBookmarkInput {
+            package: &package,
+            ocr: None,
+            derived: Some(&derived),
+        },
+        &AutoBookmarkConfig::default(),
+    )
+    .expect("missing OCR is a safe refusal, not an error");
+    assert_eq!(result.report.mode, GenerationMode::SafeRefusal);
+    assert_eq!(result.report.status, GenerationStatus::SafeRefusal);
+    assert!(result.snapshot.ocr_digest.is_none());
+    assert_eq!(result.auto_confirmed(), 0);
+}
+
+#[test]
+fn partial_ocr_never_enters_the_printed_contents_path() {
+    let (package, pages) = fixtures::aligned_book();
+    let complete = fixtures::ocr_run(&pages, None);
+    let derived = derived_of(&package, &complete);
+    let mut partial = complete;
+    partial.pages.pop();
+    let outcome = bookmarks::generate_auto(
+        &AutoBookmarkInput {
+            package: &package,
+            ocr: Some(&partial),
+            derived: Some(&derived),
+        },
+        &AutoBookmarkConfig::default(),
+    );
+    assert!(
+        outcome.is_err(),
+        "partial OCR must fail closed before TOC alignment"
+    );
+}
+
+#[test]
 fn a_document_without_a_printed_contents_list_refuses_safely() {
     let mut pages = vec![FixturePage::new(vec![FixtureLine::new(
         "A Book Without Contents",

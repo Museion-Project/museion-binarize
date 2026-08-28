@@ -297,18 +297,19 @@ offset, or a contents page.
 - A request for a document that is no longer open is rejected
   (`document_stale`/`document_not_open`) rather than applied to whatever is
   open now.
-- `AppState::auto_bookmark` is an atomic check-and-set slot. A second run, a
-  running conversion (`job_active`), or an in-flight remote OCR task
-  (`api_task_active`) is refused with an actionable structured error, never
-  queued silently.
+- A single `AppState` operation gate atomically arbitrates processing, remote
+  API execution/install, and automatic bookmarks. A second claim is refused
+  with an actionable `operation_active` structured error, never queued
+  silently; the per-operation slots remain cancellation handles only.
 - The run executes on the single PDFium worker thread, so the UI never
   freezes while a long book is matched or a PDF is written. Stages arrive as
   `mpdf://auto-bookmark-stage` events (`analyzing_toc`, `aligning`,
   `writing_pdf`, `validating`), and the result, failure, or cancellation as
   `mpdf://auto-bookmark-completed` / `-failed` / `-cancelled`.
 - `cancel_auto_bookmark` takes both the job id and the document id, so a stale
-  window cannot cancel a newer document's run. Cancellation leaves no
-  candidates, report, output, or temporary file behind.
+  window cannot cancel a newer document's run. Cancellation leaves no new
+  candidates/report pair, output, or temporary file behind; an older matching
+  generation/output remains intact.
 - The result panel reports mode, status, contents pages found, and the
   automatically-added / needs-review / skipped counts, then reloads the
   bookmark tree. A **safe refusal is a normal result panel**, not a red error:

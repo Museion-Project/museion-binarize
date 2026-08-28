@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import type {
   AutoBookmarkResult,
   AutoBookmarkStage,
+  AutoBookmarkFailed,
+  AutoBookmarkStageEvent,
   UiError,
 } from "../app/types";
 import {
@@ -50,50 +52,101 @@ export function AutoBookmarkPanel({
   const [overwrite, setOverwrite] = useState(false);
   const [regenerate, setRegenerate] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [stage, setStage] = useState<AutoBookmarkStage | null>(null);
   const [result, setResult] = useState<AutoBookmarkResult | null>(null);
   const [error, setError] = useState<UiError | null>(null);
+  const activeJob = useRef<string | null>(null);
+  const startGeneration = useRef(0);
+  const pendingTerminal = useRef<
+    | { kind: "completed"; event: AutoBookmarkResult }
+    | { kind: "cancelled"; event: AutoBookmarkStageEvent }
+    | { kind: "failed"; event: AutoBookmarkFailed }
+    | null
+  >(null);
+  // Deliberately unresolved until the current effect has attached every
+  // listener. This prevents a click in the initial render window from
+  // dispatching an IPC run into an event-registration gap.
+  const listenersReady = useRef<Promise<void>>(new Promise(() => {}));
   const finished = useRef(onFinished);
   finished.current = onFinished;
 
   useEffect(() => {
     const unlisteners: Array<() => void> = [];
+    const registrations: Array<Promise<() => void>> = [];
     let disposed = false;
     const attach = (pending: Promise<() => void>) => {
+      registrations.push(pending);
       void pending.then((unlisten) => {
         if (disposed) unlisten();
         else unlisteners.push(unlisten);
       });
     };
-    attach(onAutoBookmarkStage((event) => setStage(event.stage)));
+    const belongsToDocument = (event: { documentId: string; jobId: string }) =>
+      event.documentId === documentId &&
+      (!activeJob.current || activeJob.current === event.jobId);
+    const finish = () => {
+      activeJob.current = null;
+      setJobId(null);
+      setStage(null);
+    };
+    attach(onAutoBookmarkStage((event) => {
+      if (!belongsToDocument(event)) return;
+      if (!activeJob.current) return;
+      setStage(event.stage);
+    }));
     attach(
       onAutoBookmarkCompleted((event) => {
+        if (!belongsToDocument(event)) return;
+        if (!activeJob.current) {
+          pendingTerminal.current = { kind: "completed", event };
+          return;
+        }
         setResult(event);
-        setStage(null);
-        setJobId(null);
+        finish();
         finished.current();
       }),
     );
     attach(
-      onAutoBookmarkCancelled(() => {
-        setStage(null);
-        setJobId(null);
+      onAutoBookmarkCancelled((event) => {
+        if (!belongsToDocument(event)) return;
+        if (!activeJob.current) {
+          pendingTerminal.current = { kind: "cancelled", event };
+          return;
+        }
+        finish();
       }),
     );
     attach(
       onAutoBookmarkFailed((event) => {
+        if (!belongsToDocument(event)) return;
+        if (!activeJob.current) {
+          pendingTerminal.current = { kind: "failed", event };
+          return;
+        }
         setError(event.error);
-        setStage(null);
-        setJobId(null);
+        finish();
       }),
     );
+    listenersReady.current = Promise.all(registrations).then(() => undefined);
     return () => {
       disposed = true;
+      startGeneration.current += 1;
+      activeJob.current = null;
+      pendingTerminal.current = null;
+      // A panel instance is reused when the user switches documents. Clear
+      // the old document's visible run as well as its event bookkeeping;
+      // otherwise a stale job can leave the new document looking busy.
+      setJobId(null);
+      setStage(null);
+      setResult(null);
+      setError(null);
+      setStarting(false);
       for (const unlisten of unlisteners) unlisten();
     };
-  }, []);
+  }, [documentId]);
 
-  const running = jobId !== null;
+  const running = starting || jobId !== null;
   const ready = packagePath.trim() !== "" && outputPath.trim() !== "" && !running;
 
   async function choosePackage() {
@@ -107,9 +160,20 @@ export function AutoBookmarkPanel({
   }
 
   async function start() {
+    if (running) return;
+    const generation = ++startGeneration.current;
+    setStarting(true);
+    activeJob.current = null;
+    pendingTerminal.current = null;
     setError(null);
     setResult(null);
+    setStage("analyzing_toc");
     try {
+      // Tauri event registration is asynchronous. Wait until all listeners
+      // are attached before dispatching the command, closing the terminal
+      // event gap for very fast runs.
+      await listenersReady.current;
+      if (generation !== startGeneration.current) return;
       const started = await startAutoBookmark({
         documentId,
         packagePath: packagePath.trim(),
@@ -117,9 +181,58 @@ export function AutoBookmarkPanel({
         overwrite,
         regenerate,
       });
-      setJobId(started.jobId);
-      setStage("analyzing_toc");
+      if (generation !== startGeneration.current) return;
+      const terminal = pendingTerminal.current as
+        | { kind: "completed"; event: AutoBookmarkResult }
+        | { kind: "cancelled"; event: AutoBookmarkStageEvent }
+        | { kind: "failed"; event: AutoBookmarkFailed }
+        | null;
+      // Consume the handshake slot exactly once.  A terminal event from a
+      // different (stale) job must not remain queued and contaminate the next
+      // run after this IPC response establishes the real job id.
+      pendingTerminal.current = null;
+      activeJob.current = started.jobId;
+      if (
+        terminal &&
+        terminal.kind === "completed" &&
+        terminal.event.jobId === started.jobId &&
+        terminal.event.documentId === started.documentId
+      ) {
+        setResult(terminal.event);
+        activeJob.current = null;
+        setJobId(null);
+        setStage(null);
+        finished.current();
+      } else if (
+        terminal &&
+        terminal.kind === "failed" &&
+        terminal.event.jobId === started.jobId &&
+        terminal.event.documentId === started.documentId
+      ) {
+        setError(terminal.event.error);
+        activeJob.current = null;
+        setJobId(null);
+        setStage(null);
+      } else if (terminal && terminal.kind === "cancelled") {
+        if (
+          terminal.event.jobId !== started.jobId ||
+          terminal.event.documentId !== started.documentId
+        ) {
+          setJobId(started.jobId);
+          setStarting(false);
+          return;
+        }
+        activeJob.current = null;
+        setJobId(null);
+        setStage(null);
+      } else {
+        setJobId(started.jobId);
+      }
+      setStarting(false);
     } catch (raw) {
+      activeJob.current = null;
+      setStage(null);
+      setStarting(false);
       const failure = raw as { error?: UiError };
       setError(
         failure.error ?? { code: "internal_error", message: String(raw), hint: null, detail: null },
@@ -195,7 +308,7 @@ export function AutoBookmarkPanel({
         <button type="button" className="primary" onClick={() => void start()} disabled={!ready}>
           Add bookmarks automatically
         </button>
-        {running && (
+        {jobId !== null && (
           <button type="button" onClick={() => void cancel()}>
             Cancel
           </button>

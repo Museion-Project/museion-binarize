@@ -8,7 +8,7 @@ use crate::dto::{
     ApiConsentSummaryDto, ApiCredentialPresenceDto, ApiPlanRequestDto, ApiRouteOptionsDto,
     ApiRunRequestDto, ApiTaskProgressDto,
 };
-use crate::state::{AppState, OpenDocumentState};
+use crate::state::{AppState, OpenDocumentState, OperationKind};
 use mpdf_api_client::{ApiClient, ApiClientConfig, NativeSecretStore, SecretStore};
 use mpdf_core::document_package::DocumentPackage;
 use mpdf_core::document_session::{PdfDocumentSession, PdfOpenOptions};
@@ -164,13 +164,16 @@ pub async fn api_run_task(
         max_retries: mpdf_api_client::MAX_RETRIES,
     };
     let client = ApiClient::new(config, Arc::new(NativeSecretStore)).map_err(|e| e.to_string())?;
+    let _operation = state
+        .try_claim_operation(OperationKind::RemoteApi)
+        .ok_or_else(|| "another document operation is running; wait for it to finish".to_owned())?;
     let route = request.route;
     *state
         .api_cancellation
         .lock()
         .map_err(|_| "API cancellation state is unavailable".to_owned())? =
         Some(client.cancellation());
-    let result = tauri::async_runtime::spawn_blocking(move || {
+    let task_result = tauri::async_runtime::spawn_blocking(move || {
         match execute_remote(
             document.clone(),
             plan.clone(),
@@ -186,13 +189,22 @@ pub async fn api_run_task(
             Err(reason) => Err(reason),
         }
     })
-    .await
-    .map_err(|e| e.to_string())?;
-    *state
+    .await;
+    // Cleanup runs before interpreting either the business result or a
+    // JoinError. The operation lease remains held until this function
+    // returns, so every exit releases both pieces of state.
+    let cleanup = state
         .api_cancellation
         .lock()
-        .map_err(|_| "API cancellation state is unavailable".to_owned())? = None;
-    result
+        .map(|mut cancellation| *cancellation = None)
+        .map_err(|_| "API cancellation state is unavailable".to_owned());
+    if let Err(error) = cleanup {
+        return Err(format!("{error}; remote API task result was discarded"));
+    }
+    match task_result {
+        Ok(result) => result,
+        Err(error) => Err(error.to_string()),
+    }
 }
 
 fn execute_remote(

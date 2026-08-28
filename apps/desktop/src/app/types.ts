@@ -207,6 +207,7 @@ export type AutoBookmarkStage =
 
 export interface AutoBookmarkStageEvent {
   jobId: string;
+  documentId: string;
   stage: AutoBookmarkStage;
 }
 
@@ -228,6 +229,7 @@ export interface AutoBookmarkResult {
 
 export interface AutoBookmarkFailed {
   jobId: string;
+  documentId: string;
   error: UiError;
 }
 

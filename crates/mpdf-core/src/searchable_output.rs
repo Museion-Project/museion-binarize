@@ -14,7 +14,6 @@
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use lopdf::{Document, Object, ObjectId};
@@ -26,6 +25,7 @@ use crate::document_package::DocumentPackage;
 use crate::document_session::{PdfDocumentSession, PdfOpenOptions};
 use crate::error::{CoreError, Result};
 use crate::pdfium_backend::PdfiumConfig;
+use crate::pipeline::OutputWriteStrategy;
 
 pub struct SearchableOutputRequest<'a> {
     pub package: &'a DocumentPackage,
@@ -35,6 +35,9 @@ pub struct SearchableOutputRequest<'a> {
     pub candidates: &'a [BookmarkCandidate],
     pub derived: Option<&'a DerivedDocument>,
     pub pdfium: PdfiumConfig,
+    /// How the final, already-validated bytes are installed. MAS builds use
+    /// direct write because the save-panel grant covers only this exact path.
+    pub output_write_strategy: OutputWriteStrategy,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -133,21 +136,14 @@ pub fn build_searchable_output_observed(
     }
     let parent = request.output.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|e| CoreError::io(parent, e))?;
-    let mut temporary =
-        tempfile::NamedTempFile::new_in(parent).map_err(|e| CoreError::io(parent, e))?;
-    temporary
-        .write_all(&built)
-        .and_then(|_| temporary.as_file().sync_all())
-        .map_err(|e| CoreError::io(temporary.path(), e))?;
+    let temporary =
+        crate::pipeline::write_temporary(request.output, &built, request.output_write_strategy)?;
     stage(OutputStage::Validating);
     verify_geometry(temporary.path(), request.package, &request.pdfium)?;
     verify_outline(temporary.path(), request.package, &writable)?;
     if cancelled() {
         return Err(CoreError::Cancelled);
     }
-    temporary
-        .persist(request.output)
-        .map_err(|e| CoreError::io(request.output, e.error))?;
     // The source bytes must be exactly what they were before the write.
     let after = fs::read(request.source).map_err(|e| CoreError::io(request.source, e))?;
     if after != bytes {
@@ -155,6 +151,13 @@ pub fn build_searchable_output_observed(
             "source PDF changed while its derivative was written".into(),
         ));
     }
+    crate::pipeline::persist(
+        temporary,
+        request.output,
+        &built,
+        request.overwrite,
+        request.output_write_strategy,
+    )?;
     Ok(SearchableOutputSummary {
         output_path: request.output.to_path_buf(),
         source_sha256,

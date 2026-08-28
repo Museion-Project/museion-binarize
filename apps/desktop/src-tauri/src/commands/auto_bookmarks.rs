@@ -21,7 +21,7 @@ use crate::dto::{
     AutoBookmarkStartedDto, BookmarkCandidateDto, UiErrorDto,
 };
 use crate::errors::{classify_core_error, request_error};
-use crate::state::{AppState, AutoBookmarkState};
+use crate::state::{AppState, AutoBookmarkState, OperationKind};
 use crate::worker::{AutoBookmarkWork, WorkerCommand};
 
 pub const EVENT_STAGE: &str = "mpdf://auto-bookmark-stage";
@@ -68,6 +68,14 @@ pub async fn start_auto_bookmark(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<AutoBookmarkStartedDto, UiErrorDto> {
+    let operation = state
+        .try_claim_operation(OperationKind::AutoBookmark)
+        .ok_or_else(|| {
+            request_error(
+                "operation_active",
+                "another document operation is running; wait for it to finish",
+            )
+        })?;
     let package_root = validated_path(&request.package_path, "package")?;
     let output = validated_path(&request.output_path, "output")?;
     // The source PDF comes from the open document's own state; the frontend
@@ -90,22 +98,11 @@ pub async fn start_auto_bookmark(
             }
         }
     };
-    if state.job.lock().unwrap().is_some() {
-        return Err(request_error(
-            "job_active",
-            "a conversion is running; wait for it to finish before compiling bookmarks",
-        ));
-    }
-    if state.api_cancellation.lock().unwrap().is_some() {
-        return Err(request_error(
-            "api_task_active",
-            "a remote OCR task is running; wait for it to finish before compiling bookmarks",
-        ));
-    }
     let (job_id, cancelled) = claim_slot(&state, &request.document_id)?;
 
     let stage_app = app.clone();
     let stage_job = job_id.clone();
+    let stage_document_id = request.document_id.clone();
     let (reply_tx, reply_rx) = std::sync::mpsc::channel();
     state.worker.send(WorkerCommand::AutoBookmark {
         request: AutoBookmarkWork {
@@ -120,6 +117,7 @@ pub async fn start_auto_bookmark(
                     EVENT_STAGE,
                     AutoBookmarkStageDto {
                         job_id: stage_job.clone(),
+                        document_id: stage_document_id.clone(),
                         stage: stage.to_owned(),
                     },
                 );
@@ -132,6 +130,7 @@ pub async fn start_auto_bookmark(
     let done_job = job_id.clone();
     let document_id = request.document_id.clone();
     tauri::async_runtime::spawn(async move {
+        let _operation = operation;
         let outcome = tauri::async_runtime::spawn_blocking(move || reply_rx.recv())
             .await
             .ok()
@@ -145,7 +144,7 @@ pub async fn start_auto_bookmark(
                     EVENT_COMPLETED,
                     AutoBookmarkResultDto {
                         job_id: done_job,
-                        document_id,
+                        document_id: document_id.clone(),
                         mode: result.mode.to_owned(),
                         status: result.status.to_owned(),
                         toc_page_count: result.toc_page_count,
@@ -165,6 +164,7 @@ pub async fn start_auto_bookmark(
                     EVENT_CANCELLED,
                     AutoBookmarkStageDto {
                         job_id: done_job,
+                        document_id: document_id.clone(),
                         stage: "cancelled".to_owned(),
                     },
                 );
@@ -174,6 +174,7 @@ pub async fn start_auto_bookmark(
                     EVENT_FAILED,
                     AutoBookmarkFailedDto {
                         job_id: done_job,
+                        document_id,
                         error: classify_core_error(&error),
                     },
                 );
@@ -183,6 +184,7 @@ pub async fn start_auto_bookmark(
                     EVENT_FAILED,
                     AutoBookmarkFailedDto {
                         job_id: done_job,
+                        document_id,
                         error: request_error(
                             "internal_error",
                             "the PDFium worker thread stopped responding",

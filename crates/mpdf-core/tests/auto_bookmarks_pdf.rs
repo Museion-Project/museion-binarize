@@ -21,7 +21,9 @@ use mpdf_core::bookmarks::{self, AutoBookmarkConfig, BookmarkStatus, GenerationM
 use mpdf_core::document_package::DocumentPackage;
 use mpdf_core::document_session::{PdfDocumentSession, PdfOpenOptions};
 use mpdf_core::pdfium_backend::PdfiumConfig;
-use mpdf_core::searchable_output::{build_searchable_output, SearchableOutputRequest};
+use mpdf_core::searchable_output::{
+    build_searchable_output, build_searchable_output_observed, OutputStage, SearchableOutputRequest,
+};
 
 const ENV_VAR: &str = "MPDF_PDFIUM_LIBRARY";
 
@@ -68,11 +70,11 @@ fn package_for(source: &std::path::Path, pdfium: &PdfiumConfig) -> DocumentPacka
 
 /// Synthetic OCR evidence sized to the real package's master space.
 fn evidence(package: &DocumentPackage, titles: &[(&str, u32)]) -> Vec<FixturePage> {
-    let width = package.pages[0].master_space.width;
-    let height = package.pages[0].master_space.height;
-    let scale = |x: f64, y: f64| (width * x, height * y);
     let mut pages = Vec::new();
     for (index, _) in package.pages.iter().enumerate() {
+        let width = package.pages[index].master_space.width;
+        let height = package.pages[index].master_space.height;
+        let scale = |x: f64, y: f64| (width * x, height * y);
         let mut lines = Vec::new();
         if index == 0 {
             let (x, y) = scale(0.1, 0.06);
@@ -103,7 +105,7 @@ fn evidence(package: &DocumentPackage, titles: &[(&str, u32)]) -> Vec<FixturePag
             let (x, y) = scale(0.1, 0.4);
             lines.push(FixtureLine::new("body text", x, y).with_width(width * 0.3));
         }
-        pages.push(FixturePage::new(lines));
+        pages.push(FixturePage::new(lines).with_page_size(width, height));
     }
     pages
 }
@@ -152,6 +154,7 @@ fn automatic_bookmarks_reach_a_verified_outlined_pdf() {
         candidates: &effective,
         derived: inputs.derived.as_ref(),
         pdfium: pdfium.clone(),
+        output_write_strategy: mpdf_core::pipeline::OutputWriteStrategy::default(),
     })
     .expect("the searchable, outlined derivative is written and verified");
     assert_eq!(summary.written_bookmarks, 2);
@@ -191,6 +194,58 @@ fn automatic_bookmarks_reach_a_verified_outlined_pdf() {
     );
     let targets: Vec<u32> = outline.iter().map(|item| item.page_index).collect();
     assert_eq!(targets, vec![1, 3]);
+}
+
+#[test]
+#[ignore = "requires a provisioned PDFium library; see docs/pdfium.md"]
+fn source_mutation_before_final_install_leaves_existing_output_untouched() {
+    let _guard = PDFIUM_LOCK
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    let pdfium = require_pdfium_config();
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("source.pdf");
+    std::fs::write(&source, mpdf_core::test_fixtures::heterogeneous_document(6)).unwrap();
+    let package = package_for(&source, &pdfium);
+    let root = directory.path().join("book.mdp");
+    package.write_to(&root).unwrap();
+    let pages = evidence(&package, &[("Second Chapter", 3)]);
+    let ocr = fixtures::ocr_run(&pages, None);
+    mpdf_core::ocr::write_ocr_records(&root, &ocr).unwrap();
+    let result =
+        bookmarks::generate_auto_from_package(&root, &AutoBookmarkConfig::default(), &|| false)
+            .expect("automatic generation");
+    let inputs = bookmarks::load_auto_bookmark_inputs(&root).unwrap();
+    let effective = bookmarks::effective(
+        &result.snapshot,
+        &bookmarks::load_reviews(&root, &result.snapshot).unwrap(),
+    )
+    .unwrap();
+    let output = directory.path().join("outlined.pdf");
+    let old_output = b"the existing destination remains byte-identical";
+    std::fs::write(&output, old_output).unwrap();
+
+    let error = build_searchable_output_observed(
+        &SearchableOutputRequest {
+            package: &package,
+            source: &source,
+            output: &output,
+            overwrite: true,
+            candidates: &effective,
+            derived: inputs.derived.as_ref(),
+            pdfium,
+            output_write_strategy: mpdf_core::pipeline::OutputWriteStrategy::default(),
+        },
+        &|| false,
+        &|stage| {
+            if stage == OutputStage::Validating {
+                std::fs::write(&source, b"the source changed during the run").unwrap();
+            }
+        },
+    )
+    .expect_err("a source mutation must fail before destination installation");
+    assert!(error.to_string().contains("source PDF changed"));
+    assert_eq!(std::fs::read(&output).unwrap(), old_output);
 }
 
 #[test]

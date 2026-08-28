@@ -1257,7 +1257,7 @@ fn normalize_for_comparison(path: &Path) -> Option<PathBuf> {
 /// places it in the system/container temp directory instead — a location
 /// this process always has unrestricted access to, sandboxed or not — since
 /// that strategy never renames it into place at all (see `persist`).
-fn write_temporary(
+pub(crate) fn write_temporary(
     output: &Path,
     bytes: &[u8],
     strategy: OutputWriteStrategy,
@@ -1333,7 +1333,7 @@ fn write_temporary(
 /// `docs/mac-app-store-readiness.md`, "Sandboxed output-save architecture,"
 /// for the full record of this trade-off and why it was made here rather
 /// than left unresolved.
-fn persist(
+pub(crate) fn persist(
     temp: tempfile::NamedTempFile,
     output: &Path,
     bytes: &[u8],
@@ -1381,6 +1381,16 @@ fn persist(
 /// flushed and synced before returning.
 fn write_direct(output: &Path, bytes: &[u8]) -> Result<()> {
     use std::io::Write;
+    match std::fs::symlink_metadata(output) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_file() => {
+            return Err(CoreError::DestinationConflict(
+                "output exists or is unsafe; direct output requires a regular file".into(),
+            ));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(CoreError::io(output, error)),
+    }
     let mut file = std::fs::File::create(output).map_err(|e| CoreError::io(output, e))?;
     file.write_all(bytes)
         .map_err(|e| CoreError::io(output, e))?;

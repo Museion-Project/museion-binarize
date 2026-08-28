@@ -63,10 +63,18 @@ impl FixtureLine {
 }
 
 /// One synthetic page of lines.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct FixturePage {
     pub lines: Vec<FixtureLine>,
     pub native_text: bool,
+    pub width: f64,
+    pub height: f64,
+}
+
+impl Default for FixturePage {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
 }
 
 impl FixturePage {
@@ -74,12 +82,19 @@ impl FixturePage {
         Self {
             lines,
             native_text: false,
+            width: FIXTURE_PAGE_WIDTH,
+            height: FIXTURE_PAGE_HEIGHT,
         }
     }
     /// Marks the page as taking the native-text route, whose line and word
     /// boxes are approximate geometry.
     pub fn native(mut self) -> Self {
         self.native_text = true;
+        self
+    }
+    pub fn with_page_size(mut self, width: f64, height: f64) -> Self {
+        self.width = width;
+        self.height = height;
         self
     }
 }
@@ -274,8 +289,8 @@ fn ocr_page(index: u32, page: &FixturePage, provenance: Option<OcrProviderProven
                 reason: OcrRouteReason::MissingText,
             }
         },
-        width: FIXTURE_PAGE_WIDTH as u32,
-        height: FIXTURE_PAGE_HEIGHT as u32,
+        width: page.width.round() as u32,
+        height: page.height.round() as u32,
         blocks,
         revisions: Vec::new(),
         provider_provenance: provenance,

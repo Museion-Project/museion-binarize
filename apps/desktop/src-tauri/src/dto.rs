@@ -561,6 +561,7 @@ pub struct AutoBookmarkStartedDto {
 #[serde(rename_all = "camelCase")]
 pub struct AutoBookmarkStageDto {
     pub job_id: String,
+    pub document_id: String,
     /// One of `analyzing_toc`, `aligning`, `writing_pdf`, `validating`.
     pub stage: String,
 }
@@ -589,6 +590,7 @@ pub struct AutoBookmarkResultDto {
 #[serde(rename_all = "camelCase")]
 pub struct AutoBookmarkFailedDto {
     pub job_id: String,
+    pub document_id: String,
     pub error: UiErrorDto,
 }
 

@@ -42,6 +42,7 @@ pub fn build_searchable(a: PdfBuildSearchableArgs) -> ExitCode {
         candidates: &effective,
         derived: derived.as_ref(),
         pdfium: a.pdfium.to_config(),
+        output_write_strategy: mpdf_core::pipeline::OutputWriteStrategy::default(),
     }) {
         Ok(x) => x,
         Err(e) => return fail(&e),

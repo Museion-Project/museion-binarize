@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-use mpdf_core::bookmarks::{self, BookmarkReviews, ReviewAction};
+use mpdf_core::bookmarks::{self, AutoBookmarkInput, BookmarkReviews, ReviewAction};
 use mpdf_core::derived::DerivedDocument;
 use mpdf_core::document_package::{
     DocumentPackage, ExistingOutlineEvidence, PrintedLabelSource, PrintedPageLabel, Rect,
@@ -19,28 +19,42 @@ fn ocr_fixture(package: &DocumentPackage) -> OcrRun {
         .pages
         .iter()
         .map(|page| {
-            let (text, confidence) = match page.physical_index {
-                0 => (Some("1. Ἀρχὴ"), 0.98),
-                1 => (Some("1.1 Πολιτείας"), 0.60),
-                2 => (Some("2. Appendix iv"), 0.95),
-                _ => (None, 0.98),
+            let lines: Vec<(&str, f32)> = match page.physical_index {
+                0 => vec![("1. Ἀρχὴ", 0.98)],
+                1 => vec![("1.1 Πολιτείας", 0.60)],
+                2 => vec![
+                    ("Contents", 0.98),
+                    ("1. Ἀρχὴ ....... 1", 0.98),
+                    ("1.1 Πολιτείας ....... 2", 0.98),
+                    ("2. Appendix ....... iv", 0.98),
+                ],
+                3 => vec![("2. Appendix iv", 0.95)],
+                _ => Vec::new(),
             };
-            let blocks = text
-                .map(|text| {
+            let blocks = lines
+                .into_iter()
+                .enumerate()
+                .flat_map(|(line_index, (text, confidence))| {
                     let bbox = OcrBox {
                         x: 50.0,
-                        y: 80.0,
+                        y: if page.physical_index == 3 {
+                            180.0 - line_index as f32 * 100.0
+                        } else if page.physical_index == 2 {
+                            80.0 + line_index as f32 * 160.0
+                        } else {
+                            80.0 + line_index as f32 * 100.0
+                        },
                         width: 600.0,
-                        height: 90.0,
+                        height: if page.physical_index == 2 { 20.0 } else { 90.0 },
                     };
                     vec![OcrBlock {
                         bbox: bbox.clone(),
                         confidence,
-                        reading_order: 0,
+                        reading_order: line_index as u32,
                         lines: vec![OcrLine {
                             bbox: bbox.clone(),
                             confidence,
-                            reading_order: 0,
+                            reading_order: line_index as u32,
                             words: vec![OcrWord {
                                 text: text.into(),
                                 normalized_text: text.into(),
@@ -51,7 +65,7 @@ fn ocr_fixture(package: &DocumentPackage) -> OcrRun {
                         }],
                     }]
                 })
-                .unwrap_or_default();
+                .collect();
             OcrPage {
                 page_index: page.physical_index,
                 route: OcrRoute::Ocr {
@@ -129,7 +143,11 @@ fn m5_pdfium_source_preserving_reopen_and_rotation_fixture(
             .source,
         "source-pdf"
     );
-    for page in package.pages.iter_mut().take(2) {
+    for page in package
+        .pages
+        .iter_mut()
+        .filter(|page| page.physical_index <= 1)
+    {
         page.typography_evidence.push(TypographyEvidence {
             role: "heading".into(),
             bounds: Rect {
@@ -184,23 +202,46 @@ fn m5_pdfium_source_preserving_reopen_and_rotation_fixture(
         word.confidence = 0.99;
     }
     let repeated_derived = DerivedDocument::from_package(&repeated_package, Some(&repeated_ocr))?;
-    let repeated_snapshot = bookmarks::generate(&repeated_package, Some(&repeated_derived))?;
-    assert_eq!(repeated_snapshot.candidates.len(), 4);
-    assert!(repeated_snapshot.candidates.iter().all(|candidate| {
-        candidate.status == bookmarks::BookmarkStatus::NeedsReview
-            && candidate
-                .reason_codes
-                .iter()
-                .any(|reason| reason == "repeated_header_footer_suppressed")
-    }));
+    let repeated_snapshot = bookmarks::generate_auto(
+        &AutoBookmarkInput {
+            package: &repeated_package,
+            ocr: Some(&repeated_ocr),
+            derived: Some(&repeated_derived),
+        },
+        &bookmarks::AutoBookmarkConfig::default(),
+    )?
+    .snapshot;
+    assert!(
+        repeated_snapshot.candidates.is_empty(),
+        "repeated page furniture must not become bookmark candidates"
+    );
     let ocr = ocr_fixture(&package);
     ocr.validate()?;
     let derived = DerivedDocument::from_package(&package, Some(&ocr))?;
-    let snapshot = bookmarks::generate(&package, Some(&derived))?;
-    assert_eq!(snapshot, bookmarks::generate(&package, Some(&derived))?);
+    let snapshot = bookmarks::generate_auto(
+        &AutoBookmarkInput {
+            package: &package,
+            ocr: Some(&ocr),
+            derived: Some(&derived),
+        },
+        &bookmarks::AutoBookmarkConfig::default(),
+    )?
+    .snapshot;
+    assert_eq!(
+        snapshot,
+        bookmarks::generate_auto(
+            &AutoBookmarkInput {
+                package: &package,
+                ocr: Some(&ocr),
+                derived: Some(&derived),
+            },
+            &bookmarks::AutoBookmarkConfig::default(),
+        )?
+        .snapshot
+    );
     assert_eq!(snapshot.candidates.len(), 3);
-    assert_eq!(snapshot.candidates[0].source_level, 1);
-    assert_eq!(snapshot.candidates[1].source_level, 2);
+    assert_eq!(snapshot.candidates[0].source_level, 0);
+    assert_eq!(snapshot.candidates[1].source_level, 1);
     assert_eq!(
         snapshot.candidates[1].status,
         bookmarks::BookmarkStatus::NeedsReview
@@ -211,10 +252,6 @@ fn m5_pdfium_source_preserving_reopen_and_rotation_fixture(
     );
     assert_eq!(snapshot.candidates[2].source_title, "2. Appendix");
     assert_eq!(snapshot.candidates[2].physical_page_index, 3);
-    assert!(snapshot.candidates[2]
-        .reason_codes
-        .iter()
-        .any(|reason| reason == "toc_exact_page_label"));
     let mut reviews = BookmarkReviews::empty(snapshot.generation_digest.clone());
     for candidate in &snapshot.candidates {
         bookmarks::append(

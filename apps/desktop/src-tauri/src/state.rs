@@ -45,6 +45,31 @@ pub struct AutoBookmarkState {
     pub cancelled: Arc<AtomicBool>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OperationKind {
+    Processing,
+    RemoteApi,
+    AutoBookmark,
+}
+
+/// A single atomic gate for all operations that use the serialized worker or
+/// mutate the active document. The legacy per-operation slots remain as
+/// cancellation handles, but never decide admission.
+pub struct OperationLease {
+    gate: Arc<Mutex<Option<OperationKind>>>,
+    kind: OperationKind,
+}
+
+impl Drop for OperationLease {
+    fn drop(&mut self) {
+        if let Ok(mut gate) = self.gate.lock() {
+            if gate.as_ref() == Some(&self.kind) {
+                *gate = None;
+            }
+        }
+    }
+}
+
 /// The most recently completed size estimate for the open document, kept
 /// only so a matching `process` call can report
 /// `ProcessingReport::estimate_comparison` automatically — never shown to
@@ -79,6 +104,7 @@ pub struct AppState {
     /// remote OCR install, and a bookmark run can never overlap on the one
     /// serialized PDFium worker thread.
     pub auto_bookmark: Mutex<Option<AutoBookmarkState>>,
+    operation_gate: Arc<Mutex<Option<OperationKind>>>,
     /// The trusted bundled PDFium library path for this packaged build,
     /// if one was found under Tauri's resolved resource directory at
     /// startup — `None` in a development run with no bundled resource.
@@ -100,9 +126,22 @@ impl AppState {
             estimate_cache: Mutex::new(None),
             api_cancellation: Mutex::new(None),
             auto_bookmark: Mutex::new(None),
+            operation_gate: Arc::new(Mutex::new(None)),
             bundled_pdfium_path,
             next_id: AtomicU64::new(1),
         }
+    }
+
+    pub fn try_claim_operation(&self, kind: OperationKind) -> Option<OperationLease> {
+        let mut gate = self.operation_gate.lock().ok()?;
+        if gate.is_some() {
+            return None;
+        }
+        *gate = Some(kind);
+        Some(OperationLease {
+            gate: self.operation_gate.clone(),
+            kind,
+        })
     }
 
     /// A process-unique id for a new document or job. Not a security
@@ -117,5 +156,31 @@ impl AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self::new(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn operation_gate_is_mutually_exclusive_across_all_long_running_kinds() {
+        let state = AppState::default();
+        for kind in [
+            OperationKind::Processing,
+            OperationKind::RemoteApi,
+            OperationKind::AutoBookmark,
+        ] {
+            let lease = state.try_claim_operation(kind).expect("first claim wins");
+            assert!(state.try_claim_operation(kind).is_none());
+            assert!(state
+                .try_claim_operation(OperationKind::Processing)
+                .is_none());
+            drop(lease);
+            assert!(state.try_claim_operation(kind).is_some());
+            // The temporary lease above is dropped at the end of this loop
+            // iteration, proving both success and failure release paths.
+            state.operation_gate.lock().unwrap().take();
+        }
     }
 }

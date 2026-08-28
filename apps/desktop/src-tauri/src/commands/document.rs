@@ -7,7 +7,7 @@ use tauri::State;
 
 use crate::dto::{DocumentSummaryDto, PdfiumStatusDto, UiErrorDto};
 use crate::errors::{classify_core_error, request_error};
-use crate::state::{AppState, OpenDocumentState};
+use crate::state::{AppState, OpenDocumentState, OperationKind};
 use crate::worker::WorkerCommand;
 
 /// Opens `path` as the window's one active document, replacing any
@@ -21,12 +21,14 @@ pub async fn open_document(
     password: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<DocumentSummaryDto, UiErrorDto> {
-    if state.job.lock().unwrap().is_some() {
-        return Err(request_error(
-            "job_active",
-            "a processing job is running; cancel it before opening another document",
-        ));
-    }
+    let _operation = state
+        .try_claim_operation(OperationKind::Processing)
+        .ok_or_else(|| {
+            request_error(
+                "operation_active",
+                "a document operation is running; finish or cancel it before opening another document",
+            )
+        })?;
 
     let path_buf = PathBuf::from(&path);
     let password_protected_session = password.is_some();
@@ -68,12 +70,14 @@ pub async fn open_document(
 /// processing job is running, for the same reason as `open_document`.
 #[tauri::command]
 pub fn close_document(state: State<'_, AppState>) -> Result<(), UiErrorDto> {
-    if state.job.lock().unwrap().is_some() {
-        return Err(request_error(
-            "job_active",
-            "a processing job is running; cancel it before closing the document",
-        ));
-    }
+    let _operation = state
+        .try_claim_operation(OperationKind::Processing)
+        .ok_or_else(|| {
+            request_error(
+                "operation_active",
+                "a document operation is running; finish or cancel it before closing the document",
+            )
+        })?;
     state.worker.send(WorkerCommand::Close);
     *state.document.lock().unwrap() = None;
     Ok(())

@@ -407,9 +407,15 @@ pub(crate) fn auto_bookmark(
         &AutoBookmarkConfig::default(),
         &is_cancelled,
     )?;
-    bookmarks::save_generation(&work.package_root, &result, existing)?;
-    let reviews = bookmarks::load_reviews(&work.package_root, &result.snapshot)?;
-    let effective = bookmarks::effective(&result.snapshot, &reviews)?;
+    let generation = bookmarks::begin_generation(&work.package_root, &result, existing)?;
+    let reviews = match bookmarks::load_reviews(&work.package_root, &result.snapshot) {
+        Ok(reviews) => reviews,
+        Err(error) => return rollback_generation(generation, error),
+    };
+    let effective = match bookmarks::effective(&result.snapshot, &reviews) {
+        Ok(effective) => effective,
+        Err(error) => return rollback_generation(generation, error),
+    };
     let writable = effective
         .iter()
         .filter(|candidate| candidate.status.writes_to_pdf())
@@ -417,7 +423,7 @@ pub(crate) fn auto_bookmark(
     let output_path = if writable == 0 {
         None
     } else {
-        let summary = build_searchable_output_observed(
+        let summary = match build_searchable_output_observed(
             &SearchableOutputRequest {
                 package: &inputs.package,
                 source: &work.source,
@@ -426,12 +432,19 @@ pub(crate) fn auto_bookmark(
                 candidates: &effective,
                 derived: inputs.derived.as_ref(),
                 pdfium: pdfium_config(bundled_pdfium_path),
+                output_write_strategy: output_write_strategy(),
             },
             &is_cancelled,
             &|stage| (work.stage)(stage.as_str()),
-        )?;
+        ) {
+            Ok(summary) => summary,
+            Err(error) => {
+                return rollback_generation(generation, error);
+            }
+        };
         Some(summary.output_path)
     };
+    generation.commit()?;
     Ok(AutoBookmarkOutcome {
         mode: result.report.mode.as_str(),
         status: result.report.status.as_str(),
@@ -449,6 +462,18 @@ pub(crate) fn auto_bookmark(
 
 fn no_open_document() -> CoreError {
     CoreError::InvalidParameter("no document is open".to_string())
+}
+
+fn rollback_generation<T>(
+    generation: mpdf_core::bookmarks::GenerationTransaction,
+    error: CoreError,
+) -> CoreResult<T> {
+    match generation.rollback() {
+        Ok(()) => Err(error),
+        Err(rollback_error) => Err(CoreError::InvalidDocument(format!(
+            "automatic bookmark output failed: {error}; rollback failed: {rollback_error}"
+        ))),
+    }
 }
 
 #[cfg(test)]
@@ -607,7 +632,17 @@ mod auto_bookmark_tests {
             first.is_err(),
             "the fake source path cannot be written from"
         );
-        assert!(mpdf_core::bookmarks::candidates_path(&root).exists());
+        assert!(
+            !mpdf_core::bookmarks::candidates_path(&root).exists(),
+            "a failed output write must roll back the new generation"
+        );
+        let seed = mpdf_core::bookmarks::generate_auto_from_package(
+            &root,
+            &mpdf_core::bookmarks::AutoBookmarkConfig::default(),
+            &|| false,
+        )
+        .unwrap();
+        mpdf_core::bookmarks::save_generation(&root, &seed, false).unwrap();
 
         let refused = auto_bookmark(&work(root.clone(), stages.clone()), None)
             .expect_err("existing candidates are protected");

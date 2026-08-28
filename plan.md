@@ -238,9 +238,9 @@ OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
 **目标：** 把 M3–M6 已保存的 OCR/原生文字证据，编译成可验证、可自动写入 PDF 的标准
 outline；不是让模型自由生成语义目录。
 
-状态（2026-08-28）：代码、schema、CLI、桌面、测试与文档已在 M6 基线上一次性完成，
-尚未提交/推送/开 PR。本功能刻意不复用 M7 编号：`plan.md` 已把 M7 定义为发布硬化与正式
-命名，具体编号由项目负责人之后决定。
+状态（2026-08-28）：Opus 实现已由远端提交 `1a3ccc1` 交付（基于 M6 merge
+`3dd3389`）；本轮在本地修复分支 `codex/auto-bookmark-v2-fixes` 做发布前回归，按要求
+不提交、不推送、不建 PR。本功能刻意不复用 M7 编号。
 
 交付：
 
@@ -262,10 +262,13 @@ outline；不是让模型自由生成语义目录。
 
 未完成/未运行（如实记录）：
 
-- 本机（x86_64 Linux 容器）没有 `third_party/pdfium/manifest.toml` 认可的 PDFium
-  二进制，因此 PDFium 相关集成测试（`auto_bookmarks_pdf`、`bookmarks_cli`、
-  `pdf_pipeline`、`searchable_pdf`）与 `scripts/m5/check_reader_matrix.sh`
-  **未运行**，按仓库惯例标记为 ignored，不得视为通过；
+- 当前 Mac 已有认可的 PDFium：
+  `/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib`。
+  本轮用它实际运行了 `auto_bookmarks_pdf`（ignored 3/3）、`searchable_pdf`（1/1）及
+  相关 PDFium 门；ignored 测试只有显式命令才计入上述计数。
+- `scripts/m5/check_reader_matrix.sh` 已使用全新的输出目录实际通过（qpdf、pdfinfo、
+  pdftotext、Ghostscript、Swift PDFKit、Node PDF.js 均可用并通过）；商业阅读器真机
+  交互未运行，不写成通过；
 - 没有真实人工金标准语料，因此没有任何真实准确率数字；评测脚本在语料缺失时输出
   `not_run`/`pending`；
 - 评分阈值是保守冻结基线，未按语料校准。
@@ -295,7 +298,7 @@ outline；不是让模型自由生成语义目录。
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
 | M5 自动书签/PDF | 代码已合并；人工结果后补（不阻塞 M6） | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人之后提供 Acrobat/Preview/iOS 与单人标注结果 |
 | M6 API | 已合并 | [PR #25](https://github.com/Museion-Project/museion-binarize/pull/25)；merge `3dd3389` | 发布准备留待 M7 |
-| 自动书签目录 v2 | 已实现，未提交/未开 PR | `claude/auto-bookmark-feature-fb2533` | 本机无 PDFium 二进制：PDFium 集成门与 reader matrix 未运行 |
+| 自动书签目录 v2 | `1a3ccc1` 已交付；本轮修复未提交 | `codex/auto-bookmark-v2-fixes` | 真实 reader/人工 gold/真机 Tauri 仍需分别记录，不得伪报通过 |
 | M7 发布/正式命名 | 未开始 | — | 自动书签目录 v2 合并后与 M6 一起做发布轮 |
 
 ## 5. 当前阻塞
@@ -303,9 +306,8 @@ outline；不是让模型自由生成语义目录。
 M5 严格产品出口门已有 20 份真实原生 outline 语料、12 份单一权威标注者验收样本、固定
 PDF.js 及 Foxit 证据。产品负责人将之后补充 digital/scanned TOC、safe-refusal、Acrobat、
 Preview UI 和 iOS 结果；这些结果仍不得伪报通过，但按 2026-08-28 的明确授权不再阻塞 M6。
-自动书签目录 v2 当前的阻塞是环境性的：本机没有仓库认可的 PDFium 二进制（manifest 只
-记录了 aarch64-apple-darwin 资产），因此 PDFium 集成门与阅读器矩阵必须在具备该库的机器
-上补跑；同时真实人工金标准语料仍未标注完成，本轮不产出任何真实准确率数字。
+自动书签目录 v2 的代码回归和 reader matrix 已使用本机认可 PDFium 完成；商业阅读器真机、
+真实人工金标准语料和真机 Tauri/MAS 交互仍未运行，本轮不产出真实准确率或人工验收数字。
 
 M6 当前没有外部阻塞。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。

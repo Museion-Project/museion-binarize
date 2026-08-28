@@ -90,20 +90,21 @@ pub fn auto(a: BookmarkAutoArgs) -> ExitCode {
         Ok(x) => x,
         Err(e) => return fail(&e),
     };
-    if let Err(e) = bookmarks::save_generation(&a.input, &result, overwrite_candidates) {
-        return fail(&e);
-    }
+    let generation = match bookmarks::begin_generation(&a.input, &result, overwrite_candidates) {
+        Ok(transaction) => transaction,
+        Err(e) => return fail(&e),
+    };
     let package = match mpdf_core::document_package::DocumentPackage::read_from(&a.input) {
         Ok(x) => x,
-        Err(e) => return fail(&e),
+        Err(e) => return fail_generation(generation, e),
     };
     let reviews = match bookmarks::load_reviews(&a.input, &result.snapshot) {
         Ok(x) => x,
-        Err(e) => return fail(&e),
+        Err(e) => return fail_generation(generation, e),
     };
     let effective = match bookmarks::effective(&result.snapshot, &reviews) {
         Ok(x) => x,
-        Err(e) => return fail(&e),
+        Err(e) => return fail_generation(generation, e),
     };
     let writable = effective
         .iter()
@@ -112,7 +113,7 @@ pub fn auto(a: BookmarkAutoArgs) -> ExitCode {
     let derived = if result.snapshot.derived_digest.is_some() {
         match bookmarks::load_auto_bookmark_inputs(&a.input) {
             Ok(inputs) => inputs.derived,
-            Err(e) => return fail(&e),
+            Err(e) => return fail_generation(generation, e),
         }
     } else {
         None
@@ -128,11 +129,17 @@ pub fn auto(a: BookmarkAutoArgs) -> ExitCode {
             candidates: &effective,
             derived: derived.as_ref(),
             pdfium: a.pdfium.to_config(),
+            output_write_strategy: mpdf_core::pipeline::OutputWriteStrategy::default(),
         }) {
             Ok(x) => Some(x),
-            Err(e) => return fail(&e),
+            Err(e) => {
+                return fail_generation(generation, e);
+            }
         }
     };
+    if let Err(e) = generation.commit() {
+        return fail(&e);
+    }
     let status = if summary.is_some() {
         "written"
     } else {
@@ -285,4 +292,16 @@ fn mutate(
 fn fail(e: &CoreError) -> ExitCode {
     eprintln!("error: {}", e);
     errors::classify(e).1.exit_code()
+}
+
+fn fail_generation(
+    generation: mpdf_core::bookmarks::GenerationTransaction,
+    error: CoreError,
+) -> ExitCode {
+    match generation.rollback() {
+        Ok(()) => fail(&error),
+        Err(rollback_error) => fail(&CoreError::InvalidDocument(format!(
+            "automatic bookmark output failed: {error}; rollback failed: {rollback_error}"
+        ))),
+    }
 }
