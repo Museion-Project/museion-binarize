@@ -73,6 +73,9 @@ allow = [
     # `wry`/webview dependency chain (cssparser, selectors, dtoa-short,
     # option-ext). Allowed deliberately; GPL/AGPL remain denied.
     "MPL-2.0",
+    # rustls-platform-verifier's bundled public roots are distributed under
+    # the permissive CDLA license.
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 

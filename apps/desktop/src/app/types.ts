@@ -24,6 +24,15 @@ export interface DocumentSummary {
 export type BinarizationMethod = "otsu" | "sauvola" | "manual";
 export type DespeckleLevel = "off" | "conservative" | "strong";
 
+/** Explicit M6 routing choices. `local` is the offline-safe default. */
+export type ApiRoute = "local" | "api" | "api_then_local";
+export interface ApiRouteOptions { routes: ApiRoute[]; defaultRoute: ApiRoute; }
+export interface ApiCredentialPresence { profileId: string; present: boolean; }
+export interface ApiPlanRequest { documentId: string; endpoint: string; provider: string; model: string; budgetMicros: number; currency: string; retention: "delete_after_result" | "keep_until_deleted"; }
+export interface ApiConsentSummary { planDigest: string; origin: string; provider: string; model: string; sourceDigest: string; sourceBytes: number; pageCount: number; budgetMicros: number; currency: string; retention: string; }
+export interface ApiRunRequest { plan: ApiPlanRequest; consent: string; profileId: string; route: ApiRoute; }
+export interface ApiTaskProgress { taskId: string; state: string; usedCostMicros: number; budgetMicros: number; retention: string; artifactPath: string; fallbackReason: string | null; }
+
 /** Mirrors `ProcessingSettingsDto`. The one settings shape the whole app uses. */
 export interface ProcessingSettings {
   dpi: number;

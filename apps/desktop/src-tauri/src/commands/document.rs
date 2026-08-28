@@ -29,6 +29,7 @@ pub async fn open_document(
     }
 
     let path_buf = PathBuf::from(&path);
+    let password_protected_session = password.is_some();
     let file_name = path_buf
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -52,6 +53,7 @@ pub async fn open_document(
         file_name: file_name.clone(),
         input_path: canonical_path,
         page_count: opened.info.page_count,
+        password_protected_session,
     });
 
     Ok(DocumentSummaryDto::build(

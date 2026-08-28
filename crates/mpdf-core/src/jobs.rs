@@ -139,7 +139,9 @@ impl JobStore {
         connection.execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")?;
         let schema_version: i64 =
             connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
-        if schema_version > 2 {
+        // M6 API state shares this database. Version 3 adds API tables and
+        // does not alter the jobs/pages/provider_runs contracts.
+        if schema_version > 3 {
             return Err(JobError::Invalid(format!(
                 "unsupported job schema version: {schema_version}"
             )));
@@ -1613,7 +1615,7 @@ mod tests {
         let db = dir.path().join("jobs.sqlite");
         let connection = rusqlite::Connection::open(&db).unwrap();
         connection
-            .pragma_update(None, "user_version", 3_i64)
+            .pragma_update(None, "user_version", 4_i64)
             .unwrap();
         drop(connection);
         assert!(JobStore::open(&db).is_err());

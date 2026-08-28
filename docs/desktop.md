@@ -1,3 +1,16 @@
+# API route and cross-device tasks (M6)
+
+The desktop exposes Local, Cloud enhanced, and Cloud then local as explicit
+route choices. Local never constructs an API client. Cloud enhanced never
+falls back silently; Cloud then local records the user-selected fallback
+reason. Before upload, the consent summary shows endpoint origin, provider,
+model, source digest, integer micros budget, and retention. Only credential
+presence is displayed—tokens never enter frontend state or IPC responses.
+
+Portable task receipts can be imported on another device after selecting a
+credential profile for the same origin. Progress, cost, cancellation, resume,
+and retention acknowledgement/pending/failure are durable states.
+
 # The desktop application
 
 This document describes the Milestone 4 desktop GUI: its architecture,

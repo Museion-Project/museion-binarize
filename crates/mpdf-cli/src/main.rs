@@ -45,6 +45,7 @@ fn main() -> ExitCode {
         Some(Command::Job(JobCommand::Create(args))) => commands::job::create(args),
         Some(Command::Job(JobCommand::Status(args))) => commands::job::status(args),
         Some(Command::Job(JobCommand::Cancel(args))) => commands::job::cancel(args),
+        Some(Command::Api(args)) => commands::api::run(args),
         Some(Command::Ocr(args)) => commands::ocr::run(args),
         Some(Command::Export(args)) => commands::derived::export(args),
         Some(Command::Review(args)) => commands::derived::review(args),

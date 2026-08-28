@@ -685,6 +685,33 @@ legend {
   margin-top: var(--space-4);
 }
 
+.api-routing-panel {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.api-routing-panel h2 {
+  font-size: 0.95rem;
+  margin: 0 0 var(--space-2);
+}
+
+.api-routing-panel [role="group"] {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.api-routing-panel button[aria-pressed="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.api-routing-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: var(--space-2) 0 0;
+}
+
 .error-boundary {
   padding: var(--space-5);
   text-align: center;

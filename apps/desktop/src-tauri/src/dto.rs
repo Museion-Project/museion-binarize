@@ -17,6 +17,68 @@ use mpdf_core::estimation::{PageSizeEstimateSample, SizeEstimateReport};
 use mpdf_core::jobs::{JobProgress, JobStatus};
 use mpdf_core::pipeline::ProcessingReport;
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiRouteOptionsDto {
+    pub routes: Vec<String>,
+    pub default_route: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiCredentialPresenceDto {
+    pub profile_id: String,
+    pub present: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiPlanRequestDto {
+    pub document_id: String,
+    pub endpoint: String,
+    pub provider: String,
+    pub model: String,
+    pub budget_micros: u64,
+    pub currency: String,
+    pub retention: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiConsentSummaryDto {
+    pub plan_digest: String,
+    pub origin: String,
+    pub provider: String,
+    pub model: String,
+    pub source_digest: String,
+    pub source_bytes: u64,
+    pub page_count: u32,
+    pub budget_micros: u64,
+    pub currency: String,
+    pub retention: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiRunRequestDto {
+    pub plan: ApiPlanRequestDto,
+    pub consent: String,
+    pub profile_id: String,
+    pub route: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiTaskProgressDto {
+    pub task_id: String,
+    pub state: String,
+    pub used_cost_micros: u64,
+    pub budget_micros: u64,
+    pub retention: String,
+    pub artifact_path: String,
+    pub fallback_reason: Option<String>,
+}
+
 /// One page's geometry, as reported after a document opens.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

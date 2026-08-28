@@ -47,6 +47,9 @@ pub enum Command {
     /// Inspect and exercise the local persistent job store (development API).
     #[command(subcommand)]
     Job(JobCommand),
+    /// Manage explicitly consented remote OCR tasks.
+    #[command(subcommand)]
+    Api(ApiCommand),
     /// Run the local OCR routing pipeline and write an MDP OCR extension.
     Ocr(OcrArgs),
     /// Build deterministic AI-ready derived records and export them.
@@ -244,6 +247,137 @@ pub enum JobCommand {
     Status(JobStatusArgs),
     /// Request cancellation while retaining already committed pages.
     Cancel(JobCancelArgs),
+}
+
+#[derive(Subcommand)]
+pub enum ApiCommand {
+    #[command(subcommand)]
+    Credential(ApiCredentialCommand),
+    /// Create a canonical, non-secret upload plan.
+    Plan(ApiPlanArgs),
+    /// Execute a plan after repeating its digest as explicit consent.
+    Run(ApiRunArgs),
+    Status(ApiStatusArgs),
+    Cancel(ApiTaskArgs),
+    Import(ApiImportArgs),
+    DeleteContent(ApiTaskArgs),
+}
+
+#[derive(Subcommand)]
+pub enum ApiCredentialCommand {
+    Set(ApiCredentialSetArgs),
+    Status(ApiCredentialStatusArgs),
+    Delete(ApiCredentialStatusArgs),
+}
+
+#[derive(Args)]
+pub struct ApiCredentialSetArgs {
+    #[arg(long)]
+    pub profile: String,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct ApiCredentialStatusArgs {
+    #[arg(long)]
+    pub profile: String,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Args)]
+pub struct ApiPlanArgs {
+    /// Source bytes to bind to the plan.
+    pub source: PathBuf,
+    #[arg(long)]
+    pub endpoint: String,
+    #[arg(long, default_value = "fixture")]
+    pub provider: String,
+    #[arg(long)]
+    pub model: String,
+    #[arg(long)]
+    pub page_count: u32,
+    #[arg(long, default_value_t = 0)]
+    pub budget_micros: u64,
+    #[arg(long, default_value = "USD")]
+    pub currency: String,
+    #[arg(long, value_enum, default_value_t = ApiRetentionArg::DeleteAfterResult)]
+    pub retention: ApiRetentionArg,
+    #[arg(long)]
+    pub output: PathBuf,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Clone, Copy, ValueEnum)]
+pub enum ApiRetentionArg {
+    DeleteAfterResult,
+    KeepUntilDeleted,
+}
+impl From<ApiRetentionArg> for mpdf_core::remote_api::Retention {
+    fn from(v: ApiRetentionArg) -> Self {
+        match v {
+            ApiRetentionArg::DeleteAfterResult => Self::DeleteAfterResult,
+            ApiRetentionArg::KeepUntilDeleted => Self::KeepUntilDeleted,
+        }
+    }
+}
+
+#[derive(Args)]
+pub struct ApiRunArgs {
+    pub plan: PathBuf,
+    #[arg(long)]
+    pub source: PathBuf,
+    #[arg(long)]
+    pub consent: String,
+    #[arg(long)]
+    pub profile: String,
+    #[arg(long)]
+    pub jobs_db: PathBuf,
+    #[arg(long)]
+    pub artifact_dir: PathBuf,
+    #[arg(long)]
+    pub receipt: PathBuf,
+    /// Existing/new MDP directory receiving the verified OCR extension.
+    #[arg(long)]
+    pub mdp_root: Option<PathBuf>,
+    #[arg(long)]
+    pub allow_loopback_http: bool,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct ApiStatusArgs {
+    pub receipt: PathBuf,
+    #[arg(long)]
+    pub profile: String,
+    #[arg(long)]
+    pub allow_loopback_http: bool,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct ApiTaskArgs {
+    pub receipt: PathBuf,
+    #[arg(long)]
+    pub profile: String,
+    #[arg(long)]
+    pub allow_loopback_http: bool,
+    #[arg(long)]
+    pub jobs_db: Option<PathBuf>,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+#[derive(Args)]
+pub struct ApiImportArgs {
+    pub receipt: PathBuf,
+    #[arg(long)]
+    pub profile: String,
+    #[arg(long)]
+    pub allow_loopback_http: bool,
+    #[arg(long)]
+    pub artifact_dir: Option<PathBuf>,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
 }
 
 #[derive(Clone, Copy, ValueEnum)]

@@ -1,3 +1,4 @@
+pub mod api;
 pub mod bookmarks;
 pub mod derived;
 pub mod document;

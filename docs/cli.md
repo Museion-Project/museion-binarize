@@ -93,6 +93,35 @@ the same source-matching MDP directory; it never adopts malformed or
 out-of-range files. RapidOCR fingerprints include the source, protocol,
 configuration, and SHA-256 of each provisioned ONNX model file.
 
+## Consented API OCR (M6)
+
+The API path is opt-in and remains separate from local OCR. Create a plan
+first; it contains source metadata and a digest but no path or secret:
+
+```bash
+mpdf api plan scan.pdf --endpoint https://provider.example --model ocr-1 \
+  --page-count 12 --budget-micros 500000 --output scan.plan.json
+mpdf api run scan.plan.json --source scan.pdf --consent "$(jq -r .plan_digest scan.plan.json)" \
+  --profile work --jobs-db .mpdf/api.sqlite --artifact-dir .mpdf/artifacts \
+  --receipt scan.receipt.json
+```
+
+`api run` performs no request until the consent digest matches the plan. A
+deduplicated create still requires consent. Credentials are read from the OS
+credential store; `api credential set --profile work` reads the token from
+stdin and never accepts a secret argument. The native store is the platform
+Keychain/Credential Manager/Secret Service; unavailability is a visible
+failure, with no plaintext fallback. CI uses an in-memory store and a
+deterministic loopback fixture. Receipts are portable handles and contain no
+path, token, or document text. Use `--allow-loopback-http` only for a literal
+loopback fixture; production endpoints must be HTTPS without URL credentials,
+query strings, fragments, or redirects.
+
+For headless CI and deterministic loopback fixtures only, select the explicit
+credential profile `env` and provide `MPDF_API_TOKEN`. Other profile names use
+the native OS credential store and are never overridden by that environment
+variable.
+
 ## Page selection (`analyze --pages`)
 
 One-based, matching what a user sees:

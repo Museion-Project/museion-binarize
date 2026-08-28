@@ -37,6 +37,7 @@ pub mod pdfium_backend;
 pub mod pipeline;
 pub mod preprocessing;
 pub mod progress;
+pub mod remote_api;
 pub mod report;
 pub mod searchable_pdf;
 pub mod settings;

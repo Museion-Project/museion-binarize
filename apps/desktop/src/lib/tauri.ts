@@ -22,6 +22,12 @@ import type {
   PreviewResult,
   UiError,
   BookmarkCandidate,
+  ApiRouteOptions,
+  ApiCredentialPresence,
+  ApiConsentSummary,
+  ApiPlanRequest,
+  ApiRunRequest,
+  ApiTaskProgress,
 } from "../app/types";
 
 /** Thrown for every failed command; `error` is the backend's structured DTO. */
@@ -84,6 +90,26 @@ function isUiError(value: unknown): value is UiError {
 
 export function projectInfo(): Promise<{ name: string; phase: string }> {
   return call("project_info");
+}
+
+export function apiRouteOptions(): Promise<ApiRouteOptions> {
+  return call("api_route_options");
+}
+
+export function apiCredentialPresence(profileId: string): Promise<ApiCredentialPresence> {
+  return call("api_credential_presence", { profileId });
+}
+
+export function prepareApiPlan(request: ApiPlanRequest): Promise<ApiConsentSummary> {
+  return call("api_prepare_plan", { request });
+}
+
+export function runApiTask(request: ApiRunRequest): Promise<ApiTaskProgress> {
+  return call("api_run_task", { request });
+}
+
+export function cancelApiTask(): Promise<void> {
+  return call("api_cancel_current");
 }
 
 export function pdfiumStatus(): Promise<PdfiumStatus> {

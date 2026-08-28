@@ -22,6 +22,7 @@ pub struct OpenDocumentState {
     /// boundary" rule has a concrete path to point at.
     pub input_path: PathBuf,
     pub page_count: u32,
+    pub password_protected_session: bool,
 }
 
 /// The one processing job currently running, if any. `cancelled` is
@@ -60,6 +61,9 @@ pub struct AppState {
     /// checkpoint instead of running to completion on stale settings.
     pub estimate_job: Mutex<Option<Arc<AtomicBool>>>,
     pub estimate_cache: Mutex<Option<CachedEstimate>>,
+    /// Cancellation handle for the one consented remote OCR request. The
+    /// handle contains no credential or document bytes.
+    pub api_cancellation: Mutex<Option<mpdf_api_client::Cancellation>>,
     /// The trusted bundled PDFium library path for this packaged build,
     /// if one was found under Tauri's resolved resource directory at
     /// startup — `None` in a development run with no bundled resource.
@@ -79,6 +83,7 @@ impl AppState {
             job: Mutex::new(None),
             estimate_job: Mutex::new(None),
             estimate_cache: Mutex::new(None),
+            api_cancellation: Mutex::new(None),
             bundled_pdfium_path,
             next_id: AtomicU64::new(1),
         }

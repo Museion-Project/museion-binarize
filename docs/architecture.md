@@ -1,3 +1,12 @@
+# M6 remote API boundary
+
+`mpdf-core` remains network-free and owns the consented API plan, portable
+receipt, append-only audit, state machine, budget and artifact verification.
+The reusable `mpdf-api-client` crate owns bounded HTTP transport and the
+credential-store trait; frontends do not duplicate protocol code. The only
+remote operation implemented in M6 is OCR, whose verified result is installed
+before it is admitted to the existing MDP OCR extension.
+
 # Architecture
 
 This document describes the intended architecture of M PDF Processor. It
