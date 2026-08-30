@@ -1,0 +1,467 @@
+{
+  "schema": "mpdf-cloud-complete-ocr-bakeoff-preregistration",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "preregistered_not_executed",
+  "registered_before_live_execution": true,
+  "purpose": "A single cloud Complete OCR bakeoff of Gemini direct structured line coordinates against Azure Document Intelligence Read as the contract-control baseline.",
+  "scope": {
+    "experiment": "cloud_complete_ocr_only",
+    "primary_candidate": "google_vertex_gemini",
+    "contract_control": "azure_document_intelligence",
+    "same_inputs_for_both_providers": true,
+    "full_page_input_without_region_hints": true,
+    "local_ocr_or_local_geometry_during_inference": false,
+    "ground_truth_available_to_providers": false,
+    "other_provider_execution": false,
+    "automatic_provider_adoption": false
+  },
+  "content_policy": {
+    "content_free": true,
+    "allowed_evidence": [
+      "frozen page IDs",
+      "cryptographic digests",
+      "provider, model, API, and schema identifiers",
+      "aggregate and per-page numeric metrics",
+      "latency summaries",
+      "usage counters and cost summaries",
+      "categorical pass, fail, and redacted preflight outcomes"
+    ],
+    "forbidden_in_this_record_and_result_evidence": [
+      "page images or image bytes",
+      "base64 image payloads",
+      "ground-truth transcription text",
+      "OCR text or provider response bodies",
+      "line-level ground-truth or prediction coordinates",
+      "filesystem paths or corpus directories",
+      "request URLs or service endpoints",
+      "cloud project, account, subscription, resource, or tenant IDs",
+      "credentials, API keys, bearer tokens, secrets, or request headers",
+      "unredacted provider errors"
+    ],
+    "errors": "Persist only a stable categorical error code and a redacted phase; never persist raw provider error text.",
+    "runtime_payloads": "Images, ground truth, OCR text, and raw responses may exist only in scoring memory or an explicitly private ignored runtime area with directories mode 0700 and files mode 0600; they are excluded from evidence serialization. Every scheduled call receives a version-3 content-free outcome metadata record containing any raw-response SHA-256. A final ordered run manifest binds each metadata SHA-256 plus the preregistration, frozen configuration, parser/selector/scorer/harness code digests; its unique content-free SHA-256 is emitted in result evidence. Replay requires that original digest as an external anchor and scores the exact response/meta byte buffers read during verification without rereading them. Missing, substituted, extra, tampered, or coherently replaced records invalidate replay. Credentials, endpoint values, and account-scoped identifiers remain in memory only."
+  },
+  "corpus": {
+    "name": "Corpus of Ground-truthed Patrologia Graeca",
+    "doi": "10.5281/zenodo.20008699",
+    "archive_sha256": "2ee5d79f3c781dc1b64fa386f0f194a762ab183cd36b97f5d873ce0a3004e1f7",
+    "license": "CC BY 4.0",
+    "split": "deterministic_holdout",
+    "selection_rule": "lexicographically first 12 pages with at least one non-empty transcribed line from the deterministic CGPG holdout split",
+    "page_count": 12,
+    "page_ids": [
+      "grc_grna_or_399",
+      "grc_grna_or_409",
+      "grc_grna_or_423",
+      "grc_grna_or_429",
+      "grc_grna_or_443",
+      "grc_grna_or_447",
+      "grc_grna_or_461",
+      "grc_grna_or_475",
+      "grc_grna_or_487",
+      "grc_grna_or_489",
+      "grc_grna_or_503",
+      "grc_grna_or_513"
+    ],
+    "single_column_limitation": "This fixed slice supplies only single-column Greek reading-order evidence. It cannot establish multi-column, mixed-language, block-order, or general document-layout performance."
+  },
+  "input_manifest": {
+    "formal_manifest": {
+      "schema": "mpdf-cloud-complete-ocr-input-manifest",
+      "schema_version": "1.0",
+      "top_level_fields": [
+        "schema",
+        "schema_version",
+        "pages"
+      ],
+      "page_record_fields": [
+        "page_id",
+        "width",
+        "height",
+        "image",
+        "ground_truth_page_xml"
+      ],
+      "image_fields": [
+        "mime_type",
+        "sha256",
+        "size_bytes"
+      ],
+      "image_mime_type": "image/jpeg",
+      "ground_truth_page_xml_fields": [
+        "sha256",
+        "size_bytes"
+      ],
+      "field_types": "page_id, mime_type, and SHA-256 values are strings; width, height, and size_bytes values are positive base-10 integers; SHA-256 values are lowercase hexadecimal",
+      "page_order": "the frozen corpus.page_ids order",
+      "canonicalization": "json.dumps of the named manifest object with ensure_ascii=False, sort_keys=True, separators=(comma, colon), encoded as UTF-8 with no trailing newline",
+      "digest_algorithm": "sha256",
+      "expected_digest": "6ab387adc9da8c55d227d3ef88dfe47af9e9f1c757b2f974ba06d8bf0eb4a751"
+    },
+    "legacy_audit_manifest": {
+      "purpose": "Preserve the independently reproduced meaning of the previously known audit digest; it is not the formal manifest schema.",
+      "record_count": 24,
+      "record_shape": [
+        "page_name",
+        "kind",
+        "file_sha256",
+        "file_size_bytes"
+      ],
+      "record_order": "For each frozen page in page-ID order, emit the image tuple and then the PAGE XML tuple.",
+      "canonicalization": "json.dumps of the outer tuple array with default ensure_ascii=True and separators=(comma, colon), encoded as UTF-8 with no trailing newline",
+      "canonical_byte_length": 2420,
+      "digest_algorithm": "sha256",
+      "legacy_audit_manifest_digest": "07b330a2da29193c5cfebdd3c807649eb2b53ff50a89f260f1abe7f9c98d77fa",
+      "independently_cross_checked": true
+    },
+    "gate": "Recompute before credential use and abort before every model call unless the archive digest, frozen page order, formal manifest digest, and legacy audit manifest digest all match exactly. Parse and score the exact verified PAGE XML byte buffers, verify JPEG dimensions from the exact verified image byte buffers, and upload those byte-identical JPEG buffers.",
+    "provider_upload_subset": "Only each formal manifest page's JPEG image bytes are uploaded. PAGE XML is local scoring input and is never sent to either provider.",
+    "manifest_records_serialized_in_evidence": false
+  },
+  "experimental_design": {
+    "providers": 2,
+    "pages": 12,
+    "repetitions_per_provider_page": 3,
+    "planned_provider_page_runs": 72,
+    "concurrency": 1,
+    "repetition_indices": [
+      0,
+      1,
+      2
+    ],
+    "schedule": {
+      "page_order": "the frozen corpus.page_ids order in every repetition",
+      "loop_nesting": "page index outermost, repetition index next, provider parity order innermost",
+      "interleaving": "provider order swaps on the parity of zero-based page index plus zero-based repetition index",
+      "even_parity_order": [
+        "google_vertex_gemini",
+        "azure_document_intelligence"
+      ],
+      "odd_parity_order": [
+        "azure_document_intelligence",
+        "google_vertex_gemini"
+      ],
+      "balance": "Each provider occupies the first position in 18 provider pairs and the second position in 18 provider pairs."
+    },
+    "input_parity": "Every provider and repetition receives the exact JPEG bytes identified by the frozen image digest for that page.",
+    "automatic_retries": 0,
+    "run_validity": "A missing, substituted, extra, or out-of-order provider-page repetition invalidates the run; failed calls remain failures and are not replaced by a different model or provider.",
+    "threshold_mutability": "All contracts, tariffs, matching rules, metric definitions, gates, and decision rules in this preregistration are immutable after the first live model call."
+  },
+  "provider_contracts": {
+    "google_vertex_gemini": {
+      "role": "primary_candidate",
+      "model": "gemini-3.7-flash",
+      "api": "Vertex AI global publisher REST generateContent",
+      "request_asset": "the frozen full-page JPEG, with no crop, local OCR text, local geometry, or reference hint",
+      "prompt": {
+        "fixed_and_content_independent": true,
+        "sha256": "ce534ab2f3fcfd8ea8a45607730e892e9996d26fceb5f693f35361447c2ff4af",
+        "digest_bytes": "UTF-8 bytes of the exact fixed prompt, including its terminal line feed",
+        "semantics": "Transcribe every visible printed line verbatim, preserve characters without translation or correction, provide one direct page-relative box per line, and emit the lines in reading order under the strict response schema."
+      },
+      "generation_config": {
+        "sampling_parameters": "Omit temperature, topP, and topK because Gemini 3.7 does not expose them as stable controls; the three frozen repetitions measure actual backend stability under provider-default sampling.",
+        "thinking_level": "MEDIUM",
+        "max_output_tokens": 4096,
+        "response_mime_type": "application/json"
+      },
+      "transport": {
+        "request_timeout_seconds": 180.0,
+        "automatic_retries": 0,
+        "redirects_allowed": false
+      },
+      "response_contract": {
+        "strict": true,
+        "envelope_finish_reason": "Exactly one candidate is required and its finishReason must be STOP; truncation, safety termination, or any other finish reason is a response failure.",
+        "envelope_parts": "Require exactly one non-thought, non-empty text payload containing the structured JSON. Permit at most eight Parts and ignore only documented thought boolean, bounded opaque thoughtSignature, thought text, or an empty final metadata Part; reject every other Part field.",
+        "provenance": "Require a returned modelVersion equal to gemini-3.7-flash or that exact value followed by a hyphen and a 1-to-128-character ASCII [A-Za-z0-9._-] suffix beginning alphanumerically, plus a non-empty responseId. The same provider-specific grammar is revalidated during replay. Serialize only the validated model version and SHA-256 of each responseId.",
+        "canonical_schema_sha256": "fa065d5e0c268af610cb58f0f3f7d7baca0ffd87226a3183747940f24ab4624f",
+        "schema_digest_canonicalization": "json.dumps with ensure_ascii=False, sort_keys=True, separators=(comma, colon), encoded as UTF-8 with no trailing newline",
+        "maximum_response_bytes": 33554432,
+        "top_level_type": "object",
+        "top_level_required": [
+          "lines"
+        ],
+        "top_level_additional_properties": "Rejected by the local strict parser. additionalProperties is omitted from the Vertex responseSchema because Gemini 3.7 structured output does not support it as a native constraint.",
+        "lines": {
+          "type": "array",
+          "ordered": true,
+          "minimum_items": 1,
+          "maximum_items": 256,
+          "item_type": "object",
+          "item_required": [
+            "text",
+            "bbox",
+            "reading_order"
+          ],
+          "item_additional_properties": "Rejected by the local strict parser; the unsupported additionalProperties keyword is omitted from the provider wire schema.",
+          "text": "The provider wire schema constrains type STRING only. The local strict parser requires a non-empty string of at most 4096 characters containing no CR, LF, Unicode Cc control, or Unicode line/paragraph separator; the sum of all returned line-text characters is also limited to 4096.",
+          "bbox": {
+            "coordinate_order": [
+              "ymin",
+              "xmin",
+              "ymax",
+              "xmax"
+            ],
+            "length": 4,
+            "component_type": "integer",
+            "component_minimum": 0,
+            "component_maximum": 1000,
+            "coordinate_space": "normalized_page_0_to_1000"
+          },
+          "reading_order": "zero-based contiguous integer from 0 through 255; array order must equal ascending reading_order"
+        }
+      },
+      "resource_bound": "The 256-line and 4096-total-line-character ceilings are frozen for both providers. The exact fixed reference pages contain at most 2040 joined line-text characters, so the text limit gives more than 2x corpus-derived headroom while bounding deterministic dense assignment memory, cubic assignment runtime, and quadratic CER work; a larger response is a contract failure, never truncated.",
+      "coordinate_conversion": "Map normalized x values to the frozen image width and normalized y values to the frozen image height as floating-point pixel-edge coordinates. Reject rather than clamp or repair an invalid box.",
+      "capability_under_test": "Direct image-to-text-and-coordinate output with provider-owned reading order and direct line text-to-box identity; no downstream alignment supplies geometry."
+    },
+    "azure_document_intelligence": {
+      "role": "contract_control",
+      "model": "prebuilt-read",
+      "api_version": "2024-11-30",
+      "submission": "POST the same raw JPEG bytes with the JPEG media type",
+      "endpoint_policy": "Before any authenticated request, require HTTPS on default port 443 with no userinfo, query, fragment, or path, and a DNS name matching one commercial Azure Document Intelligence resource label followed exactly by .cognitiveservices.azure.com. Arbitrary origins, IP literals, sovereign-cloud suffixes, and unregistered private DNS aliases are outside this bakeoff and fail preflight.",
+      "completion": "Poll only the provider-returned operation location after verifying that its origin exactly matches the configured Azure origin; reject cross-origin polling.",
+      "transport": {
+        "request_timeout_seconds": 180.0,
+        "poll_timeout_seconds": 300.0,
+        "maximum_polls": 120,
+        "poll_interval_seconds": 1.0,
+        "automatic_retries": 0,
+        "redirects_allowed": false
+      },
+      "coordinate_source": "provider-native page line polygons",
+      "reading_order_source": "provider-native line order",
+      "page_contract": "Exactly one pixel-unit page whose reported width and height each differ from the frozen JPEG dimension by no more than 0.5 pixel.",
+      "response_provenance": "Require analyzeResult.modelId exactly prebuilt-read and analyzeResult.apiVersion exactly 2024-11-30; record these content-free identifiers in evidence.",
+      "line_contract": "Between 1 and 256 native lines; every polygon has exactly four x/y vertices, every line has non-empty content with no CR, LF, Unicode Cc control, or Unicode line/paragraph separator, and native array order defines zero-based contiguous reading order. The shared 256-line resource bound is symmetric with Gemini and responses are rejected rather than truncated.",
+      "word_contract": "Retain and strictly validate at most 4096 provider-native words and polygons whose combined content is at most 4096 characters; word content is non-empty and obeys the same control/line-separator exclusion as line content; when present, confidence must be finite and within [0,1].",
+      "retained_transient_fields": [
+        "line text",
+        "line polygons",
+        "word text",
+        "word polygons",
+        "word confidence"
+      ],
+      "evidence_serialization": "Word and line content, polygons, and raw responses are excluded; only contract availability and numeric aggregates may be serialized.",
+      "coordinate_conversion": "Use image-response polygon coordinates in the frozen image pixel space and derive the enclosing line box without clipping or geometric repair."
+    }
+  },
+  "normalization_and_scoring": {
+    "evaluation_region": "reference-defined transcribed CGPG lines on the frozen pages",
+    "prediction_region_filter": "For scoring only after inference, include a provider line when its box center falls inside a reference region with non-empty transcription. Reference regions and geometry are never supplied to a provider.",
+    "polytonic_cer": {
+      "definition": "Unicode character Levenshtein edits divided by reference characters after NFC and whitespace normalization; all polytonic marks remain significant.",
+      "aggregation": "micro-average from summed integer edit and reference-character counts across all frozen pages and repetitions"
+    },
+    "base_letter_cer": {
+      "definition": "The same CER after NFD decomposition and removal of all combining marks; case and script remain significant.",
+      "aggregation": "micro-average from summed integer edit and reference-character counts across all frozen pages and repetitions"
+    },
+    "box_alignment": {
+      "ground_truth_geometry": "the pixel-space enclosing rectangle of each reference PAGE line polygon",
+      "prediction_geometry": "the provider line rectangle in the same frozen image pixel space",
+      "similarity": "axis-aligned intersection over union",
+      "matching_objective": "Every matching is deterministic and one-to-one. Convert each finite stored float coordinate to its exact rational value, compute exact rational IoU, admit an edge only on the exact stated threshold, maximize eligible-pair cardinality, then exact total IoU, then the lexicographically earliest prediction-index/reference-index incidence vector.",
+      "f1_at_0_50_matching": "Only pairs with IoU >= 0.50 are eligible. This matching also supplies reading-order identities and matched-ground-truth coverage.",
+      "f1_at_0_75_matching": "Only pairs with IoU >= 0.75 are eligible; compute a separate matching from the 0.50 matching.",
+      "matched_mean_iou_matching": "Only strictly positive-IoU pairs are eligible; compute a third separate matching with no positive threshold beyond IoU > 0.",
+      "f1_counts": "At each threshold, TP is eligible matched pairs, FP is predicted lines minus TP, and FN is reference lines minus TP. Provider-level F1 is the micro-average from summed TP, predicted-line, and reference-line counts across all 36 calls.",
+      "matched_mean_iou": "Arithmetic mean IoU over every pair selected by the separate strictly-positive matching across all 36 calls. Missing or failed lines are penalized through F1 and coverage and are not added as artificial zero-IoU matches.",
+      "required_report_counts": [
+        "predicted_lines",
+        "reference_lines",
+        "matched_pairs",
+        "unmatched_predictions",
+        "unmatched_references",
+        "degenerate_boxes",
+        "out_of_page_boxes",
+        "exact_duplicate_boxes"
+      ]
+    },
+    "reading_order": {
+      "ground_truth_order": "the reference PAGE line order within the reference-defined transcribed regions",
+      "pairwise_accuracy": "For lines selected by the IoU >= 0.50 matching, one minus summed inversions divided by summed comparable matched-line pairs across all 36 calls, using reference order as truth.",
+      "matched_ground_truth_coverage": "summed reference lines selected by the IoU >= 0.50 matching divided by summed reference lines across all 36 calls",
+      "required_report_counts": [
+        "comparable_pairs",
+        "inversions",
+        "matched_reference_lines",
+        "reference_lines"
+      ]
+    },
+    "cross_run_stability": {
+      "repetition_pairs": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "cer": "The lower-index repetition is the reference. Apply the same NFC and whitespace normalization, then divide Unicode character Levenshtein edits by the normalized character count of that lower-index run. If that denominator is zero, return 0 only when both normalized runs are empty and otherwise fail closed with CER 1.",
+      "box_matching": "At IoU >= 0.50, deterministically maximize matched-pair cardinality, then matched total IoU, then apply a stable input-index tie break.",
+      "order_identity": "Use the cross-run geometry matches as line identities, then compute pairwise reading-order accuracy over all comparable matched-line pairs.",
+      "relative_line_count_delta": "absolute line-count difference divided by max of the two line counts and one",
+      "per_page_reduction": "Across all three repetition pairs, retain minimum box F1, minimum pairwise order accuracy, maximum inter-run CER, and maximum relative line-count delta for gate evaluation."
+    },
+    "latency": {
+      "clock": "monotonic wall clock",
+      "interval": "immediately before request submission through receipt and validation of the terminal response, including Azure polling; Azure rechecks the hard 300-second deadline after every poll sleep and never floors a positive remaining timeout upward",
+      "summaries_seconds": [
+        "total",
+        "mean",
+        "median",
+        "p95",
+        "max"
+      ],
+      "median_method": "statistics.median; for an even count use the arithmetic mean of the two middle sorted observations",
+      "p95_method": "nearest rank after ascending sort, at one-based rank ceil(0.95 * observation_count)",
+      "gate": null
+    },
+    "precision": "All gates use unrounded counts and floating-point values; displayed evidence may additionally contain rounded values.",
+    "resource_safety": "Before each existing CER implementation call, reject if (raw reference characters + 1) * (raw hypothesis characters + 1) exceeds 20000000. NFC/whitespace normalization and base-letter normalization do not defeat this conservative pre-normalization bound. Combined with the 4096 provider text cap and frozen 2040-character maximum reference page, this bounds quadratic edit-distance work without truncating or repairing output."
+  },
+  "immutable_gates": {
+    "scope": "Evaluate each provider over all 36 provider-page repetitions and all three unordered cross-run pairs on every frozen page. Structural coordinate-contract gates and recognition-quality gates are immutable but produce distinct decision inputs.",
+    "structural_coordinate_contract": {
+      "response_success_definition": "Gemini requires HTTP 200; Azure requires a terminal succeeded service status. A successful transport/service response that later fails strict parsing counts as response success but not schema validity.",
+      "response_success_percent_min": 100.0,
+      "strict_schema_valid_percent_min": 100.0,
+      "pages_with_three_valid_repetitions_percent_min": 100.0,
+      "invalid_boxes_max": 0,
+      "degenerate_boxes_max": 0,
+      "out_of_page_boxes_max": 0,
+      "exact_duplicate_boxes_max": 0,
+      "box_f1_at_0_50_min": 0.85,
+      "box_f1_at_0_75_min": 0.6,
+      "matched_mean_iou_min": 0.7,
+      "reading_order_pairwise_accuracy_min": 0.99,
+      "matched_ground_truth_coverage_min": 0.85,
+      "cross_run_per_page": {
+        "comparison_pairs_per_page": 3,
+        "box_f1_at_0_50_min": 0.9,
+        "reading_order_pairwise_accuracy_min": 0.995,
+        "relative_line_count_delta_max": 0.05,
+        "relative_line_count_delta_definition": "absolute line-count difference divided by max of the two line counts and one",
+        "application": "Compare all three unordered repetition pairs. Every pair on every page must pass; report the minimum F1 and order accuracy and the maximum relative line-count delta."
+      }
+    },
+    "recognition_quality": {
+      "polytonic_cer_max": 0.15,
+      "base_letter_cer_max": 0.12,
+      "cross_run_per_page": {
+        "comparison_pairs_per_page": 3,
+        "polytonic_inter_run_cer_max": 0.02,
+        "application": "Compare all three unordered repetition pairs. Every pair on every page must pass and the maximum inter-run CER is reported."
+      }
+    },
+    "compensation_rule": "Text accuracy cannot compensate for a response-schema, geometry, reading-order, coverage, or cross-run stability failure."
+  },
+  "cost_accounting": {
+    "currency": "USD",
+    "tariff_date": "2026-08-30",
+    "tariffs_are_frozen_for_this_bakeoff": true,
+    "google_vertex_gemini": {
+      "input_usd_per_million_tokens": 0.75,
+      "cached_input_usd_per_million_tokens": 0.075,
+      "candidate_plus_thinking_usd_per_million_tokens": 3.75,
+      "estimated_cost_formula": "(max(input_tokens - cached_input_tokens, 0) * 0.75 + cached_input_tokens * 0.075 + (candidate_tokens + thinking_tokens) * 3.75) / 1000000",
+      "usage_source": "provider usage metadata",
+      "required_usage_counts": [
+        "input_tokens",
+        "cached_input_tokens",
+        "candidate_tokens",
+        "thinking_tokens"
+      ]
+    },
+    "azure_document_intelligence": {
+      "service_tier": "S0",
+      "read_usd_per_1000_accepted_billable_pages": 1.5,
+      "estimated_cost_formula": "billable_pages * 1.50 / 1000",
+      "required_usage_counts": [
+        "accepted_pages",
+        "billable_pages"
+      ]
+    },
+    "reporting": {
+      "estimated_tariff_cost_usd": "sum the frozen tariff formula over every accepted or completed call, including a call whose later schema or quality gate fails; publish this total only when usage is complete for every potentially billable call",
+      "incomplete_usage_policy": "If any provider-success response or ambiguous submission may be billable but lacks usable usage metadata, tariff_cost_usd is null, cost_status is incomplete_known_lower_bound, and known_measured_usage_tariff_cost_lower_bound_usd reports only the measured portion. This condition is also included in the provider comparison.",
+      "actual_billed_cost_default": null,
+      "actual_billed_cost_policy": "Remain null unless a provider billing export for this exact run is supplied and can be reconciled without serializing account-scoped identifiers.",
+      "required_summaries": [
+        "per_provider_tariff_cost_usd_or_null",
+        "per_provider_known_measured_usage_tariff_cost_lower_bound_usd",
+        "per_provider_cost_status_and_usage_completeness",
+        "per_provider_actual_billed_cost"
+      ]
+    },
+    "conservative_planned_ceiling": {
+      "gemini_input_tokens_per_call": "1024 + 258 * ceil(image_width / 768) * ceil(image_height / 768)",
+      "gemini_input_tokens_across_36_calls": 185472,
+      "gemini_input_cost_usd": 0.139104,
+      "gemini_candidate_plus_thinking_tokens_per_call": 4096,
+      "gemini_candidate_plus_thinking_tokens_across_36_calls": 147456,
+      "gemini_candidate_plus_thinking_cost_usd": 0.55296,
+      "cached_input_discount_assumed": false,
+      "azure_billable_pages": 36,
+      "azure_cost_usd": 0.054,
+      "combined_planned_tariff_ceiling_usd": 0.746064
+    }
+  },
+  "harness_binding": {
+    "canonical_frozen_configuration_sha256": "5a640af6b9a9e2dc82748ad5e59a1f4b017266dfa1af459ed77e3750e516172d",
+    "canonicalization": "json.dumps with ensure_ascii=False, sort_keys=True, separators=(comma, colon), encoded as UTF-8 with no trailing newline",
+    "scope": "Binds provider/model/API identifiers, response provenance, omitted sampling controls, thinking and output limits, shared response resource limits, exact verified XML/JPEG snapshots, manifests/page count/repetitions/order, strict JSON failure handling, hard polling deadlines and no-retry policy, successful-oversize usage accounting, content-free readiness probes, the exact rational lexicographic matching algorithm, the fixed scripts/ocr/gold/metrics.py Levenshtein backend, every structural and recognition threshold, tariffs and exact planned/max cost, decision precedence/outcomes, externally anchored single-read private replay, and the single-column limitation."
+  },
+  "private_replay": {
+    "schema_version": "3.0",
+    "required_external_anchor": "Pass the 64-character lowercase raw_run_manifest_sha256 emitted by the original evidence as --expected-raw-manifest-sha256 together with --replay-dir.",
+    "single_snapshot_rule": "Read the anchored manifest once, then each metadata and response file once with O_NOFOLLOW/fstat/size checks; verify hashes and parse outcomes from those exact buffers. Do not verify and then reread mutable files for scoring.",
+    "failure": "A missing or mismatched external anchor, run binding, record, hash, response, permission, or file-set check is replay_schedule_invalid and produces no evidence."
+  },
+  "live_preflight": {
+    "default_mode": "offline_no_model_calls",
+    "all_conditions_required": true,
+    "required_environment": {
+      "MPDF_CLOUD_BAKEOFF_LIVE": "must equal 1",
+      "MPDF_BAKEOFF_AZURE_ENDPOINT": "must be non-empty and retained only in memory",
+      "MPDF_BAKEOFF_AZURE_KEY": "must be non-empty and retained only in memory",
+      "google_project": "MPDF_BAKEOFF_GOOGLE_PROJECT must be non-empty or a project may be obtained by safe gcloud discovery; the discovered value remains in memory and is never logged or serialized",
+      "google_authentication": "Application Default Credentials must yield an ADC bearer; the bearer is never logged or serialized"
+    },
+    "required_flags": {
+      "--allow-upload": true,
+      "--acknowledge-upload": "I acknowledge CGPG JPEG upload to Google Vertex AI and Microsoft Azure Document Intelligence under the configured retention policies.",
+      "--max-cost-usd": "1.00"
+    },
+    "acknowledgement_comparison": "exact string equality",
+    "recipient_and_retention_rule": "The operator must configure and review the applicable Google Vertex AI and Microsoft Azure Document Intelligence retention policies before supplying the exact acknowledgement.",
+    "provider_readiness": "After every local gate passes and credentials are acquired, perform exactly two content-free, non-inference readiness requests before any JPEG upload: Vertex countTokens with the literal word readiness against the exact publisher model and Azure Get Model against prebuilt-read at API 2024-11-30. Both authenticated responses and identifiers must validate before the schedule begins.",
+    "failure_behavior": "If either provider is unavailable or any preflight condition fails, make zero generateContent/analyze inference calls, upload zero CGPG bytes, and print only a redacted preflight outcome permitted by content_policy. The two readiness requests contain no corpus content and are not scored or billed as bakeoff calls.",
+    "budget_enforcement": "Recompute the frozen conservative planned tariff ceiling and refuse to start unless it equals 0.746064 USD and fits the exact 1.00 USD maximum. Before every non-retried provider call, reserve its frozen conservative call allowance and refuse the call if cumulative reserved tariff could exceed 1.00 USD.",
+    "run_binding_toc_tou": "Preregistration validation and committed-clean checking return the one captured binding snapshot rather than recapturing later. It contains preregistration, frozen-configuration, CGPG loader, region scorer, prior selector, fixed metrics.py Levenshtein backend, and cloud harness SHA-256 values. Reverify it immediately before readiness, immediately before the paid schedule, after the schedule, and again before evidence write; bind and serialize that snapshot rather than a later re-attestation.",
+    "successful_oversize_accounting": "If the bounded transport receives a provider-success HTTP status but rejects an oversized body, preserve that status. Gemini HTTP 200 counts as provider response success and potentially billable unknown usage, so tariff_cost_usd is null and only the known measured lower bound is reported.",
+    "secret_handling": "Never print, persist, hash into evidence, or include in an error any endpoint value, project discovery result, account-scoped identifier, API key, ADC bearer, or authorization header. Child git/gcloud processes receive an environment scrubbed of every bakeoff endpoint, key, project, and live-gate variable. Provider response bodies may be persisted only in the private ignored replay area defined by content_policy.runtime_payloads and never in committed evidence."
+  },
+  "decision_logic": {
+    "control_requirement": "Azure Document Intelligence Read must pass the structural coordinate contract before the experiment can make any conclusion about Gemini. Azure recognition-quality failures are reported but do not turn a structurally valid control into a failed control.",
+    "azure_structural_fail": "inconclusive_control_failed",
+    "azure_structural_pass_and_gemini_structural_fail": "gemini_not_complete_ocr_consider_azure",
+    "both_structural_pass_and_gemini_recognition_quality_fail": "gemini_coordinate_candidate_quality_failed",
+    "both_structural_pass_and_gemini_recognition_quality_pass": "gemini_complete_ocr_candidate_retained",
+    "decision_precedence": "Evaluate Azure structural pass first, then Gemini structural pass, then Gemini recognition-quality pass. Azure recognition quality does not alter the selected outcome.",
+    "quality_only_failure_rule": "When Gemini passes the structural coordinate contract but fails only recognition quality, select no provider and do not escalate Azure as the formal provider.",
+    "comparison_report_requirement": "Always compare polytonic CER, base-letter CER, box alignment, reading order, latency, frozen-tariff estimated cost, and actual billed cost when available for both providers when the schedule completes.",
+    "fallback_constraint": "Azure Document Intelligence or another document-AI service may be considered as the formal OCR provider only when Gemini cannot stably satisfy the coordinate, identity, coverage, and reading-order contract and the Azure contract control passes.",
+    "passing_is_not_production_eligibility": "A pass retains a candidate for further review only. It does not enable a product mode, select a production provider, establish multi-column performance, approve privacy or retention terms, establish service availability, or satisfy security, reliability, accessibility, billing, and release gates."
+  }
+}
