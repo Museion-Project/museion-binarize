@@ -21,13 +21,20 @@ ground truth, and the metrics described in
 Phase 1's deterministic methods perform on this material, and to identify
 concretely where they fail.
 
-### Phase 3 — Optional AI-assisted methods, only after evaluation
+### Phase 3 — Optional OCR and cloud transcription behind measured contracts
 
-Only after Phase 2 produces benchmark data may AI-assisted or learned
-methods be evaluated as optional, clearly-labeled alternatives to the
-deterministic Phase 1 pipeline — and only if benchmarks show a real,
-reproducible improvement for the material Phase 2 targets. Nothing in this
-phase is scoped or committed to yet.
+This phase is now scoped. AI is not allowed to restore pixels or invent page
+geometry. Complete cloud OCR is a strict composition of deterministic local
+line geometry and Gemini 3.7 Flash transcription bound to immutable line ids.
+The cloud layer is paid and brokered; BYOK is disabled. A fully offline local
+OCR plugin remains optional and separately distributed.
+
+The contract and a tested vertical slice are implemented, but production
+service availability is not: payment, brokered credentials, privacy/retention,
+deletion and real-credit settlement remain open gates. The provisional
+Tesseract GeometryProvider is explicitly marked
+`historical_material_not_validated` pending a frozen historical-scan geometry
+holdout. See ADR 0012 and ADR 0014.
 
 ## Phase 1 milestones
 
@@ -161,6 +168,21 @@ phase is scoped or committed to yet.
   requirements. Scope only — see
   [`mac-app-store-readiness.md`](mac-app-store-readiness.md) for the
   M7A-era audit of what this would require. **Not started.**
+
+## Current OCR architecture track (post-M7A)
+
+- **Complete:** provider-neutral coordinate OCR, durable per-page evidence,
+  strict geometry/transcription composition, searchable PDF verification,
+  deterministic bookmarks, Gemini forensic/bakeoff evidence, and a clean
+  native GeometryProvider comparison.
+- **Provisional:** Tesseract 5.5.3 PSM 3 + `tessdata_best` 4.1.0 is connected as
+  the selected geometry candidate. It is a clean-control winner only.
+- **Next gate:** create an exhaustive historical-scan line-geometry holdout
+  (boxes, reading order, non-text coverage; transcription optional), then
+  rerun Tesseract/Paddle/Apple and any legally distributable new candidate.
+- **Not available:** production `mpdf-credits`, real payment, brokered provider
+  credentials, published retention/deletion policy, and cross-platform
+  historical-geometry clearance.
 
 Milestone boundaries may shift as implementation reveals new constraints;
 this document will be updated accordingly rather than treated as a fixed

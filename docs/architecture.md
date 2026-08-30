@@ -38,12 +38,13 @@ parsed, and OCR text is never treated as an instruction.
 
 # Architecture
 
-This document describes the intended architecture of M PDF Processor. It
-reflects the design as of Milestone 0 (repository initialization); most of
-the pipeline described below is **not implemented yet**. See
-[`limitations.md`](limitations.md) for the current state.
+This document describes the current architecture of M PDF Processor. The
+deterministic PDF pipeline, provider-neutral evidence layer, searchable-output
+writer and automatic-bookmark compiler are implemented. Cloud transcription
+contracts exist, but the paid production service does not. See
+[`limitations.md`](limitations.md) for the current release state.
 
-Milestone 1 adds the provider-neutral Machine-readable Document Package
+Milestone 1 introduced the provider-neutral Machine-readable Document Package
 (MDP) layer in `mpdf-core`. It consumes the existing PDF document session for
 source digest and page geometry, and remains independent of OCR and Tauri.
 See [`document-package.md`](document-package.md) and ADR 0003 for its safety
@@ -55,8 +56,10 @@ and coordinate contract.
   must always produce the same output, byte-for-byte where feasible. This
   rules out relying on nondeterministic libraries or unpinned dependency
   behavior in the processing path.
-- **Local-first.** All processing happens on the user's machine. No scan,
-  page image, or output file is transmitted anywhere.
+- **Local-first with an explicit cloud boundary.** Binarization, native-text
+  extraction, geometry, PDF writing and bookmarks run locally. No network is
+  used implicitly. A future paid OCR job may upload only pages that actually
+  need transcription, after explicit consent and a credit ceiling.
 - **Bounded memory.** Scanned scholarly books can run to hundreds of pages at
   high DPI. The core must process pages in a streaming, page-at-a-time (or
   otherwise memory-bounded) fashion rather than loading an entire book into
@@ -115,7 +118,49 @@ deviation from the structure requested for Milestone 0 was necessary.
 4. **Long-term flexibility.** Keeping the core UI-agnostic leaves room for
    other front ends (e.g. a future batch/server tool) without a rewrite.
 
-## Intended PDF pipeline (planned, not yet implemented)
+## Current three-layer OCR runtime
+
+OCR is not one interchangeable call. The runtime has three explicit product
+layers, and a job never changes layers through an implicit fallback:
+
+| Layer | Runtime | Current status |
+|---|---|---|
+| Base local | usable embedded PDF text plus deterministic conversion, indexing, bookmarks and PDF verification | implemented and network-free |
+| Paid complete OCR | local deterministic `GeometryProvider` + brokered Gemini 3.7 Flash line transcription + strict compositor | contract and vertical slice implemented; production broker/payment service unavailable |
+| Optional offline plugin | local Tesseract complete OCR for scans when the user explicitly selects the plugin path | runtime-dependent preview; not required by the base artifact |
+
+BYOK is disabled. It is not a hidden fourth layer and is not offered in the
+current UI/CLI. It may be reconsidered only for an API that independently
+returns complete coordinate OCR.
+
+### Split complete-OCR data flow
+
+```text
+page raster
+  -> deterministic GeometryProvider
+       line_id + bbox + reading_order + geometry digest
+  -> Gemini 3.7 Flash transcription
+       text keyed to every supplied line_id exactly once
+  -> strict compositor
+       coordinate-bearing OcrPage
+  -> independent searchable-PDF/text-layer verification
+  -> deterministic bookmark compiler
+```
+
+The geometry and transcription contracts are intentionally separate.
+Tesseract text is discarded when it acts as geometry; Gemini cannot return a
+rectangle, add/drop/merge/split/reorder lines, or repair missing geometry. The
+compositor rejects any non-bijective response or geometry-digest mismatch.
+
+The provisional geometry implementation is Tesseract 5.5.3, PSM 3, with
+`tessdata_best` 4.1.0. It won a clean born-digital geometry control, but has not
+passed a historical-scan holdout. `historical_material_not_validated` is part
+of the geometry digest, checkpoint fingerprint and final provenance. See
+[ADR 0012](adr/0012-deterministic-geometry-and-gemini-transcription.md),
+[ADR 0014](adr/0014-provisional-tesseract-geometry.md), and
+[`ocr-providers.md`](ocr-providers.md).
+
+## Deterministic PDF pipeline
 
 ```mermaid
 flowchart LR
@@ -198,8 +243,10 @@ a later milestone (see [`roadmap.md`](roadmap.md)).
 
 ## Trust and reproducibility principles
 
-- **No network calls in the processing path.** Rasterization, thresholding,
-  encoding, and PDF writing operate entirely on local files.
+- **No implicit network calls.** Rasterization, thresholding, encoding, native
+  geometry, PDF writing and bookmark compilation operate on local data. The
+  future paid transcription layer is a separate consented boundary with
+  bounded page uploads; it is not part of ordinary conversion.
 - **No hidden nondeterminism.** Given the same input file, algorithm choice,
   and parameters, output must be reproducible. Where third-party libraries
   introduce nondeterminism (e.g. parallel iteration order affecting
