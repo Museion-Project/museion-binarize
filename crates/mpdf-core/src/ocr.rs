@@ -666,6 +666,10 @@ pub struct SidecarOcrConfig {
     pub engine_binary: Option<PathBuf>,
     pub engine: OcrEngine,
     pub language_profile: String,
+    /// Page segmentation mode passed to Tesseract. General OCR keeps the
+    /// historical PSM 6 default; the selected geometry-only pipeline uses PSM
+    /// 3 because its clean-native control included multi-column pages.
+    pub psm: u8,
     /// Files that must exist in `model_dir` before the provider is considered
     /// available. Empty means "do not pre-check" (legacy behavior).
     pub required_files: Vec<String>,
@@ -747,9 +751,22 @@ impl SidecarOcrConfig {
             engine_binary: None,
             engine: OcrEngine::Tesseract,
             language_profile: language_profile.to_owned(),
+            psm: 6,
             required_files: required,
             passes: SidecarPasses::default(),
         })
+    }
+
+    /// The frozen Tesseract configuration selected for line geometry on the
+    /// 2026-08-30 clean-native control. Historical material remains unvalidated.
+    pub fn tesseract_geometry(
+        executable: PathBuf,
+        model_dir: PathBuf,
+        language_profile: &str,
+    ) -> std::result::Result<Self, OcrError> {
+        let mut config = Self::tesseract(executable, model_dir, language_profile)?;
+        config.psm = 3;
+        Ok(config)
     }
 }
 
@@ -768,6 +785,8 @@ fn sidecar_command(config: &SidecarOcrConfig, input: &Path) -> Command {
         .arg(config.engine.as_str())
         .arg("--language-profile")
         .arg(&config.language_profile)
+        .arg("--psm")
+        .arg(config.psm.to_string())
         .arg("--routing")
         .arg(config.passes.routing_arg())
         .arg("--small-type-latin")
@@ -796,6 +815,7 @@ impl RapidOcrProvider {
                 engine_binary: None,
                 engine: OcrEngine::PaddleOcr,
                 language_profile: DEFAULT_OCR_LANGUAGE_PROFILE.to_owned(),
+                psm: 6,
                 required_files: RAPIDOCR_MODEL_FILES
                     .iter()
                     .map(|name| (*name).to_owned())
@@ -2198,6 +2218,29 @@ mod tests {
             .position(|arg| arg == "--engine-binary")
             .expect("bundled engine must be explicit in sidecar argv");
         assert_eq!(args[position + 1], "/bundle/ocr-runtime/bin/tesseract");
+        let psm = args
+            .iter()
+            .position(|arg| arg == "--psm")
+            .expect("page segmentation mode must be explicit");
+        assert_eq!(args[psm + 1], "6");
+    }
+
+    #[test]
+    fn selected_geometry_config_uses_psm3() {
+        let config = SidecarOcrConfig::tesseract_geometry(
+            PathBuf::from("/bundle/ocr-runtime/bin/mpdf-ocr-sidecar"),
+            PathBuf::from("/bundle/ocr-runtime/tessdata"),
+            "auto",
+        )
+        .unwrap();
+        assert_eq!(config.psm, 3);
+        let command = sidecar_command(&config, Path::new("/tmp/page.png"));
+        let args: Vec<_> = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        let psm = args.iter().position(|arg| arg == "--psm").unwrap();
+        assert_eq!(args[psm + 1], "3");
     }
 
     #[test]

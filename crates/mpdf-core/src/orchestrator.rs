@@ -823,12 +823,21 @@ fn local_layout_version(request: &FinalPdfRequest<'_>) -> String {
     match &request.provider {
         OcrProviderChoice::NativeTextOnly { .. } => "native-text-only".to_owned(),
         OcrProviderChoice::Reference => "reference".to_owned(),
-        OcrProviderChoice::Sidecar(config) => format!(
-            "{}/{}/{}",
-            config.engine.as_str(),
-            config.language_profile,
-            config.passes.fingerprint()
-        ),
+        OcrProviderChoice::Sidecar(config) => {
+            let mut identity = format!(
+                "{}/{}/{}",
+                config.engine.as_str(),
+                config.language_profile,
+                config.passes.fingerprint()
+            );
+            // PSM 6 is the historical default and keeps old checkpoint
+            // identities stable. Geometry-only PSM 3 is a distinct layout
+            // producer and therefore must not reuse those checkpoints.
+            if config.psm != 6 {
+                identity.push_str(&format!("/psm={}", config.psm));
+            }
+            identity
+        }
     }
 }
 
@@ -871,6 +880,9 @@ fn job_fingerprint(
                     path.display(),
                     hash_file(path)?
                 ));
+            }
+            if config.psm != 6 {
+                identity.push_str(&format!("|psm={}", config.psm));
             }
             let mut names = config.required_files.clone();
             names.sort();

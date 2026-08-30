@@ -1,0 +1,101 @@
+{
+  "schema": "mpdf-geometry-bakeoff-evidence/1",
+  "date": "2026-08-30",
+  "source": {
+    "pdf_sha256": "aec1e375e3d8378bda6d7a15fe06a54ec198bfc91ab877460259a4f3d0b46902",
+    "page_count": 327,
+    "selected_pages_one_based": [8, 14, 85, 100, 190, 259, 323, 324],
+    "dpi": 300,
+    "reference": "visible PDF text-object line boxes in content-stream order",
+    "reference_lines": 421,
+    "transcription_included": false,
+    "human_closed_world_verified": false,
+    "historical_material_validated": false
+  },
+  "protocol": {
+    "one_to_one_iou_threshold": 0.3,
+    "runs_per_page": 2,
+    "primary_selection_metric": "aggregate_line_f1",
+    "tie_breakers": ["mean_iou", "mean_reading_order_tau", "median_latency_seconds"],
+    "status": "historical_material_not_validated"
+  },
+  "candidates": [
+    {
+      "id": "tesseract-5.5.3-psm3",
+      "configuration": "OEM 1; PSM 3; grc+eng; tessdata_best 4.1.0",
+      "gold_lines": 421,
+      "candidate_lines": 439,
+      "matched_lines": 418,
+      "precision": 0.9521640091116174,
+      "recall": 0.9928741092636579,
+      "f1": 0.972093023255814,
+      "mean_iou": 0.8147000818463359,
+      "mean_gold_coverage": 0.8197360340510083,
+      "mean_reading_order_tau": 0.9290674603174603,
+      "median_latency_seconds": 4.897871771012433,
+      "max_latency_seconds": 8.617081584001426,
+      "exact_repeat_deterministic": true,
+      "index_page_reading_order_tau": {"323": 1.0, "324": 1.0}
+    },
+    {
+      "id": "paddle-pp-ocrv5-server-det",
+      "configuration": "cached PP-OCRv5 server text detector; deterministic y/x orderer",
+      "gold_lines": 421,
+      "candidate_lines": 446,
+      "matched_lines": 420,
+      "precision": 0.9417040358744395,
+      "recall": 0.997624703087886,
+      "f1": 0.9688581314878894,
+      "mean_iou": 0.8319565511234105,
+      "mean_gold_coverage": 0.9156877161469694,
+      "mean_reading_order_tau": 0.8333106587597654,
+      "median_latency_seconds": 3.350051312474534,
+      "max_latency_seconds": 4.796235832967795,
+      "exact_repeat_deterministic": true,
+      "index_page_reading_order_tau": {"323": 0.5263157894736843, "324": 0.4896843590195733}
+    },
+    {
+      "id": "apple-vision-text-rectangles",
+      "configuration": "VNDetectTextRectanglesRequest; line boxes only",
+      "gold_lines": 421,
+      "candidate_lines": 464,
+      "matched_lines": 421,
+      "precision": 0.9073275862068966,
+      "recall": 1.0,
+      "f1": 0.9514124293785311,
+      "mean_iou": 0.810011033311317,
+      "mean_gold_coverage": 0.8123563846898573,
+      "mean_reading_order_tau": 0.8914588016799623,
+      "median_latency_seconds": 0.16816614603158087,
+      "max_latency_seconds": 0.3546006660326384,
+      "exact_repeat_deterministic": true,
+      "index_page_reading_order_tau": {"323": 0.8701754385964913, "324": 0.6261682242990654}
+    }
+  ],
+  "selection": {
+    "provider_id": "tesseract-line-geometry",
+    "provider_version": "tesseract-5.5.3/psm3/tessdata_best-4.1.0",
+    "reason": "highest frozen aggregate line F1 and strongest reading order",
+    "status": "historical_material_not_validated"
+  },
+  "sidecar_vertical_slice": {
+    "page_number_one_based": 100,
+    "protocol": "mpdf-ocr/0.1",
+    "engine": "tesseract",
+    "engine_version": "5.5.3",
+    "psm": 3,
+    "blocks": 4,
+    "lines": 46,
+    "native_reference_lines": 46,
+    "words": 599,
+    "input_asset_sha256_round_trip": true,
+    "execution_location": "local",
+    "text_logged_by_probe": false
+  },
+  "limitations": [
+    "Born-digital native geometry is cleaner than scanned historical material.",
+    "The reference has not been exhaustively human-verified as closed-world line gold.",
+    "Latency is a single-machine local measurement and not a packaging claim.",
+    "Transcription quality and Gemini cost were intentionally outside this geometry-only comparison."
+  ]
+}

@@ -17,8 +17,9 @@ use unicode_normalization::UnicodeNormalization;
 
 use crate::jobs::ExecutionLocation;
 use crate::ocr::{
-    validate_ocr_page, OcrBlock, OcrBox, OcrError, OcrLine, OcrPage, OcrProviderProvenance,
-    OcrRoute, OcrRouteReason, OcrWord, PageOcrProvider,
+    validate_ocr_page, OcrBlock, OcrBox, OcrEngine, OcrError, OcrLine, OcrPage,
+    OcrProviderProvenance, OcrRoute, OcrRouteReason, OcrWord, PageOcrProvider, RapidOcrProvider,
+    SidecarOcrConfig,
 };
 
 use super::{ProviderUsage, BYOK_DISABLED_MESSAGE};
@@ -26,8 +27,34 @@ use super::{ProviderUsage, BYOK_DISABLED_MESSAGE};
 pub const COMPOSITION_CONTRACT: &str = "mpdf-geometry-transcription/1";
 pub const GEMINI_TRANSCRIPTION_MODEL: &str = "gemini-3.7-flash";
 pub const GEMINI_TRANSCRIPTION_PROMPT_VERSION: &str = "geometry-bound-lines/1";
+/// Clean-native control winner selected on 2026-08-30. The version names the
+/// exact evaluated segmentation/model configuration; changing it requires a
+/// new benchmark rather than silently inheriting this selection.
+pub const SELECTED_GEOMETRY_PROVIDER_ID: &str = "tesseract-line-geometry";
+pub const SELECTED_GEOMETRY_PROVIDER_VERSION: &str = "tesseract-5.5.3/psm3/tessdata_best-4.1.0";
 const MAX_LINES: usize = 16_384;
 const MAX_LINE_TEXT_BYTES: usize = 16 * 1024;
+
+/// Release evidence carried with geometry, independently of provider identity.
+///
+/// The current candidate won on born-digital pages rendered to images. That is
+/// useful wiring evidence but says nothing yet about bleed-through, skew,
+/// damaged type, marginalia, or other historical-material failure modes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GeometryValidationStatus {
+    HistoricalMaterialNotValidated,
+    HistoricalMaterialValidated,
+}
+
+impl GeometryValidationStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::HistoricalMaterialNotValidated => "historical_material_not_validated",
+            Self::HistoricalMaterialValidated => "historical_material_validated",
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,6 +75,7 @@ pub struct GeometryPage {
     pub image_sha256: String,
     pub provider_id: String,
     pub provider_version: String,
+    pub validation_status: GeometryValidationStatus,
     pub lines: Vec<GeometryLine>,
 }
 
@@ -86,6 +114,7 @@ pub struct LocalOcrGeometryProvider {
     inner: Box<dyn PageOcrProvider>,
     provider_id: String,
     provider_version: String,
+    validation_status: GeometryValidationStatus,
 }
 
 impl LocalOcrGeometryProvider {
@@ -93,11 +122,13 @@ impl LocalOcrGeometryProvider {
         inner: Box<dyn PageOcrProvider>,
         provider_id: impl Into<String>,
         provider_version: impl Into<String>,
+        validation_status: GeometryValidationStatus,
     ) -> Self {
         Self {
             inner,
             provider_id: provider_id.into(),
             provider_version: provider_version.into(),
+            validation_status,
         }
     }
 }
@@ -113,8 +144,10 @@ impl GeometryProvider for LocalOcrGeometryProvider {
 
     fn fingerprint_contribution(&self) -> String {
         format!(
-            "{COMPOSITION_CONTRACT}|geometry={}@{}",
-            self.provider_id, self.provider_version
+            "{COMPOSITION_CONTRACT}|geometry={}@{}|validation={}",
+            self.provider_id,
+            self.provider_version,
+            self.validation_status.as_str()
         )
     }
 
@@ -156,6 +189,7 @@ impl GeometryProvider for LocalOcrGeometryProvider {
             image_sha256: request.page_image_sha256.to_owned(),
             provider_id: self.provider_id.clone(),
             provider_version: self.provider_version.clone(),
+            validation_status: self.validation_status,
             lines,
         };
         validate_geometry(&geometry)?;
@@ -263,6 +297,7 @@ impl GeometryTranscriptionPageProvider {
         local: Box<dyn PageOcrProvider>,
         geometry_provider_id: impl Into<String>,
         geometry_provider_version: impl Into<String>,
+        geometry_validation_status: GeometryValidationStatus,
         transcriber: Box<dyn TranscriptionProvider>,
         language_profile: impl Into<String>,
         deadline: Duration,
@@ -273,7 +308,58 @@ impl GeometryTranscriptionPageProvider {
                 local,
                 geometry_provider_id,
                 geometry_provider_version,
+                geometry_validation_status,
             )),
+            transcriber,
+            language_profile,
+            deadline,
+            idempotency_namespace,
+        )
+    }
+
+    /// Builds the currently selected vertical slice: deterministic Tesseract
+    /// PSM 3 line geometry followed by geometry-bound transcription.
+    ///
+    /// Selection is deliberately stamped as not validated on historical
+    /// material. This constructor must not be relabelled when the detector is
+    /// merely wired or smoke-tested; only a frozen historical holdout may
+    /// promote the validation status.
+    pub fn from_selected_tesseract(
+        local: Box<dyn PageOcrProvider>,
+        transcriber: Box<dyn TranscriptionProvider>,
+        language_profile: impl Into<String>,
+        deadline: Duration,
+        idempotency_namespace: impl Into<String>,
+    ) -> Result<Self, GeometryTranscriptionError> {
+        Self::from_local_ocr(
+            local,
+            SELECTED_GEOMETRY_PROVIDER_ID,
+            SELECTED_GEOMETRY_PROVIDER_VERSION,
+            GeometryValidationStatus::HistoricalMaterialNotValidated,
+            transcriber,
+            language_profile,
+            deadline,
+            idempotency_namespace,
+        )
+    }
+
+    /// Concrete selected-provider entry point for orchestrators. It rejects a
+    /// general OCR sidecar configuration so the wired path cannot accidentally
+    /// run PSM 6 while claiming evidence measured for PSM 3.
+    pub fn from_selected_tesseract_sidecar(
+        config: SidecarOcrConfig,
+        transcriber: Box<dyn TranscriptionProvider>,
+        language_profile: impl Into<String>,
+        deadline: Duration,
+        idempotency_namespace: impl Into<String>,
+    ) -> Result<Self, GeometryTranscriptionError> {
+        if config.engine != OcrEngine::Tesseract || config.psm != 3 {
+            return Err(GeometryTranscriptionError::InvalidConfiguration(
+                "selected geometry requires Tesseract PSM 3".into(),
+            ));
+        }
+        Self::from_selected_tesseract(
+            Box::new(RapidOcrProvider::from_sidecar(config)),
             transcriber,
             language_profile,
             deadline,
@@ -605,6 +691,10 @@ pub fn compose_ocr_page(
         "geometry_provider_version".into(),
         geometry.provider_version.clone(),
     );
+    parameters.insert(
+        "geometry_validation_status".into(),
+        geometry.validation_status.as_str().into(),
+    );
     parameters.insert("geometry_sha256".into(), geometry.digest()?);
     parameters.insert(
         "transcription_provider".into(),
@@ -744,6 +834,37 @@ mod tests {
         response: GeminiResponse,
     }
 
+    struct EchoGeometryGeminiTransport;
+
+    impl GeminiTransport for EchoGeometryGeminiTransport {
+        fn transcribe_lines(
+            &mut self,
+            request: &GeminiRequest<'_>,
+        ) -> Result<GeminiResponse, GeometryTranscriptionError> {
+            let lines: Vec<_> = (0..2)
+                .map(|order| {
+                    serde_json::json!({
+                        "line_id": format!("p{:06}-l{order:05}", request.page_index),
+                        "text": if order == 0 { "Ἐν ἀρχῇ" } else { "Die λέξις" },
+                        "language": "mixed",
+                        "confidence": 0.9,
+                    })
+                })
+                .collect();
+            Ok(GeminiResponse {
+                body: serde_json::json!({
+                    "page_index": request.page_index,
+                    "geometry_sha256": request.geometry_sha256,
+                    "lines": lines,
+                })
+                .to_string(),
+                model_version: request.model_version.into(),
+                input_tokens: 10,
+                output_tokens: 4,
+            })
+        }
+    }
+
     struct FixedGeometry;
 
     impl GeometryProvider for FixedGeometry {
@@ -846,6 +967,7 @@ mod tests {
             image_sha256: "ab".repeat(32),
             provider_id: "local-layout".into(),
             provider_version: "frozen-1".into(),
+            validation_status: GeometryValidationStatus::HistoricalMaterialNotValidated,
             lines: vec![
                 GeometryLine {
                     line_id: "p000007-l00000".into(),
@@ -898,6 +1020,10 @@ mod tests {
         let provenance = page.provider_provenance.unwrap();
         assert_eq!(provenance.parameters["geometry_provider"], "fixed-geometry");
         assert_eq!(
+            provenance.parameters["geometry_validation_status"],
+            "historical_material_not_validated"
+        );
+        assert_eq!(
             provenance.parameters["transcription_provider"],
             "fixed-transcriber"
         );
@@ -943,6 +1069,101 @@ mod tests {
         assert_eq!(
             page.provider_provenance.unwrap().version,
             COMPOSITION_CONTRACT
+        );
+    }
+
+    #[test]
+    fn selected_tesseract_pipeline_carries_unvalidated_status() {
+        struct LocalFixture;
+        impl PageOcrProvider for LocalFixture {
+            fn execution_location(&self) -> ExecutionLocation {
+                ExecutionLocation::Local
+            }
+
+            fn recognize(
+                &mut self,
+                page_index: u32,
+                _image: &DynamicImage,
+                input_asset_sha256: &str,
+            ) -> Result<OcrPage, OcrError> {
+                let mut page = compose_ocr_page(&geometry(), &transcription(&geometry()))
+                    .expect("valid fixture");
+                page.page_index = page_index;
+                page.provider_provenance
+                    .as_mut()
+                    .expect("fixture provenance")
+                    .input_asset_sha256 = input_asset_sha256.into();
+                Ok(page)
+            }
+        }
+
+        let mut provider = GeometryTranscriptionPageProvider::from_selected_tesseract(
+            Box::new(LocalFixture),
+            Box::new(GeminiGeometryTranscriber::new(
+                EchoGeometryGeminiTransport,
+                "test-gemini-3.7-flash",
+            )),
+            "grc+eng",
+            Duration::from_secs(30),
+            "selected-test",
+        )
+        .unwrap();
+        assert!(provider
+            .fingerprint_contribution()
+            .contains("historical_material_not_validated"));
+        assert!(provider
+            .fingerprint_contribution()
+            .contains(SELECTED_GEOMETRY_PROVIDER_VERSION));
+        let page = provider
+            .recognize(7, &DynamicImage::new_rgb8(100, 200), &"ab".repeat(32))
+            .unwrap();
+        let provenance = page.provider_provenance.unwrap();
+        assert_eq!(
+            provenance.parameters["geometry_provider"],
+            SELECTED_GEOMETRY_PROVIDER_ID
+        );
+        assert_eq!(
+            provenance.parameters["geometry_validation_status"],
+            "historical_material_not_validated"
+        );
+        assert_eq!(
+            provenance.parameters["transcription_provider"],
+            "google-gemini"
+        );
+        assert_eq!(page.blocks[0].lines[0].words[0].text, "Ἐν ἀρχῇ");
+        assert_eq!(page.blocks[0].lines[0].bbox, geometry().lines[0].bbox);
+    }
+
+    #[test]
+    fn selected_sidecar_entry_point_rejects_unevaluated_psm() {
+        let config =
+            SidecarOcrConfig::tesseract("/tmp/sidecar".into(), "/tmp/tessdata".into(), "auto")
+                .unwrap();
+        assert!(matches!(
+            GeometryTranscriptionPageProvider::from_selected_tesseract_sidecar(
+                config,
+                Box::new(FixedTranscriber),
+                "auto",
+                Duration::from_secs(30),
+                "selected-test",
+            ),
+            Err(GeometryTranscriptionError::InvalidConfiguration(_))
+        ));
+        let selected = SidecarOcrConfig::tesseract_geometry(
+            "/tmp/sidecar".into(),
+            "/tmp/tessdata".into(),
+            "auto",
+        )
+        .unwrap();
+        assert!(
+            GeometryTranscriptionPageProvider::from_selected_tesseract_sidecar(
+                selected,
+                Box::new(FixedTranscriber),
+                "auto",
+                Duration::from_secs(30),
+                "selected-test",
+            )
+            .is_ok()
         );
     }
 

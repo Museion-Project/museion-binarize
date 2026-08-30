@@ -41,6 +41,13 @@ also qualifies as complete coordinate OCR because every transcript line is
 directly bound to an immutable geometry-owned line id; the historical fuzzy
 page-text alignment experiment does not.
 
+The provisional geometry implementation is Tesseract 5.5.3 PSM 3 with the
+pinned `tessdata_best` 4.1.0 set. It won the clean-native control in
+[ADR 0014](adr/0014-provisional-tesseract-geometry.md), but every page and
+checkpoint is stamped `historical_material_not_validated`. This is a pipeline
+integration choice, not clearance for historical scans. Tesseract's recognized
+text is discarded before Gemini transcription.
+
 ## Product modes
 
 | Requested mode | What executes | Cost | Availability in this version |
