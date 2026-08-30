@@ -150,56 +150,42 @@ impl OcrProviderMode {
 }
 
 /// The role a component plays. Only `CompleteOcr` may originate OCR evidence.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderRole {
     CompleteOcr,
     TextEnhancer,
     /// Plain text plus geometry supplied by a separate local OCR engine.
     /// Retained for reproducibility; never a complete-OCR claim.
+    #[default]
     ExperimentalComposite,
 }
 
-impl Default for ProviderRole {
-    fn default() -> Self {
-        Self::ExperimentalComposite
-    }
-}
-
 /// Finest coordinate unit independently returned by the provider.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CoordinateGranularity {
+    #[default]
     None,
     Line,
     Word,
 }
 
-impl Default for CoordinateGranularity {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 /// Whether reading order is part of the provider's machine contract.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadingOrderCapability {
+    #[default]
     None,
     BestEffort,
     Stable,
 }
 
-impl Default for ReadingOrderCapability {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 /// How returned text is bound to returned geometry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TextGeometryMapping {
+    #[default]
     None,
     /// Coordinates came from another recognizer and text was aligned locally.
     LocalAlignment,
@@ -207,41 +193,25 @@ pub enum TextGeometryMapping {
     Direct,
 }
 
-impl Default for TextGeometryMapping {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 /// Finest level at which optional metadata is available.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MetadataSupport {
+    #[default]
     Unsupported,
     Page,
     Line,
     Word,
 }
 
-impl Default for MetadataSupport {
-    fn default() -> Self {
-        Self::Unsupported
-    }
-}
-
 /// How use of a provider is paid for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BillingModel {
+    #[default]
     Free,
     UserManaged,
     BrokeredCredits,
-}
-
-impl Default for BillingModel {
-    fn default() -> Self {
-        Self::Free
-    }
 }
 
 impl fmt::Display for OcrProviderMode {

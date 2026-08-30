@@ -59,7 +59,7 @@ fn bookmark_safe_refusal_still_exits_successfully_and_writes_the_final_pdf() {
     );
     let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
     assert_eq!(report["schema"], "mpdf-run");
-    assert_eq!(report["schema_version"], "1.1");
+    assert_eq!(report["schema_version"], "1.2");
     assert_eq!(report["status"], "completed");
     assert_eq!(report["bookmark_status"], "safe_refusal");
     assert_eq!(report["bookmarks_written"], 0);
