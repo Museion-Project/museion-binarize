@@ -58,21 +58,22 @@ def _gemini_response() -> bytes:
 def test_primary_configuration_is_frozen_and_primary_only():
     configuration = primary.primary_configuration()
     assert common.canonical_digest(configuration) == (
-        "a81978d64b30bef7a1e85c625284df4327056a8e7a9775e8ce602244ed07bbc2"
+        "d826b29637d6abc0c2952b046d96dbc5ee5b37f0228c6978d410b1413965cb91"
     )
     assert configuration["planned_calls"] == 36
     assert configuration["decision"] == "inconclusive_missing_control"
     assert configuration["wire_maximum_lines"] == 64
+    assert configuration["thinking_level"] == "LOW"
     assert primary._planned_cost() == primary.PLANNED_TARIFF_CEILING_USD
 
 
-def test_v2_preregistration_binds_revised_developer_api_contract():
+def test_v3_preregistration_binds_revised_developer_api_contract():
     binding = primary.verify_preregistration(
         primary.DEFAULT_PREREGISTRATION, require_committed=False
     )
     assert binding.preregistration_sha256 == primary.PREREGISTRATION_SHA256
     assert binding.configuration_sha256 == (
-        "a81978d64b30bef7a1e85c625284df4327056a8e7a9775e8ce602244ed07bbc2"
+        "d826b29637d6abc0c2952b046d96dbc5ee5b37f0228c6978d410b1413965cb91"
     )
 
 
@@ -98,6 +99,9 @@ def test_request_uses_header_not_url_and_preserves_structured_contract():
     assert body["generationConfig"]["responseJsonSchema"] == (
         primary.GEMINI_API_RESPONSE_SCHEMA
     )
+    assert body["generationConfig"]["thinkingConfig"] == {
+        "thinkingLevel": "LOW"
+    }
     assert result.lines[0].text == "ἀρετή"
     assert result.lines[0].bbox == common.Box(10.0, 10.0, 90.0, 20.0)
 

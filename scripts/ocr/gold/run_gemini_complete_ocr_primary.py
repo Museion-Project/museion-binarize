@@ -43,12 +43,13 @@ UPLOAD_ACKNOWLEDGEMENT = (
 )
 DEFAULT_PREREGISTRATION = (
     common.REPO_ROOT
-    / "docs/evidence/gemini-complete-ocr-primary-preregistration-v2-2026-08-30.json"
+    / "docs/evidence/gemini-complete-ocr-primary-preregistration-v3-2026-08-30.json"
 )
 PREREGISTRATION_SHA256 = (
-    "f7fed6fe09a3d038177846ca5fff887cbbf17605445dc47b78346e275af27523"
+    "01e103561b52ca4770c74454519b4de245720c07bed842c3d70b9cddf3759f62"
 )
 GEMINI_API_MAX_LINES = 64
+GEMINI_API_THINKING_LEVEL = "LOW"
 GEMINI_API_RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -100,7 +101,7 @@ def primary_configuration() -> dict[str, object]:
         ),
         "wire_maximum_lines": GEMINI_API_MAX_LINES,
         "local_coordinate_range_validation": "integer_0_to_1000",
-        "thinking_level": common.GEMINI_THINKING_LEVEL,
+        "thinking_level": GEMINI_API_THINKING_LEVEL,
         "max_output_tokens": common.GEMINI_MAX_OUTPUT_TOKENS,
         "sampling_parameters": "omitted_provider_defaults",
         "page_count": common.SCORABLE_PAGE_COUNT,
@@ -180,7 +181,7 @@ def verify_preregistration(
             isinstance(value, dict)
             and value["schema"]
             == "mpdf-gemini-complete-ocr-primary-preregistration"
-            and value["schema_version"] == "1.1"
+            and value["schema_version"] == "1.2"
             and value["status"] == "preregistered_not_executed"
             and value["registered_before_live_execution"] is True
             and value["provider"]["backend"] == BACKEND
@@ -255,7 +256,7 @@ class GeminiApiClient:
                     "responseMimeType": "application/json",
                     "responseJsonSchema": GEMINI_API_RESPONSE_SCHEMA,
                     "thinkingConfig": {
-                        "thinkingLevel": common.GEMINI_THINKING_LEVEL
+                        "thinkingLevel": GEMINI_API_THINKING_LEVEL
                     },
                 },
             }

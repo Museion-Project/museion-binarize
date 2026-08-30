@@ -1,0 +1,47 @@
+{
+  "schema": "mpdf-gemini-complete-ocr-primary-aborted-attempt",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "aborted_output_budget_exhausted",
+  "preregistration_sha256": "f7fed6fe09a3d038177846ca5fff887cbbf17605445dc47b78346e275af27523",
+  "provider": "google_gemini_api",
+  "backend": "gemini_developer_api",
+  "model": "gemini-3.7-flash",
+  "scheduled_calls": 36,
+  "requests_completed_before_abort": 5,
+  "outcomes": {
+    "gemini_finish_reason_invalid": 5,
+    "provider_response_success": 5,
+    "scorable_responses": 0
+  },
+  "abort_reason": "All five completed responses exhausted the 4096-token combined thinking and candidate output budget and therefore failed the strict STOP finish-reason contract.",
+  "usage": {
+    "prompt_tokens": 6116,
+    "candidate_tokens": 8911,
+    "thought_tokens": 11498,
+    "cached_tokens": 0,
+    "tariff_cost_usd": "0.081120750",
+    "actual_billed_cost_usd": null
+  },
+  "latency_seconds": {
+    "samples": 5,
+    "minimum": 10.428,
+    "maximum": 25.611
+  },
+  "diagnosis": {
+    "content_free_low_thinking_probe": {
+      "finish_reason": "STOP",
+      "prompt_tokens": 1210,
+      "candidate_tokens": 2307,
+      "thought_tokens": 0,
+      "tariff_cost_usd": "0.009558750"
+    },
+    "finding": "LOW thinking preserves the same direct structured coordinate contract and completes within the existing 4096-token output budget."
+  },
+  "raw_data": {
+    "committed": false,
+    "partial_private_metadata_records": 5,
+    "raw_provider_response_bodies": 0
+  },
+  "decision": "This attempt is configuration-invalid for scoring and supplies no OCR quality result. The original v2 preregistration remains immutable; a separately hashed v3 preregistration is required before retrying."
+}
