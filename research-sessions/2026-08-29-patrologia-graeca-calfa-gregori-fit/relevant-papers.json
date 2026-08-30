@@ -1,0 +1,33 @@
+{
+  "arxiv:2603.09470": {
+    "title": "The Patrologia Graeca Corpus: OCR, Annotation, and Open Release of Noisy Nineteenth-Century Polytonic Greek Editions",
+    "score": 10,
+    "url": "https://arxiv.org/abs/2603.09470"
+  },
+  "10.5281/zenodo.20008699": {
+    "title": "Patrologia Graeca (OCR ground truth), v2",
+    "score": 10,
+    "url": "https://zenodo.org/records/20008699"
+  },
+  "10.5281/zenodo.19915273": {
+    "title": "Patrologia Graeca (OCRized and analyzed texts)",
+    "score": 9,
+    "url": "https://zenodo.org/records/19915273"
+  },
+  "github:calfa-co/Patrologia-Graeca": {
+    "title": "Calfa/GREgORI Patrologia-Graeca repository",
+    "score": 10,
+    "url": "https://github.com/calfa-co/Patrologia-Graeca"
+  },
+  "uclouvain:cgpg": {
+    "title": "Calfa-GREgORI Patrologia Graeca project page",
+    "score": 9,
+    "url": "https://uclouvain.be/fr/instituts-recherche/incal/ciol/calfa-gregori-patrologia-graeca"
+  },
+  "calfa:research-plan": {
+    "title": "Calfa OCR Research Plan",
+    "score": 8,
+    "url": "https://calfa.fr/research-plan"
+  }
+}
+

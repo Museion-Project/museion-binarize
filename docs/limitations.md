@@ -1,6 +1,6 @@
 # Limitations
 
-## Current state (as of the `0.1.0-rc.2` release candidate)
+## Current state (rc.3 source under preparation; public release remains rc.2)
 
 M6 does not ship a vendor integration or make paid calls. The reusable client
 speaks the provider-neutral `mpdf-api` 0.1 contract and CI validates it with a
@@ -9,6 +9,81 @@ Keychain/Credential Manager/Secret Service; an unavailable or locked store
 fails visibly and never falls back to a plaintext token. Endpoint discovery,
 OAuth, telemetry, cloud bookmark generation, and automatic upload remain out
 of scope.
+
+### Local text recognition
+
+The production default is Tesseract 5 (LSTM) with the pinned `tessdata_best`
+4.1.0 model set, language profile `auto` = `grc+deu+eng`. It is the only
+candidate that cleared the gold evaluation in `scripts/ocr/gold`; see
+[`ocr-engines.md`](ocr-engines.md) for the full bake-off.
+
+Known boundaries:
+
+- **Models are never downloaded.** With no provisioned model directory the
+  local OCR path reports itself unavailable; it does not silently degrade to a
+  worse recognizer or to no text layer that looks successful.
+- **The rc.3 packaging path is not yet turnkey for OCR.** The adopted
+  Tesseract executable, Python sidecar, and pinned trained data are not yet
+  staged into every desktop/CLI artifact. Source builds require explicit
+  sidecar and model paths; closing this distribution gate is required before
+  a downloaded rc.3 build can advertise one-click local OCR.
+- **Isolated accented characters are unreliable.** Accented Greek vowels
+  printed on their own, with no surrounding word, are recognized at a
+  measurably worse rate (diacritic error ≈0.26 on the `grc-codepoints`
+  sample) than the same characters inside words (0.000 on both Greek prose
+  samples). This is a property of the recognizer, not a threshold.
+- **Roman front-matter page numbers are less reliable than Arabic ones.** In
+  the gold contents samples every row is assembled with a trailing number,
+  but lowercase Roman numerals after a leader run are misread often enough
+  that 2 of 4 were wrong. A misread number is caught downstream by the
+  bookmark engine's printed-page mapping, which refuses rather than guesses.
+- **Wrapped contents titles are not joined across lines.** A contents entry
+  whose title wraps onto a second line is recovered as the line that carries
+  the page number; the continuation is not merged into the title.
+- **Three or more columns are not modelled**, in the logical-line assembler
+  as in the bookmark engine.
+- **Rotation is handled by an orientation pass**, which is skipped when its
+  confidence is low. A page whose orientation cannot be determined is
+  recognized as it arrived rather than being rotated on a guess.
+- **A language profile is a promise about the page, not a detector.** Running
+  a Greek document under `english` produces Latin lookalikes; the evidence
+  records a `script_violations` count so this is visible, but nothing rewrites
+  the text.
+- The gold corpus is **synthetic**: text rendered from a single OFL font. It
+  is a regression gate for script, diacritic and layout handling, not a claim
+  about accuracy on real scans. Real-corpus figures must be produced on the
+  operator's own machine and are not committed.
+
+### The final PDF
+
+`mpdf run` (and the desktop app's main button) produce one file that is
+binarized, searchable, and outlined, by OCR-ing the original pages first and
+binarizing only afterwards. Boundaries:
+
+- **Bookmark refusal does not discard a valid conversion.** If the document
+  yields no reliable structure, the combined `mpdf run` flow still writes and
+  verifies the searchable bilevel PDF, reports `bookmark_status =
+  safe_refusal`, and leaves its outline empty rather than inventing entries.
+  The standalone `mpdf bookmark auto` command keeps its narrower contract and
+  writes no PDF on safe refusal.
+- **Rotation is normalized into the output.** The binarized carrier is written
+  upright with no `/Rotate`, and the text layer is placed accordingly. Readers
+  see the same visible page; a tool that inspects `/Rotate` will not see the
+  source's value.
+- **`/CropBox` is not carried onto the binarized output.** The visible crop is
+  baked into the raster and the output's `MediaBox` is the source's *visible*
+  size with its origin at (0, 0). Page count, order, and visible geometry are
+  preserved and verified on reopen.
+- **Links, page labels, and source metadata are not carried onto the
+  binarized output.** The bilevel writer reconstructs the document; only the
+  pages, the invisible text layer, and the confirmed outline are written. The
+  source-preserving path (`mpdf pdf build-searchable`) is the one that keeps
+  the original objects.
+- **A resumed run reuses committed OCR pages only.** Changing the source,
+  engine, sidecar bytes, model-file bytes, language profile, or OCR DPI changes
+  the job fingerprint, so evidence from different configurations is rejected
+  rather than mixed. Moving byte-identical models to another directory does
+  not change their identity.
 
 ### Automatic table of contents (bookmarks v2)
 
@@ -129,10 +204,8 @@ degraded raster + ground truth -> real image-processing core
 - No real-world (non-synthetic) benchmark corpus — see
   [`benchmark-datasets.md`](benchmark-datasets.md), "Real scholarly
   corpus plan," for the documented future protocol.
-- **No public release exists.** Milestone 7A built the packaging
-  infrastructure (see [`distribution.md`](distribution.md) and
-  [`releasing.md`](releasing.md)) but did not publish a GitHub Release
-  or create a tag.
+- **No rc.3 public release exists.** The public download remains rc.2;
+  rc.3 packaging infrastructure is under owner review and has no rc.3 tag.
 - **No Developer ID signed or notarized artifact exists.** The macOS
   build is ad-hoc signed (a real, complete signature that satisfies
   `codesign --verify --deep --strict` and launches normally — see
@@ -169,13 +242,11 @@ PDFium binary. Windows and Linux are unverified at runtime. The project
 does not claim working support for all three operating systems merely
 because the Rust code compiles.
 
-**CI does not verify the PDF pipeline.** GitHub-hosted runners have no
-PDFium, so every end-to-end integration test is reported as *ignored*
-there. A green CI run means the code compiles, is formatted, passes
-clippy, passes the PDFium-independent unit tests, and satisfies
-`cargo-deny` — it says nothing about whether a PDF can actually be
-converted. That evidence currently comes only from a provisioned local
-macOS run; see [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).
+**Ordinary PR CI does not verify the PDF pipeline.** Its GitHub-hosted
+runners do not provision PDFium, so end-to-end tests are *ignored* there.
+The manual distribution workflow now runs release PDFium smoke gates after
+fetching the pinned library. A green ordinary CI run still says nothing about
+whether a PDF can be converted; see [`testing-pdf-pipeline.md`](testing-pdf-pipeline.md).
 
 **Output replacement atomicity.** On Unix and macOS, replacing an existing
 output is a single atomic `rename(2)`. On Windows the old file must be
@@ -234,21 +305,59 @@ for the actual first-run numbers and their interpretation, and
 rights-cleared real corpus would need before that broader claim could
 be made.
 
-All processing is local. There is no networking, telemetry, account, OCR,
-or AI of any kind.
+Conversion and local OCR can run offline. Remote OCR is an explicit,
+consented opt-in API path and uploads only the declared source; there is no
+cloud bookmark generation, telemetry, or account requirement.
 
-## Phase 1 non-goals (final, not just "not yet implemented")
+## Cloud OCR providers
+
+Local OCR is the default and none of the following applies to it.
+
+- **M PDF Cloud OCR (`mpdf-credits`) has no production service.** The client
+  protocol, reservation/settlement/refund state machine, idempotency rules and
+  signature verification are implemented and tested against an in-process
+  fake. No payment provider is integrated, no credits can be bought, no
+  server-side custody of a platform model credential exists, no signing keys
+  are provisioned, and no privacy policy or deletion endpoint is published.
+  Both front ends print those blockers verbatim and neither will start a run.
+- **Gemini BYOK has not been validated live in CI.** The recognition path,
+  alignment, gates, fallback and redaction are covered by deterministic tests
+  against a scripted transport. Real-API validation is a manual, opt-in,
+  operator-funded step and is not part of any automatic suite.
+- **Model-returned rectangles are never used.** The strict parser and the
+  geometry gates exist so the path can be evaluated; the flag that would make
+  it a default is off, and no gate-failing rectangle can become a coordinate
+  in a written PDF. The gates have not been run against a hand-labelled
+  fixture set.
+- **The alignment cannot detect a reordering among near-identical lines.**
+  Monotone matching catches a swapped column when the lines are
+  distinguishable. A page of repeated stems — "Kapitel I / Kapitel II /
+  Kapitel III" — returned in the wrong order can still align, because every
+  pairing scores highly and the matcher has no evidence to prefer one over
+  another. Nothing in the text can settle it; only a rectangle could, and the
+  model did not measure one.
+- **A cloud run still requires provisioned local models.** The local detector
+  is the geometry source, not a fallback. There is no configuration in which
+  a cloud model supplies coordinates on its own.
+- **Cost is the user's.** In BYOK mode you are Google's API customer: their
+  terms, pricing and data handling apply to your key and your documents. This
+  project does not accept them on your behalf, does not proxy your traffic,
+  and does not estimate your bill.
+
+## Phase 1 non-goals and remaining limitations
 
 Unlike the items above, which are simply not built yet, the following are
 explicitly **out of scope for all of Phase 1**, not just this milestone:
 
-- **OCR.** M PDF Processor does not perform optical character recognition
-  and does not plan to in Phase 1.
 - **Hidden OCR layer preservation.** If an input PDF already contains a
   hidden/invisible OCR text layer, Phase 1 does not preserve it in the
-  output. Output PDFs are image-only, bilevel documents.
-- **AI or machine-learned models.** Phase 1 uses only deterministic,
-  classical image-processing algorithms (see [`algorithms.md`](algorithms.md)).
+  ordinary conversion output. The separate searchable-PDF export may
+  intentionally add typed text and bookmarks from typed evidence.
+- **Generative or black-box models for binarization/bookmark decisions.**
+  Those decisions use deterministic, classical image-processing and explicit
+  evidence rules (see [`algorithms.md`](algorithms.md)). An OCR provider may
+  use an explicitly configured user-provided RapidOCR/ONNX model; it is not
+  bundled and is not used by the binarization or bookmark decision engine.
 - **Generative restoration.** No inpainting, super-resolution, or other
   generative reconstruction of damaged, faded, or missing content.
 - **Dewarping.** No geometric correction for curved or skewed page scans.

@@ -1,0 +1,64 @@
+{
+  "artifact": {
+    "path_basename": "mpdf-0.1.0-rc.3-macos-arm64.dmg",
+    "sha256": "6bdcf5d3c7c41d2a7d662d1e1bb3d6237f628995a0a4fd7f7197e242216b51ed",
+    "size_bytes": 75625233
+  },
+  "checks": {
+    "execution": "pass",
+    "four_pages": "pass",
+    "output_created": "pass",
+    "qpdf": "pass",
+    "runner_identity": "pass",
+    "runtime_structure": "pass",
+    "searchable_text": "pass",
+    "source_unchanged": "pass"
+  },
+  "execution": {
+    "duration_seconds": 16.983,
+    "exit_status": 0,
+    "protocol": "mpdf run + executable-adjacent bundled runtime",
+    "runner_sha256": "fb2aa468456a9c7b5a01e6d92d64f24dc0fe3c0247c5bd93a390de8725204316"
+  },
+  "output": {
+    "created_by_harness": true,
+    "pages": 4,
+    "path_basename": "installed-dmg-final-four-page-searchable.pdf",
+    "preexisting": false,
+    "sha256": "674e33b3822284ed1682bde5081dce4a8d82bd77faa755d21917f4cb607bfd0a",
+    "size_bytes": 641272
+  },
+  "reasons": [],
+  "release": "0.1.0-rc.3",
+  "runner": {
+    "path_basename": "mpdf",
+    "sha256": "fb2aa468456a9c7b5a01e6d92d64f24dc0fe3c0247c5bd93a390de8725204316"
+  },
+  "runtime": {
+    "engine": "tesseract",
+    "engine_sha256": "1753aebbdee8096c9860fe177ac0f9089f813cf9f4f340b5257c979f3c1e75ac",
+    "engine_version": "5.5.3",
+    "manifest_sha256": "9ab63912a3c2efdba8b6eb4a44dad03990d798385c1f6d0e27082e7b90bc0b9b",
+    "model_set": "tessdata_best",
+    "model_set_version": "4.1.0",
+    "model_sha256": {
+      "deu": "8407331d6aa0229dc927685c01a7938fc5a641d1a9524f74838cdac599f0d06e",
+      "ell": "288b4ea00bab450cf39893d22f04a2835a8469b673b5b20dcb39b159d1bbc9b8",
+      "eng": "8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba",
+      "grc": "dfc9bda286cd9d8755b1832e5731a5425d1cf0803393a5fa6dee078466178cf1",
+      "lat": "60054dd32ac03ebd9b4f87d0665bd491a7ffe0d3ee99ceb91aefaf348b65e94f",
+      "osd": "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff"
+    },
+    "sidecar_sha256": "b45f3f3b8af7cede4b3bae711cc8a1ae99b1b1a6e4eeba1e683323be3f5cc1e7"
+  },
+  "schema": "mpdf-ocr-runtime-smoke-evidence",
+  "schema_version": "1.0",
+  "source": {
+    "pages": 4,
+    "path_basename": "four-page-mixed.pdf",
+    "sha256_after": "ae52f865b467917f0900f39dea7d207a994bbdd5c36be78f193a64bd10351b8a",
+    "sha256_before": "ae52f865b467917f0900f39dea7d207a994bbdd5c36be78f193a64bd10351b8a"
+  },
+  "status": "pass",
+  "target": "aarch64-apple-darwin"
+}

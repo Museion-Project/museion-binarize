@@ -26,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import naming  # noqa: E402
+import verify_ocr_runtime  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,6 +46,10 @@ See LICENSE-MIT, LICENSE-APACHE, and THIRD-PARTY-NOTICES.md for licensing,
 including the bundled PDFium library's own license and provenance.
 
 Project: https://github.com/Museion-Project/museion-binarize
+
+OCR is included only when this archive was built with an explicitly verified
+``ocr-runtime/`` directory.  Otherwise this is a PDFium/source-core archive;
+it does not claim a bundled Tesseract or Python runtime.
 """
 
 
@@ -62,6 +67,8 @@ def package(
     pdfium_library_path: Path,
     version: str,
     out_dir: Path,
+    ocr_runtime: Path | None = None,
+    pinned_ocr_models: Path | None = None,
 ) -> Path:
     is_windows = "windows" in target_triple
     exe_name = "mpdf.exe" if is_windows else "mpdf"
@@ -84,11 +91,29 @@ def package(
         (staging_dir / exe_name).chmod(0o755)
     shutil.copy2(pdfium_library_path, staging_dir / lib_name)
 
+    if ocr_runtime is not None:
+        # An explicitly requested runtime is never silently accepted as an
+        # arbitrary directory: the same structure gate used by release
+        # readiness must pass before bytes enter the archive.
+        verify_ocr_runtime.verify(
+            ocr_runtime, target_triple,
+            pinned_ocr_models or verify_ocr_runtime.DEFAULT_PINNED_MODELS,
+            expected_release=version,
+        )
+        shutil.copytree(ocr_runtime, staging_dir / "ocr-runtime", symlinks=False)
+
     for license_file in ("LICENSE-MIT", "LICENSE-APACHE"):
         shutil.copy2(REPO_ROOT / license_file, staging_dir / license_file)
     shutil.copy2(
         REPO_ROOT / "THIRD_PARTY_LICENSES.md", staging_dir / "THIRD-PARTY-NOTICES.md"
     )
+    # Ship the actual PDFium notices alongside the binary, not merely a
+    # pointer to files that only exist in the source checkout.
+    for source_name, archive_name in (
+        ("LICENSE-PDFIUM", "PDFIUM-LICENSE"),
+        ("LICENSE-DISTRIBUTION", "PDFIUM-DISTRIBUTION-LICENSE"),
+    ):
+        shutil.copy2(REPO_ROOT / "third_party" / "pdfium" / source_name, staging_dir / archive_name)
     (staging_dir / "README.txt").write_text(
         README_TEMPLATE.format(version=version, target_triple=target_triple, exe_name=exe_name)
     )
@@ -117,9 +142,15 @@ def main() -> None:
     parser.add_argument("--pdfium-library", type=Path, required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--ocr-runtime", type=Path,
+        help="explicitly verified staged OCR runtime to include under ocr-runtime/",
+    )
+    parser.add_argument("--pinned-ocr-models", type=Path)
     args = parser.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    package(args.target_triple, args.binary, args.pdfium_library, args.version, args.out_dir)
+    package(args.target_triple, args.binary, args.pdfium_library, args.version, args.out_dir,
+            ocr_runtime=args.ocr_runtime, pinned_ocr_models=args.pinned_ocr_models)
 
 
 if __name__ == "__main__":

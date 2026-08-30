@@ -605,6 +605,7 @@ fn process_with_session(
         &bytes,
         options.overwrite,
         options.output_write_strategy,
+        Some(&session.source_identity().canonical_path),
     )?;
 
     progress.report(ProgressEvent::Finished);
@@ -1230,11 +1231,33 @@ fn check_destination(input: &Path, output: &Path, overwrite: bool) -> Result<()>
 /// destination. See the identical rationale on
 /// `mpdf_cli::output::paths_refer_to_same_file`, which shares
 /// this logic for the CLI's `--report` aliasing check.
-fn paths_refer_to_same_file(a: &Path, b: &Path) -> bool {
+pub(crate) fn paths_refer_to_same_file(a: &Path, b: &Path) -> bool {
+    if let (Ok(a_metadata), Ok(b_metadata)) = (std::fs::metadata(a), std::fs::metadata(b)) {
+        if metadata_refers_to_same_file(&a_metadata, &b_metadata) {
+            return true;
+        }
+    }
     match (normalize_for_comparison(a), normalize_for_comparison(b)) {
         (Some(na), Some(nb)) => na == nb,
         _ => a == b,
     }
+}
+
+#[cfg(unix)]
+fn metadata_refers_to_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    a.dev() == b.dev() && a.ino() == b.ino()
+}
+
+#[cfg(windows)]
+fn metadata_refers_to_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    a.volume_serial_number() == b.volume_serial_number() && a.file_index() == b.file_index()
+}
+
+#[cfg(not(any(unix, windows)))]
+fn metadata_refers_to_same_file(_a: &std::fs::Metadata, _b: &std::fs::Metadata) -> bool {
+    false
 }
 
 fn normalize_for_comparison(path: &Path) -> Option<PathBuf> {
@@ -1339,6 +1362,7 @@ pub(crate) fn persist(
     bytes: &[u8],
     overwrite: bool,
     strategy: OutputWriteStrategy,
+    protected_source: Option<&Path>,
 ) -> Result<()> {
     match strategy {
         OutputWriteStrategy::AtomicSameDirectoryRename => {
@@ -1366,8 +1390,7 @@ pub(crate) fn persist(
             // `check_destination` already rejected an existing
             // destination without `overwrite` before any work began, so
             // reaching here means writing directly is intended.
-            let _ = overwrite;
-            write_direct(output, bytes)?;
+            write_direct(output, bytes, overwrite, protected_source)?;
             // `temp` (the container-local validation copy) is dropped
             // here, deleting it — it was never the file that mattered to
             // the caller.
@@ -1379,19 +1402,60 @@ pub(crate) fn persist(
 /// The `DirectWriteToDestination` half of `persist`: writes `bytes`
 /// straight to the exact path a sandboxed build's Powerbox grant covers,
 /// flushed and synced before returning.
-fn write_direct(output: &Path, bytes: &[u8]) -> Result<()> {
+fn write_direct(
+    output: &Path,
+    bytes: &[u8],
+    overwrite: bool,
+    protected_source: Option<&Path>,
+) -> Result<()> {
     use std::io::Write;
-    match std::fs::symlink_metadata(output) {
-        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_file() => {
-            return Err(CoreError::DestinationConflict(
-                "output exists or is unsafe; direct output requires a regular file".into(),
-            ));
+    let protected = protected_source
+        .map(std::fs::File::open)
+        .transpose()
+        .map_err(|error| CoreError::io(protected_source.unwrap(), error))?;
+    let protected_metadata = protected
+        .as_ref()
+        .map(std::fs::File::metadata)
+        .transpose()
+        .map_err(|error| CoreError::io(protected_source.unwrap(), error))?;
+
+    let mut file = match std::fs::OpenOptions::new().write(true).open(output) {
+        Ok(file) => {
+            if !overwrite {
+                return Err(CoreError::DestinationConflict(format!(
+                    "{} already exists; pass the overwrite option to replace it",
+                    output.display()
+                )));
+            }
+            let path_metadata =
+                std::fs::symlink_metadata(output).map_err(|error| CoreError::io(output, error))?;
+            let opened_metadata = file
+                .metadata()
+                .map_err(|error| CoreError::io(output, error))?;
+            if path_metadata.file_type().is_symlink() || !opened_metadata.is_file() {
+                return Err(CoreError::DestinationConflict(
+                    "output exists or is unsafe; direct output requires a regular file".into(),
+                ));
+            }
+            if protected_metadata
+                .as_ref()
+                .is_some_and(|source| metadata_refers_to_same_file(source, &opened_metadata))
+            {
+                return Err(CoreError::DestinationConflict(
+                    "source and output must be distinct files".into(),
+                ));
+            }
+            file.set_len(0)
+                .map_err(|error| CoreError::io(output, error))?;
+            file
         }
-        Ok(_) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(output)
+            .map_err(|error| CoreError::io(output, error))?,
         Err(error) => return Err(CoreError::io(output, error)),
-    }
-    let mut file = std::fs::File::create(output).map_err(|e| CoreError::io(output, e))?;
+    };
     file.write_all(bytes)
         .map_err(|e| CoreError::io(output, e))?;
     file.sync_all().map_err(|e| CoreError::io(output, e))?;
@@ -1507,6 +1571,7 @@ mod tests {
             b"new contents",
             true,
             OutputWriteStrategy::default(),
+            None,
         )
         .unwrap();
 
@@ -1563,6 +1628,7 @@ mod tests {
             b"%PDF-1.7 test",
             false,
             OutputWriteStrategy::default(),
+            None,
         )
         .unwrap();
         assert_eq!(std::fs::read(&output).unwrap(), b"%PDF-1.7 test");
@@ -1592,7 +1658,15 @@ mod tests {
         std::fs::write(&output, b"old").unwrap();
 
         let temp = write_temporary(&output, b"new", OutputWriteStrategy::default()).unwrap();
-        persist(temp, &output, b"new", true, OutputWriteStrategy::default()).unwrap();
+        persist(
+            temp,
+            &output,
+            b"new",
+            true,
+            OutputWriteStrategy::default(),
+            None,
+        )
+        .unwrap();
         assert_eq!(std::fs::read(&output).unwrap(), b"new");
         assert!(leftover_temporary_files(dir.path()).is_empty());
     }
@@ -1622,6 +1696,7 @@ mod tests {
             b"%PDF-1.7 test",
             false,
             OutputWriteStrategy::DirectWriteToDestination,
+            None,
         )
         .unwrap();
         assert_eq!(std::fs::read(&output).unwrap(), b"%PDF-1.7 test");
@@ -1649,10 +1724,41 @@ mod tests {
             b"new",
             true,
             OutputWriteStrategy::DirectWriteToDestination,
+            None,
         )
         .unwrap();
         assert_eq!(std::fs::read(&output).unwrap(), b"new");
         assert!(leftover_temporary_files(dir.path()).is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn direct_write_rejects_a_hard_link_to_the_protected_source() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source.pdf");
+        let output = dir.path().join("output.pdf");
+        std::fs::write(&source, b"original source").unwrap();
+        std::fs::hard_link(&source, &output).unwrap();
+        let temp = write_temporary(
+            &output,
+            b"replacement",
+            OutputWriteStrategy::DirectWriteToDestination,
+        )
+        .unwrap();
+
+        let error = persist(
+            temp,
+            &output,
+            b"replacement",
+            true,
+            OutputWriteStrategy::DirectWriteToDestination,
+            Some(&source),
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, CoreError::DestinationConflict(_)));
+        assert_eq!(std::fs::read(&source).unwrap(), b"original source");
+        assert_eq!(std::fs::read(&output).unwrap(), b"original source");
     }
 
     #[test]

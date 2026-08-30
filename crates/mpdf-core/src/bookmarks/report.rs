@@ -42,7 +42,13 @@ pub struct MappingSegmentReport {
     pub numbering_family: String,
     pub segment_index: u32,
     pub offset: i64,
-    pub anchor_count: u32,
+    /// Every anchor in the run, including ones the solver overruled.
+    /// Diagnostic only — see `MappingSegment::member_count`.
+    pub member_count: u32,
+    /// Anchors whose own observed offset equals the segment offset.
+    pub exact_anchor_count: u32,
+    /// Anchors kept in the run despite disagreeing with its offset.
+    pub disagreeing_anchor_count: u32,
     pub first_printed_number: u32,
     pub last_printed_number: u32,
     pub residual_min: i64,

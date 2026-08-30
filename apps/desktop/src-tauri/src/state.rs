@@ -43,6 +43,9 @@ pub struct AutoBookmarkState {
     pub job_id: String,
     pub document_id: String,
     pub cancelled: Arc<AtomicBool>,
+    /// Present for the full OCR pipeline. Cancellation uses it to set the
+    /// durable SQLite cancel bit as well as the in-process flag.
+    pub durable_workspace: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -4,7 +4,7 @@
 
 **日期：** 2026-08-26
 
-**当前实现基线：** `0.1.0-rc.2`
+**当前实现基线：** rc.3 源码准备中（当前公开版 `0.1.0-rc.2`）
 
 **实施计划：** [`plan.md`](plan.md)
 
@@ -24,7 +24,9 @@
   `benchmark`；
 - Tauri 2 + React 桌面端：单文档打开、缩略图、前后预览、估算、处理、取消和结果报告；
 - 版本化 JSON 报告、合成基准、PDFium 分发和跨平台打包基础；
-- 本地处理，无 OCR、AI、书签、扫描矫正、遥测或业务网络请求。
+- MDP 0.1、持久化 jobs/provider、local OCR、AI-ready/revisions、证据书签、可搜索
+  PDF、明确同意的 API OCR 与 automatic bookmarks v2；转换和本地 OCR 可离线运行。
+  RapidOCR 模型由用户提供，不随包捆绑；不存在云端书签生成。
 
 ### 1.2 目标发布序列
 
@@ -392,8 +394,8 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 
 | 问题 | 必须决定的时间 | 当前倾向 |
 |---|---|---|
-| 最终展示名、商店副标题和仓库名 | M7 发布硬化前 | 当前只使用 M PDF Processor；仓库暂候选 `m-pdf-processor` |
-| 最终应用 identifier | 首次商店提交前 | M0 使用中性 `mpdf` 占位 identifier，正式命名时迁移 |
+| 最终展示名、商店副标题和仓库名 | 外部 owner/legal gate | 产品名 M PDF Processor；仓库保持 `museion-binarize` |
+| 最终应用 identifier | 外部 Apple owner gate | 已冻结 `me.mpdf.processor`；注册/商标法律状态未结论 |
 | MDP 是目录、ZIP 还是两者 | MDP 0.1 ADR | 逻辑模型先行；目录用于开发，ZIP 用于交换 |
 | MDP 是否默认内嵌源 PDF | MDP 0.1 ADR | 默认引用/摘要；用户选择内嵌，避免体积与版权问题 |
 | OCR provider 的进程/FFI/服务边界 | 第一个真实 OCR 适配器前 | 先定义项目自有接口和 sidecar 契约 |

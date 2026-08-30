@@ -268,6 +268,113 @@ state. Every event carries an id (`documentId`, `jobId`, preview
 before applying the update, so a stale async response or a stale Tauri
 event from a previous job/document can never corrupt newer state.
 
+## The main flow: OCR → bookmarks → binarize
+
+`LocalPipelinePanel` is the app's primary action, and it maps to exactly one
+core entry point: `mpdf_core::orchestrator::run`, the same one `mpdf run`
+uses. The desktop backend does not have a second implementation of the
+pipeline order, because a second implementation is how "OCR the binarized
+output" gets reintroduced.
+
+A person using it chooses where the finished PDF goes and a working folder,
+then presses **Start**. Provider/model details live behind **Advanced** and
+the production default is the one the gold evaluation cleared (see
+[`ocr-engines.md`](ocr-engines.md)). In the current source build the sidecar
+and model directory must be configured once: the start button remains disabled
+until readiness succeeds. Packaging these dependencies is still an rc.3
+release gate, not something the UI silently works around.
+
+### Commands and events
+
+| Command | Purpose |
+|---|---|
+| `local_ocr_readiness` | Whether local OCR can run, and exactly which model files are missing. Inspects configured paths only: it never discovers or downloads anything. |
+| `start_local_pipeline` | Starts (or resumes) the run on the PDFium worker thread. Returns the job id, the workspace, **the stage list**, and whether reusable evidence was found. |
+| `cancel_local_pipeline` | Flips the shared in-process/provider cancellation flag and marks the durable OCR job cancelled. |
+| `cancel_local_pipeline_job` | Recovery/admin form that marks a named durable OCR job cancelled. |
+
+Events: `mpdf://pipeline-stage`, `-completed`, `-failed`, `-cancelled`.
+
+The stage list comes **from the backend**, so the UI cannot drift out of step
+with the core's real order. The frontend renders
+`PIPELINE_STAGE_LABELS[stage]` and nothing else.
+
+### The source is never named by the frontend
+
+`LocalPipelineRequestDto` carries no source path. The backend takes it from
+`OpenDocumentState.input_path` — the original file the user opened. There is
+therefore no request the frontend can construct that points OCR at a
+binarized output.
+
+### Start, cancel, resume
+
+Resume is not a separate command. The run is keyed to a durable workspace, so
+starting again with the same workspace reuses every OCR page that was already
+committed and digest-verified in the same fingerprint namespace, and continues
+from there. Cancelling propagates through the desktop worker, durable SQLite
+job and cloud retry loop. It keeps committed pages: the panel says so, and the
+button changes to **Resume**. An already in-flight blocking HTTP call may still
+take until its request deadline to return, but no later retry or page begins.
+
+Changing the source, engine, sidecar bytes, model-file bytes, language profile,
+or OCR DPI changes the durable job's fingerprint, so evidence from different
+configurations is rejected rather than mixed. Moving byte-identical models
+does not change their content identity.
+
+### Review is a normal outcome
+
+When entries need a human decision the run stops at `awaiting_review` and
+writes **nothing**. The panel says so plainly and offers two ways forward:
+apply the decisions made in the review workbench below, or write only the
+entries already confirmed. A safe refusal is likewise shown as a result, not
+as an error.
+
+### Completion wording
+
+`formatSizeChange` reports the direction the output size actually went. The
+core reports `sizeReductionFraction = 1 - output / input`, which is negative
+when the output grew; rendering that straight through produced
+"-311% smaller" for a file that had grown to 4.11× its input. A conversion
+that grows is a normal outcome for a photographic scan binarized at a high
+DPI, so it is described as "311% larger".
+
+## Choosing where recognition runs
+
+The provider picker sits above the Start button and offers three modes; the
+default is Local, and nothing moves it. Each row states plainly whether page
+images are uploaded, where execution happens, and — for a mode that is not
+production ready — the exact blockers, rendered verbatim from the core rather
+than paraphrased in the UI.
+
+Three rules shape the component, all of them about not misleading someone into
+an upload they did not intend:
+
+1. **Local is preselected and no error path falls forward into a cloud mode.**
+   Removing a stored key returns the selection to Local.
+2. **Consent names the actual document**: "Upload 412 rendered page images of
+   this document to Gemini API — Use My Key". "Enable cloud OCR" is a shrug;
+   a page count is a decision.
+3. **A key is written, never read.** The only controls are store, replace,
+   remove and test. There is no "show" button, because the app never receives
+   the value back — `store_model_provider_credential` is the single command in
+   the whole IPC surface that carries a key, and it returns a masked
+   reference.
+
+The Start button is disabled when consent is missing, no key is stored for the
+selected slot, no credit ceiling has been authorized, or the mode has no
+production service. **The backend re-checks every one of those conditions**:
+a Tauri command is a public API of the process, so a disabled button is a
+courtesy and `start_local_pipeline` is the enforcement point.
+
+The completion panel reports which mode ran, and lists by page number every
+page whose text came from the local engine instead of the cloud provider,
+alongside token usage and — for brokered runs — credits charged, released and
+refunded.
+
+M PDF Cloud OCR is shown, is described accurately, and cannot be started:
+there is no production service. See
+[`ocr-providers.md`](ocr-providers.md).
+
 ## Bookmark review and automatic table of contents
 
 The workbench loads the persisted bookmark tree through `load_bookmark_tree`

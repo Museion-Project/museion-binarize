@@ -32,8 +32,8 @@ part of this milestone.
 
 ## Current distribution policy
 
-This is the project's distribution policy as of `v0.1.0-rc.2` — the
-current state of an evolving plan, not an irreversible promise about
+This is the project's distribution policy for rc.3 source while
+`v0.1.0-rc.2` remains the current public release — an evolving plan, not an irreversible promise about
 every hypothetical future product:
 
 1. Source code is open on GitHub (MIT OR Apache-2.0).
@@ -71,21 +71,22 @@ artifact (a *builder* still needs the normal toolchain — see
 - [`releasing.md`](releasing.md) — versioning, artifact naming,
   checksums, the release-manifest schema, the `workflow_dispatch`-only
   GitHub Actions build workflow, and the signing/notarization
-  integration points.
+  integration code; production credentials and a real rc.3 run remain
+  pending.
 - [`mac-app-store-readiness.md`](mac-app-store-readiness.md) — an audit
   (not implementation) of what a future Mac App Store submission would
   need.
 
 ## What Milestone 7A did not do
 
-- **No public release was published.** No Git tag was created, no
-  GitHub Release was drafted or made public. See
+- **No rc.3 public release was published.** The public rc.2 release remains
+  the only download referenced by the README; no rc.3 tag or GitHub Release
+  was created. See
   [`releasing.md`](releasing.md), "Publication is a separate deliberate
   step."
-- **No signing credentials were available**, so no artifact produced
-  during this milestone is actually signed or notarized — the
-  integration points exist and are documented, but the *state* is
-  truthfully recorded as pending credentials, not claimed as done. See
+- **No rc.3 signing run has been performed with owner credentials** — the
+  fail-closed integration exists and ad-hoc builds remain structurally
+  verifiable, but production Developer ID/notarization evidence is pending. See
   [`releasing.md`](releasing.md), "Signing and notarization."
 - **Windows and Linux packaging is configured and expected to build**,
   but was not exercised on a real human-operated machine during this
@@ -96,6 +97,93 @@ artifact (a *builder* still needs the normal toolchain — see
 - **No Mac App Store submission work** (StoreKit, App Sandbox migration,
   App Store Connect metadata, paid-app agreements) exists.
 - **No auto-updater, telemetry, or crash-report upload** was added.
+- **No cloud OCR mode is releasable.** The three-mode provider architecture
+  (Local / Gemini BYOK / M PDF Credits) is implemented and tested, and Local
+  is unaffected by any of it. The other two carry blockers that
+  `scripts/distribution/release_readiness.py` reports separately from ordinary
+  pending evidence, because `blocked_*` means "the thing does not exist yet"
+  rather than "we have not measured it":
+
+  | Gate | State |
+  |---|---|
+  | `mpdf_credits_production_backend` | `blocked_no_service` |
+  | `mpdf_credits_payment_integration` | `blocked_no_service` |
+  | `cloud_privacy_policy_and_deletion` | `blocked_not_published` |
+  | `gemini_byok_live_validation` | `pending` |
+  | `gemini_terms_of_service_review` | `pending_owner_review` |
+  | `structured_bbox_geometry_validation` | `pending` |
+
+  Readiness is profile-gated rather than treating the report as informational:
+  `--profile source` checks source/static consistency,
+  `--profile local-core` requires the signed cross-platform deterministic
+  converter evidence, `--profile local-ocr-preview` additionally requires the
+  bundled OCR runtime and bookmark human-gold, and `--profile cloud-beta`
+  additionally requires the BYOK live, terms, and privacy gates. Ordinary CI
+  and `build-distribution.yml` explicitly run only the `source` profile because
+  they produce source evidence or private workflow artifacts. The separate
+  `publish-release.yml` workflow does not offer `source` as an input: before it
+  downloads artifacts or creates even a draft release, the owner must select
+  `local-core`, `local-ocr-preview`, or `cloud-beta`, and every required gate
+  for that product profile must be an explicit pass. Any required `pending`,
+  `not_run` or `blocked_*` gate exits non-zero.
+
+  The selected packaging direction for turnkey Local OCR is a per-target,
+  self-contained OCR runtime: a frozen sidecar executable (including its image
+  dependency), a pinned Tesseract executable and its required shared
+  libraries, and the verified `tessdata_best` files. A production artifact must
+  not depend on Homebrew, a system `python3`, or a separately installed Pillow.
+  The macOS arm64 rc.3 candidate now satisfies this contract locally, including
+  an installed four-page GUI conversion and an artifact-bound OCR smoke. The
+  release-wide `distribution/ocr-models/manifest.toml` flag remains
+  `bundled_in_release = false` until Windows and Linux artifacts are also
+  hash-inspected and pass installed OCR smoke tests. The structure half of that contract
+  is enforced by `scripts/distribution/verify_ocr_runtime.py`: it rejects
+  system Python/Tesseract requirements, symlinks, unlisted files, missing
+  licenses, non-executable entry points, target/release mismatches, and model
+  bytes that differ from the pinned manifest. Its result is deliberately
+  `pass_structure_only`; it cannot close `ocr_runtime_distribution` without a
+  separate installed OCR run.
+
+  Licensing consequence: BYOK ships **no** Google SDK and no bundled model —
+  the transport is a direct HTTPS call over the `reqwest`/`rustls` stack
+  already in the dependency set, and the user is the API customer under
+  Google's own terms. Nothing new enters `THIRD_PARTY_LICENSES.md` beyond the
+  `base64` crate. A release that advertised either cloud mode as available
+  would need the owner review above completed first; a release that simply
+  ships them opt-in and honestly labelled needs only the truthful blocker
+  copy, which both front ends already print. See
+  [`ocr-providers.md`](ocr-providers.md).
+
+  ### OCR runtime staging (macOS arm64)
+
+  `scripts/distribution/stage_ocr_runtime.py` is the audited, network-free
+  staging boundary. It accepts only an explicitly frozen sidecar, a pinned
+  Tesseract root/binary, a previously provisioned `tessdata_best` directory,
+  and three explicit license files plus a restricted `--sidecar-license-expression`.
+  It copies real files, records source
+  hashes, target/architecture, model hashes, dependency observations and
+  `install_name_tool` rewrites in `runtime-manifest.json`, and refuses a
+  missing closure or a model that differs from `distribution/ocr-models/manifest.toml`.
+  An optional `--dependency-manifest` records frozen Python/sidecar packages
+  (including Pillow) with their versions, hashes and licenses for the SBOM.
+  The default command never downloads anything; model downloads remain an
+  explicit `provision_models.py --download` operation with per-file checksums.
+
+  A verified runtime can be added to a CLI archive with `package_cli.py
+  --ocr-runtime PATH --pinned-ocr-models PATH`, or copied to the ignored,
+  stable Tauri resource directory with
+  `stage_desktop_ocr_runtime.py`, then opt in to
+  `tauri.ocr-runtime.overlay.json` alongside the base distribution config.
+  Without that explicit input, existing source/local-core packaging remains
+  compatible and makes no bundled OCR claim. `generate_sbom.py --ocr-runtime-manifest PATH` adds Tesseract, the
+  frozen sidecar, each trained model, every staged dylib and the associated
+  license records; without it the SBOM explicitly describes OCR as optional.
+
+  `ocr_runtime_smoke.py` emits
+  `mpdf-ocr-runtime-smoke-evidence` with `pass`, `blocked`, or `not_run` and
+  binds the result to artifact/runtime/engine/sidecar/model hashes and source
+  immutability. A structure-only verification is never accepted by
+  `release_readiness.py --profile local-ocr-preview`.
 
 ## Verification-state discipline
 

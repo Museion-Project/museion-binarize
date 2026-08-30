@@ -35,6 +35,16 @@ def stage(target_triple: str) -> Path:
 
     destination = RESOURCE_DIR / staged_library.name
     shutil.copy2(staged_library, destination)
+    # Tauri's distribution resource glob ships the notices with the bundled
+    # native library.  Keep these paths relative and deterministic.
+    for source_name in (
+        "LICENSE-MIT", "LICENSE-APACHE", "THIRD_PARTY_LICENSES.md",
+        "LICENSE-PDFIUM", "LICENSE-DISTRIBUTION",
+    ):
+        source = REPO_ROOT / source_name
+        if source_name.startswith("LICENSE-") and source_name not in {"LICENSE-MIT", "LICENSE-APACHE"}:
+            source = REPO_ROOT / "third_party" / "pdfium" / source_name
+        shutil.copy2(source, RESOURCE_DIR / source_name)
     print(f"staged for Tauri bundling: {destination}", file=sys.stderr)
     return destination
 

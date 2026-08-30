@@ -5,6 +5,7 @@ pub mod review;
 pub mod revisions;
 use crate::document_package::{DocumentPackage, Rect};
 use crate::error::{CoreError, Result};
+use crate::logical_lines::{self, LineAssembly, LogicalLineConfig};
 use crate::ocr::{OcrBlock, OcrLine, OcrRun, OcrWord};
 pub use exporters::*;
 #[cfg(test)]
@@ -40,6 +41,7 @@ impl DerivedDocument {
         let pd =
             digest(&serde_json::to_vec(p).map_err(|e| CoreError::InvalidDocument(e.to_string()))?);
         let od = ocr.map(|r| digest(&serde_json::to_vec(r).unwrap()));
+        let line_config = LogicalLineConfig::default();
         let mut pages = Vec::new();
         let mut chunks = Vec::new();
         for pge in &p.pages {
@@ -47,9 +49,17 @@ impl DerivedDocument {
             let ed = ev
                 .map(|x| digest(&serde_json::to_vec(x).unwrap()))
                 .unwrap_or_else(|| digest(pge.page_id.as_bytes()));
-            let blocks: Vec<DerivedBlock> = ev
-                .map(|x| {
-                    x.blocks
+            // Logical lines are rebuilt here, once, before anything downstream
+            // sees the page. The typed OCR record on disk keeps the provider's
+            // own segmentation untouched (and `evidence_digest` above still
+            // binds to it), so the raw evidence stays auditable while every
+            // consumer -- derived exports, the bookmark text index, and the
+            // invisible text layer -- reads real rows.
+            let assembled = ev.map(|x| logical_lines::assemble_page(x, &line_config));
+            let blocks: Vec<DerivedBlock> = match (&assembled, ev) {
+                (Some((page, audit)), Some(x)) => {
+                    let mut cursor = audit.iter();
+                    page.blocks
                         .iter()
                         .enumerate()
                         .map(|(i, b)| {
@@ -62,11 +72,13 @@ impl DerivedDocument {
                                 x.height,
                                 pge.master_space.width,
                                 pge.master_space.height,
+                                &mut cursor,
                             )
                         })
                         .collect()
-                })
-                .unwrap_or_default();
+                }
+                _ => Vec::new(),
+            };
             for b in &blocks {
                 for l in &b.lines {
                     let t = l
@@ -188,7 +200,7 @@ impl DerivedDocument {
     }
 }
 #[allow(clippy::too_many_arguments)]
-fn block(
+fn block<'a>(
     pid: &str,
     space: &str,
     i: usize,
@@ -197,13 +209,27 @@ fn block(
     sh: u32,
     mw: f64,
     mh: f64,
+    audit: &mut impl Iterator<Item = &'a LineAssembly>,
 ) -> DerivedBlock {
     let path = format!("p{pid}/b{i:06}");
     let lines = b
         .lines
         .iter()
         .enumerate()
-        .map(|(i, l)| line(pid, space, &path, i, l, sw, sh, mw, mh))
+        .map(|(i, l)| {
+            line(
+                pid,
+                space,
+                &path,
+                i,
+                l,
+                sw,
+                sh,
+                mw,
+                mh,
+                audit.next().cloned(),
+            )
+        })
         .collect();
     DerivedBlock {
         id: stable("block", &[&path, &bbox_key(&b.bbox)]),
@@ -226,6 +252,7 @@ fn line(
     sh: u32,
     mw: f64,
     mh: f64,
+    assembly: Option<LineAssembly>,
 ) -> DerivedLine {
     let path = format!("{parent}/l{i:06}");
     let words = l
@@ -242,6 +269,7 @@ fn line(
         structural_path: path,
         reading_order: l.reading_order,
         words,
+        assembly,
     }
 }
 #[allow(clippy::too_many_arguments)]

@@ -28,6 +28,29 @@ struct PagePlacement {
     rotation: u16,
 }
 
+/// Which PDF the invisible text layer and the outline are being written onto.
+///
+/// The distinction exists because the *evidence* and the *visible pixels* are
+/// allowed to come from different files. Text coordinates and bookmark targets
+/// always originate from OCR of the authoritative original; the page images
+/// they are laid over may be the original, or the binarized derivative built
+/// from it. What is never allowed is OCR of the binarized pages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CarrierKind {
+    /// The bytes are the original source PDF this MDP package is bound to.
+    /// Their SHA-256 must equal `package.source.content_sha256`.
+    OriginalSource,
+    /// The bytes are a bilevel derivative produced by this crate's own writer
+    /// from this same package. Rotation has already been baked into the
+    /// raster, so every page is upright with no `/Rotate` and a MediaBox whose
+    /// origin is (0, 0) and whose size is the original's *visible* size.
+    ///
+    /// The caller is responsible for having produced these bytes from this
+    /// package; that binding is enforced by the orchestrator, which is the only
+    /// thing allowed to construct this variant.
+    NormalizedBilevel,
+}
+
 pub fn build(
     source: &[u8],
     package: &DocumentPackage,
@@ -39,6 +62,26 @@ pub fn build(
 
 pub fn build_with_cancel(
     source: &[u8],
+    package: &DocumentPackage,
+    candidates: &[BookmarkCandidate],
+    derived: Option<&DerivedDocument>,
+    cancelled: &dyn Fn() -> bool,
+) -> Result<Vec<u8>> {
+    build_on_carrier(
+        source,
+        CarrierKind::OriginalSource,
+        package,
+        candidates,
+        derived,
+        cancelled,
+    )
+}
+
+/// As [`build_with_cancel`], but able to write onto a normalized bilevel
+/// carrier instead of the original source bytes.
+pub fn build_on_carrier(
+    source: &[u8],
+    carrier: CarrierKind,
     package: &DocumentPackage,
     candidates: &[BookmarkCandidate],
     derived: Option<&DerivedDocument>,
@@ -56,14 +99,16 @@ pub fn build_with_cancel(
             ));
         }
     }
-    let source_digest = Sha256::digest(source)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect::<String>();
-    if source_digest != package.source.content_sha256 {
-        return Err(CoreError::InvalidDocument(
-            "source PDF digest does not match MDP source binding".into(),
-        ));
+    if carrier == CarrierKind::OriginalSource {
+        let source_digest = Sha256::digest(source)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        if source_digest != package.source.content_sha256 {
+            return Err(CoreError::InvalidDocument(
+                "source PDF digest does not match MDP source binding".into(),
+            ));
+        }
     }
     let mut pdf =
         Document::load_mem(source).map_err(|e| CoreError::PdfConstructionFailed(e.to_string()))?;
@@ -94,7 +139,10 @@ pub fn build_with_cancel(
             .pages
             .get(*one_based as usize - 1)
             .ok_or_else(|| CoreError::InvalidDocument("MDP page is missing".into()))?;
-        placements.insert(*one_based, page_placement(&pdf, *page_id, package_page)?);
+        placements.insert(
+            *one_based,
+            page_placement(&pdf, *page_id, package_page, carrier)?,
+        );
     }
     let mut scalars = BTreeSet::new();
     if let Some(d) = derived {
@@ -150,6 +198,7 @@ fn page_placement(
     pdf: &Document,
     page_id: ObjectId,
     page: &crate::document_package::Page,
+    carrier: CarrierKind,
 ) -> Result<PagePlacement> {
     let box_object = match inherited(pdf, page_id, b"CropBox")? {
         Some(value) => value,
@@ -187,16 +236,23 @@ fn page_placement(
         .transpose()?
         .unwrap_or(0)
         .rem_euclid(360) as u16;
+    // A normalized bilevel carrier has its rotation baked into the raster, so
+    // it must be upright; the original source must still declare exactly the
+    // rotation the MDP recorded.
+    let expected_rotation = match carrier {
+        CarrierKind::OriginalSource => page.rotation_degrees,
+        CarrierKind::NormalizedBilevel => 0,
+    };
     if !matches!(rotation, 0 | 90 | 180 | 270)
         || ![llx, lly, raw_width, raw_height]
             .iter()
             .all(|value| value.is_finite())
         || raw_width <= 0.0
         || raw_height <= 0.0
-        || rotation != page.rotation_degrees
+        || rotation != expected_rotation
     {
         return Err(CoreError::InvalidPageGeometry(
-            "source page box or rotation does not match the MDP".into(),
+            "carrier page box or rotation does not match the MDP".into(),
         ));
     }
     let (visible_width, visible_height) = if matches!(rotation, 90 | 270) {
@@ -208,7 +264,12 @@ fn page_placement(
         || (visible_height - page.source_space.height).abs() > 0.05
     {
         return Err(CoreError::InvalidPageGeometry(
-            "source page geometry does not match the MDP".into(),
+            "carrier page geometry does not match the MDP".into(),
+        ));
+    }
+    if carrier == CarrierKind::NormalizedBilevel && (llx.abs() > 0.05 || lly.abs() > 0.05) {
+        return Err(CoreError::InvalidPageGeometry(
+            "normalized bilevel carrier must have a MediaBox origin at (0, 0)".into(),
         ));
     }
     Ok(PagePlacement {
@@ -600,7 +661,8 @@ mod tests {
     #[test]
     fn inherited_nonzero_crop_box_and_rotation_are_resolved() {
         let (pdf, page_id) = inherited_fixture();
-        let placement = page_placement(&pdf, page_id, &package_page()).unwrap();
+        let placement =
+            page_placement(&pdf, page_id, &package_page(), CarrierKind::OriginalSource).unwrap();
         assert_eq!(placement.llx, 20.0);
         assert_eq!(placement.lly, 30.0);
         assert_eq!(placement.visible_width, 360.0);

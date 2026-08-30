@@ -4,6 +4,8 @@ pub mod bookmarks;
 pub mod derived;
 pub mod document;
 pub mod estimate;
+pub mod local_pipeline;
 pub mod ocr;
+pub mod ocr_providers;
 pub mod preview;
 pub mod processing;

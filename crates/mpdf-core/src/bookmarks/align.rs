@@ -6,7 +6,7 @@
 //! combination — plus a monotone position in the document — is allowed to
 //! pass the automatic gate in `scoring`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::config::{AutoBookmarkConfig, SCORE_LAYOUT_MAX, SCORE_OCR_MAX, SCORE_TITLE_MAX};
 use super::text_index::{EvidenceLine, GeometryQuality, LineRef, TextIndex};
@@ -232,7 +232,23 @@ pub(crate) struct MappingSegment {
     pub(crate) family: NumberingFamily,
     pub(crate) index: u32,
     pub(crate) offset: i64,
-    pub(crate) anchor_count: u32,
+    /// Every anchor the dynamic program placed in this run.
+    ///
+    /// This is **not** agreement. The DP is allowed to keep an anchor whose
+    /// own observed offset differs from the segment's, paying
+    /// `anchor_mismatch_penalty` to do so, precisely so that one stray
+    /// heading does not fork the mapping. Counting those as support would
+    /// count the anchors the solver overruled. Diagnostic only: never read by
+    /// the automatic gate.
+    pub(crate) member_count: u32,
+    /// Members whose own observed offset equals the segment offset. These are
+    /// the anchors that actually agree.
+    pub(crate) exact_anchor_count: u32,
+    /// Members the solver kept despite disagreeing.
+    pub(crate) disagreeing_anchor_count: u32,
+    /// Entry ordinals of the exact anchors, so a candidate can be excluded
+    /// from its own corroboration.
+    pub(crate) exact_anchor_ordinals: BTreeSet<usize>,
     pub(crate) first_printed: u32,
     pub(crate) last_printed: u32,
     pub(crate) residual_min: i64,
@@ -347,12 +363,21 @@ pub(crate) fn solve_mapping(
             let offset = offsets[path[start]];
             let members = &anchors[start..=end];
             let residuals: Vec<i64> = members.iter().map(|anchor| anchor.2 - offset).collect();
+            let exact_ordinals: BTreeSet<usize> = members
+                .iter()
+                .filter(|anchor| anchor.2 == offset)
+                .map(|anchor| anchor.0)
+                .collect();
+            let exact = exact_ordinals.len() as u32;
             let segment_index = mapping.segments.len();
             mapping.segments.push(MappingSegment {
                 family,
                 index: segment_index as u32,
                 offset,
-                anchor_count: members.len() as u32,
+                member_count: members.len() as u32,
+                exact_anchor_count: exact,
+                disagreeing_anchor_count: members.len() as u32 - exact,
+                exact_anchor_ordinals: exact_ordinals,
                 first_printed: members.first().map(|anchor| anchor.1).unwrap_or(0),
                 last_printed: members.last().map(|anchor| anchor.1).unwrap_or(0),
                 residual_min: residuals.iter().copied().min().unwrap_or(0),

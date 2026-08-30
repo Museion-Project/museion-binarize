@@ -34,6 +34,7 @@ apps/desktop/src-tauri/gen/
 /target/pdfium/
 /target/distribution/
 apps/desktop/src-tauri/resources/pdfium/
+apps/desktop/src-tauri/resources/ocr-runtime/
 *.dylib
 *.dll
 *.so

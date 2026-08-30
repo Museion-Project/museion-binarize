@@ -8,6 +8,7 @@ and the exit-code table. For JSON report field meanings, see
 
 | Command | Purpose |
 |---|---|
+| **`run`** | **The main flow.** One original PDF in, one final PDF out: the original pages are OCR'd, bookmarks are compiled from that text, the visible pages are binarized, and a single searchable, outlined, bilevel PDF is assembled and verified. See below. |
 | `info` | Print project/build information. Never touches PDFium unless `--probe-pdfium` is passed. |
 | `inspect` | Page count, geometry, rotation, and render sizes for a PDF. |
 | `analyze` | Render and binarize a PDF through the real pipeline, without writing an output PDF. For choosing settings and scripting — not a benchmark. |
@@ -16,12 +17,143 @@ and the exit-code table. For JSON report field meanings, see
 | `preview` | Render and process one page, saving a PNG. |
 | `benchmark run` / `benchmark validate` | Ground-truth binarization-fidelity benchmarking against a dataset/profile manifest. **`benchmark` requires pixel-accurate ground truth; `analyze` is not a benchmark.** See [`benchmark-running.md`](benchmark-running.md). |
 | `package create <PDF> --output <DIR>` / `package validate <DIR>` | Create or validate an MDP 0.1 evidence package. Creation records source digest and real page geometry without copying the PDF. See [`document-package.md`](document-package.md). |
-| `ocr <PDF> --output <DIR> --jobs-db <FILE> --job-id <ID>` | Run durable local per-page text routing and write typed `ocr/` MDP extension records. The default `rapidocr` provider requires explicit executable and model paths; `reference` is deterministic/offline for development and tests. |
+| `ocr <PDF> --output <DIR> --jobs-db <FILE> --job-id <ID>` | **Expert/debugging step.** Runs durable local per-page text routing and writes typed `ocr/` MDP extension records. It always reads the PDF you give it, so **give it the original** — never a converted output. Prefer `run` for ordinary use. |
 | `export <MDP> --format <FORMAT> --output <PATH>` | Build deterministic JSON/JSONL/Markdown/TXT/HTML/hOCR/ALTO derived records; use `--format all` with an output directory. |
 | `review <MDP>` | Emit the typed local review queue (`--json` for machine-readable output). |
 | `revision add/list <MDP>` | Append a human or AI-suggested revision, or inspect the revision overlay; stale base evidence is rejected. |
 
 Run `mpdf <command> --help` for the full flag list.
+
+## `mpdf run` — the main flow
+
+```sh
+mpdf run book.pdf --output book-bw.pdf
+```
+
+That is the whole ordinary invocation. The command:
+
+1. reads the original PDF and builds its evidence package;
+2. **recognizes text on renders of the original pages**;
+3. derives the text layer and rebuilds printed logical lines;
+4. compiles bookmarks from that evidence;
+5. pauses for review if any entry needs a human decision (nothing is written);
+6. binarizes the **visible pages only**;
+7. assembles one PDF carrying the binarized pixels, the *original* OCR
+   coordinates as an invisible text layer, and the confirmed outline;
+8. reopens the result and verifies geometry, text and outline independently.
+
+The order is enforced by `mpdf_core::orchestrator`, which the desktop app uses
+too. **OCR never reads a binarized page.**
+
+### Configuration
+
+Local OCR needs a sidecar and a provisioned model directory. Set them once:
+
+```sh
+export MPDF_OCR_SIDECAR="$PWD/scripts/ocr/mpdf_ocr_sidecar.py"
+export MPDF_OCR_MODELS="$HOME/.local/share/mpdf/ocr-models"
+python3 scripts/ocr/provision_models.py --target-dir "$MPDF_OCR_MODELS" --download
+```
+
+Nothing is ever downloaded by the application itself; `provision_models.py` is
+a developer/packaging tool and verifies every file against the pinned
+`distribution/ocr-models/manifest.toml`.
+
+### Options
+
+- `--output <PDF>` — the finished file. Required.
+- `--overwrite` — replace an existing regular file at that path.
+- `--language <PROFILE>` — default `auto` (polytonic Ancient Greek + German +
+  English in one pass). See [`ocr-engines.md`](ocr-engines.md) for the list.
+- `--on-review <pause|confirmed|reviewed>` — default `pause`: stop and write
+  nothing when entries need a decision. `confirmed` writes only what is
+  already confirmed; `reviewed` applies the decisions stored in the workspace.
+- `--workspace <DIR>` — durable evidence directory. Defaults to a hidden
+  directory beside the output. **Reusing it is what makes a run resumable**:
+  OCR pages already committed and digest-verified are not recomputed.
+- `--provider <tesseract|paddleocr|reference>` — advanced. `paddleocr` is an
+  evaluation comparator and warns; `reference` recognizes nothing and exists
+  for development and tests.
+- `--ocr-sidecar`, `--models` — advanced overrides for the two environment
+  variables above.
+- `--ocr-dpi <N>` — advanced; the OCR raster resolution, unrelated to
+  `--dpi`, which controls the binarized output.
+- Every `process` binarization flag (`--dpi`, `--method`, `--sauvola-k`, …)
+  applies to step 6.
+
+### Choosing where recognition runs
+
+Default: `--ocr-provider local`. Nothing leaves the machine, no credential is
+read, and no network call is made. Everything below is opt-in.
+
+- `--ocr-provider <local|gemini-byok|mpdf-credits>` — execution mode.
+- `--cloud-consent` — **required** by every non-local mode. It acknowledges
+  that a rendered image of every OCR'd page is uploaded to that provider.
+  There is no default and no configuration file that can pre-supply it.
+- `--cloud-fallback <local|fail>` — default `local`: a page the provider could
+  not do is recognized here instead, and every such page is listed in the
+  evidence and in the report. `fail` stops the run and writes nothing. Local
+  is the default because one transient 503 on page 300 should not discard a
+  400-page run, and because a fallback is never silent.
+- `--credential-slot <NAME>` — default `default`. A slot **label**; see
+  `mpdf provider credential` below. **There is no `--api-key` flag**, and
+  there will not be one: a key on a command line is in your shell history, in
+  `ps` output, and in every CI log that echoes the command.
+- `--cloud-model`, `--cloud-model-version`, `--cloud-endpoint` — advanced
+  pins. The version is never `latest`: a floating alias would let a resumed
+  job re-run against different weights.
+- `--structured-bbox <disabled|evaluate-with-fallback>` — default `disabled`.
+  Model-returned rectangles are never a coordinate source in this build.
+- `--credits-per-page`, `--max-credits` — M PDF Credits only. `--max-credits`
+  is a hard ceiling; the run refuses to start rather than exceed it.
+- `--dry-run` — print exactly what would be uploaded and what it would cost,
+  then exit. Opens nothing, calls nothing, reserves nothing, charges nothing.
+
+Cloud modes still need the local sidecar and models: the local detector
+supplies the geometry that the cloud transcription is aligned onto. See
+[`ocr-providers.md`](ocr-providers.md).
+
+```sh
+mpdf run book.pdf --output book-bw.pdf --ocr-provider gemini-byok \
+  --cloud-consent --language greek-ancient-german-english --dry-run
+```
+
+### Managing model-provider credentials
+
+```sh
+pbpaste | mpdf provider credential set --slot default   # stdin only
+mpdf provider credential status --slot default          # present / absent, masked
+mpdf provider credential delete --slot default          # back to fully local
+mpdf provider list --json                               # modes, capabilities, blockers
+mpdf provider test --mode gemini-byok --slot default    # metadata only; bills nothing
+```
+
+The key goes to this machine's OS credential store and is never shown again,
+written to a settings file, included in a log, or placed in a checkpoint.
+
+### Reviewing and continuing
+
+```sh
+mpdf run book.pdf --output book-bw.pdf          # pauses, writes nothing
+mpdf bookmark list .book-bw.mpdf-workspace      # inspect what needs a decision
+mpdf bookmark confirm .book-bw.mpdf-workspace --candidate bookmark-…
+mpdf run book.pdf --output book-bw.pdf --on-review reviewed
+```
+
+The second `run` reuses the OCR evidence already in the workspace; it does not
+re-recognize the book.
+
+### Results that are not errors
+
+- **`awaiting_review`** — entries need a decision. Exit code 0; no file
+  written.
+- **`safe_refusal`** — no reliable structure was found, so no bookmark was
+  invented. Exit code 0; **no file written**. If a plain conversion is what
+  you want, use `mpdf process`.
+- **cloud fallback pages** — in a cloud run, `cloud_fallback_pages` in the
+  JSON report lists every page whose text came from the local engine instead.
+  The run completed and the PDF is valid; the field exists so "I paid for a
+  cloud model" and "these twelve pages are Tesseract" can never be confused.
 
 ## Global options
 
@@ -67,13 +199,19 @@ available PDFium library, and refuses to overwrite the destination. `package
 validate` is local and does not open PDFium. Both commands support `--json`,
 `--pretty`, and `--quiet`.
 
-## Local OCR
+## Local OCR (expert step)
+
+**For ordinary use, run [`mpdf run`](#mpdf-run--the-main-flow)
+instead.** This command is the individual OCR stage, kept for debugging and
+scripting. It recognizes whatever PDF you hand it, so it must be given the
+**original** document: running it on a binarized output would recognize
+one-bit pixels and produce a worse text layer than the original can.
 
 ```bash
 mpdf ocr book.pdf --output book.mdp --jobs-db .mpdf/jobs.sqlite --job-id book-1 --provider reference
 mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 \
-  --provider rapidocr --provider-executable /opt/rapidocr-provider \
-  --model-dir /opt/rapidocr-models
+  --provider rapidocr --provider-executable /opt/mpdf-ocr-sidecar \
+  --model-dir /opt/mpdf-ocr-models
 ```
 
 The pipeline first asks PDFium for the native text layer. Reliable text is

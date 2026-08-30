@@ -17,6 +17,8 @@ pub mod package;
 pub mod pdf;
 pub mod preview;
 pub mod process;
+pub mod provider;
+pub mod run;
 
 /// Password read from the environment, never from a command-line flag —
 /// so it never appears in a command line, shell history, or process

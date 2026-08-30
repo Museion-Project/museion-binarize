@@ -1,0 +1,209 @@
+# Pinned OCR model dependencies for M PDF Processor.
+#
+# This file is to OCR models what `distribution/pdfium/manifest.toml` is to
+# PDFium: the release pipeline's own dependency list. Every entry points at a
+# specific, tagged upstream release asset, with a SHA-256 that was produced by
+# downloading and hashing that exact file on a developer machine -- never a
+# value copied from a web page, and never "latest".
+#
+# Rules this file exists to enforce:
+#
+#   1. The application NEVER downloads a model at runtime. Models are
+#      provisioned out of band by `scripts/ocr/provision_models.py` (a
+#      developer/packaging tool) or shipped inside a release bundle.
+#   2. A model may only be bundled or auto-provisioned when its license is
+#      recorded here AND permits redistribution. A model whose license is
+#      absent, unclear, or non-commercial stays a development-only candidate:
+#      it never enters an app bundle and is never fetched automatically.
+#   3. Changing any `sha256` below changes the OCR evidence fingerprint, which
+#      invalidates existing bookmark checkpoints and candidate digests by
+#      design. See docs/ocr-engines.md.
+
+schema = "mpdf-ocr-model-manifest"
+schema_version = "1.0"
+
+# --------------------------------------------------------------------------
+# Adopted production model set.
+# --------------------------------------------------------------------------
+
+[[model_set]]
+name = "tessdata_best"
+version = "4.1.0"
+engine = "tesseract"
+engine_min_version = "5.0.0"
+# Tesseract itself, and the tessdata_best trained data, are Apache-2.0.
+engine_license = "Apache-2.0"
+engine_upstream = "https://github.com/tesseract-ocr/tesseract"
+license = "Apache-2.0"
+license_url = "https://github.com/tesseract-ocr/tessdata_best/blob/4.1.0/LICENSE"
+upstream_project = "tessdata_best"
+upstream_url = "https://github.com/tesseract-ocr/tessdata_best"
+redistributable = true
+# The macOS arm64 rc.3 candidate stages and smoke-tests this set. Keep the
+# release-wide claim false until Windows and Linux artifacts prove the same
+# self-contained contract; this field is deliberately not a per-target flag.
+bundled_in_release = false
+date_verified = "2026-08-28"
+
+[[model_set.file]]
+language = "grc"
+description = "Ancient (polytonic) Greek, LSTM"
+filename = "grc.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata_best/raw/4.1.0/grc.traineddata"
+sha256 = "dfc9bda286cd9d8755b1832e5731a5425d1cf0803393a5fa6dee078466178cf1"
+size_bytes = 5168122
+
+[[model_set.file]]
+language = "deu"
+description = "German, LSTM"
+filename = "deu.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata_best/raw/4.1.0/deu.traineddata"
+sha256 = "8407331d6aa0229dc927685c01a7938fc5a641d1a9524f74838cdac599f0d06e"
+size_bytes = 8628461
+
+[[model_set.file]]
+language = "eng"
+description = "English, LSTM"
+filename = "eng.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata_best/raw/4.1.0/eng.traineddata"
+sha256 = "8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba"
+size_bytes = 15400601
+
+[[model_set.file]]
+language = "lat"
+description = "Latin, LSTM"
+filename = "lat.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata_best/raw/4.1.0/lat.traineddata"
+sha256 = "60054dd32ac03ebd9b4f87d0665bd491a7ffe0d3ee99ceb91aefaf348b65e94f"
+size_bytes = 9705145
+
+[[model_set.file]]
+# Orientation and script detection. Required by the sidecar's `--psm 1`
+# pass, which is what keeps a sideways-scanned page from being recognized
+# upside down and silently discarded.
+language = "osd"
+description = "Orientation and script detection"
+filename = "osd.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata_best/raw/4.1.0/osd.traineddata"
+sha256 = "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff"
+size_bytes = 10562727
+
+[[model_set.file]]
+language = "ell"
+description = "Modern (monotonic) Greek, LSTM"
+filename = "ell.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata_best/raw/4.1.0/ell.traineddata"
+sha256 = "288b4ea00bab450cf39893d22f04a2835a8469b673b5b20dcb39b159d1bbc9b8"
+size_bytes = 8945021
+
+# --------------------------------------------------------------------------
+# Evaluated alternative. Same engine and licence, smaller/faster files. Kept
+# provisionable (and pinned) so the size/accuracy trade-off stays measurable,
+# but not bundled: it loses to tessdata_best on the gold set.
+# --------------------------------------------------------------------------
+
+[[model_set]]
+name = "tessdata-standard"
+version = "4.1.0"
+engine = "tesseract"
+engine_min_version = "5.0.0"
+engine_license = "Apache-2.0"
+engine_upstream = "https://github.com/tesseract-ocr/tesseract"
+license = "Apache-2.0"
+license_url = "https://github.com/tesseract-ocr/tessdata/blob/4.1.0/LICENSE"
+upstream_project = "tessdata"
+upstream_url = "https://github.com/tesseract-ocr/tessdata"
+redistributable = true
+bundled_in_release = false
+date_verified = "2026-08-28"
+
+[[model_set.file]]
+language = "grc"
+description = "Ancient (polytonic) Greek, legacy+LSTM combined"
+filename = "grc.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata/raw/4.1.0/grc.traineddata"
+sha256 = "d4bfdcc240fa1e8785335d780fdcf0614a21015569092f022c8f935ef5d0a003"
+size_bytes = 7428728
+
+[[model_set.file]]
+language = "deu"
+description = "German, legacy+LSTM combined"
+filename = "deu.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata/raw/4.1.0/deu.traineddata"
+sha256 = "896b3b4956503ab9daa10285db330881b2d74b70d889b79262cc534b9ec699a4"
+size_bytes = 15437534
+
+[[model_set.file]]
+language = "eng"
+description = "English, legacy+LSTM combined"
+filename = "eng.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata/raw/4.1.0/eng.traineddata"
+sha256 = "daa0c97d651c19fba3b25e81317cd697e9908c8208090c94c3905381c23fc047"
+size_bytes = 23466654
+
+[[model_set.file]]
+language = "lat"
+description = "Latin, legacy+LSTM combined"
+filename = "lat.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata/raw/4.1.0/lat.traineddata"
+sha256 = "790fc854bc28655aa70a776e3e014548bd42e8811847b84a61c9e53ef0b0ea2c"
+size_bytes = 9215366
+
+[[model_set.file]]
+language = "ell"
+description = "Modern (monotonic) Greek, legacy+LSTM combined"
+filename = "ell.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata/raw/4.1.0/ell.traineddata"
+sha256 = "0f6b8b440984fe9158019d722c624f32a62e0f99b21f2247492190a450a81ec2"
+size_bytes = 7543380
+
+[[model_set.file]]
+language = "osd"
+description = "Orientation and script detection"
+filename = "osd.traineddata"
+url = "https://github.com/tesseract-ocr/tessdata/raw/4.1.0/osd.traineddata"
+sha256 = "e19f2ae860792fdf372cf48d8ce70ae5da3c4052962fe22e9de1f680c374bb0e"
+size_bytes = 10562874
+
+# --------------------------------------------------------------------------
+# Rejected / development-only candidates. Kept here so a later reader can see
+# what was evaluated and why it is not in the product.
+# --------------------------------------------------------------------------
+
+[[candidate]]
+name = "rapidocr_onnxruntime + ch_PP-OCRv4"
+engine = "rapidocr"
+status = "rejected"
+license = "Apache-2.0 (code); model license not separately pinned"
+reason = """
+The recognizer is a Chinese/English model. Its character dictionary contains
+no polytonic Greek and no German umlaut coverage worth the name, which is the
+direct cause of the reported ogeov / fir / U / a failures. rapidocr_onnxruntime
+1.4.4 is also superseded upstream. Not a default for any profile.
+"""
+
+[[candidate]]
+name = "PaddleOCR PP-OCRv5"
+engine = "paddleocr"
+status = "development-only"
+license = "Apache-2.0 (code); per-model weights not pinned or hashed here"
+reason = """
+PP-OCRv5 ships an `el` recognizer for MODERN Greek. Modern Greek is monotonic:
+the model is not trained on breathings, circumflex, or iota subscript, so it
+cannot represent polytonic Ancient Greek at all. Weight files are fetched by
+the library at first use, which violates the no-runtime-download rule. Usable
+as a bake-off comparator behind an explicit flag; never a production default.
+"""
+
+[[candidate]]
+name = "Kraken"
+engine = "kraken"
+status = "not-evaluated"
+license = "Apache-2.0 (code); each published model carries its own license"
+reason = """
+Kraken's multi-script segmentation plus per-script recognition models is a
+plausible fit for polytonic Greek and Latin/German, but each published model
+must have its license, version, and SHA confirmed individually before it can
+be redistributed. Not installed or measured in this round; see
+docs/ocr-engines.md for what a future evaluation must establish.
+"""

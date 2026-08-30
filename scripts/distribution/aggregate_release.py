@@ -55,9 +55,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import checksums  # noqa: E402
+import release_manifest  # noqa: E402
 
 SCHEMA = "mpdf-release-manifest"
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 # Files a per-target job's dist-out/ legitimately contains that are not
 # themselves public release assets — never copied to the aggregated
@@ -88,7 +89,9 @@ def load_target_manifest(target_dir: Path) -> dict:
     manifest_path = target_dir / "release-manifest.json"
     if not manifest_path.is_file():
         raise AggregationError(f"{target_dir} has no release-manifest.json")
-    return json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    release_manifest.validate_manifest(manifest)
+    return manifest
 
 
 def validate_target_manifest(

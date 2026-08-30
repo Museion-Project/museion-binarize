@@ -48,6 +48,7 @@ fn claim_slot(
         job_id: job_id.clone(),
         document_id: document_id.to_owned(),
         cancelled: cancelled.clone(),
+        durable_workspace: None,
     });
     Ok((job_id, cancelled))
 }

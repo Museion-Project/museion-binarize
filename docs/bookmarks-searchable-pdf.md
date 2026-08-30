@@ -41,6 +41,32 @@ engine: identical typed records yield identical titles, levels, targets,
 statuses, and scores. Provider identity appears only in the report's
 provenance summary and the input digests, never in a branch.
 
+## Provider-neutral evidence
+
+Bookmarks are compiled from `OcrPage` records and never from a provider. It
+does not matter whether a page was recognized locally, by a cloud model under
+the user's own key, or by a brokered service: the engine sees the same
+block/line/word tree with the same measured rectangles, applies the same
+rules, and refuses in the same cases.
+
+Two consequences follow, and both are enforced by tests:
+
+- **A cloud model never decides a bookmark's target page.** It supplies
+  validated OCR material; the contents parser, the printed-page mapping, the
+  body-heading verification and the safe-refusal blockers are unchanged and
+  provider-neutral. A page whose target cannot be mapped, whose sequence is
+  non-monotonic, or whose body carries no heading evidence is refused exactly
+  as before — a cloud provider cannot buy its way past a blocker.
+- **Changing the provider invalidates the candidates.** Provider mode, model
+  and pinned version, prompt digest, geometry source, alignment version and
+  any per-page fallback are recorded in the page's provenance, so they are
+  inside the `ocr_digest` the generation report carries. Re-running the same
+  document under a different mode, a different prompt, or with different pages
+  falling back produces a different digest, and the previous snapshot is stale
+  rather than silently reused.
+
+See [`ocr-providers.md`](ocr-providers.md).
+
 ## Statuses and schema versions
 
 `auto_confirmed` is produced only by the deterministic gate; `confirmed` is
@@ -56,6 +82,63 @@ snapshots and review logs stay readable, listable, reviewable, and buildable
 exactly as they are; nothing migrates them in place, and a 0.1 file carrying a
 0.2 field or status is rejected rather than reinterpreted. Regenerating over a
 non-empty review log is refused with an explanation.
+
+## Automatic confirmation: two routes (rule 0.4)
+
+The **numeric gate** is unchanged from 0.2: total ≥ 9,200, title ≥ 3,600,
+runner-up margin ≥ 600, every word confidence ≥ 0.80, and every structural
+condition clear.
+
+Rule 0.3 adds a second, narrower **structural consensus** route. It exists
+because the numeric gate was refusing entries whose placement was
+demonstrably right. On a real 160-page volume it auto-confirmed 1 of 14 valid
+candidates: the rest were blocked by a total a few hundred points short, or by
+OCR word confidence on a page the engine had nonetheless located correctly and
+uniquely.
+
+The consensus route is not the numeric gate with smaller numbers. It requires
+evidence the numeric gate never consults — a printed-to-physical page mapping
+that at least `consensus_min_anchors` other shortlist entries independently
+agree with — and it holds every safety condition at full strength:
+
+- printed-page residual exactly `0` (not merely inside tolerance);
+- corroboration from **independent exact anchors**: other entries whose own
+  observed printed-to-physical offset equals this entry's segment offset. Not
+  the segment's member count — the mapping solver deliberately keeps
+  disagreeing anchors inside a run, paying a mismatch penalty, so that one
+  stray heading cannot fork the mapping, and counting those would count the
+  anchors it overruled. The entry being judged is excluded, so nothing
+  corroborates itself. On the measured volume the single segment has 14
+  members, 12 exact and 2 disagreeing, giving any member 11 independent
+  exact anchors;
+- runner-up margin ≥ the *same* 600 the numeric gate demands, because target
+  uniqueness is a safety property and is not traded;
+- body heading present, sequence monotone, level unambiguous, primary key
+  match, no repeated header/footer, measured (not approximate) geometry, no
+  resource truncation.
+
+Only three blockers may be outweighed — `total_score_below_gate`,
+`title_score_below_gate`, `low_word_confidence` — and only down to floors
+(`consensus_min_total` 8,000, `consensus_min_title` 3,200,
+`consensus_min_word_confidence_permille` 300). OCR uncertainty is
+**compensated, never ignored**: no amount of agreement confirms text the
+engine could not read.
+
+Every consensus confirmation records what carried it and what was
+compensated: `printed_page_mapping_consensus`,
+`mapping_exact_independent_anchors_<n>`, `mapping_disagreeing_anchors_<m>`,
+`unique_target_margin_clear`, `monotonic_target`, `body_heading_present`, and
+one `compensated_<blocker>` code per outweighed blocker.
+
+Measured on that volume: 1 → 9 auto-confirmed, 12 → 4 needs review, skipped
+unchanged at 11, and **all 9 targets verified correct against the written PDF
+with zero false confirmations**. The four still needing review are honest
+refusals — a 216-point margin, a 0.04 TOC word confidence, and two totals
+below the consensus floor — and were left as review rather than reached for.
+
+Changing any of these values changes `rule_version` and the rule-config
+digest, which invalidates existing automatic decisions instead of silently
+reinterpreting them.
 
 ## Evidence contract (M5, unchanged)
 

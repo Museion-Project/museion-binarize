@@ -8,6 +8,52 @@ once a first tagged release is published.
 
 ## [Unreleased]
 
+This section prepares `0.1.0-rc.3`; it is not a published release and has
+no release date or download link.
+
+### Preparing 0.1.0-rc.3
+
+- Consolidates the MDP 0.1 evidence package, persistent jobs/provider
+  contracts, local OCR, AI-ready exports/revisions, evidence bookmarks, and
+  searchable-PDF output now present after rc.2.
+- Adds consented, opt-in remote API OCR alongside the offline local OCR and
+  conversion paths; no source is uploaded without an explicit declared
+  consent record.
+- Adds automatic bookmark v2 with deterministic evidence alignment and safe
+  refusal. Bookmark generation is local; cloud bookmark generation does not
+  exist. The adopted Tesseract runtime and pinned `tessdata_best` files remain
+  explicitly provisioned in source builds; bundling them is still an rc.3
+  release gate.
+- Adds a provider-neutral OCR contract with three explicit execution modes —
+  `local` (default, offline, unchanged), `gemini-byok` (the user's own key,
+  held in the OS credential store), and `mpdf-credits` (brokered). Every mode
+  produces the same canonical block/line/word tree, so one bookmark and
+  searchable-PDF pipeline serves all three.
+  - Cloud pages take their **coordinates from the local detector** and their
+    characters from a whole-page transcription, joined by a monotone,
+    injective alignment with coverage/order gates. Model-returned rectangles
+    are parsed and gated but never used as a coordinate source.
+  - Cloud failure falls back per page to the local reading by default and
+    reports the affected page numbers in the evidence, the CLI JSON report and
+    the desktop completion panel. No failure path can produce an empty text
+    layer.
+  - Checkpoints bind provider mode, model and pinned version, prompt digest,
+    local layout identity, alignment version and fallback policy — and nothing
+    derived from a secret. A **local** run's fingerprint is byte-identical to
+    before this change, so no existing local checkpoint was invalidated.
+  - No `--api-key` flag exists anywhere; keys are read from stdin or a
+    password field and handed to the OS credential store. A canary key is run
+    through every failure path in the tests and asserted absent from evidence,
+    reports, serialized state and written files.
+  - **M PDF Credits has no production service**: the reservation, settlement,
+    refund and idempotency state machine is complete and tested against an
+    in-process fake, and the outstanding blockers are printed verbatim by
+    `mpdf provider list`, the desktop provider picker and the release-readiness
+    report. Neither front end will start a brokered run.
+- Hardens rc.3 release validation: identity/version invariants, fail-closed
+  Developer ID/notarytool orchestration, deterministic SPDX SBOMs, typed
+  release manifests, checksums, license notices, and readiness records.
+
 ### Added
 
 - **Automatic table of contents (bookmarks v2).** `mpdf bookmark auto` and a
@@ -18,8 +64,10 @@ once a first tagged release is published.
   numbering, layout, OCR confidence, and a monotone position all agree are
   written; anything ambiguous is kept for review.
 - A document with no reliable structure produces an explained **safe
-  refusal** — a normal result that writes no PDF and invents no title. There
-  is no mode in which a model composes a table of contents.
+  refusal** and invents no title. Standalone `bookmark auto` writes no PDF;
+  the combined `mpdf run` flow still delivers its verified searchable bilevel
+  PDF with an empty outline. There is no mode in which a model composes a
+  table of contents.
 - Bookmark snapshot schema **0.2** with an integer score breakdown, typed
   alignment evidence, and a new `auto_confirmed` status that stays
   distinguishable from a human `confirmed`; plus a separate

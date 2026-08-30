@@ -29,6 +29,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 scripts/distribution/check_version_consistency.py
       - run: python3 scripts/distribution/test_distribution.py
+      - run: python3 scripts/distribution/test_release_hardening.py
+      - run: python3 scripts/distribution/check_identity_compatibility.py
+      - name: Source readiness preflight
+        # This workflow creates private, reviewable build artifacts. It does
+        # not claim that any product profile is releasable; that stronger gate
+        # is mandatory in publish-release.yml.
+        run: python3 scripts/distribution/release_readiness.py --json --profile source
       # `matrix` is not a valid context in a job-level `if:` (only
       # `runs-on`, `env`, and `steps[*].if` see it) — a per-OS matrix
       # filtered from the requested `targets` input has to be computed
@@ -72,11 +79,14 @@ jobs:
         include: ${{ fromJson(needs.version-check.outputs.macos_matrix) }}
     runs-on: ${{ matrix.runner }}
     env:
-      # Hoisted to job level (not just the signing step's own `env:`)
-      # so the `if: env.APPLE_CERTIFICATE != ''` conditions below can
-      # actually see it — a step's own `env:` block is not visible to
-      # its own `if:`, which evaluates first.
+      # Hoisted to job level so the preflight and notarization condition see
+      # the same complete credential set. Values are never echoed.
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
     steps:
       - uses: actions/checkout@v4
       - run: rustup show
@@ -96,6 +106,12 @@ jobs:
 
       - name: Stage PDFium for Tauri bundling
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      - name: Preflight Apple credential mode (fail closed)
+        run: python3 -c "import os, sys; sys.path.insert(0, 'scripts/distribution'); import sign_macos_release; print(sign_macos_release.credential_mode(os.environ))"
+      - name: PDFium release smoke gates
+        env:
+          MPDF_PDFIUM_LIBRARY: target/distribution/pdfium/${{ matrix.target }}/libpdfium.dylib
+        run: python3 scripts/distribution/pdfium_release_smoke.py --pdfium "$MPDF_PDFIUM_LIBRARY"
 
       - name: Build CLI (release)
         run: cargo build -p mpdf-cli --release --target ${{ matrix.target }}
@@ -120,54 +136,17 @@ jobs:
         working-directory: apps/desktop
         run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.dist.conf.json --bundles app
 
-      # Signing/notarization run only when the required secrets are
-      # configured (Developer ID cert + Apple API credentials). See
-      # docs/releasing.md, "Signing and notarization," for the exact
-      # secret names and why an unsigned build still produces a useful
-      # architecture-validation artifact on its own.
-      - name: Sign and notarize (conditional on credentials)
-        if: env.APPLE_CERTIFICATE != ''
+      - name: Sign macOS app (Developer ID or ad-hoc structural fallback)
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
-          echo "Signing/notarization integration point — not yet exercised in this workflow."
-          echo "See docs/releasing.md for the intended flow once credentials are provisioned."
-          # NOTE for whoever implements this: when this step actually
-          # signs with a real Developer ID identity, do it here (before
-          # dmg packaging) so the .dmg below is still built from the
-          # final signed .app — do not add a separate later signing
-          # pass, and do not let this step remain a no-op once
-          # APPLE_CERTIFICATE is set: the ad-hoc fallback step right
-          # below is skipped whenever this condition is true, so if this
-          # step stays a no-op while the secret is configured, the app
-          # would ship with neither real nor ad-hoc signing. The
-          # unconditional "Verify macOS app bundle signature" step further
-          # below exists specifically to catch that: it fails the build
-          # rather than letting a broken bundle ship either way.
-          # Notarization (once implemented) belongs after "Package macOS
-          # .dmg from signed app bundle" below, run against the final
-          # .dmg — Apple notarizes the artifact actually distributed, not
-          # an intermediate .app.
-
-      # Runs whenever the step above did not (no Developer ID
-      # credentials configured — currently always, in this repository).
-      # Without this, the `.app` bundle's main executable carries a
-      # bare ad-hoc "linker-signed" signature from the Rust toolchain
-      # (required on Apple Silicon) with no `_CodeSignature/CodeResources`
-      # sealing `Contents/Resources`, which macOS Gatekeeper reports to
-      # end users as "is damaged and can't be opened" rather than the
-      # expected "unidentified developer" prompt for a plain unsigned
-      # app. See scripts/distribution/sign_macos_app.py's docstring and
-      # docs/desktop-testing.md, "Milestone 7A," for how this was found.
-      - name: Ad-hoc sign macOS app bundle (unsigned-build fallback)
-        if: env.APPLE_CERTIFICATE == ''
-        run: |
           APP=$(find target/${{ matrix.target }}/release/bundle/macos -maxdepth 1 -name "*.app" | head -1)
-          python3 scripts/distribution/sign_macos_app.py --app-path "$APP"
+          python3 scripts/distribution/sign_macos_release.py --phase sign-app --app-path "$APP" --marker dist-out/signing-state.json
 
       - name: Verify macOS app bundle signature
         run: |
@@ -182,6 +161,19 @@ jobs:
             --app-path "$APP" --version "$VERSION" \
             --target-triple ${{ matrix.target }} \
             --out-dir target/${{ matrix.target }}/release/bundle/dmg
+
+      - name: Notarize final macOS .dmg
+        if: env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          DMG=$(find target/${{ matrix.target }}/release/bundle/dmg -maxdepth 1 -name "*.dmg" | head -1)
+          python3 scripts/distribution/sign_macos_release.py --phase notarize-dmg --dmg-path "$DMG" --marker dist-out/signing-state.json
 
       - name: Collect and rename artifacts
         run: |
@@ -235,19 +227,20 @@ jobs:
               if a['target_triple'] == '${{ matrix.target }}':
                   print(a['library_sha256'])
           ")
-          # Reflects what actually happened above: a real Developer ID
-          # signature when APPLE_CERTIFICATE was configured, otherwise
-          # the ad-hoc structural-signing fallback — never blanket
-          # "unsigned", which would understate what the ad-hoc path
-          # actually establishes (a valid, verifiable signature; just
-          # not a Developer ID identity). See docs/releasing.md, "Ad-hoc
-          # signing fallback."
-          if [ -n "${APPLE_CERTIFICATE:-}" ]; then
-            SIGNING_STATE=signed
-          else
-            SIGNING_STATE=ad_hoc
-          fi
+          SIGNING_STATE=$(python3 -c "import json; print(json.load(open('dist-out/signing-state.json'))['signing_state'])")
+          NOTARIZATION_STATE=$(python3 -c "import json; print(json.load(open('dist-out/signing-state.json'))['notarization_state'])")
+          CREATED=$(python3 -c "import datetime, subprocess; print(datetime.datetime.fromtimestamp(int(subprocess.check_output(['git','show','-s','--format=%ct','HEAD'])), datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+          python3 scripts/distribution/generate_sbom.py --target "${{ matrix.target }}" --version "$VERSION" --created "$CREATED" --out "dist-out/mpdf-$VERSION-${{ matrix.target }}.sbom.json"
+          rm -f dist-out/signing-state.json
           for f in dist-out/*; do
+            KIND=desktop
+            ENTRY_SIGNING=unsigned
+            ENTRY_NOTARIZATION=not_applicable
+            case "$(basename "$f")" in
+              *.dmg) ENTRY_SIGNING="$SIGNING_STATE"; ENTRY_NOTARIZATION="$NOTARIZATION_STATE" ;;
+              mpdf-cli-*) KIND=cli ;;
+              *.sbom.json) KIND=sbom ;;
+            esac
             python3 scripts/distribution/release_manifest.py add \
               --manifest dist-out/release-manifest.json \
               --project-version "$VERSION" --git-sha "${{ github.sha }}" \
@@ -256,7 +249,8 @@ jobs:
               --artifact-path "$f" \
               --pdfium-build 7920 --pdfium-version 151.0.7920.0 \
               --pdfium-sha256 "$PDFIUM_SHA" \
-              --signing-state "$SIGNING_STATE" --notarization-state pending_credentials \
+              --signing-state "$ENTRY_SIGNING" --notarization-state "$ENTRY_NOTARIZATION" \
+              --artifact-kind "$KIND" \
               --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
           done
           python3 scripts/distribution/checksums.py dist-out
@@ -291,6 +285,9 @@ jobs:
         run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
       - name: Stage PDFium for Tauri bundling
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      - name: PDFium release smoke gates
+        shell: pwsh
+        run: python3 scripts/distribution/pdfium_release_smoke.py --pdfium "target/distribution/pdfium/${{ matrix.target }}/pdfium.dll"
       # Tauri's default bundle.targets ("all") also builds an NSIS
       # installer here, alongside the MSI — deliberately not collected
       # into dist-out below. MSI is this project's chosen canonical
@@ -320,6 +317,8 @@ jobs:
       - name: Generate checksums and release manifest
         run: |
           $VERSION = (Get-Content version.txt).Trim()
+          $CREATED = python3 -c "import datetime, subprocess; print(datetime.datetime.fromtimestamp(int(subprocess.check_output(['git','show','-s','--format=%ct','HEAD'])), datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))"
+          python3 scripts/distribution/generate_sbom.py --target "${{ matrix.target }}" --version $VERSION --created $CREATED --out "dist-out/mpdf-$VERSION-${{ matrix.target }}.sbom.json"
           $PDFIUM_SHA = python3 -c "import tomllib; m = tomllib.load(open('distribution/pdfium/manifest.toml','rb')); print([a['library_sha256'] for a in m['asset'] if a['target_triple'] == '${{ matrix.target }}'][0])"
           # Captured into an array before the loop starts (rather than
           # piped directly) so it is a fixed snapshot of what existed
@@ -328,6 +327,7 @@ jobs:
           # to append itself as an "artifact" of its own manifest.
           $artifactsBefore = @(Get-ChildItem dist-out -File)
           foreach ($f in $artifactsBefore) {
+            $kind = if ($f.Name.EndsWith('.sbom.json')) { 'sbom' } elseif ($f.Name.StartsWith('mpdf-cli-')) { 'cli' } else { 'desktop' }
             python3 scripts/distribution/release_manifest.py add `
               --manifest dist-out/release-manifest.json `
               --project-version $VERSION --git-sha "${{ github.sha }}" `
@@ -337,6 +337,7 @@ jobs:
               --pdfium-build 7920 --pdfium-version 151.0.7920.0 `
               --pdfium-sha256 $PDFIUM_SHA `
               --signing-state unsigned --notarization-state not_applicable `
+              --artifact-kind $kind `
               --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
           }
           python3 scripts/distribution/checksums.py dist-out
@@ -377,6 +378,8 @@ jobs:
         run: python3 scripts/distribution/fetch_pdfium.py ${{ matrix.target }}
       - name: Stage PDFium for Tauri bundling
         run: python3 scripts/distribution/stage_desktop_pdfium.py ${{ matrix.target }}
+      - name: PDFium release smoke gates
+        run: python3 scripts/distribution/pdfium_release_smoke.py --pdfium "target/distribution/pdfium/${{ matrix.target }}/libpdfium.so"
       # Tauri's default bundle.targets ("all") also builds an .rpm here,
       # alongside the .deb and .AppImage — deliberately not collected
       # into dist-out below. .deb and .AppImage are this project's
@@ -415,6 +418,8 @@ jobs:
       - name: Generate checksums and release manifest
         run: |
           VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version'])")
+          CREATED=$(python3 -c "import datetime, subprocess; print(datetime.datetime.fromtimestamp(int(subprocess.check_output(['git','show','-s','--format=%ct','HEAD'])), datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+          python3 scripts/distribution/generate_sbom.py --target "${{ matrix.target }}" --version "$VERSION" --created "$CREATED" --out "dist-out/mpdf-$VERSION-${{ matrix.target }}.sbom.json"
           PDFIUM_SHA=$(python3 -c "
           import tomllib
           m = tomllib.load(open('distribution/pdfium/manifest.toml','rb'))
@@ -423,6 +428,8 @@ jobs:
                   print(a['library_sha256'])
           ")
           for f in dist-out/*; do
+            KIND=desktop
+            case "$(basename "$f")" in *.sbom.json) KIND=sbom ;; mpdf-cli-*) KIND=cli ;; esac
             python3 scripts/distribution/release_manifest.py add \
               --manifest dist-out/release-manifest.json \
               --project-version "$VERSION" --git-sha "${{ github.sha }}" \
@@ -432,6 +439,7 @@ jobs:
               --pdfium-build 7920 --pdfium-version 151.0.7920.0 \
               --pdfium-sha256 "$PDFIUM_SHA" \
               --signing-state unsigned --notarization-state not_applicable \
+              --artifact-kind "$KIND" \
               --build-workflow "${{ github.workflow }}#${{ github.run_id }}"
           done
           python3 scripts/distribution/checksums.py dist-out

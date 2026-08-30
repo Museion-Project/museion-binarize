@@ -199,6 +199,15 @@ pub fn generate_auto_with_cancel(
         generation_mode: Some(mode),
     };
     sort_candidates(package, &mut snapshot.candidates);
+    // serde_json's portable float representation can round a handful of
+    // PDFium-derived f64 coordinates on a write/read round trip. Normalize
+    // the in-memory snapshot through the same representation before binding
+    // its digest, so persisted snapshots validate byte-for-byte without
+    // changing any scoring or threshold decisions.
+    snapshot = serde_json::from_slice(
+        &serde_json::to_vec(&snapshot).map_err(|e| CoreError::InvalidDocument(e.to_string()))?,
+    )
+    .map_err(|e| CoreError::InvalidDocument(e.to_string()))?;
     snapshot.generation_digest = snapshot.recomputed_generation_digest();
     snapshot.validate()?;
     let report = builder.finish(mode, &snapshot);
@@ -387,7 +396,9 @@ fn compile_printed_contents(
             numbering_family: segment.family.as_str().to_owned(),
             segment_index: segment.index,
             offset: segment.offset,
-            anchor_count: segment.anchor_count,
+            member_count: segment.member_count,
+            exact_anchor_count: segment.exact_anchor_count,
+            disagreeing_anchor_count: segment.disagreeing_anchor_count,
             first_printed_number: segment.first_printed,
             last_printed_number: segment.last_printed,
             residual_min: segment.residual_min,
@@ -515,7 +526,16 @@ fn compile_printed_contents(
             runner_up_margin,
             has_body_evidence: body_line.is_some_and(|line| line.bbox.finite()),
             printed_page_residual: residual,
-            residual_supported: segment.is_some_and(|segment| segment.anchor_count >= 2),
+            // Support means anchors that actually agree, and never this
+            // entry vouching for itself.
+            residual_supported: segment
+                .is_some_and(|segment| independent_exact_anchors(segment, ordinal) >= 1),
+            mapping_exact_independent_anchors: segment
+                .map(|segment| independent_exact_anchors(segment, ordinal))
+                .unwrap_or(0),
+            mapping_disagreeing_anchors: segment
+                .map(|segment| segment.disagreeing_anchor_count)
+                .unwrap_or(0),
             level_ambiguous: level_decisions[ordinal].ambiguous,
             secondary_only: target
                 .as_ref()
@@ -733,6 +753,17 @@ fn line_bbox(index: &TextIndex, page_id: &str, line_id: &str) -> Option<Bbox> {
         .iter()
         .find(|line| line.line_id == line_id)
         .map(|line| line.bbox)
+}
+
+/// Exact anchors corroborating a segment, *excluding the entry being judged*.
+///
+/// The reason code claims independent support from other entries, so the
+/// number behind it has to mean that. An entry that is itself the segment's
+/// only exact anchor has no corroboration at all, however large the run is.
+fn independent_exact_anchors(segment: &align::MappingSegment, ordinal: usize) -> u32 {
+    segment
+        .exact_anchor_count
+        .saturating_sub(u32::from(segment.exact_anchor_ordinals.contains(&ordinal)))
 }
 
 fn residual_of(

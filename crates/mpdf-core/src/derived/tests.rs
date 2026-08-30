@@ -86,6 +86,7 @@ fn word_doc() -> DerivedDocument {
             structural_path: "p/page-1/b000000/l000000".into(),
             reading_order: 0,
             words: vec![w],
+            assembly: None,
         }],
     }];
     d

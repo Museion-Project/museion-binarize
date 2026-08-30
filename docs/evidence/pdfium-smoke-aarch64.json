@@ -1,0 +1,10 @@
+{
+  "gates": {
+    "cli_bookmarks_cli_ignored": "pass",
+    "core_auto_bookmarks_pdf_ignored": "pass",
+    "core_pdf_pipeline_ignored": "pass",
+    "core_searchable_pdf": "pass"
+  },
+  "library_sha256": "df568fcd17a6a6296956aa79abea1181db187458432f360b084fec1cea7cd4d9",
+  "target": "aarch64-apple-darwin"
+}

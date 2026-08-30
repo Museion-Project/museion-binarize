@@ -1,0 +1,279 @@
+{
+  "schema": "mpdf-ocr-detached-accents",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "host": "macOS arm64",
+  "tesseract_version": "5.5.3",
+  "model_set": "tessdata_best 4.1.0",
+  "note": "Metrics only. No document text, no page images, no corpus or source file paths. Corpus identified bibliographically.",
+  "feature": {
+    "flag": "--detached-greek-accents {off,on}",
+    "default": "off",
+    "rust": "SidecarPasses::detached_greek_accents; all three passes are on argv and in the job fingerprint",
+    "algorithm": "Detect a short, low-minimum-confidence, mark-only line whose box sits inside the top of a Greek-dominant base line and overlaps it horizontally. Crop band+base as one region, re-recognize with grc at PSM 13 and native resolution, and replace the base line only if the candidate passes containment, coverage, Greek/Latin/digit retention, confidence and NFC gates. Otherwise keep the base line's combined reading and suppress the mark-only band alone.",
+    "detection_is_geometric": "Height ratio, minimum word confidence, vertical containment, horizontal overlap and script counts only. The characters a band happens to emit are never the criterion."
+  },
+  "ablation_four_real_greek_pages": {
+    "ground_truth": "publisher text layer of a born-digital Teubner-set Greek edition",
+    "variants": [
+      {
+        "variant": "baseline combined",
+        "raw_cer": 0.1756,
+        "folded_cer": 0.1649,
+        "wer": 0.4866,
+        "diacritic_errors": 81,
+        "greek_to_latin": 137,
+        "artifact_lines": 16
+      },
+      {
+        "variant": "suppress artifact only",
+        "raw_cer": 0.1177,
+        "folded_cer": 0.1071,
+        "wer": 0.3319,
+        "diacritic_errors": 81,
+        "greek_to_latin": 137,
+        "artifact_lines": 0
+      },
+      {
+        "variant": "union crop grc psm7 1.0x",
+        "raw_cer": 0.1104,
+        "folded_cer": 0.0997,
+        "wer": 0.3253,
+        "diacritic_errors": 64,
+        "greek_to_latin": 90
+      },
+      {
+        "variant": "union crop grc psm13 1.0x",
+        "raw_cer": 0.1086,
+        "folded_cer": 0.0984,
+        "wer": 0.3202,
+        "diacritic_errors": 61,
+        "greek_to_latin": 87
+      },
+      {
+        "variant": "union crop grc psm7 1.5x",
+        "raw_cer": 0.1114,
+        "folded_cer": 0.1009,
+        "wer": 0.3303,
+        "diacritic_errors": 69,
+        "greek_to_latin": 88
+      },
+      {
+        "variant": "union crop grc psm7 2.0x",
+        "raw_cer": 0.1123,
+        "folded_cer": 0.1015,
+        "wer": 0.3311,
+        "diacritic_errors": 71,
+        "greek_to_latin": 88
+      },
+      {
+        "variant": "union crop grc psm6 1.0x",
+        "raw_cer": 0.1557,
+        "folded_cer": 0.1453,
+        "wer": 0.4314,
+        "diacritic_errors": 76,
+        "greek_to_latin": 90
+      }
+    ],
+    "chosen": "union crop, grc, PSM 13, native resolution",
+    "why": "PSM 13 measured best; PSM 6 was far worse because it re-runs layout analysis on a crop that is a single line by construction. Upscaling measured slightly worse at 1.5x and 2.0x."
+  },
+  "shipped_result_four_real_greek_pages": {
+    "artifact_lines": {
+      "before": 16,
+      "after": 0,
+      "reduction": "100%",
+      "gate": ">=80%"
+    },
+    "artifact_characters": {
+      "before": 394,
+      "after": 0,
+      "reduction": "100%",
+      "gate": ">=80%"
+    },
+    "raw_cer": {
+      "before": 0.1756,
+      "after": 0.1171,
+      "improvement": "33.3%",
+      "gate": ">=10%"
+    },
+    "folded_cer": {
+      "before": 0.1649,
+      "after": 0.1065,
+      "note": "ϑ/θ and ϕ/φ folded for evaluation only; OCR output is unchanged"
+    },
+    "wer": {
+      "before": 0.4866,
+      "after": 0.3311
+    },
+    "diacritic_errors": {
+      "before": 81,
+      "after": 78,
+      "denominator": 1331,
+      "gate": "not worse"
+    },
+    "greek_to_latin_confusions": {
+      "before": 137,
+      "after": 135,
+      "gate": "not worse"
+    },
+    "nfc_violations": {
+      "before": 0,
+      "after": 0
+    },
+    "substantive_missing_lines": 0,
+    "lines": {
+      "before": 161,
+      "after": 145,
+      "note": "the 16 removed lines are exactly the detected mark-only bands"
+    },
+    "seconds": {
+      "before": 37.3,
+      "after": 38.6,
+      "ratio": 1.03
+    },
+    "per_page": [
+      {
+        "page": 1,
+        "raw_cer": [
+          0.2584,
+          0.1623
+        ],
+        "artifact_lines": [
+          7,
+          0
+        ]
+      },
+      {
+        "page": 2,
+        "raw_cer": [
+          0.1747,
+          0.1281
+        ],
+        "artifact_lines": [
+          3,
+          0
+        ]
+      },
+      {
+        "page": 3,
+        "raw_cer": [
+          0.0764,
+          0.0764
+        ],
+        "artifact_lines": [
+          0,
+          0
+        ],
+        "note": "no candidates; byte-identical, which is the control"
+      },
+      {
+        "page": 4,
+        "raw_cer": [
+          0.1857,
+          0.0948
+        ],
+        "artifact_lines": [
+          6,
+          0
+        ]
+      }
+    ]
+  },
+  "artifact_suppression_versus_diacritic_recovery": {
+    "statement": "These are different gains and are not conflated. Suppressing the band removes noise and recovers nothing: measured alone it moves raw CER 0.1756 -> 0.1177 while diacritic errors stay at 81 and script confusions at 137. Re-recognition is what recovers, and only where the safety gates allow it.",
+    "suppression_gain": {
+      "raw_cer": [
+        0.1756,
+        0.1177
+      ],
+      "diacritic_errors": [
+        81,
+        81
+      ]
+    },
+    "recovery_gain_shipped": {
+      "diacritic_errors": [
+        81,
+        78
+      ],
+      "greek_to_latin": [
+        137,
+        135
+      ]
+    },
+    "recovery_available_if_gates_were_loosened": {
+      "diacritic_errors": [
+        81,
+        61
+      ],
+      "note": "The unconstrained ablation reaches 61, but only by accepting candidates that drop Latin. Most rejections are `latin-lost`, where the base line's Latin is itself corrupted Greek. The strict gate was kept and the smaller recovery reported rather than relaxing a safety condition."
+    },
+    "shipped_split": {
+      "bands_seen": 20,
+      "replaced": 8,
+      "suppressed": 12
+    }
+  },
+  "cgpg_full_holdout": {
+    "doi": "10.5281/zenodo.20008699",
+    "license": "CC BY 4.0",
+    "pages_scored": 63,
+    "holdout_pages_in_split": 77,
+    "off": {
+      "cer": 0.1766,
+      "wer": 0.453,
+      "diacritic_error_rate": 0.0913,
+      "script_confusions": 951,
+      "missing_lines": 0,
+      "extra_lines": 148
+    },
+    "detached": {
+      "cer": 0.1766,
+      "wer": 0.453,
+      "diacritic_error_rate": 0.0913,
+      "script_confusions": 951,
+      "missing_lines": 0,
+      "extra_lines": 148
+    },
+    "finding": "Identical. The Patrologia Graeca typeface does not produce detached accent bands, so the pass finds no candidates. Hard gates met — no regression on CER, diacritics, missing or extra lines — but no gain either. The pass is specific to the Teubner-style face it was measured on.",
+    "caveats": [
+      "This holdout has been observed in earlier rounds; it is no longer a pristine blind test.",
+      "Every transcribed CGPG region is Greek, so it cannot demonstrate Latin safety."
+    ]
+  },
+  "german_and_latin_regression": {
+    "byte_identical_on_off": [
+      "4 Primavesi German/mixed pages",
+      "1 dense Greek+German page",
+      "1 scanned German page with 8pt footnotes"
+    ],
+    "bands_seen_on_those_pages": 0,
+    "finding": "The pass is inert on every non-Greek-base page tested."
+  },
+  "160_page_book_defaults_all_off": {
+    "greek_chars": 5389,
+    "u_umlaut": 1943,
+    "a_umlaut": 1506,
+    "o_umlaut": 960,
+    "eszett": 1208,
+    "pages": 160,
+    "ccitt_g4_pages": 160,
+    "ocr_errors": 0,
+    "nfc": true,
+    "source_unchanged": true,
+    "qpdf_check": "clean",
+    "verification": {
+      "geometry_matches_source": true,
+      "outline_matches_confirmed": true,
+      "source_unchanged": true
+    },
+    "finding": "Baseline exactly preserved with all three optional passes off."
+  },
+  "limitations": [
+    "Calibrated and measured on a single real Teubner-set source.",
+    "CGPG shows no effect at all, so the gain does not generalise on current evidence.",
+    "Most of the measured gain is artifact suppression, not diacritic recovery.",
+    "Default off; enabling it is a deliberate opt-in."
+  ]
+}

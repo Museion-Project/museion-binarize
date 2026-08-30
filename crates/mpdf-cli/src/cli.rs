@@ -22,6 +22,9 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// The main flow: OCR the original PDF, compile bookmarks, binarize the
+    /// pages, and write one final searchable, outlined, bilevel PDF.
+    Run(RunArgs),
     /// Print project and build information.
     Info(InfoArgs),
     /// Inspect a PDF: page count, geometry, rotation, and render sizes.
@@ -65,6 +68,9 @@ pub enum Command {
     /// Build a searchable derivative while preserving the source PDF.
     #[command(subcommand)]
     Pdf(PdfCommand),
+    /// Inspect OCR provider modes and manage model-provider credentials.
+    #[command(subcommand)]
+    Provider(ProviderCommand),
 }
 
 #[derive(Subcommand)]
@@ -701,6 +707,207 @@ pub struct EstimateArgs {
 
     #[command(flatten)]
     pub pdfium: PdfiumArgs,
+}
+
+/// Which execution mode runs OCR.
+///
+/// `local` is the default and the only one that touches no network. Choosing
+/// anything else uploads page images, which is why it is an explicit flag and
+/// why `--cloud-consent` is required alongside it.
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum OcrProviderModeArg {
+    /// Local Tesseract. No network access, no credential, no cost.
+    Local,
+    /// Google Gemini, called with the key stored in this machine's OS
+    /// credential store. Page images are uploaded to Google.
+    GeminiByok,
+    /// M PDF's own service executes the model. No production service exists
+    /// in this build; see `mpdf provider list`.
+    MpdfCredits,
+}
+
+/// What to do when a cloud provider cannot produce a page.
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum CloudFallbackArg {
+    /// Use the locally recognized page and record the fallback per page.
+    /// The run still produces a searchable PDF.
+    Local,
+    /// Stop the run. Nothing is written.
+    Fail,
+}
+
+/// Whether provider-returned rectangles may be evaluated.
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum StructuredBboxArg {
+    /// Never request or accept model coordinates. The default, and the only
+    /// setting cleared for real work.
+    Disabled,
+    /// Request them, cross-validate against the local detector, and fall back
+    /// deterministically when any gate fails. Evaluation only.
+    EvaluateWithFallback,
+}
+
+#[derive(Subcommand)]
+pub enum ProviderCommand {
+    /// List the OCR provider modes, their capabilities and their blockers.
+    List(ProviderListArgs),
+    /// Non-billable connection test. Never prints a credential.
+    Test(ProviderTestArgs),
+    /// Store, inspect or remove a model-provider key in the OS credential
+    /// store. There is deliberately no way to pass a key on the command line.
+    #[command(subcommand)]
+    Credential(ProviderCredentialCommand),
+}
+
+#[derive(Subcommand)]
+pub enum ProviderCredentialCommand {
+    /// Read a key from stdin and store it in the OS credential store.
+    Set(ProviderCredentialArgs),
+    /// Report whether a slot holds a key. Never reveals it.
+    Status(ProviderCredentialArgs),
+    /// Remove the key from the slot.
+    Delete(ProviderCredentialArgs),
+}
+
+#[derive(Args)]
+pub struct ProviderCredentialArgs {
+    /// Credential slot name. A label, never the key itself.
+    #[arg(long, default_value = "default")]
+    pub slot: String,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Args)]
+pub struct ProviderListArgs {
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Args)]
+pub struct ProviderTestArgs {
+    #[arg(long, value_enum, default_value_t = OcrProviderModeArg::Local)]
+    pub mode: OcrProviderModeArg,
+    #[arg(long, default_value = "default")]
+    pub slot: String,
+    /// Advanced: override the provider endpoint. Must be HTTPS.
+    #[arg(long)]
+    pub endpoint: Option<String>,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum RunProviderArg {
+    /// Tesseract LSTM with the pinned `tessdata_best` model set. The only
+    /// engine cleared for production by the gold evaluation.
+    Tesseract,
+    /// PaddleOCR/RapidOCR-style detector + region recognizer. Evaluation only:
+    /// it cannot represent polytonic Ancient Greek and fetches weights at
+    /// first use.
+    Paddleocr,
+    /// Deterministic offline stub. Development and tests only; it recognizes
+    /// nothing, so it can never produce real bookmarks.
+    Reference,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum ReviewPolicyArg {
+    /// Stop before writing anything if entries need a human decision.
+    Pause,
+    /// Write only what is already confirmed and skip the rest.
+    Confirmed,
+    /// Apply the review decisions stored in the workspace, then continue.
+    Reviewed,
+}
+
+/// `mpdf run` — one input PDF, one output PDF.
+///
+/// A user of this command does not have to know what a provider, a model, a
+/// TOC offset, or a threshold is. The order is fixed and enforced by the core
+/// orchestrator: the original pages are OCR'd first, bookmarks are compiled
+/// from that evidence, and only then are the visible pages binarized.
+#[derive(Args)]
+pub struct RunArgs {
+    /// The original colour or grayscale PDF. Never modified.
+    pub input: PathBuf,
+    /// The final binarized, searchable, outlined PDF.
+    #[arg(long, short)]
+    pub output: PathBuf,
+    /// Replace the destination if it already exists.
+    #[arg(long)]
+    pub overwrite: bool,
+    /// Language profile. `auto` covers this project's corpus: polytonic
+    /// Ancient Greek plus German plus English, in one combined pass.
+    #[arg(long, default_value = "auto")]
+    pub language: String,
+    /// Advanced: which local OCR engine to drive.
+    #[arg(long, value_enum, default_value_t = RunProviderArg::Tesseract)]
+    pub provider: RunProviderArg,
+    /// Advanced: the OCR sidecar executable. Defaults to `$MPDF_OCR_SIDECAR`.
+    #[arg(long)]
+    pub ocr_sidecar: Option<PathBuf>,
+    /// Advanced: the provisioned model directory. Defaults to
+    /// `$MPDF_OCR_MODELS`. Never downloaded automatically.
+    #[arg(long)]
+    pub models: Option<PathBuf>,
+    /// Advanced: durable workspace for evidence and bookmark candidates.
+    /// Defaults to a directory beside the output.
+    #[arg(long)]
+    pub workspace: Option<PathBuf>,
+    /// What to do when entries need a human decision.
+    #[arg(long, value_enum, default_value_t = ReviewPolicyArg::Pause)]
+    pub on_review: ReviewPolicyArg,
+    /// Advanced: OCR raster resolution. Unrelated to the output DPI.
+    #[arg(long, default_value_t = 300)]
+    pub ocr_dpi: u16,
+
+    /// Which execution mode runs OCR. `local` is the default and never
+    /// touches the network.
+    #[arg(long, value_enum, default_value_t = OcrProviderModeArg::Local)]
+    pub ocr_provider: OcrProviderModeArg,
+    /// Required by every non-local `--ocr-provider`: acknowledges that a
+    /// rendered image of every OCR'd page is uploaded to that provider.
+    #[arg(long)]
+    pub cloud_consent: bool,
+    /// What to do when a cloud page fails. Defaults to keeping the locally
+    /// recognized page and recording the fallback.
+    #[arg(long, value_enum, default_value_t = CloudFallbackArg::Local)]
+    pub cloud_fallback: CloudFallbackArg,
+    /// Credential slot to read the model-provider key from. A label; the key
+    /// itself is never accepted on the command line.
+    #[arg(long, default_value = "default")]
+    pub credential_slot: String,
+    /// Advanced: model-provider endpoint. Must be HTTPS.
+    #[arg(long)]
+    pub cloud_endpoint: Option<String>,
+    /// Advanced: pinned model name for cloud modes.
+    #[arg(long)]
+    pub cloud_model: Option<String>,
+    /// Advanced: pinned model version for cloud modes. Never `latest`.
+    #[arg(long)]
+    pub cloud_model_version: Option<String>,
+    /// Advanced: whether model-returned rectangles may be evaluated.
+    #[arg(long, value_enum, default_value_t = StructuredBboxArg::Disabled)]
+    pub structured_bbox: StructuredBboxArg,
+    /// M PDF Credits: credits to reserve per page.
+    #[arg(long, default_value_t = 1)]
+    pub credits_per_page: u64,
+    /// M PDF Credits: the hard ceiling this run may reserve. The run refuses
+    /// to start rather than exceed it.
+    #[arg(long, default_value_t = 0)]
+    pub max_credits: u64,
+    /// Validate the configuration, print what would be uploaded and what it
+    /// would cost, and exit. Performs no provider call and reserves nothing.
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[command(flatten)]
+    pub settings: SettingsArgs,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
 }
 
 #[derive(Args)]

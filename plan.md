@@ -216,7 +216,9 @@ M6。M5 的待填验收包仍保留并继续如实标记为 pending，不把未�
 
 **目标：** 在不改变 MDP 和 UI 语义的前提下增加 API 路径。
 
-状态（2026-08-28）：代码已合并（PR #25，merge `3dd3389`）。发布准备（M7）尚未开始。
+状态（2026-08-28）：代码已合并（PR #25，merge `3dd3389`）。M7A distribution
+foundation 与 M7B1 MAS technical path 已存在；本轮开始 rc.3 release-candidate
+hardening。生产构建、签名、公证、发布状态仍分别记录，不作合并声称。
 ADR 0008 已冻结
 network-free core、独立 HTTPS client、显式摘要绑定上传许可、原生 credential store、整数预算、
 append-only audit、portable task receipt、可见 retention 与显式 fallback 契约。首个远程操作仅为
@@ -262,8 +264,8 @@ outline；不是让模型自由生成语义目录。
 
 未完成/未运行（如实记录）：
 
-- 当前 Mac 已有认可的 PDFium：
-  `/Users/theo/AI 工作流/museion-binarize/target/pdfium/aarch64-apple-darwin/libpdfium.dylib`。
+- 当前 Mac 已有经 manifest 校验的 PDFium：
+  `target/pdfium/aarch64-apple-darwin/libpdfium.dylib`。
   本轮用它实际运行了 `auto_bookmarks_pdf`（ignored 3/3）、`searchable_pdf`（1/1）及
   相关 PDFium 门；ignored 测试只有显式命令才计入上述计数。
 - `scripts/m5/check_reader_matrix.sh` 已使用全新的输出目录实际通过（qpdf、pdfinfo、
@@ -273,14 +275,14 @@ outline；不是让模型自由生成语义目录。
   `not_run`/`pending`；
 - 评分阈值是保守冻结基线，未按语料校准。
 
-### M7 — 发布硬化与正式命名
+### M7 — 发布硬化与正式命名（rc.3 第一轮）
 
-**目标：** 在功能和格式稳定后再决定最终品牌及发布迁移。
+**目标：** 在功能和格式稳定后完成 rc.3 可审查分发；正式产品身份已冻结，
+法律/owner 清查仍是外部门禁。
 
 交付：
 
-- 正式产品名、仓库名、域名、应用 identifier 和商标检查；
-- 从 `mpdf` 占位名迁移的兼容矩阵；
+- 产品名、仓库名、bundle identifier、CLI/crate/schema identity 冻结与兼容矩阵；
 - Windows/macOS/Linux 安装包与升级验证；
 - SBOM、第三方模型许可、签名、公证、release manifest 和回滚演练；
 - 性能、OCR、书签、隐私和无障碍发布报告。
@@ -298,8 +300,8 @@ outline；不是让模型自由生成语义目录。
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
 | M5 自动书签/PDF | 代码已合并；人工结果后补（不阻塞 M6） | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人之后提供 Acrobat/Preview/iOS 与单人标注结果 |
 | M6 API | 已合并 | [PR #25](https://github.com/Museion-Project/museion-binarize/pull/25)；merge `3dd3389` | 发布准备留待 M7 |
-| 自动书签目录 v2 | `1a3ccc1` 已交付；本轮修复未提交 | `codex/auto-bookmark-v2-fixes` | 真实 reader/人工 gold/真机 Tauri 仍需分别记录，不得伪报通过 |
-| M7 发布/正式命名 | 未开始 | — | 自动书签目录 v2 合并后与 M6 一起做发布轮 |
+| 自动书签目录 v2 | 已交付并保留于 commit `11b0ae1` | `codex/auto-bookmark-v2-fixes` | 真实 reader/人工 gold/真机 Tauri 仍需分别记录，不得伪报通过 |
+| M7 发布/正式命名 | rc.3 hardening 进行中 | 本轮源码 | 版本/身份、SBOM、分发、签名、公证与跨平台证据分别过门 |
 
 ## 5. 当前阻塞
 
@@ -308,6 +310,9 @@ PDF.js 及 Foxit 证据。产品负责人将之后补充 digital/scanned TOC、s
 Preview UI 和 iOS 结果；这些结果仍不得伪报通过，但按 2026-08-28 的明确授权不再阻塞 M6。
 自动书签目录 v2 的代码回归和 reader matrix 已使用本机认可 PDFium 完成；商业阅读器真机、
 真实人工金标准语料和真机 Tauri/MAS 交互仍未运行，本轮不产出真实准确率或人工验收数字。
+另外，rc.3 分发流尚未把 Tesseract 可执行文件、OCR sidecar 与固定
+`tessdata_best` 模型装入各平台安装包；源码环境的合成 gold 通过不能替代这个
+分发证据，因此它是 M7 发布阻塞项。
 
 M6 当前没有外部阻塞。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。

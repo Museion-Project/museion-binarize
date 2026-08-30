@@ -1,0 +1,527 @@
+{
+  "schema": "mpdf-ocr-script-routing",
+  "schema_version": "1.0",
+  "date": "2026-08-29",
+  "host": "macOS arm64 (Darwin 27.0.0)",
+  "tesseract_version": "tesseract 5.5.3",
+  "model_set": "tessdata_best 4.1.0",
+  "note": "Metrics only. No document text, no page images, no corpus or source file paths. Typographic-variant codepoints are NOT folded: raw CER is reported as measured.",
+  "algorithm": {
+    "routing_mode": "block-script-v1",
+    "thresholds_version": "1",
+    "thresholds": {
+      "ROUTING_GREEK_RATIO": "0.80",
+      "ROUTING_MIN_GREEK_CHARS": "12",
+      "ROUTING_MAX_LATIN_CHARS": "40",
+      "ROUTING_MIN_LATIN_RETENTION": "0.50",
+      "ROUTING_MAX_SEGMENTS": "12",
+      "ROUTING_CROP_PADDING": "12",
+      "ROUTING_CROP_PADDING_Y": "10",
+      "ROUTING_LINE_CENTRE_TOLERANCE": "0.30",
+      "ROUTING_MIN_CROP_PX": "24",
+      "ROUTING_TIME_BUDGET_SECONDS": "45",
+      "ROUTING_MIN_COVERAGE": "0.60",
+      "ROUTING_MAX_COVERAGE": "1.60",
+      "ROUTING_MIN_GREEK_RETENTION": "0.80",
+      "ROUTING_MIN_CONFIDENCE": "0.30"
+    },
+    "summary": "Combined grc+deu+eng pass stays authoritative for orientation, geometry and reading order. Contiguous same-script line runs that are unambiguously Greek are re-recognized with grc alone and replace the combined text only if they pass containment, coverage, Greek/Latin retention, confidence and NFC checks. Any failure keeps the combined result."
+  },
+  "synthetic_gold": {
+    "tess-combined": {
+      "gate": "pass",
+      "cer": 0.103082,
+      "wer": 0.441558,
+      "diacritic_error_rate": 0.035928,
+      "script_confusion_rate": 0.001011,
+      "nfc_violations": 0,
+      "seconds_per_page": 0.608,
+      "must_pass_failures": []
+    },
+    "tess-routed": {
+      "gate": "pass",
+      "cer": 0.101566,
+      "wer": 0.441558,
+      "diacritic_error_rate": 0.023952,
+      "script_confusion_rate": 0.0,
+      "nfc_violations": 0,
+      "seconds_per_page": 0.651,
+      "must_pass_failures": []
+    }
+  },
+  "real_corpus": {
+    "description": "Born-digital scholarly editions with embedded polytonic fonts; the publisher's own text layer is the ground truth. Identified bibliographically only.",
+    "greek_dense": {
+      "source": "Proklos, Elementatio Theologica (Meiner), 4 pages",
+      "off": {
+        "pages": 4,
+        "reference_chars": 6778,
+        "reference_words": 1196,
+        "cer": 0.063883,
+        "wer": 0.212375,
+        "diacritic_errors": 81,
+        "diacritic_bearing_chars": 1331,
+        "diacritic_error_rate": 0.060856,
+        "script_confusions": 138,
+        "script_confusion_rate": 0.02036,
+        "seconds_total": 33.19,
+        "seconds_per_page": 8.298
+      },
+      "block-script-v1": {
+        "pages": 4,
+        "reference_chars": 6778,
+        "reference_words": 1196,
+        "cer": 0.055769,
+        "wer": 0.208194,
+        "diacritic_errors": 53,
+        "diacritic_bearing_chars": 1331,
+        "diacritic_error_rate": 0.03982,
+        "script_confusions": 20,
+        "script_confusion_rate": 0.002951,
+        "seconds_total": 41.61,
+        "seconds_per_page": 10.402
+      }
+    },
+    "german_and_mixed": {
+      "source": "Primavesi on Aristotle Metaph. A (de Gruyter), 5 pages",
+      "off": {
+        "pages": 5,
+        "reference_chars": 12580,
+        "reference_words": 2159,
+        "cer": 0.076471,
+        "wer": 0.202409,
+        "diacritic_errors": 39,
+        "diacritic_bearing_chars": 630,
+        "diacritic_error_rate": 0.061905,
+        "script_confusions": 17,
+        "script_confusion_rate": 0.001351,
+        "seconds_total": 35.67,
+        "seconds_per_page": 7.134
+      },
+      "block-script-v1": {
+        "pages": 5,
+        "reference_chars": 12580,
+        "reference_words": 2159,
+        "cer": 0.08593,
+        "wer": 0.219546,
+        "diacritic_errors": 39,
+        "diacritic_bearing_chars": 630,
+        "diacritic_error_rate": 0.061905,
+        "script_confusions": 9,
+        "script_confusion_rate": 0.000715,
+        "seconds_total": 38.36,
+        "seconds_per_page": 7.673
+      }
+    },
+    "aggregate": {
+      "off": {
+        "pages": 9,
+        "reference_chars": 19358,
+        "cer": 0.072063,
+        "script_confusions": 155,
+        "script_confusion_rate": 0.008007
+      },
+      "block-script-v1": {
+        "pages": 9,
+        "reference_chars": 19358,
+        "cer": 0.075369,
+        "script_confusions": 29,
+        "script_confusion_rate": 0.001498
+      }
+    }
+  },
+  "cgpg": {
+    "doi": "10.5281/zenodo.20008699",
+    "archive_sha256": "2ee5d79f3c781dc1b64fa386f0f194a762ab183cd36b97f5d873ce0a3004e1f7",
+    "license": "CC BY 4.0",
+    "pages_total": 304,
+    "dev_pages": 227,
+    "holdout_pages": 77,
+    "caveats": [
+      "The public package is not the paper's 30-page test split; no comparison with its headline accuracy is made or implied.",
+      "Script labels (MainText_ColGreek/ColLatin) exist only on the 38 layout-only pages; every transcribed region is typed 'text'. Region script is therefore derived from the human transcription, never from OCR.",
+      "Every transcribed region is Greek, so CGPG can show the Greek improving but cannot show the Latin is unharmed; that evidence comes from the German and mixed pages.",
+      "Thresholds were tuned on dev only; holdout was scored once."
+    ],
+    "dev": {
+      "pages_scored": 16,
+      "split": "dev",
+      "off": {
+        "cer": 0.18296,
+        "wer": 0.462091,
+        "diacritic_error_rate": 0.07051,
+        "script_confusions": 179,
+        "script_confusion_rate": 0.007861,
+        "missing_lines": 0,
+        "extra_lines": 29,
+        "regions_rerouted": 0,
+        "regions_considered": 0,
+        "seconds_per_page": 5.677
+      },
+      "block-script-v1": {
+        "cer": 0.16715,
+        "wer": 0.455706,
+        "diacritic_error_rate": 0.050738,
+        "script_confusions": 21,
+        "script_confusion_rate": 0.000922,
+        "missing_lines": 0,
+        "extra_lines": 31,
+        "regions_rerouted": 30,
+        "regions_considered": 47,
+        "seconds_per_page": 7.09
+      }
+    },
+    "holdout": {
+      "pages_scored": 16,
+      "split": "holdout",
+      "off": {
+        "cer": 0.149359,
+        "wer": 0.412991,
+        "diacritic_error_rate": 0.057016,
+        "script_confusions": 139,
+        "script_confusion_rate": 0.004935,
+        "missing_lines": 0,
+        "extra_lines": 23,
+        "regions_rerouted": 0,
+        "regions_considered": 0,
+        "seconds_per_page": 6.463
+      },
+      "block-script-v1": {
+        "cer": 0.135726,
+        "wer": 0.405749,
+        "diacritic_error_rate": 0.035756,
+        "script_confusions": 0,
+        "script_confusion_rate": 0.0,
+        "missing_lines": 0,
+        "extra_lines": 23,
+        "regions_rerouted": 28,
+        "regions_considered": 41,
+        "seconds_per_page": 8.218
+      }
+    }
+  },
+  "german_regression_checks": {
+    "umlaut_and_eszett_wrong_of_total": {
+      "combined": "9/97",
+      "routed": "9/97"
+    },
+    "latin_running_head_preserved_on_all_greek_pages": true,
+    "scanned_book_body_tokens": {
+      "combined": "13/13",
+      "routed": "13/13"
+    },
+    "scanned_book_footnote_tokens": {
+      "combined": "4/8",
+      "routed": "4/8",
+      "note": "small-type umlauts are out of scope this round"
+    }
+  },
+  "must_pass_tokens_recall_over_four_greek_pages": {
+    "note": "occurrences recovered vs ground-truth occurrences",
+    "ἐκεῖνο": {
+      "ground_truth": 8,
+      "combined": 4,
+      "routed": 5
+    },
+    "ἀνηρτημένου": {
+      "ground_truth": 1,
+      "combined": 0,
+      "routed": 1
+    },
+    "ϕύσει": {
+      "ground_truth": 2,
+      "combined": 0,
+      "routed": 0,
+      "note": "publisher uses U+03D5 PHI SYMBOL; OCR emits U+03C6"
+    },
+    "φύσει": {
+      "ground_truth": 0,
+      "combined": 1,
+      "routed": 1
+    },
+    "νοῦς": {
+      "ground_truth": 6,
+      "combined": 1,
+      "routed": 2
+    },
+    "τὸ": {
+      "ground_truth": 90,
+      "combined": 76,
+      "routed": 89
+    },
+    "καὶ": {
+      "ground_truth": 54,
+      "combined": 34,
+      "routed": 34
+    }
+  },
+  "gates": {
+    "met": [
+      "real 4 Greek pages: diacritic errors 81 -> 53 (target <=60)",
+      "real corpus: script confusion rate 0.00801 -> 0.00150 (target <=0.0020)",
+      "real corpus: CER 0.0754 (limit <=0.0850)",
+      "German running head not Hellenised on any page",
+      "German body umlaut/ss: no regression (9/97 both)",
+      "scanned-book footnotes: no regression (4/8 both)",
+      "synthetic gold gate: pass, both candidates, no must-pass failures",
+      "CGPG holdout: script confusions 139 -> 0, CER 0.1494 -> 0.1357, no missing lines",
+      "CGPG holdout CER did not regress"
+    ],
+    "missed": [
+      {
+        "gate": "real 4 Greek pages: script confusions <=14",
+        "actual": 20,
+        "why": "The residual sits in runs that are 60-80% Greek: mixed apparatus lines where the Latin count is itself partly an artifact of the corruption being measured. Lowering the ratio to reach them costs more on the German/mixed pages than it gains. Not closed by loosening a threshold."
+      },
+      {
+        "gate": "real corpus CER target <=0.0750",
+        "actual": 0.0754,
+        "why": "Hard limit 0.0850 is met. Aggregate CER rises slightly against the combined baseline of 0.0721 because rerouting a Greek region costs a little on mixed pages while removing 81% of the script confusions. A ratio of 0.90 gave CER 0.0698 but missed the script-confusion rate target; the trade was resolved in favour of the stated primary objective."
+      }
+    ]
+  },
+  "end_to_end_pipeline": {
+    "corpus": "real scanned volume, 160 pages, no source text layer; not committed",
+    "source_sha256": "badc20ecba8b7b1afbc11495961c9e27e51a0cbc33d302f25f5f14c7ebd43a44",
+    "combined": {
+      "output_sha256": "c380cf5c1a0f3e92211c4684a4eedb080854cda935cf6ccc5741e3a3e7f1ed80",
+      "text_layer_words": 64703,
+      "greek_chars_in_layer": 5389
+    },
+    "routed": {
+      "output_sha256": "af2947eb7ab75a6d69b0b554d7fe2b14e4119d7722cd76abe8f05d9ae694dfe8",
+      "text_layer_words": 64837,
+      "greek_chars_in_layer": 5619
+    },
+    "unchanged_between_the_two": {
+      "pages": 160,
+      "ocr_errors": 0,
+      "bilevel_ccitt_g4_pages": 160,
+      "bookmarks_written": 1,
+      "bookmarks_auto_confirmed": 1,
+      "bookmarks_needing_review": 12,
+      "bookmarks_skipped": 11,
+      "outline_entry_target_pdf_page": 109,
+      "german_umlaut_counts_in_layer": {
+        "ü": 1943,
+        "ä": 1506,
+        "ö": 960
+      },
+      "output_verification": {
+        "geometry_matches_source": true,
+        "outline_matches_confirmed": true,
+        "source_unchanged": true
+      },
+      "qpdf_check": "no syntax or stream encoding errors",
+      "pdftotext_nfc": true
+    },
+    "deltas": {
+      "greek_chars_in_layer": "+230 (+4.3%)",
+      "eszett_in_layer": "1208 -> 1207 (-1)",
+      "note": "Bookmark counts, outline target, page geometry and German umlaut counts are identical; the routed run recovers more Greek."
+    }
+  },
+  "superseded_notice": "The 2026-08-29 figures below were measured before the Latin-safety fixes and on a 16-page slice of the CGPG holdout. They are retained for traceability and are corrected by the 2026-08-30 entry.",
+  "correction_2026_08_30": {
+    "date": "2026-08-30",
+    "summary": "Greek script routing now defaults to OFF. The small-type Latin pass is a separate feature and defaults to ON.",
+    "why": [
+      "The earlier Greek gain was partly taken from the Latin: German and mixed pages regressed CER 0.076471 -> 0.085930 and WER 0.202409 -> 0.219546.",
+      "With line-level geometric alignment, a reachable Latin-retention floor, and a gate that leaves confidently-read regions alone, those pages return to exactly the combined baseline (0.00% change) -- but the Greek benefit then largely disappears.",
+      "The 16-page CGPG holdout slice (139 -> 0 confusions) did not reproduce on the full 63-page holdout."
+    ],
+    "safety_fixes": {
+      "latin_retention_reachable": "ROUTING_SUBSTANTIAL_LATIN_CHARS = 8 now triggers retention, below the ROUTING_MAX_LATIN_CHARS = 40 routing ceiling. Previously the floor sat at the ceiling and could never fire.",
+      "mixed_lines_preserved": "Candidates are merged into the region by vertical alignment; a line with substantial Latin that the combined pass read confidently keeps its combined text.",
+      "confidence_gate": "A region the combined pass read at >= 0.90 mean confidence is not rerouted at all. Regions that regressed had been read at 0.95-0.96.",
+      "hard_time_budget": "_run_tesseract takes an explicit timeout; every additional pass is capped at min(engine ceiling, remaining routing budget), and a timeout keeps the combined reading with reason greek-pass-timed-out.",
+      "shared_budget": "Greek routing and the small-type pass share one _Budget, so enabling both cannot double a page's worst case."
+    },
+    "cgpg_holdout_full": {
+      "pages_scored": 63,
+      "holdout_pages_in_split": 77,
+      "note": "Full holdout, not a slice. Still not the paper's 30-page test split; no comparison with its headline accuracy is made.",
+      "off": {
+        "cer": 0.17658,
+        "wer": 0.453049,
+        "diacritic_error_rate": 0.091281,
+        "script_confusions": 951,
+        "script_confusion_rate": 0.007831,
+        "missing_lines": 0,
+        "extra_lines": 148,
+        "regions_rerouted": 0,
+        "regions_considered": 0,
+        "seconds_per_page": 8.037
+      },
+      "block-script-v1": {
+        "cer": 0.179676,
+        "wer": 0.456752,
+        "diacritic_error_rate": 0.090872,
+        "script_confusions": 933,
+        "script_confusion_rate": 0.007683,
+        "missing_lines": 0,
+        "extra_lines": 159,
+        "regions_rerouted": 18,
+        "regions_considered": 197,
+        "seconds_per_page": 9.353
+      }
+    },
+    "real_pages_german_safe_calibration": {
+      "greek_dense_4_pages": {
+        "combined": {
+          "cer": 0.0639,
+          "script_confusions": 138,
+          "diacritic_errors": 81
+        },
+        "routed": {
+          "cer": 0.0617,
+          "script_confusions": 108,
+          "diacritic_errors": 74
+        }
+      },
+      "german_and_mixed_5_pages": {
+        "combined": {
+          "cer": 0.076471,
+          "wer": 0.202409
+        },
+        "routed": {
+          "cer": 0.076471,
+          "wer": 0.202409
+        },
+        "change": "0.00%"
+      }
+    },
+    "small_type_latin": {
+      "default": "off",
+      "detection": "contiguous lines with line pitch <= 0.92x block median, Latin-dominant, >= 3 lines, >= 40 Latin letters; geometric and script-based only, never lexical",
+      "real_scanned_page": {
+        "body_11pt_umlaut_errors": {
+          "combined": "0/24",
+          "with_pass": "0/24"
+        },
+        "footnote_8pt_umlaut_errors": {
+          "combined": "5/16",
+          "with_pass": "3/16"
+        },
+        "named_words_fixed": [
+          "Zwölfzahl",
+          "gegründete"
+        ],
+        "named_words_still_failing": [
+          "diesbezüglichen",
+          "Stählin"
+        ],
+        "tracked_separately_not_an_umlaut": "704 c -> 704 0",
+        "seconds_per_page": {
+          "combined": 8.3,
+          "with_pass": 11.8,
+          "ratio": 1.42
+        }
+      },
+      "gates": {
+        "met": [
+          "body 11pt unchanged at 0/24",
+          "time ratio 1.42x within the 1.5x limit"
+        ],
+        "missed": [
+          {
+            "gate": "footnote umlaut errors <= 2/16",
+            "actual": "3/16"
+          },
+          {
+            "gate": "at least 3 of 4 named words fixed",
+            "actual": 2
+          }
+        ]
+      },
+      "why_default_off": [
+        "Calibrated on a single real scanned page; pitch thresholds are not yet evidence about scanned books in general.",
+        "Footnote umlaut errors reach 3/16 against a <= 2/16 target.",
+        "Two of the four known failing words are repaired (Zwölfzahl, gegründete) against a >= 3/4 target; diesbezüglichen and Stählin still fail."
+      ]
+    },
+    "bookmark_recalibration": {
+      "rule_version": "0.2 -> 0.3 -> 0.4",
+      "change": "Added a structural-consensus route to automatic confirmation. The numeric gate is unchanged; the new route requires an exactly agreeing printed-page mapping corroborated by >= 4 independent anchors and holds every placement-safety condition at full strength, while allowing total/title/word-confidence shortfalls to be outweighed down to hard floors.",
+      "corpus": "real 160-page scanned volume, frozen OCR evidence, not committed",
+      "status_counts": {
+        "before": {
+          "auto_confirmed": 1,
+          "needs_review": 12,
+          "skipped": 11
+        },
+        "after": {
+          "auto_confirmed": 9,
+          "needs_review": 4,
+          "skipped": 11
+        }
+      },
+      "auto_confirm_correctness": {
+        "confirmed": 9,
+        "targets_correct": 9,
+        "false_confirmations": 0
+      },
+      "valid_candidate_auto_confirm_rate": {
+        "confirmed": 9,
+        "valid": 14,
+        "rate": 0.64,
+        "target": 0.8,
+        "note": "Below target. The four remaining are honest refusals: 216-point margin, 0.04 TOC word confidence, and two totals below the consensus floor."
+      },
+      "toc_printed_pages_parsed": "24/24 rows (26 TOC lines, 2 wrapped continuations merged)",
+      "outline_readback": "qpdf --json outlines matches the confirmed set exactly (9 entries)",
+      "digests": {
+        "rule_config_digest": "73b5b018... -> a782d1c7...",
+        "generation_digest": "c528cb20... -> 1a10dcbe..."
+      },
+      "correction_0_4": {
+        "defect": "Rule 0.3 read MappingSegment.anchor_count as agreement. That is the count of every anchor the dynamic program placed in the run, including ones whose own observed offset disagrees with the segment offset -- the solver pays anchor_mismatch_penalty to keep them so a stray heading cannot fork the mapping. It also let an entry count itself.",
+        "fix": "MappingSegment now carries member_count (diagnostic only), exact_anchor_count, disagreeing_anchor_count and the ordinals of the exact anchors. The gate reads independent exact anchors: exact anchors minus the entry being judged.",
+        "reason_codes": {
+          "before": "mapping_anchors_14",
+          "after": "mapping_exact_independent_anchors_11 + mapping_disagreeing_anchors_2"
+        },
+        "real_segment_measured": {
+          "member_count": 14,
+          "exact_anchor_count": 12,
+          "disagreeing_anchor_count": 2,
+          "independent_exact_for_a_member": 11,
+          "offset": -5,
+          "printed_range": "9-147",
+          "residual_range": "0..3"
+        },
+        "status_counts_unchanged": {
+          "auto_confirmed": 9,
+          "needs_review": 4,
+          "skipped": 11,
+          "note": "Unchanged because 11 independent exact anchors still clear the threshold of 4. The evidence behind the decision is now honest; the decision happens to be the same."
+        },
+        "auto_confirm_correctness": {
+          "confirmed": 9,
+          "targets_correct": 9,
+          "false_confirmations": 0
+        },
+        "outline_readback": "qpdf outline identical to the confirmed set (9 entries)",
+        "digests": {
+          "0.3_config": "a782d1c7de3d19dc...",
+          "0.4_config": "a0d9cc36b7875ede...",
+          "0.3_generation": "1a10dcbe2599fcdc...",
+          "0.4_generation": "9949b528d9692d66...",
+          "note": "0.3 snapshots are invalidated, not reinterpreted."
+        },
+        "schema": "mpdf-bookmark-generation-report-0.1 segment object now requires member_count, exact_anchor_count, disagreeing_anchor_count"
+      }
+    },
+    "checkpoint_binding": {
+      "both_passes_on_argv": true,
+      "both_passes_in_job_fingerprint": true,
+      "default_equals_explicit_off": "verified byte-identical block trees",
+      "note": "SidecarOcrConfig::passes is passed as --routing/--small-type-latin and hashed into job_fingerprint, so toggling either invalidates existing OCR checkpoints."
+    },
+    "rapidocr_argv_contract": {
+      "defect": "The Rust runner spells out --routing and --small-type-latin for every sidecar it launches. rapidocr_sidecar.py did not declare them, so argparse would exit 2 before reading stdin and the runner would report a still-reachable CLI path as an unavailable provider.",
+      "fix": "rapidocr_sidecar.py accepts and ignores both (argparse.SUPPRESS).",
+      "test": "test_every_sidecar_parses_the_runners_argv starts each sidecar as a real process with the exact argv the runner builds and asserts it does not exit 2; a negative control proves argparse really does exit 2 on an unknown option there."
+    }
+  }
+}

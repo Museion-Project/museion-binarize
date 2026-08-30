@@ -1,0 +1,383 @@
+{
+  "schema": "mpdf-ocr-bakeoff",
+  "schema_version": "1.0",
+  "date": "2026-08-28",
+  "host": "macOS arm64 (Darwin 27.0.0)",
+  "tesseract_version": "tesseract 5.5.3",
+  "corpus": "scripts/ocr/gold (15 samples, 8 must-pass), rendered from OFL Noto Sans",
+  "note": "Metrics only. No document text, no private corpus, no page images.",
+  "candidates": [
+    {
+      "candidate": "tess-best-auto",
+      "engine": "tesseract",
+      "language_profile": "auto",
+      "model_dir": "<verified-tessdata-best-4.1.0>",
+      "engine_reported": "tesseract",
+      "model_reported": "grc+deu+eng",
+      "version_reported": "5.5.3",
+      "model_license": "Apache-2.0",
+      "word_segmentation": "word",
+      "unavailable_samples": 0,
+      "seconds_total": 8.931,
+      "seconds_per_page": 0.595,
+      "overall": {
+        "samples": 15,
+        "reference_chars": 1979,
+        "reference_words": 462,
+        "cer": 0.103082,
+        "wer": 0.441558,
+        "exact_word_rate": 0.558442,
+        "diacritic_bearing_chars": 167,
+        "diacritic_error_rate": 0.035928,
+        "script_confusion_rate": 0.001011,
+        "script_confusions": 2,
+        "nfc_violations": 0,
+        "line_exact_rate": 0.647059
+      },
+      "by_script": {
+        "deu": {
+          "samples": 4,
+          "reference_chars": 434,
+          "reference_words": 74,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_bearing_chars": 46,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "script_confusions": 0,
+          "nfc_violations": 0,
+          "line_exact_rate": 1.0
+        },
+        "grc": {
+          "samples": 5,
+          "reference_chars": 459,
+          "reference_words": 80,
+          "cer": 0.017429,
+          "wer": 0.0625,
+          "exact_word_rate": 0.9375,
+          "diacritic_bearing_chars": 105,
+          "diacritic_error_rate": 0.047619,
+          "script_confusion_rate": 0.004357,
+          "script_confusions": 2,
+          "nfc_violations": 0,
+          "line_exact_rate": 0.866667
+        },
+        "lat": {
+          "samples": 1,
+          "reference_chars": 99,
+          "reference_words": 18,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_bearing_chars": 0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "script_confusions": 0,
+          "nfc_violations": 0,
+          "line_exact_rate": 1.0
+        },
+        "mixed": {
+          "samples": 5,
+          "reference_chars": 987,
+          "reference_words": 290,
+          "cer": 0.198582,
+          "wer": 0.686207,
+          "exact_word_rate": 0.313793,
+          "diacritic_bearing_chars": 16,
+          "diacritic_error_rate": 0.0625,
+          "script_confusion_rate": 0.0,
+          "script_confusions": 0,
+          "nfc_violations": 0,
+          "line_exact_rate": 0.238095
+        }
+      },
+      "must_pass_failures": [],
+      "gate": "pass",
+      "per_sample": [
+        {
+          "sample_id": "grc-prose-heraclitus",
+          "script": "grc",
+          "kind": "prose",
+          "must_pass": true,
+          "seconds": 0.445,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "grc-prose-plato",
+          "script": "grc",
+          "kind": "prose",
+          "must_pass": true,
+          "seconds": 0.481,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "grc-codepoints",
+          "script": "grc",
+          "kind": "codepoints",
+          "must_pass": true,
+          "seconds": 0.47,
+          "cer": 0.131148,
+          "wer": 0.333333,
+          "exact_word_rate": 0.666667,
+          "diacritic_error_rate": 0.263158,
+          "script_confusion_rate": 0.032787,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "deu-prose-umlauts",
+          "script": "deu",
+          "kind": "prose",
+          "must_pass": true,
+          "seconds": 0.523,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "deu-codepoints",
+          "script": "deu",
+          "kind": "codepoints",
+          "must_pass": true,
+          "seconds": 0.534,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "mixed-greek-german-english",
+          "script": "mixed",
+          "kind": "prose",
+          "must_pass": true,
+          "seconds": 0.654,
+          "cer": 0.029412,
+          "wer": 0.074074,
+          "exact_word_rate": 0.925926,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "mixed-latin-numerals",
+          "script": "lat",
+          "kind": "numerals",
+          "must_pass": false,
+          "seconds": 0.498,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "toc-single-column",
+          "script": "mixed",
+          "kind": "toc",
+          "must_pass": true,
+          "seconds": 1.164,
+          "cer": 0.248344,
+          "wer": 0.824742,
+          "exact_word_rate": 0.175258,
+          "diacritic_error_rate": 0.2,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0,
+          "toc": {
+            "rows_expected": 5,
+            "rows_assembled": 5,
+            "rows_exact": 5,
+            "rows": [
+              {
+                "title": "Einleitung",
+                "page": "1",
+                "assembled": true,
+                "exact": true
+              },
+              {
+                "title": "1. Die ἀρετή bei Aristoteles",
+                "page": "17",
+                "assembled": true,
+                "exact": true
+              },
+              {
+                "title": "2. Über die Größe der Seele",
+                "page": "43",
+                "assembled": true,
+                "exact": true
+              },
+              {
+                "title": "3. Πολιτεία und die Gerechtigkeit",
+                "page": "88",
+                "assembled": true,
+                "exact": true
+              },
+              {
+                "title": "Literaturverzeichnis",
+                "page": "201",
+                "assembled": true,
+                "exact": true
+              }
+            ]
+          }
+        },
+        {
+          "sample_id": "toc-roman-front-matter",
+          "script": "mixed",
+          "kind": "toc",
+          "must_pass": true,
+          "seconds": 0.919,
+          "cer": 0.344828,
+          "wer": 0.931034,
+          "exact_word_rate": 0.068966,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0,
+          "toc": {
+            "rows_expected": 4,
+            "rows_assembled": 4,
+            "rows_exact": 2,
+            "rows": [
+              {
+                "title": "Preface",
+                "page": "vii",
+                "assembled": true,
+                "exact": false
+              },
+              {
+                "title": "Acknowledgements",
+                "page": "xi",
+                "assembled": true,
+                "exact": false
+              },
+              {
+                "title": "Introduction",
+                "page": "1",
+                "assembled": true,
+                "exact": true
+              },
+              {
+                "title": "Chapter One: The Method",
+                "page": "23",
+                "assembled": true,
+                "exact": true
+              }
+            ]
+          }
+        },
+        {
+          "sample_id": "toc-wrapped-title",
+          "script": "mixed",
+          "kind": "toc",
+          "must_pass": false,
+          "seconds": 0.6,
+          "cer": 0.210884,
+          "wer": 0.717391,
+          "exact_word_rate": 0.282609,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0,
+          "toc": {
+            "rows_expected": 2,
+            "rows_assembled": 1,
+            "rows_exact": 1,
+            "rows": [
+              {
+                "title": "1. Die Bedeutung der ἀρετή in der nikomachischen Ethik",
+                "page": "17",
+                "assembled": false,
+                "exact": false
+              },
+              {
+                "title": "2. Kurzes Kapitel",
+                "page": "55",
+                "assembled": true,
+                "exact": true
+              }
+            ]
+          }
+        },
+        {
+          "sample_id": "grc-prose-heraclitus-200dpi",
+          "script": "grc",
+          "kind": "prose",
+          "must_pass": false,
+          "seconds": 0.428,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "grc-prose-heraclitus-400dpi",
+          "script": "grc",
+          "kind": "prose",
+          "must_pass": false,
+          "seconds": 0.547,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "deu-prose-umlauts-noise",
+          "script": "deu",
+          "kind": "prose",
+          "must_pass": false,
+          "seconds": 0.524,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "deu-prose-umlauts-rot90",
+          "script": "deu",
+          "kind": "prose",
+          "must_pass": false,
+          "seconds": 0.532,
+          "cer": 0.0,
+          "wer": 0.0,
+          "exact_word_rate": 1.0,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        },
+        {
+          "sample_id": "mixed-two-column",
+          "script": "mixed",
+          "kind": "prose",
+          "must_pass": false,
+          "seconds": 0.612,
+          "cer": 0.035294,
+          "wer": 0.090909,
+          "exact_word_rate": 0.909091,
+          "diacritic_error_rate": 0.0,
+          "script_confusion_rate": 0.0,
+          "nfc_violations": 0
+        }
+      ]
+    }
+  ]
+}

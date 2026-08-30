@@ -13,6 +13,11 @@ publish.workspace = true
 name = "mpdf"
 path = "src/main.rs"
 
+[features]
+# Development protocol fixture only. Production artifacts do not contain a
+# broker endpoint path or the symmetric test verification secret.
+dev-credits = []
+
 [dependencies]
 clap.workspace = true
 mpdf-core = { path = "../mpdf-core" }

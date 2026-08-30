@@ -1,0 +1,60 @@
+{
+  "schema": "mpdf-release-evidence",
+  "schema_version": "0.1",
+  "release": "0.1.0-rc.3",
+  "target": "aarch64-apple-darwin",
+  "host": {
+    "os": "macOS 27.0",
+    "build": "26A5421a",
+    "architecture": "arm64"
+  },
+  "artifact": {
+    "kind": "dmg",
+    "sha256": "6bdcf5d3c7c41d2a7d662d1e1bb3d6237f628995a0a4fd7f7197e242216b51ed",
+    "signing_state": "ad_hoc",
+    "notarization_state": "pending_credentials"
+  },
+  "bundled_pdfium": {
+    "version": "151.0.7920.0",
+    "build": "7920",
+    "library_sha256": "df568fcd17a6a6296956aa79abea1181db187458432f360b084fec1cea7cd4d9",
+    "archive_sha256": "c032aa59be58b0f12e41e76a8ef707e347b9841b0426446f646b2568d350ec4f"
+  },
+  "bundled_ocr": {
+    "engine": "tesseract",
+    "engine_version": "5.5.3",
+    "model_set": "tessdata_best",
+    "model_set_version": "4.1.0",
+    "runtime_manifest_sha256": "9ab63912a3c2efdba8b6eb4a44dad03990d798385c1f6d0e27082e7b90bc0b9b"
+  },
+  "checks": {
+    "source_build": "pass",
+    "bundle_identity_me_mpdf_processor": "pass",
+    "bundle_version_rc3": "pass",
+    "main_executable_arm64": "pass",
+    "bundled_pdfium_arm64": "pass",
+    "codesign_deep_strict": "pass",
+    "dmg_create_mount_copy_unmount": "pass",
+    "launchservices_start": "pass",
+    "native_window_visible": "pass",
+    "open_four_page_fixture_with_native_picker": "pass",
+    "processed_preview_rendered": "pass",
+    "gui_conversion": "pass",
+    "converted_pdf_reopened_in_app": "pass",
+    "converted_pdf_qpdf_check": "pass",
+    "clean_exit": "pass",
+    "gatekeeper_assessment": "expected_rejection_ad_hoc"
+  },
+  "converted_fixture": {
+    "pages": 4,
+    "bytes": 641272,
+    "searchable_words_reported_by_app": 158,
+    "sha256": "674e33b3822284ed1682bde5081dce4a8d82bd77faa755d21917f4cb607bfd0a"
+  },
+  "limitations": [
+    "This is local Apple Silicon evidence only, not cross-platform acceptance.",
+    "The ad-hoc artifact is intentionally rejected by Gatekeeper until Developer ID signing and notarization are completed.",
+    "The synthetic four-page fixture contains no reliable table of contents, so the safe result has zero invented bookmarks.",
+    "The DMG path succeeds on macOS 27.0 but hdiutil emits deprecation warnings in favor of diskutil image commands."
+  ]
+}

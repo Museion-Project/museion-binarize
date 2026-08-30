@@ -162,6 +162,10 @@ fn fixture(root: &Path) -> (PathBuf, OcrRun) {
             parameters: BTreeMap::new(),
             input_asset_sha256: "a".repeat(64),
             execution_location: "local".into(),
+            language_profile: None,
+            model_digest: None,
+            model_license: None,
+            model_set: None,
         }),
         provider_raw_artifact: Some("fixture-provider".into()),
     };

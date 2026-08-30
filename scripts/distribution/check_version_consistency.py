@@ -75,6 +75,25 @@ def cargo_crate_versions() -> dict[str, str]:
     return mismatches
 
 
+def wix_version_for(version: str) -> str:
+    """Map an ``0.1.0-rc.N`` release candidate to WiX's numeric version.
+
+    Windows Installer does not accept SemVer prerelease identifiers.  Keep
+    this rule derived from the release number so a future RC cannot silently
+    reuse the previous MSI upgrade code.
+    """
+    match = re.fullmatch(r"(\d+\.\d+\.\d+)-rc\.(\d+)", version)
+    if not match:
+        raise ValueError(f"WiX mapping requires a SemVer release candidate, got {version!r}")
+    return f"{match.group(1)}.{match.group(2)}"
+
+
+def tauri_dist_wix_version() -> str:
+    path = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.dist.conf.json"
+    data = json.loads(path.read_text())
+    return data["bundle"]["windows"]["wix"]["version"]
+
+
 def main() -> None:
     ws_version = workspace_version()
     problems: list[str] = []
@@ -92,6 +111,18 @@ def main() -> None:
             f"apps/desktop/src-tauri/tauri.conf.json version '{tauri_version}' != "
             f"workspace version '{ws_version}'"
         )
+
+    if "-rc." in ws_version:
+        try:
+            expected_wix = wix_version_for(ws_version)
+            actual_wix = tauri_dist_wix_version()
+            if actual_wix != expected_wix:
+                problems.append(
+                    f"tauri.dist.conf.json WiX version '{actual_wix}' != derived "
+                    f"release-candidate mapping '{expected_wix}'"
+                )
+        except (KeyError, TypeError, ValueError) as exc:
+            problems.append(f"invalid WiX release-version mapping: {exc}")
 
     literal_crate_versions = cargo_crate_versions()
     for path, version in literal_crate_versions.items():

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// The rule set identifier written into every 0.2 snapshot and report.
-pub const RULE_VERSION: &str = "0.2";
+pub const RULE_VERSION: &str = "0.4";
 
 /// Score component ceilings. The six components sum to exactly 10,000.
 pub const SCORE_TOTAL: u32 = 10_000;
@@ -75,6 +75,45 @@ pub struct AutoBookmarkConfig {
     pub anchor_mismatch_penalty: u32,
     /// Minimum title score for a shortlist entry to act as a mapping anchor.
     pub anchor_min_title_score: u32,
+
+    // --- structural consensus path -------------------------------------
+    //
+    // A second, *narrower* route to automatic confirmation for entries that
+    // are demonstrably right but fall short on one numeric axis.
+    //
+    // It is not the numeric gate with lower numbers. It demands evidence the
+    // numeric gate never consults -- a printed-page mapping that many other
+    // entries independently agree with -- and it demands every structural
+    // safety condition at full strength: exact residual, unique target,
+    // monotone sequence, body heading present, no repeated furniture,
+    // measured geometry, unambiguous level, primary key match. Those are the
+    // conditions that decide whether a bookmark lands on the right page, and
+    // none of them is relaxed here.
+    //
+    // What it does allow is for a low OCR word confidence, or a total a few
+    // hundred points short, to be *outweighed* by that consensus -- never
+    // ignored: `consensus_min_word_confidence_permille` is a hard floor that
+    // no amount of agreement can buy past.
+    /// How many *other* entries must have an observed printed-to-physical
+    /// offset exactly equal to this entry's mapping segment offset before it
+    /// counts as consensus.
+    ///
+    /// Rule 0.4 narrowed what this counts. Under 0.3 it read the segment's
+    /// member count, which includes anchors the solver deliberately overruled
+    /// — a run of fourteen members holding one exact anchor scored fourteen.
+    /// It now counts exact anchors only, and excludes the entry being judged
+    /// so that nothing corroborates itself.
+    pub consensus_min_anchors: u32,
+    /// Total, title and margin floors on the consensus path. The margin floor
+    /// is deliberately the same value as `auto_confirm_margin`: target
+    /// uniqueness is a safety property, so it is not traded away.
+    pub consensus_min_total: u32,
+    pub consensus_min_title: u32,
+    pub consensus_min_margin: u32,
+    /// Hard word-confidence floor for the consensus path, in permille.
+    /// Structural agreement can compensate for OCR uncertainty down to here
+    /// and no further.
+    pub consensus_min_word_confidence_permille: u32,
 }
 
 impl Default for AutoBookmarkConfig {
@@ -111,6 +150,11 @@ impl Default for AutoBookmarkConfig {
             segment_change_penalty: 600,
             anchor_mismatch_penalty: 400,
             anchor_min_title_score: 3_000,
+            consensus_min_anchors: 4,
+            consensus_min_total: 8_000,
+            consensus_min_title: 3_200,
+            consensus_min_margin: 600,
+            consensus_min_word_confidence_permille: 300,
         }
     }
 }
@@ -162,7 +206,7 @@ mod tests {
         // Locking the concrete thresholds prevents a future change from
         // quietly loosening the automatic gate: a deliberate recalibration
         // must update this test and the rule version together.
-        assert_eq!(config.rule_version, "0.2");
+        assert_eq!(config.rule_version, "0.4");
         assert_eq!(config.auto_confirm_total, 9_200);
         assert_eq!(config.auto_confirm_title, 3_600);
         assert_eq!(config.auto_confirm_margin, 600);
@@ -174,6 +218,31 @@ mod tests {
         assert_eq!(config.max_shortlist, 32);
         assert_eq!(config.segment_change_penalty, 600);
         assert_eq!(config.anchor_mismatch_penalty, 400);
+        // Rule 0.3 structural consensus path. The primary numeric gate above
+        // is unchanged; these are the floors on the narrower second route.
+        assert_eq!(config.consensus_min_anchors, 4);
+        assert_eq!(config.consensus_min_total, 8_000);
+        assert_eq!(config.consensus_min_title, 3_200);
+        assert_eq!(config.consensus_min_margin, 600);
+        assert_eq!(config.consensus_min_word_confidence_permille, 300);
+        assert_eq!(
+            config.consensus_min_margin, config.auto_confirm_margin,
+            "target uniqueness is a safety property and is not traded away"
+        );
+        assert!(
+            config.consensus_min_total < config.auto_confirm_total
+                && config.consensus_min_total >= config.review_total,
+            "the consensus route sits between the review floor and the gate"
+        );
+        assert!(
+            config.consensus_min_word_confidence_permille
+                < config.auto_confirm_min_word_confidence_permille,
+            "the consensus route exists to outweigh OCR uncertainty ..."
+        );
+        assert!(
+            config.consensus_min_word_confidence_permille > 0,
+            "... but never to ignore it"
+        );
         assert!(
             config.segment_change_penalty > config.anchor_mismatch_penalty
                 && config.segment_change_penalty < config.anchor_mismatch_penalty * 2,

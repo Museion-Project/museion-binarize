@@ -21,6 +21,8 @@ use reqwest::{Method, StatusCode, Url};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub mod cloud_ocr;
+
 pub const CREDENTIAL_SERVICE: &str = "org.mpdf.api";
 pub const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
 pub const MAX_SOURCE_BYTES: u64 = 512 * 1024 * 1024;

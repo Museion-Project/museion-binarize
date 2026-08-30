@@ -86,8 +86,21 @@ does not mean an App Store submission exists or has been attempted.
   by the owner during real human acceptance testing, then isolated by an
   A/B test on one identical binary varying only the signed entitlements.
   A dedicated network-capability audit (see "Entitlements audit" below)
-  confirms this is architectural, not a sign of any actual networking in
-  the application.
+  confirmed this was architectural rather than a sign of any actual
+  networking in the application.
+
+  That last sentence is no longer unconditionally true, and the audit's
+  wording has to change before a MAS submission. The application now has
+  opt-in cloud OCR modes that do make outbound HTTPS requests — never by
+  default, never without explicit per-run consent, and never for conversion,
+  bookmark generation or local OCR. A MAS build must therefore either ship
+  with the cloud modes compiled out, or declare the network use accurately in
+  App Store Connect's privacy disclosures (data sent: rendered page images;
+  recipient: the user's own chosen model provider; purpose: text recognition;
+  not linked to identity by this application). Since M PDF Cloud OCR has no
+  production service at all, the honest MAS-facing statement today is
+  "user-supplied API key, user's own provider account, opt-in per run". See
+  [`ocr-providers.md`](ocr-providers.md).
 - **MAS-specific Tauri config overlay**: `apps/desktop/src-tauri/tauri.mas.conf.json`,
   parallel to M7A's `tauri.dist.conf.json`, merged in only via `--config
   src-tauri/tauri.mas.conf.json`. It never redeclares `identifier` or
@@ -601,7 +614,8 @@ and none of it exists in this repository:
 
 ## What M7B1 explicitly did not do
 
-- No public release, git tag, or GitHub Release.
+- No rc.3 public release, git tag, or GitHub Release; the public rc.2
+  release remains the current download.
 - No submission to App Store Connect, no upload, no TestFlight.
 - No pricing, paywall, subscription, DRM, license key, or activation
   server — in code or in this document.

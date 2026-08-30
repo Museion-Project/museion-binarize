@@ -177,7 +177,7 @@ pub fn validate_against(
                 EvidenceRef::DerivedPage { page_id, bbox } => {
                     if derived_pages
                         .get(page_id.as_str())
-                        .is_none_or(|page| page.bbox != *bbox)
+                        .is_none_or(|page| !bbox_equivalent(page.bbox, *bbox))
                     {
                         return Err(CoreError::InvalidDocument(
                             "derived page evidence is unresolved".into(),
@@ -193,7 +193,7 @@ pub fn validate_against(
                         !p.blocks
                             .iter()
                             .flat_map(|b| b.lines.iter())
-                            .any(|l| l.id == *line_id && l.bbox == *bbox)
+                            .any(|l| l.id == *line_id && bbox_equivalent(l.bbox, *bbox))
                     }) {
                         return Err(CoreError::InvalidDocument(
                             "derived line evidence is unresolved".into(),
@@ -210,7 +210,7 @@ pub fn validate_against(
                             .iter()
                             .flat_map(|b| b.lines.iter())
                             .flat_map(|l| l.words.iter())
-                            .any(|w| w.id == *word_id && w.bbox == *bbox)
+                            .any(|w| w.id == *word_id && bbox_equivalent(w.bbox, *bbox))
                     }) {
                         return Err(CoreError::InvalidDocument(
                             "derived word evidence is unresolved".into(),
@@ -237,6 +237,21 @@ pub fn validate_against(
         }
     }
     Ok(())
+}
+
+fn bbox_equivalent(left: crate::derived::Bbox, right: crate::derived::Bbox) -> bool {
+    fn component(left: f64, right: f64) -> bool {
+        if !left.is_finite() || !right.is_finite() {
+            return false;
+        }
+        let scale = left.abs().max(right.abs()).max(1.0);
+        (left - right).abs() <= 1.0e-12 * scale
+    }
+
+    component(left.x, right.x)
+        && component(left.y, right.y)
+        && component(left.width, right.width)
+        && component(left.height, right.height)
 }
 
 /// Generate a snapshot from a package and optional derived document.
@@ -271,4 +286,31 @@ fn digest(bytes: &[u8]) -> String {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+#[cfg(test)]
+mod bbox_tests {
+    use super::bbox_equivalent;
+    use crate::derived::Bbox;
+
+    #[test]
+    fn evidence_bbox_allows_json_rounding_but_not_coordinate_changes() {
+        let original = Bbox {
+            x: 217.46803283691406,
+            y: 1171.798828125,
+            width: 1557.3046875,
+            height: 88.2156982421875,
+        };
+        let rounded = Bbox {
+            x: 217.4680328369141,
+            ..original
+        };
+        assert!(bbox_equivalent(original, rounded));
+
+        let changed = Bbox {
+            x: original.x + 0.001,
+            ..original
+        };
+        assert!(!bbox_equivalent(original, changed));
+    }
 }

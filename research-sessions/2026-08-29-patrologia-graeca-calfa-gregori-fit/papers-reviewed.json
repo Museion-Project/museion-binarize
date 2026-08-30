@@ -1,0 +1,67 @@
+{
+  "arxiv:2603.09470": {
+    "title": "The Patrologia Graeca Corpus: OCR, Annotation, and Open Release of Noisy Nineteenth-Century Polytonic Greek Editions",
+    "score": 10,
+    "status": "highly_relevant",
+    "source": "LREC 2026 / arXiv",
+    "found_data": ["model architecture", "OCR metrics", "dataset statistics", "release limitations"],
+    "url": "https://arxiv.org/abs/2603.09470"
+  },
+  "10.5281/zenodo.20008699": {
+    "title": "Patrologia Graeca (OCR ground truth), v2",
+    "score": 10,
+    "status": "highly_relevant",
+    "source": "Zenodo",
+    "found_data": ["304 image/PageXML pairs", "CC BY 4.0", "download checksums", "annotation structure"],
+    "url": "https://zenodo.org/records/20008699"
+  },
+  "10.5281/zenodo.19915273": {
+    "title": "Patrologia Graeca (OCRized and analyzed texts)",
+    "score": 9,
+    "status": "highly_relevant",
+    "source": "Zenodo",
+    "found_data": ["VERT corpus", "CC BY 4.0", "linguistic annotations"],
+    "url": "https://zenodo.org/records/19915273"
+  },
+  "github:calfa-co/Patrologia-Graeca": {
+    "title": "Calfa/GREgORI Patrologia-Graeca repository",
+    "score": 10,
+    "status": "highly_relevant",
+    "source": "GitHub",
+    "found_data": ["raw OCR format", "volume coverage", "layout model availability", "license badge"],
+    "url": "https://github.com/calfa-co/Patrologia-Graeca"
+  },
+  "uclouvain:cgpg": {
+    "title": "Calfa-GREgORI Patrologia Graeca project page",
+    "score": 9,
+    "status": "highly_relevant",
+    "source": "UCLouvain",
+    "found_data": ["project scope", "quality caveats", "outputs", "terms contact"],
+    "url": "https://uclouvain.be/fr/instituts-recherche/incal/ciol/calfa-gregori-patrologia-graeca"
+  },
+  "calfa:vision": {
+    "title": "Calfa Vision",
+    "score": 7,
+    "status": "relevant",
+    "source": "Calfa",
+    "found_data": ["annotation formats", "hosted workflow", "free features"],
+    "url": "https://vision.calfa.fr/"
+  },
+  "calfa:research-plan": {
+    "title": "Calfa OCR Research Plan",
+    "score": 8,
+    "status": "highly_relevant",
+    "source": "Calfa",
+    "found_data": ["custom model terms", "non-open/download restriction"],
+    "url": "https://calfa.fr/research-plan"
+  },
+  "github:sunsmarterjie/yolov12": {
+    "title": "YOLOv12 reference implementation",
+    "score": 7,
+    "status": "relevant",
+    "source": "GitHub",
+    "found_data": ["runtime architecture", "AGPL-3.0 license", "ONNX export possibility"],
+    "url": "https://github.com/sunsmarterjie/yolov12"
+  }
+}
+

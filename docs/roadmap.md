@@ -7,8 +7,9 @@
 Build a reliable, local, cross-platform tool that converts scanned PDFs into
 clean, compact, true 1-bit PDFs using deterministic thresholding (Otsu,
 Sauvola, manual) and CCITT Group 4 compression, with both a GUI and a CLI.
-No OCR, no AI, no generative restoration. This is the phase this repository
-is currently in.
+The initial image-binarization phase used no OCR, AI, or generative
+restoration. The current rc.3 source additionally includes a separate,
+opt-in OCR/evidence path; conversion itself remains deterministic and local.
 
 ### Phase 2 — Benchmark construction for Ancient Greek preservation
 
@@ -140,7 +141,7 @@ phase is scoped or committed to yet.
   AppImage/`.deb`), deterministic artifact naming, release checksums
   and a versioned release-manifest, a `workflow_dispatch`-only GitHub
   Actions build workflow that never auto-publishes, Developer-ID
-  signing/notarization integration points, and a Mac App Store
+  signing/notarization integration, and a Mac App Store
   readiness audit for the future M7B. *(Complete. macOS arm64 built,
   packaged, and non-interactively launch-verified from outside the
   repository with no environment variable; the standalone CLI archive
@@ -148,8 +149,8 @@ phase is scoped or committed to yet.
   against a fresh extraction with bundled PDFium and no
   `MPDF_PDFIUM_LIBRARY`. Windows/Linux packaging is configured and
   CI-targeted but not exercised on real hardware this milestone;
-  signing/notarization integration exists but no artifact is actually
-  signed or notarized (no credentials available). No public release or
+  signing/notarization integration exists but no rc.3 artifact is actually
+  signed or notarized with owner credentials. No rc.3 public release or
   tag was created. See [`distribution.md`](distribution.md),
   [`releasing.md`](releasing.md), [`pdfium-bundling.md`](pdfium-bundling.md),
   and [`desktop-testing.md`](desktop-testing.md)'s verification-state

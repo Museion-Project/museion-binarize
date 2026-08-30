@@ -1,0 +1,43 @@
+{
+  "schema": "mpdf-final-pdf-acceptance",
+  "schema_version": "1.0",
+  "date": "2026-08-28",
+  "corpus": "synthetic 21-page book generated locally; not committed",
+  "source_sha256": "ca6d5e5a5d03b227699cccdee7e8c356c24134f93b18f4ce6440a02dbd0529a0",
+  "output_sha256": "c380cf5c1a0f3e92211c4684a4eedb080854cda935cf6ccc5741e3a3e7f1ed80",
+  "pages": 21,
+  "ccitt_g4_images": 21,
+  "one_bit_images": 21,
+  "outline_entries_read_back_by_qpdf": 5,
+  "outline_targets": [
+    7,
+    10,
+    13,
+    16,
+    19
+  ],
+  "text_layer_words": 610,
+  "pdftotext_nfc": true,
+  "polytonic_tokens_recovered": [
+    "ὀξέων",
+    "ἄνθρωπος",
+    "ῥητορικῆς",
+    "ἀρετή",
+    "Πολιτεία",
+    "ἀνεξέταστος"
+  ],
+  "german_tokens_recovered": [
+    "Über",
+    "für",
+    "Größe",
+    "Fußnote",
+    "weiß",
+    "Rückführung"
+  ],
+  "toc_rows_with_printed_page_mapped": 6,
+  "toc_rows_total": 6,
+  "bookmark_reason_codes": {
+    "printed_page_exact": 6
+  },
+  "source_unchanged": true
+}

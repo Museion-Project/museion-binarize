@@ -203,6 +203,10 @@ fn local_and_remote_installed_ocr_reach_the_same_decisions() {
             parameters: Default::default(),
             input_asset_sha256: "0".repeat(64),
             execution_location: "remote".into(),
+            language_profile: None,
+            model_digest: None,
+            model_license: None,
+            model_set: None,
         }),
     );
     let local_result = run(&package, &local, &derived_of(&package, &local));

@@ -136,40 +136,97 @@ pub fn build_searchable_output_observed(
     }
     let parent = request.output.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|e| CoreError::io(parent, e))?;
-    let temporary =
-        crate::pipeline::write_temporary(request.output, &built, request.output_write_strategy)?;
     stage(OutputStage::Validating);
-    verify_geometry(temporary.path(), request.package, &request.pdfium)?;
-    verify_outline(temporary.path(), request.package, &writable)?;
+    let mut summary = install_and_verify(
+        &built,
+        request.output,
+        request.source,
+        request.package,
+        &writable,
+        &request.pdfium,
+        request.overwrite,
+        request.output_write_strategy,
+        crate::searchable_pdf::CarrierKind::OriginalSource,
+        cancelled,
+        // The source bytes must still be exactly what this derivative was
+        // built from, checked while the destination is still untouched.
+        &|| {
+            let after = fs::read(request.source).map_err(|e| CoreError::io(request.source, e))?;
+            if after != bytes {
+                return Err(CoreError::OutputValidationFailed(
+                    "source PDF changed while its derivative was written".into(),
+                ));
+            }
+            Ok(())
+        },
+    )?;
+    summary.source_sha256 = source_sha256;
+    summary.auto_confirmed_bookmarks = auto_confirmed_bookmarks;
+    summary.human_confirmed_bookmarks = writable.len() - auto_confirmed_bookmarks;
+    Ok(summary)
+}
+
+/// Writes already-built bytes through the one safe install boundary:
+/// validate in a temporary file, verify independently, then commit.
+///
+/// Shared by [`build_searchable_output_observed`] and by
+/// [`crate::orchestrator`], so the binarized final PDF gets exactly the same
+/// geometry re-read and the same independent outline walk as the
+/// source-preserving derivative.
+///
+/// `before_commit` is the caller's last veto. It runs after verification and
+/// *before* the destination is touched, so a check that fails there leaves any
+/// existing file at `output` byte-identical. The source-unchanged check has to
+/// be one of these: run afterwards, it can only report that a stale derivative
+/// has already been installed over the user's file.
+#[allow(clippy::too_many_arguments)]
+pub fn install_and_verify(
+    built: &[u8],
+    output: &Path,
+    protected_source: &Path,
+    package: &DocumentPackage,
+    writable: &[BookmarkCandidate],
+    pdfium: &PdfiumConfig,
+    overwrite: bool,
+    strategy: OutputWriteStrategy,
+    carrier: crate::searchable_pdf::CarrierKind,
+    cancelled: &dyn Fn() -> bool,
+    before_commit: &dyn Fn() -> Result<()>,
+) -> Result<SearchableOutputSummary> {
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    fs::create_dir_all(parent).map_err(|e| CoreError::io(parent, e))?;
+    let temporary = crate::pipeline::write_temporary(output, built, strategy)?;
+    verify_geometry(temporary.path(), package, pdfium, carrier)?;
+    verify_outline(temporary.path(), package, writable)?;
     if cancelled() {
         return Err(CoreError::Cancelled);
     }
-    // The source bytes must be exactly what they were before the write.
-    let after = fs::read(request.source).map_err(|e| CoreError::io(request.source, e))?;
-    if after != bytes {
-        return Err(CoreError::OutputValidationFailed(
-            "source PDF changed while its derivative was written".into(),
-        ));
-    }
+    before_commit()?;
     crate::pipeline::persist(
         temporary,
-        request.output,
-        &built,
-        request.overwrite,
-        request.output_write_strategy,
+        output,
+        built,
+        overwrite,
+        strategy,
+        Some(protected_source),
     )?;
     Ok(SearchableOutputSummary {
-        output_path: request.output.to_path_buf(),
-        source_sha256,
-        output_sha256: hex(&Sha256::digest(&built)),
+        output_path: output.to_path_buf(),
+        source_sha256: package.source.content_sha256.clone(),
+        output_sha256: hex(&Sha256::digest(built)),
         written_bookmarks: writable.len(),
-        auto_confirmed_bookmarks,
-        human_confirmed_bookmarks: writable.len() - auto_confirmed_bookmarks,
+        auto_confirmed_bookmarks: 0,
+        human_confirmed_bookmarks: 0,
         byte_len: built.len() as u64,
     })
 }
 
-fn verify_geometry(path: &Path, package: &DocumentPackage, pdfium: &PdfiumConfig) -> Result<()> {
+fn verify_geometry(
+    path: &Path,
+    package: &DocumentPackage,
+    pdfium: &PdfiumConfig,
+    carrier: crate::searchable_pdf::CarrierKind,
+) -> Result<()> {
     let session = PdfDocumentSession::open(
         path,
         &PdfOpenOptions {
@@ -186,7 +243,14 @@ fn verify_geometry(path: &Path, package: &DocumentPackage, pdfium: &PdfiumConfig
             .iter()
             .zip(&package.pages)
             .all(|(actual, expected)| {
-                actual.source_rotation.degrees() as u16 == expected.rotation_degrees
+                // A normalized bilevel carrier has rotation baked into the
+                // raster, so it must read back upright while still showing the
+                // original's visible page size.
+                let expected_rotation = match carrier {
+                    crate::searchable_pdf::CarrierKind::OriginalSource => expected.rotation_degrees,
+                    crate::searchable_pdf::CarrierKind::NormalizedBilevel => 0,
+                };
+                actual.source_rotation.degrees() as u16 == expected_rotation
                     && (f64::from(actual.geometry.width_points) - expected.source_space.width).abs()
                         < 0.05
                     && (f64::from(actual.geometry.height_points) - expected.source_space.height)
@@ -366,14 +430,7 @@ fn decode_pdf_text(bytes: &[u8]) -> String {
 }
 
 pub fn same_path(left: &Path, right: &Path) -> bool {
-    match (fs::canonicalize(left), fs::canonicalize(right)) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => {
-            left.file_name() == right.file_name()
-                && left.parent().and_then(|p| fs::canonicalize(p).ok())
-                    == right.parent().and_then(|p| fs::canonicalize(p).ok())
-        }
-    }
+    crate::pipeline::paths_refer_to_same_file(left, right)
 }
 
 fn hex(bytes: &[u8]) -> String {

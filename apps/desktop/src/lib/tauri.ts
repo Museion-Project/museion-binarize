@@ -33,6 +33,16 @@ import type {
   ApiPlanRequest,
   ApiRunRequest,
   ApiTaskProgress,
+  ConnectionTest,
+  MaskedCredential,
+  OcrProviderStatus,
+  LocalOcrReadiness,
+  LocalOcrReadinessRequest,
+  LocalPipelineCompleted,
+  LocalPipelineFailed,
+  LocalPipelineRequest,
+  LocalPipelineStageEvent,
+  LocalPipelineStarted,
 } from "../app/types";
 
 /** Thrown for every failed command; `error` is the backend's structured DTO. */
@@ -110,8 +120,132 @@ export function onAutoBookmarkFailed(
   );
 }
 
-/** Opens the native "choose an MDP package folder" dialog. */
-export async function pickPackageDirectory(): Promise<string | null> {
+// --------------------------------------------------------------------------
+// The main flow: OCR the original, compile bookmarks, binarize, assemble.
+// --------------------------------------------------------------------------
+
+/**
+ * Reports whether local OCR can run and what is missing. Nothing is
+ * downloaded or discovered; this only inspects configured paths.
+ */
+export function localOcrReadiness(
+  request: LocalOcrReadinessRequest,
+): Promise<LocalOcrReadiness> {
+  return call("local_ocr_readiness", { request });
+}
+
+/**
+ * Starts (or resumes) the main flow. Resolves once the run is handed to the
+ * worker; stages and the result arrive as `mpdf://pipeline-*` events.
+ *
+ * Resuming is not a separate call: starting again with the same workspace
+ * reuses every OCR page already committed there.
+ */
+export function startLocalPipeline(
+  request: LocalPipelineRequest,
+): Promise<LocalPipelineStarted> {
+  return call("start_local_pipeline", { request });
+}
+
+/**
+ * Reads the provider picker's data. Cheap, offline, and safe to call on every
+ * render of the settings section: it makes no provider request.
+ */
+export function ocrProviderStatus(slot?: string): Promise<OcrProviderStatus> {
+  return call("ocr_provider_status", { slot: slot ?? null });
+}
+
+/**
+ * Sends a key to the OS credential store. The only call in this app that
+ * carries one, and it returns a masked reference, never the value.
+ */
+export function storeModelProviderCredential(
+  slot: string,
+  secret: string,
+): Promise<MaskedCredential> {
+  return call("store_model_provider_credential", { request: { slot, secret } });
+}
+
+export function modelProviderCredentialStatus(
+  slot: string,
+): Promise<MaskedCredential> {
+  return call("model_provider_credential_status", { request: { slot } });
+}
+
+export function deleteModelProviderCredential(
+  slot: string,
+): Promise<MaskedCredential> {
+  return call("delete_model_provider_credential", { request: { slot } });
+}
+
+/** Non-billable: it transcribes nothing and reserves nothing. */
+export function testOcrProvider(
+  mode: string,
+  slot: string,
+  endpoint?: string,
+): Promise<ConnectionTest> {
+  return call("test_ocr_provider", {
+    request: { mode, slot, endpoint: endpoint ?? null },
+  });
+}
+
+export function cancelLocalPipeline(): Promise<void> {
+  return call("cancel_local_pipeline");
+}
+
+/** Marks the durable OCR job cancelled so the next start does not resume it. */
+export function cancelLocalPipelineJob(
+  workspacePath: string,
+  jobId: string,
+): Promise<void> {
+  return call("cancel_local_pipeline_job", { workspacePath, jobId });
+}
+
+export function onLocalPipelineStage(
+  handler: (payload: LocalPipelineStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineStageEvent>("mpdf://pipeline-stage", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onLocalPipelineCompleted(
+  handler: (payload: LocalPipelineCompleted) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineCompleted>("mpdf://pipeline-completed", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onLocalPipelineCancelled(
+  handler: (payload: LocalPipelineStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineStageEvent>("mpdf://pipeline-cancelled", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onLocalPipelineFailed(
+  handler: (payload: LocalPipelineFailed) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineFailed>("mpdf://pipeline-failed", (event) =>
+    handler(event.payload),
+  );
+}
+
+/**
+ * Opens an existing MDP package, or chooses a new non-existent package path
+ * when `defaultName` is supplied. The pipeline must not target an existing
+ * directory because package creation is deliberately overwrite-safe.
+ */
+export async function pickPackageDirectory(defaultName?: string): Promise<string | null> {
+  if (defaultName) {
+    const selection = await saveDialog({
+      defaultPath: defaultName,
+      title: "Create working package",
+    });
+    return typeof selection === "string" ? selection : null;
+  }
   const selection = await openDialog({ multiple: false, directory: true });
   return typeof selection === "string" ? selection : null;
 }

@@ -89,6 +89,13 @@ pub struct DerivedLine {
     pub structural_path: String,
     pub reading_order: u32,
     pub words: Vec<DerivedWord>,
+    /// How this logical line was assembled from provider segments.
+    ///
+    /// Additive and optional: a bundle written before the logical-line
+    /// assembler existed simply has no value here and still deserializes,
+    /// and a record without it can never claim an assembled page number.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assembly: Option<crate::logical_lines::LineAssembly>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DerivedWord {

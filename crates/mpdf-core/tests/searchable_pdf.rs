@@ -82,6 +82,10 @@ fn ocr_fixture(package: &DocumentPackage) -> OcrRun {
                     parameters: BTreeMap::new(),
                     input_asset_sha256: "a".repeat(64),
                     execution_location: "local".into(),
+                    language_profile: None,
+                    model_digest: None,
+                    model_license: None,
+                    model_set: None,
                 }),
                 provider_raw_artifact: Some("m5-integration".into()),
             }

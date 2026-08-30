@@ -1,0 +1,21 @@
+{
+  "arxiv:2603.09470": {
+    "describes": [
+      "10.5281/zenodo.20008699",
+      "10.5281/zenodo.19915273",
+      "github:calfa-co/Patrologia-Graeca"
+    ],
+    "project_pages": ["uclouvain:cgpg"]
+  },
+  "10.5281/zenodo.20008699": {
+    "supplements": ["arxiv:2603.09470"],
+    "source_repository": ["github:calfa-co/Patrologia-Graeca"]
+  },
+  "10.5281/zenodo.19915273": {
+    "source_repository": ["github:calfa-co/Patrologia-Graeca"]
+  },
+  "github:calfa-co/Patrologia-Graeca": {
+    "hosted_tool": ["calfa:vision"],
+    "service_terms": ["calfa:research-plan"]
+  }
+}

@@ -11,6 +11,7 @@ import { EstimatePanel } from "./components/EstimatePanel";
 import { PageSidebar } from "./components/PageSidebar";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { PreviewPane } from "./components/PreviewPane";
+import { LocalPipelinePanel } from "./components/LocalPipelinePanel";
 import { ReviewWorkbench } from "./components/ReviewWorkbench";
 import { ProcessingProgress } from "./components/ProcessingProgress";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -359,6 +360,15 @@ function App() {
               </div>
             )}
           </div>
+        )}
+
+        {state.kind === "ready" && (
+          <LocalPipelinePanel
+            documentId={state.document.documentId}
+            settings={state.settings}
+            defaultOutputName={defaultOutputFileName(state.document.fileName)}
+            pageCount={state.document.pageCount}
+          />
         )}
 
         {state.kind === "ready" && <ReviewWorkbench documentId={state.document.documentId} />}

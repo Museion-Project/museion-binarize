@@ -25,6 +25,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # strategy in worker.rs; see docs/mac-app-store-readiness.md, "Sandboxed
 # output-save architecture."
 mas-sandbox = []
+# Development protocol fixture only; never enabled by distribution builds.
+dev-credits = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

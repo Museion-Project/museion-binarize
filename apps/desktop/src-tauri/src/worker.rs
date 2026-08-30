@@ -83,6 +83,21 @@ pub enum WorkerCommand {
         request: AutoBookmarkWork,
         reply: Reply<AutoBookmarkOutcome>,
     },
+    /// The whole main flow, in `mpdf_core::orchestrator`'s fixed order:
+    /// OCR the original pages, derive the text layer, compile bookmarks,
+    /// binarize the visible pages, and assemble one final PDF.
+    ///
+    /// It runs on this thread because every PDFium step it contains -- the
+    /// source session, the conversion, and the reopen verification -- must
+    /// stay serialized with everything else in this crate.
+    FinalPdf {
+        /// Boxed: this variant carries the whole run configuration — source,
+        /// output, settings, language, provider mode, cloud policy — and it
+        /// would otherwise set the size of every message the worker channel
+        /// ever moves.
+        request: Box<FinalPdfWork>,
+        reply: Reply<mpdf_core::orchestrator::FinalPdfOutcome>,
+    },
     /// Renders, processes, and CCITT-encodes a deterministic sample of
     /// pages to estimate the converted output's size — never writes or
     /// validates an output PDF. See `docs/size-estimation.md`.
@@ -103,6 +118,43 @@ pub struct AutoBookmarkWork {
     pub overwrite: bool,
     pub regenerate: bool,
     pub cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub stage: Box<dyn Fn(&str) + Send>,
+}
+
+/// Everything the worker needs for one full main-flow run.
+///
+/// The source path comes from the open document's own state. It is the
+/// *original* PDF: the desktop app has no way to hand this a binarized
+/// derivative, which is the point.
+pub struct FinalPdfWork {
+    pub source: PathBuf,
+    pub output: PathBuf,
+    pub workspace: PathBuf,
+    pub settings: ProcessingSettings,
+    pub language_profile: String,
+    /// Which execution mode the user explicitly chose. `Local` unless the
+    /// provider picker was moved *and* the cloud consent box was ticked; the
+    /// frontend cannot set this on its own, because `cloud_consent` below is
+    /// re-checked here rather than trusted.
+    pub provider_mode: mpdf_core::ocr_provider::OcrProviderMode,
+    pub cloud_consent: bool,
+    pub credential_slot: String,
+    pub cloud_fallback: mpdf_core::ocr_provider::CloudFallback,
+    pub cloud_endpoint: Option<String>,
+    #[cfg_attr(not(feature = "dev-credits"), allow(dead_code))]
+    pub max_credits: u64,
+    #[cfg_attr(not(feature = "dev-credits"), allow(dead_code))]
+    pub credits_per_page: u64,
+    pub engine: mpdf_core::ocr::OcrEngine,
+    pub engine_binary: Option<PathBuf>,
+    pub sidecar: Option<PathBuf>,
+    pub model_dir: Option<PathBuf>,
+    pub review: mpdf_core::orchestrator::ReviewPolicy,
+    pub overwrite: bool,
+    pub ocr_dpi: u16,
+    pub job_id: String,
+    pub cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub progress: Box<dyn ProgressReporter>,
     pub stage: Box<dyn Fn(&str) + Send>,
 }
 
@@ -226,6 +278,10 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: 
                 let result = auto_bookmark(&request, bundled_pdfium_path.as_deref());
                 let _ = reply.send(result);
             }
+            WorkerCommand::FinalPdf { request, reply } => {
+                let result = final_pdf(&request, bundled_pdfium_path.as_deref());
+                let _ = reply.send(result);
+            }
             WorkerCommand::Estimate {
                 settings,
                 samples,
@@ -243,6 +299,164 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: 
             }
         }
     }
+}
+
+/// Runs the one core orchestrator. Nothing about the stage order, the
+/// source binding, or the output discipline is decided here.
+fn final_pdf(
+    work: &FinalPdfWork,
+    bundled_pdfium_path: Option<&std::path::Path>,
+) -> CoreResult<mpdf_core::orchestrator::FinalPdfOutcome> {
+    use mpdf_core::orchestrator::FinalPdfRequest;
+
+    let provider = final_pdf_provider(
+        work.engine,
+        work.engine_binary.as_deref(),
+        &work.language_profile,
+        work.sidecar.as_deref(),
+        work.model_dir.as_deref(),
+    )?;
+    // The backend decides for itself whether a cloud mode is permitted; the
+    // frontend's word is never enough, because a disabled button is a UI
+    // affordance and this is the enforcement point.
+    let cloud = final_pdf_cloud(work)?;
+    let request = FinalPdfRequest {
+        source: &work.source,
+        output: &work.output,
+        workspace: &work.workspace,
+        settings: &work.settings,
+        provider,
+        language_profile: work.language_profile.clone(),
+        review: work.review,
+        overwrite: work.overwrite,
+        password: None,
+        pdfium: pdfium_config(bundled_pdfium_path),
+        output_write_strategy: pipeline::OutputWriteStrategy::AtomicSameDirectoryRename,
+        bookmark_config: Default::default(),
+        ocr_dpi: work.ocr_dpi,
+        job_id: work.job_id.clone(),
+        jobs_db: work.workspace.join("jobs.sqlite3"),
+        owner: "mpdf-desktop".into(),
+        cloud: cloud.as_ref().map(|factory| factory.as_ref()),
+    };
+    mpdf_core::orchestrator::run(&request, work.progress.as_ref(), &|stage| {
+        (work.stage)(stage.as_str())
+    })
+}
+
+/// Builds the cloud factory for a desktop run, or `None` for a local one.
+///
+/// This is the backend's own check, deliberately duplicating what the
+/// provider picker already enforces. A Tauri command is a public API of the
+/// process: anything reachable from the webview has to be re-validated here,
+/// or a compromised renderer could start an upload the user never authorized.
+fn final_pdf_cloud(
+    work: &FinalPdfWork,
+) -> CoreResult<Option<Box<dyn mpdf_core::orchestrator::CloudProviderFactory>>> {
+    use mpdf_api_client::cloud_ocr::{CloudTransportPolicy, GeminiByokFactory, GEMINI_ENDPOINT};
+    #[cfg(feature = "dev-credits")]
+    use mpdf_core::ocr_provider::credits;
+    use mpdf_core::ocr_provider::gemini::CloudOcrConfig;
+    use mpdf_core::ocr_provider::OcrProviderMode;
+
+    if work.provider_mode == OcrProviderMode::Local {
+        return Ok(None);
+    }
+    if !work.cloud_consent {
+        return Err(CoreError::InvalidParameter(
+            "cloud OCR uploads a rendered image of every OCR'd page; it cannot start without \
+             explicit consent"
+                .to_owned(),
+        ));
+    }
+    let layout = format!("{}/{}", work.engine.as_str(), work.language_profile);
+    match work.provider_mode {
+        OcrProviderMode::Local => unreachable!("handled above"),
+        OcrProviderMode::GeminiByok => {
+            let mut config = CloudOcrConfig::gemini_byok(&work.credential_slot);
+            config.fallback = work.cloud_fallback;
+            Ok(Some(Box::new(
+                GeminiByokFactory::new(
+                    config,
+                    work.cloud_endpoint.as_deref().unwrap_or(GEMINI_ENDPOINT),
+                    CloudTransportPolicy::default(),
+                    layout,
+                )
+                .with_cancellation(work.cancelled.clone()),
+            )))
+        }
+        OcrProviderMode::MpdfCredits => {
+            #[cfg(not(feature = "dev-credits"))]
+            return Err(CoreError::InvalidParameter(
+                "M PDF Credits is not compiled into this production build".to_owned(),
+            ));
+            #[cfg(feature = "dev-credits")]
+            {
+                let Some(endpoint) = work.cloud_endpoint.as_deref() else {
+                    return Err(CoreError::InvalidParameter(format!(
+                        "M PDF Cloud OCR has no production service in this build: {}",
+                        credits::release_blockers().join("; ")
+                    )));
+                };
+                if work.max_credits == 0 {
+                    return Err(CoreError::InvalidParameter(
+                        "a credit ceiling must be authorized before a brokered run can start"
+                            .to_owned(),
+                    ));
+                }
+                let mut config = CloudOcrConfig::mpdf_credits(work.credits_per_page);
+                config.fallback = work.cloud_fallback;
+                Ok(Some(Box::new(
+                    mpdf_api_client::cloud_ocr::MpdfCreditsFactory::new(
+                        config,
+                        endpoint,
+                        CloudTransportPolicy::default(),
+                        layout,
+                        work.max_credits,
+                        b"mpdf-credits-development-verification".to_vec(),
+                    )
+                    .with_cancellation(work.cancelled.clone()),
+                )))
+            }
+        }
+    }
+}
+
+/// Builds the real OCR provider for a user-visible desktop conversion.
+///
+/// The reference provider is a deterministic development stub that emits no
+/// words. Falling back to it would turn a missing runtime dependency into a
+/// successful-looking but unsearchable PDF, so the desktop path fails closed
+/// unless both halves of the production provider are present.
+fn final_pdf_provider(
+    engine: mpdf_core::ocr::OcrEngine,
+    engine_binary: Option<&std::path::Path>,
+    language_profile: &str,
+    sidecar: Option<&std::path::Path>,
+    model_dir: Option<&std::path::Path>,
+) -> CoreResult<mpdf_core::orchestrator::OcrProviderChoice> {
+    use mpdf_core::ocr::SidecarOcrConfig;
+    use mpdf_core::orchestrator::OcrProviderChoice;
+
+    let (executable, model_dir) = match (sidecar, model_dir) {
+        (Some(executable), Some(model_dir)) => (executable, model_dir),
+        _ => return Err(CoreError::InvalidParameter(
+            "local OCR is not configured; both the OCR sidecar and model directory are required"
+                .to_owned(),
+        )),
+    };
+    let mut config = SidecarOcrConfig::tesseract(
+        executable.to_path_buf(),
+        model_dir.to_path_buf(),
+        language_profile,
+    )
+    .map_err(|error| CoreError::InvalidParameter(error.to_string()))?;
+    config.engine = engine;
+    config.engine_binary = engine_binary.map(std::path::Path::to_path_buf);
+    if !engine.cleared_for_production() {
+        config.required_files.clear();
+    }
+    Ok(OcrProviderChoice::Sidecar(config))
 }
 
 /// Builds the [`PdfiumConfig`] this desktop backend actually uses,
@@ -507,6 +721,45 @@ mod output_write_strategy_tests {
             output_write_strategy(),
             OutputWriteStrategy::DirectWriteToDestination
         );
+    }
+}
+
+#[cfg(test)]
+mod final_pdf_provider_tests {
+    use super::final_pdf_provider;
+    use mpdf_core::error::CoreError;
+    use mpdf_core::ocr::OcrEngine;
+
+    #[test]
+    fn a_user_visible_run_never_falls_back_to_the_empty_reference_provider() {
+        for (sidecar, models) in [
+            (None, None),
+            (Some(std::path::Path::new("sidecar")), None),
+            (None, Some(std::path::Path::new("models"))),
+        ] {
+            let error = final_pdf_provider(OcrEngine::Tesseract, None, "auto", sidecar, models)
+                .expect_err("an incomplete production provider must fail closed");
+            let CoreError::InvalidParameter(message) = error else {
+                panic!("expected an invalid-parameter error");
+            };
+            assert!(message.contains("sidecar") && message.contains("model directory"));
+        }
+    }
+
+    #[test]
+    fn a_complete_configuration_builds_the_real_sidecar_provider() {
+        let provider = final_pdf_provider(
+            OcrEngine::Tesseract,
+            None,
+            "auto",
+            Some(std::path::Path::new("sidecar")),
+            Some(std::path::Path::new("models")),
+        )
+        .unwrap();
+        assert!(matches!(
+            provider,
+            mpdf_core::orchestrator::OcrProviderChoice::Sidecar(_)
+        ));
     }
 }
 

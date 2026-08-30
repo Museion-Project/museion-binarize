@@ -2,8 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it using the metadata below."
 title: "M PDF Processor"
 type: software
-version: "0.1.0-rc.2"
-date-released: "2026-08-25"
+version: "0.1.0-rc.3"
 authors:
   - family-names: "Pei"
     given-names: "Haoran"

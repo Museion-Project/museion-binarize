@@ -26,6 +26,15 @@ on:
       git_sha:
         description: "The exact full git SHA the release must be built from — must match the selected run's head commit"
         required: true
+      release_profile:
+        description: "Product profile whose runtime, distribution, and policy gates must pass"
+        required: true
+        type: choice
+        default: local-core
+        options:
+          - local-core
+          - local-ocr-preview
+          - cloud-beta
 
 # Nothing beyond what release/tag creation and cross-run artifact
 # download actually require. No `issues`, `pull-requests`, `packages`,
@@ -74,6 +83,17 @@ jobs:
             exit 1
           fi
           python3 scripts/distribution/check_version_consistency.py
+
+      - name: Enforce product release-readiness profile
+        # `source` is intentionally not an allowed workflow input. A source
+        # preflight can authorize private builds, never creation of a release
+        # carrying binary artifacts. Missing runtime or owner evidence fails
+        # closed before artifacts are downloaded or GitHub Releases touched.
+        run: |
+          python3 scripts/distribution/release_readiness.py \
+            --profile "${{ github.event.inputs.release_profile }}" \
+            --pdfium-evidence docs/evidence/pdfium-smoke-aarch64.json \
+            --macos-install-evidence docs/evidence/rc3-local-install-arm64.json
 
       - name: Verify the selected distribution run succeeded and matches git_sha
         env:

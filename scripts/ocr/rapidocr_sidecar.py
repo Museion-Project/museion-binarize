@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Minimal offline RapidOCR/ONNX adapter for ``mpdf ocr``.
+"""DEPRECATED minimal offline RapidOCR/ONNX adapter for ``mpdf ocr``.
+
+**Do not use this for Greek, German, or any polytonic text.** The models it
+drives (``ch_PP-OCRv4_*``) are Chinese/English; their character dictionary has
+no polytonic Greek and inadequate German coverage, which is the direct cause of
+the ``ogeov`` / ``fir`` / ``U`` / ``a`` failures. The gold evaluation in
+``scripts/ocr/gold`` measures this. Use ``scripts/ocr/mpdf_ocr_sidecar.py``.
+
+This file is retained only so an expert can reproduce the old behavior while
+debugging a historical run. It publishes each detector rectangle as a block,
+a line, and a word at once -- the shape that strands printed-contents page
+numbers -- which is why the Rust logical-line assembler exists.
 
 The script intentionally does not install packages, download models, or log
 recognized text. Provision ``rapidocr_onnxruntime`` and model files out of
@@ -111,6 +122,24 @@ def main() -> int:
     parser.add_argument("--protocol-version", required=True)
     parser.add_argument("--model-dir", required=True)
     parser.add_argument("--input", required=True)
+    # Accepted and ignored: the runner passes the same argv to every sidecar.
+    # This adapter has exactly one engine and no selectable language profile,
+    # which is precisely why it is deprecated.
+    parser.add_argument("--engine", default="rapidocr")
+    parser.add_argument("--language-profile", default=None)
+    # Accepted and ignored. The Rust runner builds one argv for every sidecar
+    # it knows how to launch, and it now spells out the optional recognition
+    # passes on that line. This adapter has no such passes -- but an
+    # unrecognized option is an argparse exit 2, which the runner would report
+    # as "provider unavailable" rather than as the deprecated-adapter path it
+    # actually is. Refusing to parse them would break a CLI path that is still
+    # publicly reachable, quietly and confusingly.
+    parser.add_argument("--routing", default="off",
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--small-type-latin", default="off",
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--detached-greek-accents", default="off",
+                        help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
         return run(args)

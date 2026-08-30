@@ -36,6 +36,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class NamingTests(unittest.TestCase):
+    def test_ocr_resource_is_opt_in_overlay_not_required_by_base_tauri_config(self):
+        base = json.loads((REPO_ROOT / "apps/desktop/src-tauri/tauri.dist.conf.json").read_text())
+        overlay = json.loads((REPO_ROOT / "apps/desktop/src-tauri/tauri.ocr-runtime.overlay.json").read_text())
+        self.assertNotIn("resources/ocr-runtime/*", base["bundle"]["resources"])
+        self.assertEqual(overlay["bundle"]["resources"]["resources/ocr-runtime"], "ocr-runtime")
+
     def test_desktop_artifact_name_matches_the_documented_convention(self):
         self.assertEqual(
             naming.desktop_artifact_name("0.1.0", "aarch64-apple-darwin", "dmg"),
@@ -1341,11 +1347,19 @@ class PublishReleaseWorkflowInvariantTests(unittest.TestCase):
     def test_trigger_is_workflow_dispatch_only(self):
         self.assertEqual(set(self.triggers.keys()), {"workflow_dispatch"})
 
-    def test_requires_tag_run_id_and_git_sha_inputs(self):
+    def test_requires_release_identity_and_product_profile_inputs(self):
         inputs = self.triggers["workflow_dispatch"]["inputs"]
-        for name in ("tag", "run_id", "git_sha"):
+        for name in ("tag", "run_id", "git_sha", "release_profile"):
             self.assertIn(name, inputs)
             self.assertTrue(inputs[name]["required"])
+        profile = inputs["release_profile"]
+        self.assertEqual(profile["type"], "choice")
+        self.assertEqual(profile["default"], "local-core")
+        self.assertEqual(
+            profile["options"],
+            ["local-core", "local-ocr-preview", "cloud-beta"],
+        )
+        self.assertNotIn("source", profile["options"])
 
     def test_permissions_are_minimal(self):
         self.assertEqual(
@@ -1392,6 +1406,23 @@ class PublishReleaseWorkflowInvariantTests(unittest.TestCase):
 
     def test_verifies_checked_out_commit_matches_requested_sha(self):
         self.assertIn("git rev-parse HEAD", self.text)
+
+    def test_enforces_selected_product_readiness_before_artifact_download(self):
+        readiness = self.non_comment_text.index(
+            "scripts/distribution/release_readiness.py"
+        )
+        download = self.non_comment_text.index("gh run download")
+        create = self.non_comment_text.index("gh release create")
+        self.assertLess(readiness, download)
+        self.assertLess(readiness, create)
+        self.assertIn(
+            '--profile "${{ github.event.inputs.release_profile }}"',
+            self.non_comment_text,
+        )
+
+    def test_source_profile_cannot_authorize_publish_workflow(self):
+        inputs = self.triggers["workflow_dispatch"]["inputs"]
+        self.assertNotIn("source", inputs["release_profile"]["options"])
 
     def test_rejects_a_tag_without_the_v_prefix_rather_than_guessing(self):
         self.assertIn('does not start with', self.text)

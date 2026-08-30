@@ -205,7 +205,8 @@ fn source_mutation_before_final_install_leaves_existing_output_untouched() {
     let pdfium = require_pdfium_config();
     let directory = tempfile::tempdir().unwrap();
     let source = directory.path().join("source.pdf");
-    std::fs::write(&source, mpdf_core::test_fixtures::heterogeneous_document(6)).unwrap();
+    let source_bytes = mpdf_core::test_fixtures::heterogeneous_document(6);
+    std::fs::write(&source, &source_bytes).unwrap();
     let package = package_for(&source, &pdfium);
     let root = directory.path().join("book.mdp");
     package.write_to(&root).unwrap();
@@ -223,29 +224,42 @@ fn source_mutation_before_final_install_leaves_existing_output_untouched() {
     .unwrap();
     let output = directory.path().join("outlined.pdf");
     let old_output = b"the existing destination remains byte-identical";
-    std::fs::write(&output, old_output).unwrap();
+    for strategy in [
+        mpdf_core::pipeline::OutputWriteStrategy::AtomicSameDirectoryRename,
+        mpdf_core::pipeline::OutputWriteStrategy::DirectWriteToDestination,
+    ] {
+        // Restore both inputs before each case. The first callback deliberately
+        // mutates the source, while the existing destination proves that the
+        // final veto runs before either installation strategy touches it.
+        std::fs::write(&source, &source_bytes).unwrap();
+        std::fs::write(&output, old_output).unwrap();
 
-    let error = build_searchable_output_observed(
-        &SearchableOutputRequest {
-            package: &package,
-            source: &source,
-            output: &output,
-            overwrite: true,
-            candidates: &effective,
-            derived: inputs.derived.as_ref(),
-            pdfium,
-            output_write_strategy: mpdf_core::pipeline::OutputWriteStrategy::default(),
-        },
-        &|| false,
-        &|stage| {
-            if stage == OutputStage::Validating {
-                std::fs::write(&source, b"the source changed during the run").unwrap();
-            }
-        },
-    )
-    .expect_err("a source mutation must fail before destination installation");
-    assert!(error.to_string().contains("source PDF changed"));
-    assert_eq!(std::fs::read(&output).unwrap(), old_output);
+        let error = build_searchable_output_observed(
+            &SearchableOutputRequest {
+                package: &package,
+                source: &source,
+                output: &output,
+                overwrite: true,
+                candidates: &effective,
+                derived: inputs.derived.as_ref(),
+                pdfium: pdfium.clone(),
+                output_write_strategy: strategy,
+            },
+            &|| false,
+            &|stage| {
+                if stage == OutputStage::Validating {
+                    std::fs::write(&source, b"the source changed during the run").unwrap();
+                }
+            },
+        )
+        .expect_err("a source mutation must fail before destination installation");
+        assert!(error.to_string().contains("source PDF changed"));
+        assert_eq!(std::fs::read(&output).unwrap(), old_output);
+        assert!(
+            mpdf_core::pipeline::leftover_temporary_files(directory.path()).is_empty(),
+            "a failed final veto must clean up its validation file"
+        );
+    }
 }
 
 #[test]

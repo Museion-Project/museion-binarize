@@ -3,7 +3,12 @@ import { useState } from "react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import type { ProcessingCompleted } from "../app/types";
-import { formatBytes, formatMicros, formatPercent } from "../lib/formatting";
+import {
+  formatBytes,
+  formatMicros,
+  formatPercent,
+  formatSizeChange,
+} from "../lib/formatting";
 
 interface CompletionPanelProps {
   report: ProcessingCompleted;
@@ -14,16 +19,13 @@ interface CompletionPanelProps {
  * once. See docs/desktop.md, "GUI completion improvements". */
 export function CompletionPanel({ report, onStartOver }: CompletionPanelProps) {
   const [expanded, setExpanded] = useState(false);
-  const reductionLabel =
-    report.sizeReductionFraction !== null
-      ? `${formatPercent(report.sizeReductionFraction)} smaller`
-      : null;
+  const sizeChangeLabel = formatSizeChange(report.sizeReductionFraction);
 
   return (
     <div className="status-bar-completion" role="status" aria-live="polite">
       <span className="status-bar-completion-summary">
         Done — {formatBytes(report.outputBytes)}
-        {reductionLabel && `, ${reductionLabel}`}, {formatMicros(report.elapsedUs)},{" "}
+        {sizeChangeLabel && `, ${sizeChangeLabel}`}, {formatMicros(report.elapsedUs)},{" "}
         {report.pagesProcessed} page{report.pagesProcessed === 1 ? "" : "s"}
       </span>
       <span className="status-bar-completion-path" title={report.outputPath}>

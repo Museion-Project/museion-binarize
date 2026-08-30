@@ -1,7 +1,8 @@
-# Releasing (Milestone 7A infrastructure)
+# Releasing (rc.3 hardening; M7A/M7B1 foundations)
 
-This document describes the release **infrastructure** Milestone 7A
-built. It does not describe a public release — none has been published.
+This document describes the release infrastructure and rc.3 hardening.
+The current public release remains **v0.1.0-rc.2**; rc.3 is source under
+preparation and has not been tagged or published.
 See [`distribution.md`](distribution.md) for the broader distribution
 model and [`pdfium-bundling.md`](pdfium-bundling.md) for how packaged
 builds get a trusted PDFium.
@@ -29,6 +30,7 @@ Recommended trajectory toward the first tagged release:
 ```
 0.1.0-rc.1
 0.1.0-rc.2
+0.1.0-rc.3
 ...
 0.1.0
 ```
@@ -54,9 +56,9 @@ whether it accepts a SemVer prerelease identifier cleanly:
 | Windows NSIS | Accepts `0.1.0-rc.1` directly, no override needed — verified via the same real Windows CI build (`M PDF Processor_0.1.0-rc.1_x64-setup.exe`). |
 | Linux `.deb`/`.rpm`/AppImage | Accepts `0.1.0-rc.1` directly — verified via a real Linux CI build (`M PDF Processor_0.1.0-rc.1_amd64.deb`, `...-0.1.0-rc.1-1.x86_64.rpm`, `..._0.1.0-rc.1_amd64.AppImage`). |
 
-For `0.1.0-rc.2`, the same MSI mapping advances the WiX-only numeric
-version to `0.1.0.2`; the public SemVer remains `0.1.0-rc.2` everywhere
-else.
+For `0.1.0-rc.2`, the WiX-only numeric version was `0.1.0.2`; rc.3 uses
+`0.1.0.3`. The public SemVer remains `0.1.0-rc.3` everywhere else. The
+mapping is derived and checked by `check_version_consistency.py`.
 
 `scripts/distribution/check_version_consistency.py`'s SemVer regex
 already accepted prerelease identifiers before this milestone (no code
@@ -121,7 +123,7 @@ checksum is never published as if it described the signed file.
 
 ## Release manifest
 
-Schema `mpdf-release-manifest` v1.0
+Schema `mpdf-release-manifest` v1.1 (v1.0 remains readable)
 (`scripts/distribution/release_manifest.py`). Per artifact:
 
 ```json
@@ -138,6 +140,19 @@ Schema `mpdf-release-manifest` v1.0
   "notarization_state": "not_applicable | notarized | pending_credentials"
 }
 ```
+
+Each entry additionally has `artifact_kind`: `desktop`, `cli`, or `sbom`.
+SBOM/checksum/notes artifacts cannot claim signing or notarization. The
+target workflow generates one deterministic SPDX 2.3 SBOM per target from
+Cargo metadata and the desktop installation graph reported by
+`pnpm list --json --depth Infinity` (with lockfile/source-only fallback for
+offline checks), plus pinned PDFium provenance. This describes the installed
+desktop graph; it is not a claim that every optional platform dependency is
+locked into one universal graph. RapidOCR models are user-provisioned and
+never listed as bundled.
+`creationInfo.created` is always an explicit UTC-second value: CI derives it
+from the checked-out `HEAD` commit time, while reproducible local runs pass
+the same value with `generate_sbom.py --created` (or set `SOURCE_DATE_EPOCH`).
 
 Deliberately excludes username, hostname, home directory, secret
 names/values, and absolute developer filesystem paths. A manifest
@@ -192,14 +207,22 @@ separate workflow is manually dispatched.
 
 ## Signing and notarization
 
-**Integration implemented; no artifact produced during this milestone
-is actually signed or notarized — no Apple Developer credentials were
-available to this implementation.**
+The production path is implemented in
+`scripts/distribution/sign_macos_release.py` but has not been run with
+production credentials in this rc.3 source run. It is fail-closed: no
+credentials selects the ad-hoc structural path, any partial set fails, and
+the complete set imports a temporary keychain, signs with hardened runtime
+and secure timestamp, verifies, submits the final `.dmg` with `xcrun
+notarytool --wait`, staples/validates, and runs `spctl`.
+
+The command choices follow Apple's [Notarizing macOS software before distribution](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
+and Tauri's [macOS code signing](https://v2.tauri.app/distribute/sign/macos/)
+guidance; `altool` is not used.
 
 | | Integration state | Actual state |
 |---|---|---|
-| Developer ID signing | Implemented (conditional workflow step, secret-gated) | Pending owner credentials |
-| Notarization | Integration point documented | Pending owner credentials |
+| Developer ID signing | Implemented, fail-closed workflow step, secret-gated | Pending owner credentials |
+| Notarization | Implemented with `xcrun notarytool --wait`, staple and `spctl` checks | Pending owner credentials |
 
 Required secret names (values never committed, logged, or placed in any
 artifact/manifest):
@@ -208,21 +231,14 @@ artifact/manifest):
 APPLE_CERTIFICATE
 APPLE_CERTIFICATE_PASSWORD
 APPLE_SIGNING_IDENTITY
-APPLE_TEAM_ID
 APPLE_API_KEY
+APPLE_API_KEY_ID
 APPLE_API_ISSUER
 ```
-
-The workflow's signing step is conditional on `APPLE_CERTIFICATE` being
-set — an unsigned build still runs the full architecture-validation
-pipeline (bundled PDFium present, correct architecture, no dev-path
-leakage) and produces a useful artifact on its own; signing is an
-addition on top, not a prerequisite for the rest of the pipeline to be
-meaningful. **Never recommend disabling Gatekeeper** (`sudo spctl
---master-disable`) as an installation step for any build this project
-produces; an unsigned development/CI artifact is clearly non-production
-and requires an explicit, informed developer action to open, not a
-system-wide security downgrade.
+`APPLE_CERTIFICATE` and `APPLE_API_KEY` contain base64 or raw material and
+are written only to mode-600 temporary files. `APPLE_TEAM_ID` is only needed
+for the separate MAS entitlement path. **Never recommend disabling
+Gatekeeper** (`sudo spctl --master-disable`).
 
 ### Ad-hoc signing fallback (macOS, always, when the step above didn't run)
 
@@ -241,9 +257,9 @@ bug found by human runtime testing," for how it was found, diagnosed,
 and fixed.
 
 The build workflow now always signs the whole `.app` bundle ad-hoc
-(`codesign --force --deep --sign -`, via
-`scripts/distribution/sign_macos_app.py`) whenever the real
-Developer-ID step above didn't run, then packages the `.dmg` from that
+(`codesign --force --deep --sign -`, via the `sign-app` phase of
+`scripts/distribution/sign_macos_release.py`) whenever the real
+Developer-ID path is not selected, then packages the `.dmg` from that
 already-signed `.app` directly with `hdiutil`
 (`scripts/distribution/package_macos_dmg.py`) rather than through
 Tauri's own dmg bundler — which was confirmed to recompile and
@@ -266,6 +282,13 @@ this repository's documentation.
 `build-distribution.yml` produces private workflow-run artifacts only —
 it never touches the public Releases page. Publishing is a second,
 separate, owner-triggered workflow: `.github/workflows/publish-release.yml`.
+
+That publication workflow requires a product readiness profile. `source` is
+deliberately unavailable there: it is sufficient for pull-request CI and a
+private `build-distribution.yml` run, but cannot authorize creation of binary
+release assets. The owner must select `local-core`, `local-ocr-preview`, or
+`cloud-beta`; `release_readiness.py` runs before artifact download and fails
+closed on every missing runtime, installation, privacy, or provider gate.
 
 ```
 build-distribution.yml (workflow_dispatch, per-target)

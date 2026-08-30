@@ -26,6 +26,12 @@ successfully but do not yet have human runtime acceptance (see
 "Download" below). See [`docs/limitations.md`](docs/limitations.md) for
 exactly what this repository can and cannot do today.
 
+The current source is preparing `0.1.0-rc.3` and includes the MDP evidence
+package, persistent jobs/provider contracts, local OCR, AI-ready revisions,
+evidence bookmarks/searchable PDF output, and deterministic automatic
+bookmarks v2. These source capabilities are not yet a public rc.3 download;
+the links below intentionally remain on rc.2.
+
 The MDP 0.1 evidence-package slice is available from the CLI:
 `mpdf package create book.pdf --output book.mdp` and
 `mpdf package validate book.mdp`. It stores deterministic source/page
@@ -41,8 +47,20 @@ SQLite store:
 mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 --provider reference
 ```
 
-Use `--provider rapidocr --provider-executable PATH --model-dir PATH` only
-when an explicitly provisioned local RapidOCR/ONNX sidecar is available.
+That command is the legacy M3 surface; `reference` is a development stub and
+RapidOCR remains available only for historical/provider-contract testing. The
+current main flow uses the adopted Tesseract sidecar and pinned polytonic
+Greek/German/English models:
+
+```bash
+mpdf run scan.pdf --output scan-final.pdf \
+  --ocr-sidecar scripts/ocr/mpdf_ocr_sidecar.py \
+  --models /path/to/tessdata_best
+```
+
+The source build never downloads models. The rc.3 distribution still has an
+open gate to bundle the Tesseract runtime, sidecar, and trained data; until
+that closes, packaged builds must not claim turnkey OCR.
 
 M4 can derive deterministic AI-ready records and a local review queue without
 cloud access. Use `mpdf export book.mdp --format all --output book-derived`,
@@ -69,8 +87,11 @@ mpdf job status --db .mpdf/jobs.sqlite --job-id demo
 - Cross-platform by default: macOS, Windows, and Linux are first-class
   targets, not afterthoughts.
 
-M PDF Processor is not described as "AI-powered." Phase 1 uses classical,
-deterministic image-processing methods, not machine learning models.
+M PDF Processor is not described as "AI-powered." Phase 1 binarization and
+bookmark decisions use classical, deterministic methods rather than
+generative or black-box models. The production OCR route is Tesseract 5 LSTM
+with pinned `tessdata_best` data; recognized text is kept as evidence and is
+never dictionary- or LLM-rewritten.
 
 ## Phase 1 features
 
@@ -84,6 +105,16 @@ deterministic image-processing methods, not machine learning models.
 - Both a graphical desktop application and a command-line interface, sharing
   the same processing core.
 - Native single-PDF drag-and-drop in the desktop application.
+- Local OCR with the pinned Tesseract polytonic Greek/German/English profile
+  (explicitly provisioned in source builds; release bundling is still open).
+- Evidence bookmarks, searchable output, and automatic bookmarks v2.
+- Explicit-consent remote OCR API; conversion and local OCR remain offline.
+- Opt-in cloud OCR with your own Gemini key, where the *coordinates* still
+  come from the local detector and the model only supplies characters. Local
+  is the default, cloud is never selected implicitly, and every page that fell
+  back to local recognition is reported by number. M PDF Cloud OCR (brokered
+  credits) is implemented but has no production service — see
+  [`docs/ocr-providers.md`](docs/ocr-providers.md).
 - A reproducible benchmarking framework for evaluating output quality.
 
 All of the above is implemented in this repository today. See
@@ -152,9 +183,8 @@ exists. See [`docs/roadmap.md`](docs/roadmap.md) and
 
 Phase 1 does **not** include:
 
-- OCR (optical character recognition).
 - Preservation of hidden OCR text layers from source PDFs.
-- AI or machine-learning models of any kind.
+- Generative or black-box models for binarization/bookmark decisions.
 - Generative restoration or inpainting of damaged/missing content.
 - Page dewarping or geometric correction.
 - Annotation or form-field preservation.

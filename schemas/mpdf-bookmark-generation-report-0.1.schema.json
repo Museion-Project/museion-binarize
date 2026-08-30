@@ -320,7 +320,9 @@
         "numbering_family",
         "segment_index",
         "offset",
-        "anchor_count",
+        "member_count",
+        "exact_anchor_count",
+        "disagreeing_anchor_count",
         "first_printed_number",
         "last_printed_number",
         "residual_min",
@@ -340,7 +342,15 @@
         "offset": {
           "type": "integer"
         },
-        "anchor_count": {
+        "member_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exact_anchor_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disagreeing_anchor_count": {
           "type": "integer",
           "minimum": 0
         },

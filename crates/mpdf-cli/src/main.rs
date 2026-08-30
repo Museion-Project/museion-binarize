@@ -16,7 +16,7 @@ use clap::Parser;
 
 use cli::{
     BenchmarkCommand, BookmarkCommand, Cli, Command, JobCommand, PackageCommand, PdfCommand,
-    RevisionCommand,
+    ProviderCommand, ProviderCredentialCommand, RevisionCommand,
 };
 
 fn main() -> ExitCode {
@@ -30,6 +30,7 @@ fn main() -> ExitCode {
                 allow_system_pdfium: false,
             },
         }),
+        Some(Command::Run(args)) => commands::run::run(args),
         Some(Command::Info(args)) => commands::info::run(args),
         Some(Command::Inspect(args)) => commands::inspect::run(args),
         Some(Command::Analyze(args)) => commands::analyze::run(args),
@@ -71,5 +72,16 @@ fn main() -> ExitCode {
         Some(Command::Pdf(PdfCommand::BuildSearchable(args))) => {
             commands::pdf::build_searchable(args)
         }
+        Some(Command::Provider(ProviderCommand::List(args))) => commands::provider::list(args),
+        Some(Command::Provider(ProviderCommand::Test(args))) => commands::provider::test(args),
+        Some(Command::Provider(ProviderCommand::Credential(ProviderCredentialCommand::Set(
+            args,
+        )))) => commands::provider::credential_set(args),
+        Some(Command::Provider(ProviderCommand::Credential(
+            ProviderCredentialCommand::Status(args),
+        ))) => commands::provider::credential_status(args),
+        Some(Command::Provider(ProviderCommand::Credential(
+            ProviderCredentialCommand::Delete(args),
+        ))) => commands::provider::credential_delete(args),
     }
 }

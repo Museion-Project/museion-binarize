@@ -1,0 +1,30 @@
+{
+  "release": "0.1.0-rc.3",
+  "status": "pre-release-source",
+  "public_release": "v0.1.0-rc.2",
+  "gates": {
+    "version_wix": "pass_static",
+    "identity_freeze": "pass_static",
+    "unreleased_rc3_scope": "pass_static",
+    "current_state_docs": "pass_static",
+    "sbom_manifest_schema": "pass_local",
+    "pdfium_runtime_smoke": "pending",
+    "macos_arm64_install_runtime": "pass_local",
+    "reader_matrix": "pending",
+    "distribution_ci_rc3": "not_run",
+    "developer_id_notary": "pending_owner_credentials",
+    "cross_platform_runtime": "pending",
+    "upgrade_install": "not_run",
+    "ocr_runtime_distribution": "pending",
+    "human_gold_bookmarks": "pending",
+    "privacy_accessibility_performance": "pending_evidence_review"
+  },
+  "notes": [
+    "A reproducible aarch64 four-gate evidence record is available at docs/evidence/pdfium-smoke-aarch64.json; pass_local requires explicitly supplying it to release_readiness.py.",
+    "Synthetic fixtures are not production accuracy evidence.",
+    "Remote OCR is explicit consent/opt-in and uploads only the declared source; local conversion/OCR remain offline.",
+    "The adopted Tesseract runtime, sidecar, and tessdata_best files are not yet bundled; downloaded rc.3 artifacts cannot claim turnkey local OCR until this gate closes.",
+    "Cloud bookmark generation does not exist.",
+    "Local macOS arm64 install/runtime evidence is recorded in docs/evidence/rc3-local-install-arm64.json; Gatekeeper rejection remains expected for the ad-hoc build."
+  ]
+}

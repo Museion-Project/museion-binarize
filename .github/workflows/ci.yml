@@ -92,6 +92,12 @@ jobs:
       - name: Distribution scripts unit tests
         run: python3 scripts/distribution/test_distribution.py
 
+      - name: Source release-readiness profile
+        # Pull-request CI proves source/static consistency only. Product
+        # profiles require runtime/install/privacy evidence and are enforced
+        # by publish-release.yml, where they cannot be mistaken for this gate.
+        run: python3 scripts/distribution/release_readiness.py --profile source
+
       - name: M5 human acceptance package unit tests
         run: python3 scripts/m5/test_human_acceptance.py
 

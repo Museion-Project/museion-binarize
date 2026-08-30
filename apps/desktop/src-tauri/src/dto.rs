@@ -242,28 +242,6 @@ pub struct PersistentJobProgressDto {
     pub cancelled_pages: u32,
 }
 
-/// Local OCR settings shown by the desktop controller. Paths are explicit
-/// operator configuration; the backend never discovers or downloads a
-/// provider executable/model.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(dead_code)] // consumed by the forthcoming durable OCR controller
-pub struct LocalOcrSettingsDto {
-    pub provider: String,
-    pub provider_executable: Option<String>,
-    pub model_dir: Option<String>,
-    pub jobs_db: String,
-    pub output_path: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalOcrProviderStatusDto {
-    pub provider: String,
-    pub available: bool,
-    pub diagnostic: String,
-}
-
 /// Durable OCR status returned from the SQLite job store. Page errors are
 /// intentionally separate from provider settings so the UI can refresh them
 /// after a restart without retaining document content in memory.
@@ -284,6 +262,211 @@ pub struct LocalOcrJobStatusDto {
 pub struct LocalOcrPageErrorDto {
     pub page_number: u32,
     pub message: String,
+}
+
+// ---------------------------------------------------------------------------
+// The one main flow: OCR -> bookmarks -> binarize -> final PDF.
+// ---------------------------------------------------------------------------
+
+/// What the UI sends to start (or resume) the main flow.
+///
+/// The source PDF is **not** in this request. It is taken from the open
+/// document's own state, which is the original file the user opened, so the
+/// frontend has no way to point OCR at a binarized output.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalPipelineRequestDto {
+    pub document_id: String,
+    pub output_path: String,
+    /// Durable evidence directory. Reusing it is what makes resume work.
+    pub workspace_path: String,
+    pub settings: ProcessingSettingsDto,
+    /// `auto` unless the user opened the advanced section.
+    pub language_profile: String,
+    pub engine: Option<String>,
+    pub provider_executable: Option<String>,
+    pub model_dir: Option<String>,
+    /// `pause` | `confirmed` | `reviewed`.
+    pub on_review: String,
+    pub overwrite: bool,
+    pub ocr_dpi: Option<u16>,
+    /// `local` | `gemini-byok` | `mpdf-credits`. Absent means local, so an
+    /// older frontend build can never accidentally select a cloud mode.
+    pub ocr_provider_mode: Option<String>,
+    /// The user ticked the "these pages will be uploaded" box. Re-checked in
+    /// the backend; a `true` here is necessary, never sufficient.
+    #[serde(default)]
+    pub cloud_consent: bool,
+    /// Credential slot label. Never a key: the webview has no path to one.
+    pub credential_slot: Option<String>,
+    /// `local` | `fail`.
+    pub cloud_fallback: Option<String>,
+    pub cloud_endpoint: Option<String>,
+    pub max_credits: Option<u64>,
+    pub credits_per_page: Option<u64>,
+}
+
+/// What the provider picker renders. Built from the core's own capability
+/// data so the UI cannot describe a mode more favourably than it is.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OcrProviderModeDto {
+    pub id: String,
+    pub display_name: String,
+    pub default_mode: bool,
+    pub uses_network: bool,
+    pub requires_credential: bool,
+    pub execution_location: String,
+    pub production_ready: bool,
+    pub availability: String,
+    pub blockers: Vec<String>,
+    pub model: Option<String>,
+    pub credential_present: bool,
+    pub structured_bbox_default_enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OcrProviderStatusDto {
+    pub default_mode: String,
+    pub modes: Vec<OcrProviderModeDto>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CredentialSlotRequestDto {
+    pub slot: String,
+}
+
+/// A key on its way *into* the OS credential store, and nowhere else.
+///
+/// It is never echoed back, never stored in frontend state, and never part of
+/// any other DTO. The only response is [`MaskedCredentialDto`].
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoreCredentialRequestDto {
+    pub slot: String,
+    pub secret: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaskedCredentialDto {
+    pub slot: String,
+    pub present: bool,
+    pub masked: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionTestDto {
+    pub mode: String,
+    pub provider_name: String,
+    pub model: String,
+    pub model_available: bool,
+    pub credential: MaskedCredentialDto,
+    pub diagnostic: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionTestRequestDto {
+    pub mode: String,
+    pub slot: String,
+    pub endpoint: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalPipelineStartedDto {
+    pub job_id: String,
+    pub document_id: String,
+    pub workspace_path: String,
+    /// Every stage, in order, so the UI can render the whole path up front
+    /// instead of inventing its own list.
+    pub stages: Vec<String>,
+    /// True when a previous run left reusable evidence in this workspace.
+    pub resumed: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalPipelineStageDto {
+    pub job_id: String,
+    pub document_id: String,
+    pub stage: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalPipelineCompletedDto {
+    pub job_id: String,
+    pub document_id: String,
+    /// `completed` | `awaiting_review`. A bookmark refusal is *not* a run
+    /// status; it is reported through `bookmark_status` and the document is
+    /// still converted.
+    pub status: String,
+    /// `written` | `none_confirmed` | `safe_refusal`.
+    pub bookmark_status: String,
+    pub stage_reached: String,
+    pub output_path: Option<String>,
+    pub page_count: u32,
+    pub ocr_pages: u32,
+    pub ocr_errors: u32,
+    pub bookmarks_written: u32,
+    pub bookmarks_auto_confirmed: u32,
+    pub bookmarks_needing_review: u32,
+    pub bookmarks_skipped: u32,
+    pub text_layer_words: u32,
+    pub refusal_reason: Option<String>,
+    pub ocr_provenance: Vec<String>,
+    /// The mode the run was started under.
+    pub provider_mode: String,
+    /// 1-based page numbers whose text is local even though a cloud mode was
+    /// selected. Listed, never summarized: the completion panel shows them.
+    pub cloud_fallback_pages: Vec<u32>,
+    pub cloud_input_tokens: u64,
+    pub cloud_output_tokens: u64,
+    pub cloud_usage_may_be_incomplete: bool,
+    pub credits_reserved: u64,
+    pub credits_charged: u64,
+    pub credits_released: u64,
+    pub credits_refunded: u64,
+    pub credits_settled: bool,
+    pub not_production_ready_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalPipelineFailedDto {
+    pub job_id: String,
+    pub document_id: String,
+    pub error: UiErrorDto,
+}
+
+/// Whether the local OCR path can actually run, and what is missing if not.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalOcrReadinessRequestDto {
+    pub language_profile: String,
+    pub engine: Option<String>,
+    pub provider_executable: Option<String>,
+    pub model_dir: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalOcrReadinessDto {
+    pub ready: bool,
+    pub engine: String,
+    pub language_profile: String,
+    pub cleared_for_production: bool,
+    /// Model files the profile needs that are not present.
+    pub missing_files: Vec<String>,
+    pub model_set: Option<String>,
+    pub model_license: Option<String>,
+    pub diagnostic: String,
+    pub available_profiles: Vec<String>,
 }
 
 impl From<JobProgress> for PersistentJobProgressDto {
