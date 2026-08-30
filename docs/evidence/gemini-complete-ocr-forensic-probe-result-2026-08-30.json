@@ -1,0 +1,464 @@
+{
+  "schema": "mpdf-gemini-complete-ocr-forensic-probe",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "completed",
+  "provider": "google_gemini_api",
+  "model": "gemini-3.7-flash",
+  "coverage_contract_sha256": "b3115b5d245634d9c51d5f3609c2925d69848bf81a07e42107c6c802d2f64324",
+  "coverage_mode": "open_world_annotated_target",
+  "preregistration_sha256": "7c5078e2874354a6025b704fecbe1a262c828deeac76c6fd8e542d626138ff60",
+  "configuration_sha256": "0b959dfa6d232368a3afc4ec7e4a645378956ab541d364c98ee85f9655929570",
+  "code_sha256": {
+    "cgpg_loader": "4e1dee46d9c29dfca26c5e5e7ee9ae1a140ef3861dd68bd7228945cf2f70a5b0",
+    "common_harness": "9fdab7727b0c5c9a45e348df87cb31be053ae713579e5670a934c045846b6ed2",
+    "coverage_scorer": "cfb2adc64d417cabe0768d66b93572c6494b03af0d16e9dc2af2cdeee29ac326",
+    "forensic_probe": "4a6bfd271affc2751e6611079b9edc54b9e526531af25e3bc348753507bf89b4",
+    "primary_runner": "05baa82a922235d4ae6c26e70092d47ce815400f68c462d4b83d0c58c2e103c7"
+  },
+  "baseline_raw_manifest_sha256": "b931ccf05124c20c27107cca4c7e5472defb911df6d362047e7814beb4ca0d9b",
+  "probe_raw_manifest_sha256": "47f108ff9a4848178917ab17d73a7f6ec8dd0f728f4c2e607d29e3191f152886",
+  "design": {
+    "live_calls": 2,
+    "truncation_pages": [
+      "grc_grna_or_443",
+      "grc_grna_or_503"
+    ],
+    "geometry_pages_replayed_without_new_calls": [
+      "grc_grna_or_399",
+      "grc_grna_or_489"
+    ],
+    "max_output_tokens": 8192,
+    "thinking_level": "LOW",
+    "automatic_retries": 0
+  },
+  "truncation": [
+    {
+      "page_id": "grc_grna_or_443",
+      "baseline_4096": {
+        "max_output_tokens": 4096,
+        "attempts": 3,
+        "successes": 1,
+        "finish_reason_failures": 2,
+        "candidate_tokens": [
+          4082,
+          2247,
+          4082
+        ]
+      },
+      "probe_8192": {
+        "page_id": "grc_grna_or_443",
+        "status": "success",
+        "error_code": null,
+        "provider_response_success": true,
+        "latency_seconds": 12.958771,
+        "usage": {
+          "prompt_tokens": 1220,
+          "candidate_tokens": 2269,
+          "thought_tokens": 0,
+          "cached_tokens": 0,
+          "accepted_pages": 0,
+          "billable_pages": 0,
+          "native_words": 0,
+          "confidence_count": 0,
+          "confidence_sum": 0.0,
+          "confidence_min": null,
+          "confidence_max": null
+        },
+        "raw_failure_response_preserved": null,
+        "target_metrics": {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 36,
+          "provider_lines_in_target_regions": 37,
+          "matched_target_lines_at_0_50": 36,
+          "matched_target_lines_at_0_75": 35,
+          "target_recall_at_0_50": 1.0,
+          "target_recall_at_0_75": 0.972222,
+          "matched_mean_iou_at_0_50": 0.857791,
+          "unassessed_provider_lines": 1,
+          "target_polytonic": {
+            "samples": 36,
+            "reference_chars": 1637,
+            "char_edits": 8,
+            "cer": 0.004887,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 36,
+            "reference_chars": 1637,
+            "char_edits": 6,
+            "cer": 0.003665,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 36,
+            "reference_lines": 36,
+            "matched_gt_coverage": 1.0,
+            "comparable_pairs": 630,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        }
+      },
+      "mechanism_classification": "stochastic_overgeneration_not_reproduced"
+    },
+    {
+      "page_id": "grc_grna_or_503",
+      "baseline_4096": {
+        "max_output_tokens": 4096,
+        "attempts": 3,
+        "successes": 1,
+        "finish_reason_failures": 2,
+        "candidate_tokens": [
+          4081,
+          2851,
+          4082
+        ]
+      },
+      "probe_8192": {
+        "page_id": "grc_grna_or_503",
+        "status": "success",
+        "error_code": null,
+        "provider_response_success": true,
+        "latency_seconds": 14.438653,
+        "usage": {
+          "prompt_tokens": 1220,
+          "candidate_tokens": 2853,
+          "thought_tokens": 0,
+          "cached_tokens": 0,
+          "accepted_pages": 0,
+          "billable_pages": 0,
+          "native_words": 0,
+          "confidence_count": 0,
+          "confidence_sum": 0.0,
+          "confidence_min": null,
+          "confidence_max": null
+        },
+        "raw_failure_response_preserved": null,
+        "target_metrics": {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 38,
+          "provider_lines_in_target_regions": 39,
+          "matched_target_lines_at_0_50": 38,
+          "matched_target_lines_at_0_75": 38,
+          "target_recall_at_0_50": 1.0,
+          "target_recall_at_0_75": 1.0,
+          "matched_mean_iou_at_0_50": 0.894776,
+          "unassessed_provider_lines": 1,
+          "target_polytonic": {
+            "samples": 38,
+            "reference_chars": 1722,
+            "char_edits": 11,
+            "cer": 0.006388,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 38,
+            "reference_chars": 1722,
+            "char_edits": 3,
+            "cer": 0.001742,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 38,
+            "reference_lines": 38,
+            "matched_gt_coverage": 1.0,
+            "comparable_pairs": 703,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        }
+      },
+      "mechanism_classification": "stochastic_overgeneration_not_reproduced"
+    }
+  ],
+  "geometry": [
+    {
+      "page_id": "grc_grna_or_399",
+      "source": "frozen_baseline_raw_replay",
+      "per_run_target_metrics": [
+        {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 41,
+          "provider_lines_in_target_regions": 42,
+          "matched_target_lines_at_0_50": 41,
+          "matched_target_lines_at_0_75": 8,
+          "target_recall_at_0_50": 1.0,
+          "target_recall_at_0_75": 0.195122,
+          "matched_mean_iou_at_0_50": 0.702674,
+          "unassessed_provider_lines": 1,
+          "target_polytonic": {
+            "samples": 41,
+            "reference_chars": 1930,
+            "char_edits": 9,
+            "cer": 0.004663,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 41,
+            "reference_chars": 1930,
+            "char_edits": 9,
+            "cer": 0.004663,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 41,
+            "reference_lines": 41,
+            "matched_gt_coverage": 1.0,
+            "comparable_pairs": 820,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        },
+        {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 41,
+          "provider_lines_in_target_regions": 42,
+          "matched_target_lines_at_0_50": 41,
+          "matched_target_lines_at_0_75": 30,
+          "target_recall_at_0_50": 1.0,
+          "target_recall_at_0_75": 0.731707,
+          "matched_mean_iou_at_0_50": 0.805591,
+          "unassessed_provider_lines": 1,
+          "target_polytonic": {
+            "samples": 41,
+            "reference_chars": 1930,
+            "char_edits": 8,
+            "cer": 0.004145,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 41,
+            "reference_chars": 1930,
+            "char_edits": 7,
+            "cer": 0.003627,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 41,
+            "reference_lines": 41,
+            "matched_gt_coverage": 1.0,
+            "comparable_pairs": 820,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        },
+        {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 41,
+          "provider_lines_in_target_regions": 41,
+          "matched_target_lines_at_0_50": 30,
+          "matched_target_lines_at_0_75": 13,
+          "target_recall_at_0_50": 0.731707,
+          "target_recall_at_0_75": 0.317073,
+          "matched_mean_iou_at_0_50": 0.710525,
+          "unassessed_provider_lines": 11,
+          "target_polytonic": {
+            "samples": 41,
+            "reference_chars": 1930,
+            "char_edits": 1477,
+            "cer": 0.765285,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 41,
+            "reference_chars": 1930,
+            "char_edits": 1425,
+            "cer": 0.738342,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 30,
+            "reference_lines": 41,
+            "matched_gt_coverage": 0.731707,
+            "comparable_pairs": 435,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        }
+      ],
+      "pairwise_repeat_geometry": [
+        {
+          "left_repetition": 0,
+          "right_repetition": 1,
+          "line_count_delta": 0,
+          "box_f1_at_0_50": 1.0
+        },
+        {
+          "left_repetition": 0,
+          "right_repetition": 2,
+          "line_count_delta": -1,
+          "box_f1_at_0_50": 0.746988
+        },
+        {
+          "left_repetition": 1,
+          "right_repetition": 2,
+          "line_count_delta": -1,
+          "box_f1_at_0_50": 0.698795
+        }
+      ],
+      "minimum_pairwise_box_f1_at_0_50": 0.698795,
+      "mechanism_rule": "If target text CER and line counts remain stable while pairwise box F1 changes materially, classify as coordinate-generation stochasticity rather than OCR text instability."
+    },
+    {
+      "page_id": "grc_grna_or_489",
+      "source": "frozen_baseline_raw_replay",
+      "per_run_target_metrics": [
+        {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 38,
+          "provider_lines_in_target_regions": 38,
+          "matched_target_lines_at_0_50": 38,
+          "matched_target_lines_at_0_75": 28,
+          "target_recall_at_0_50": 1.0,
+          "target_recall_at_0_75": 0.736842,
+          "matched_mean_iou_at_0_50": 0.763081,
+          "unassessed_provider_lines": 0,
+          "target_polytonic": {
+            "samples": 38,
+            "reference_chars": 1706,
+            "char_edits": 8,
+            "cer": 0.004689,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 38,
+            "reference_chars": 1706,
+            "char_edits": 7,
+            "cer": 0.004103,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 38,
+            "reference_lines": 38,
+            "matched_gt_coverage": 1.0,
+            "comparable_pairs": 703,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        },
+        {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 38,
+          "provider_lines_in_target_regions": 38,
+          "matched_target_lines_at_0_50": 22,
+          "matched_target_lines_at_0_75": 13,
+          "target_recall_at_0_50": 0.578947,
+          "target_recall_at_0_75": 0.342105,
+          "matched_mean_iou_at_0_50": 0.739924,
+          "unassessed_provider_lines": 16,
+          "target_polytonic": {
+            "samples": 38,
+            "reference_chars": 1706,
+            "char_edits": 687,
+            "cer": 0.402696,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 38,
+            "reference_chars": 1706,
+            "char_edits": 686,
+            "cer": 0.40211,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 22,
+            "reference_lines": 38,
+            "matched_gt_coverage": 0.578947,
+            "comparable_pairs": 231,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        },
+        {
+          "coverage_mode": "open_world_annotated_target",
+          "reference_target_lines": 38,
+          "provider_lines_in_target_regions": 38,
+          "matched_target_lines_at_0_50": 38,
+          "matched_target_lines_at_0_75": 5,
+          "target_recall_at_0_50": 1.0,
+          "target_recall_at_0_75": 0.131579,
+          "matched_mean_iou_at_0_50": 0.680661,
+          "unassessed_provider_lines": 0,
+          "target_polytonic": {
+            "samples": 38,
+            "reference_chars": 1706,
+            "char_edits": 10,
+            "cer": 0.005862,
+            "nfc_violations": 0
+          },
+          "target_base_letter": {
+            "samples": 38,
+            "reference_chars": 1706,
+            "char_edits": 9,
+            "cer": 0.005275,
+            "nfc_violations": 0
+          },
+          "reading_order": {
+            "matched_lines": 38,
+            "reference_lines": 38,
+            "matched_gt_coverage": 1.0,
+            "comparable_pairs": 703,
+            "inversions": 0,
+            "pairwise_accuracy": 1.0
+          },
+          "provider_completeness_assessed": false,
+          "production_provider_selection_permitted": false
+        }
+      ],
+      "pairwise_repeat_geometry": [
+        {
+          "left_repetition": 0,
+          "right_repetition": 1,
+          "line_count_delta": 0,
+          "box_f1_at_0_50": 0.710526
+        },
+        {
+          "left_repetition": 0,
+          "right_repetition": 2,
+          "line_count_delta": 0,
+          "box_f1_at_0_50": 1.0
+        },
+        {
+          "left_repetition": 1,
+          "right_repetition": 2,
+          "line_count_delta": 0,
+          "box_f1_at_0_50": 0.789474
+        }
+      ],
+      "minimum_pairwise_box_f1_at_0_50": 0.710526,
+      "mechanism_rule": "If target text CER and line counts remain stable while pairwise box F1 changes materially, classify as coordinate-generation stochasticity rather than OCR text instability."
+    }
+  ],
+  "cost": {
+    "tariff_cost_usd": 0.0210375,
+    "planned_ceiling_usd": "0.0687810",
+    "hard_maximum_usd": "0.07",
+    "actual_billed_cost_usd": null
+  },
+  "decision": {
+    "provider_selection_permitted": false,
+    "complete_ocr_competition_permitted": false,
+    "reason": "closed_world_complete_gold_not_ready"
+  },
+  "limitations": [
+    "One 8192-token probe call per truncation page cannot estimate a failure rate.",
+    "Geometry mechanism uses the frozen prior three-repetition raw responses and makes no new geometry calls.",
+    "Open-world annotated-target gold cannot establish provider completeness or a production winner."
+  ],
+  "run_sha256": "140ee62626a62b3654e16d983a6eb59ba4116e530af92964e5eed9549c8bd719"
+}

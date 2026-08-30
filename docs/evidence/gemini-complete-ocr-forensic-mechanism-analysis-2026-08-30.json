@@ -1,0 +1,81 @@
+{
+  "schema": "mpdf-gemini-complete-ocr-forensic-mechanism-analysis",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "completed_posthoc_content_free_analysis",
+  "formal_result_unchanged": true,
+  "coverage_contract_sha256": "b3115b5d245634d9c51d5f3609c2925d69848bf81a07e42107c6c802d2f64324",
+  "baseline_raw_manifest_sha256": "b931ccf05124c20c27107cca4c7e5472defb911df6d362047e7814beb4ca0d9b",
+  "probe_raw_manifest_sha256": "47f108ff9a4848178917ab17d73a7f6ec8dd0f728f4c2e607d29e3191f152886",
+  "probe_result_run_sha256": "140ee62626a62b3654e16d983a6eb59ba4116e530af92964e5eed9549c8bd719",
+  "methods": {
+    "truncation": "Compare response status and candidate-token usage for the three frozen 4096-token baseline repetitions with one preregistered 8192-token probe call per page.",
+    "geometry": "Replay byte-verified baseline responses. Report pairwise box F1 and target recall under coverage v2. Separately compute reading-order sequence CER after symmetric anchor/apostrophe normalization and exclusion of Latin-dominant unannotated lines, so text stability is not made dependent on IoU identity.",
+    "causal_limit": "The probe distinguishes observed mechanisms but does not claim access to hidden model internals or estimate population failure rates."
+  },
+  "truncation": [
+    {
+      "page_id": "grc_grna_or_443",
+      "baseline_4096_candidate_tokens": [4082, 2247, 4082],
+      "baseline_4096_statuses": ["finish_reason_failure", "success", "finish_reason_failure"],
+      "probe_8192_status": "success",
+      "probe_8192_candidate_tokens": 2269,
+      "classification": "stochastic_overgeneration_not_reproduced",
+      "interpretation": "The successful 8192 response remained below 4096 tokens, so normal page output does not require a larger window. Prior exact-ceiling failures reflect an intermittent long-generation path rather than deterministic page length."
+    },
+    {
+      "page_id": "grc_grna_or_503",
+      "baseline_4096_candidate_tokens": [4081, 2851, 4082],
+      "baseline_4096_statuses": ["finish_reason_failure", "success", "finish_reason_failure"],
+      "probe_8192_status": "success",
+      "probe_8192_candidate_tokens": 2853,
+      "classification": "stochastic_overgeneration_not_reproduced",
+      "interpretation": "The successful 8192 response remained below 4096 tokens, so normal page output does not require a larger window. Prior exact-ceiling failures reflect an intermittent long-generation path rather than deterministic page length."
+    }
+  ],
+  "geometry": [
+    {
+      "page_id": "grc_grna_or_399",
+      "repetitions": [
+        {"repetition": 0, "target_candidate_lines": 41, "sequence_text_cer": 0.004569, "target_recall_iou_0_50": 1.0, "target_recall_iou_0_75": 0.195122},
+        {"repetition": 1, "target_candidate_lines": 41, "sequence_text_cer": 0.004061, "target_recall_iou_0_50": 1.0, "target_recall_iou_0_75": 0.731707},
+        {"repetition": 2, "target_candidate_lines": 40, "sequence_text_cer": 0.030964, "target_recall_iou_0_50": 0.731707, "target_recall_iou_0_75": 0.317073}
+      ],
+      "minimum_pairwise_repeat_box_f1_iou_0_50": 0.698795,
+      "classification": "mixed_segmentation_and_coordinate_generation_instability",
+      "interpretation": "Repetitions 0 and 1 retain all 41 target lines with about 0.4 percent sequence CER but differ sharply at IoU 0.75, proving box calibration or extent variability. Repetition 2 also loses one target line and has 3.1 percent sequence CER, so its failure is not geometry-only."
+    },
+    {
+      "page_id": "grc_grna_or_489",
+      "repetitions": [
+        {"repetition": 0, "target_candidate_lines": 38, "sequence_text_cer": 0.00459, "target_recall_iou_0_50": 1.0, "target_recall_iou_0_75": 0.736842},
+        {"repetition": 1, "target_candidate_lines": 38, "sequence_text_cer": 0.005737, "target_recall_iou_0_50": 0.578947, "target_recall_iou_0_75": 0.342105},
+        {"repetition": 2, "target_candidate_lines": 38, "sequence_text_cer": 0.005737, "target_recall_iou_0_50": 1.0, "target_recall_iou_0_75": 0.131579}
+      ],
+      "minimum_pairwise_repeat_box_f1_iou_0_50": 0.710526,
+      "classification": "coordinate_generation_instability",
+      "interpretation": "All repetitions retain 38 target lines and sequence CER stays between 0.46 and 0.57 percent, while target geometry varies drastically. The error mechanism is direct coordinate stochasticity, not OCR text recognition."
+    }
+  ],
+  "raw_response_preservation": {
+    "implementation": "All provider bodies received for failed or successful calls are now written privately before evidence serialization.",
+    "historical_failure_bodies": "unrecoverable_because_the_previous_runner_discarded_them",
+    "probe_failures": 0,
+    "probe_success_bodies_preserved": 2,
+    "live_failure_path_exercised": false,
+    "offline_failure_path_tests_passed": true
+  },
+  "cost": {
+    "probe_tariff_cost_usd": 0.0210375,
+    "actual_billed_cost_usd": null
+  },
+  "decision": {
+    "normal_output_requires_more_than_4096_tokens": false,
+    "intermittent_overgeneration_risk_resolved": false,
+    "coordinate_stability_risk_resolved": false,
+    "provider_selection_permitted": false,
+    "Gemini_Azure_competition_permitted": false,
+    "blocking_condition": "closed_world_complete_gold_not_ready"
+  },
+  "run_sha256": "3f575671697645fd06da05325cbdb92d89a05b186c93cd75185be0c9846bc4c8"
+}
