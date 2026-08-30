@@ -8,6 +8,7 @@
 //! a line nor silently omit one, and it can never return a rectangle.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::Duration;
 
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
@@ -81,15 +82,15 @@ pub trait GeometryProvider {
 /// Adapter for existing local OCR engines.  Their text is deliberately
 /// discarded; only measured line rectangles, order and confidence cross the
 /// geometry boundary.
-pub struct LocalOcrGeometryProvider<P> {
-    inner: P,
+pub struct LocalOcrGeometryProvider {
+    inner: Box<dyn PageOcrProvider>,
     provider_id: String,
     provider_version: String,
 }
 
-impl<P> LocalOcrGeometryProvider<P> {
+impl LocalOcrGeometryProvider {
     pub fn new(
-        inner: P,
+        inner: Box<dyn PageOcrProvider>,
         provider_id: impl Into<String>,
         provider_version: impl Into<String>,
     ) -> Self {
@@ -101,7 +102,7 @@ impl<P> LocalOcrGeometryProvider<P> {
     }
 }
 
-impl<P: PageOcrProvider> GeometryProvider for LocalOcrGeometryProvider<P> {
+impl GeometryProvider for LocalOcrGeometryProvider {
     fn provider_id(&self) -> &str {
         &self.provider_id
     }
@@ -205,6 +206,159 @@ pub trait TranscriptionProvider {
         &mut self,
         request: &TranscriptionRequest<'_>,
     ) -> Result<GeometryBoundTranscription, GeometryTranscriptionError>;
+}
+
+/// Candidate-neutral page provider that connects the split contract to the
+/// existing durable OCR loop.
+///
+/// The durable runner already consumes [`PageOcrProvider`]. This adapter is
+/// therefore the single composition seam a future Credits factory needs to
+/// build: geometry runs first, its identity is frozen and hashed, transcription
+/// is bound to those line ids, and only the strict compositor can originate an
+/// [`OcrPage`]. Neither the runner nor the PDF writer needs a candidate-specific
+/// branch.
+pub struct GeometryTranscriptionPageProvider {
+    geometry: Box<dyn GeometryProvider>,
+    transcriber: Box<dyn TranscriptionProvider>,
+    language_profile: String,
+    deadline: Duration,
+    idempotency_namespace: String,
+}
+
+impl GeometryTranscriptionPageProvider {
+    pub fn new(
+        geometry: Box<dyn GeometryProvider>,
+        transcriber: Box<dyn TranscriptionProvider>,
+        language_profile: impl Into<String>,
+        deadline: Duration,
+        idempotency_namespace: impl Into<String>,
+    ) -> Result<Self, GeometryTranscriptionError> {
+        let language_profile = language_profile.into();
+        let idempotency_namespace = idempotency_namespace.into();
+        if language_profile.trim().is_empty()
+            || deadline.is_zero()
+            || idempotency_namespace.trim().is_empty()
+        {
+            return Err(GeometryTranscriptionError::InvalidConfiguration(
+                "language profile, non-zero deadline, and idempotency namespace are required"
+                    .into(),
+            ));
+        }
+        Ok(Self {
+            geometry,
+            transcriber,
+            language_profile,
+            deadline,
+            idempotency_namespace,
+        })
+    }
+
+    /// Builds the split pipeline from the same boxed local provider currently
+    /// handed to cloud factories by the orchestrator. This is the narrow
+    /// connection point for Tesseract today and any future local geometry
+    /// adapter; choosing a different detector does not change the durable OCR
+    /// or PDF-writing layers.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_local_ocr(
+        local: Box<dyn PageOcrProvider>,
+        geometry_provider_id: impl Into<String>,
+        geometry_provider_version: impl Into<String>,
+        transcriber: Box<dyn TranscriptionProvider>,
+        language_profile: impl Into<String>,
+        deadline: Duration,
+        idempotency_namespace: impl Into<String>,
+    ) -> Result<Self, GeometryTranscriptionError> {
+        Self::new(
+            Box::new(LocalOcrGeometryProvider::new(
+                local,
+                geometry_provider_id,
+                geometry_provider_version,
+            )),
+            transcriber,
+            language_profile,
+            deadline,
+            idempotency_namespace,
+        )
+    }
+
+    /// Non-secret identity suitable for a durable job fingerprint.
+    pub fn fingerprint_contribution(&self) -> String {
+        format!(
+            "{COMPOSITION_CONTRACT}|{}|{}|language_profile={}",
+            self.geometry.fingerprint_contribution(),
+            self.transcriber.fingerprint_contribution(),
+            self.language_profile
+        )
+    }
+
+    fn idempotency_key(&self, page_index: u32, image_sha256: &str) -> String {
+        hex_sha256(
+            format!(
+                "{COMPOSITION_CONTRACT}|{}|{page_index}|{image_sha256}|{}",
+                self.idempotency_namespace,
+                self.fingerprint_contribution()
+            )
+            .as_bytes(),
+        )
+    }
+}
+
+impl PageOcrProvider for GeometryTranscriptionPageProvider {
+    fn execution_location(&self) -> ExecutionLocation {
+        // The final page contains brokered-cloud transcription even though its
+        // geometry was measured locally. Detailed provenance records both.
+        ExecutionLocation::BrokeredCloud
+    }
+
+    fn recognize(
+        &mut self,
+        page_index: u32,
+        image: &DynamicImage,
+        input_asset_sha256: &str,
+    ) -> Result<OcrPage, OcrError> {
+        let geometry = self
+            .geometry
+            .detect_geometry(&GeometryRequest {
+                page_index,
+                page_image: image,
+                page_image_sha256: input_asset_sha256,
+            })
+            .map_err(|error| split_provider_error(page_index, error))?;
+        if geometry.page_index != page_index
+            || geometry.width != image.width()
+            || geometry.height != image.height()
+            || geometry.image_sha256 != input_asset_sha256
+        {
+            return Err(OcrError::InvalidEvidence(
+                "geometry response does not identify the requested page raster".into(),
+            ));
+        }
+        validate_geometry(&geometry).map_err(|error| split_provider_error(page_index, error))?;
+        let idempotency_key = self.idempotency_key(page_index, input_asset_sha256);
+        let transcription = self
+            .transcriber
+            .transcribe(&TranscriptionRequest {
+                page_image: image,
+                geometry: &geometry,
+                language_profile: &self.language_profile,
+                deadline: self.deadline,
+                idempotency_key: &idempotency_key,
+            })
+            .map_err(|error| split_provider_error(page_index, error))?;
+        let mut page = compose_ocr_page(&geometry, &transcription)
+            .map_err(|error| split_provider_error(page_index, error))?;
+        if let Some(provenance) = page.provider_provenance.as_mut() {
+            provenance.language_profile = Some(self.language_profile.clone());
+            provenance.parameters.insert(
+                "pipeline_fingerprint".into(),
+                self.fingerprint_contribution(),
+            );
+            provenance
+                .parameters
+                .insert("idempotency_key".into(), idempotency_key);
+        }
+        Ok(page)
+    }
 }
 
 /// Safe request handed to a Gemini transport.  Credential material belongs to
@@ -468,6 +622,11 @@ pub fn compose_ocr_page(
         "output_tokens".into(),
         transcription.usage.output_tokens.to_string(),
     );
+    parameters.insert(
+        "credits_charged".into(),
+        transcription.usage.credits_charged.to_string(),
+    );
+    parameters.insert("requests".into(), transcription.usage.requests.to_string());
     let page = OcrPage {
         page_index: geometry.page_index,
         route: OcrRoute::Ocr {
@@ -505,6 +664,8 @@ pub fn compose_ocr_page(
 
 #[derive(Debug, thiserror::Error)]
 pub enum GeometryTranscriptionError {
+    #[error("invalid geometry/transcription configuration: {0}")]
+    InvalidConfiguration(String),
     #[error("geometry provider failed: {0}")]
     GeometryProvider(OcrError),
     #[error("invalid deterministic geometry: {0}")]
@@ -517,6 +678,17 @@ pub enum GeometryTranscriptionError {
     Composition(OcrError),
     #[error("{BYOK_DISABLED_MESSAGE}")]
     ByokDisabled,
+}
+
+fn split_provider_error(page: u32, error: GeometryTranscriptionError) -> OcrError {
+    match error {
+        GeometryTranscriptionError::GeometryProvider(error)
+        | GeometryTranscriptionError::Composition(error) => error,
+        other => OcrError::ProviderFailed {
+            page,
+            reason: other.to_string(),
+        },
+    }
 }
 
 fn valid_box(bbox: &OcrBox, width: u32, height: u32) -> bool {
@@ -572,6 +744,91 @@ mod tests {
         response: GeminiResponse,
     }
 
+    struct FixedGeometry;
+
+    impl GeometryProvider for FixedGeometry {
+        fn provider_id(&self) -> &str {
+            "fixed-geometry"
+        }
+
+        fn provider_version(&self) -> &str {
+            "test-1"
+        }
+
+        fn fingerprint_contribution(&self) -> String {
+            "fixed-geometry@test-1".into()
+        }
+
+        fn detect_geometry(
+            &mut self,
+            request: &GeometryRequest<'_>,
+        ) -> Result<GeometryPage, GeometryTranscriptionError> {
+            let mut page = geometry();
+            page.page_index = request.page_index;
+            page.image_sha256 = request.page_image_sha256.into();
+            page.provider_id = self.provider_id().into();
+            page.provider_version = self.provider_version().into();
+            for (order, line) in page.lines.iter_mut().enumerate() {
+                line.line_id = format!("p{:06}-l{order:05}", request.page_index);
+            }
+            Ok(page)
+        }
+    }
+
+    struct FixedTranscriber;
+
+    impl TranscriptionProvider for FixedTranscriber {
+        fn provider_id(&self) -> &str {
+            "fixed-transcriber"
+        }
+
+        fn model(&self) -> &str {
+            GEMINI_TRANSCRIPTION_MODEL
+        }
+
+        fn model_version(&self) -> &str {
+            "test-1"
+        }
+
+        fn fingerprint_contribution(&self) -> String {
+            "fixed-transcriber@test-1".into()
+        }
+
+        fn transcribe(
+            &mut self,
+            request: &TranscriptionRequest<'_>,
+        ) -> Result<GeometryBoundTranscription, GeometryTranscriptionError> {
+            Ok(GeometryBoundTranscription {
+                page_index: request.geometry.page_index,
+                geometry_sha256: request.geometry.digest()?,
+                lines: request
+                    .geometry
+                    .lines
+                    .iter()
+                    .map(|line| TranscribedLine {
+                        line_id: line.line_id.clone(),
+                        text: if line.reading_order == 0 {
+                            "Die λέξις".into()
+                        } else {
+                            "est française".into()
+                        },
+                        language: Some("mixed".into()),
+                        confidence: Some(0.9),
+                    })
+                    .collect(),
+                provider_id: self.provider_id().into(),
+                model: self.model().into(),
+                model_version: self.model_version().into(),
+                usage: ProviderUsage {
+                    input_tokens: 10,
+                    output_tokens: 4,
+                    credits_charged: 1,
+                    requests: 1,
+                },
+            })
+        }
+    }
+
     impl GeminiTransport for FakeGeminiTransport {
         fn transcribe_lines(
             &mut self,
@@ -614,6 +871,36 @@ mod tests {
                 },
             ],
         }
+    }
+
+    #[test]
+    fn split_provider_is_connected_to_page_ocr_contract() {
+        let mut provider = GeometryTranscriptionPageProvider::new(
+            Box::new(FixedGeometry),
+            Box::new(FixedTranscriber),
+            "deu+fra+eng+grc",
+            Duration::from_secs(30),
+            "job-test",
+        )
+        .unwrap();
+        let page = provider
+            .recognize(7, &DynamicImage::new_rgb8(100, 200), &"ab".repeat(32))
+            .unwrap();
+
+        assert_eq!(
+            provider.execution_location(),
+            ExecutionLocation::BrokeredCloud
+        );
+        assert_eq!(page.blocks[0].lines.len(), 2);
+        assert_eq!(page.blocks[0].lines[0].bbox, geometry().lines[0].bbox);
+        assert_eq!(page.blocks[0].lines[0].words[0].text, "Die λέξις");
+        assert_eq!(page.blocks[0].lines[1].words[0].text, "est française");
+        let provenance = page.provider_provenance.unwrap();
+        assert_eq!(provenance.parameters["geometry_provider"], "fixed-geometry");
+        assert_eq!(
+            provenance.parameters["transcription_provider"],
+            "fixed-transcriber"
+        );
     }
 
     fn transcription(geometry: &GeometryPage) -> GeometryBoundTranscription {

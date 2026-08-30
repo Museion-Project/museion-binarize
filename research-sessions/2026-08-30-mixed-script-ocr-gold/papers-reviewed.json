@@ -1,0 +1,62 @@
+{
+  "schema": "mpdf-research-source-review/1",
+  "question": "Reusable mixed-language OCR gold and deterministic geometry providers",
+  "sources": [
+    {
+      "id": "gt4histcomment",
+      "kind": "dataset",
+      "url": "https://github.com/AjaxMultiCommentary/GT-commentaries-OCR",
+      "decision": "external_control",
+      "reason": "Closest genre and Greek/Latin-script mix, but no French and no exhaustive page-level line/read-order contract."
+    },
+    {
+      "id": "bhl-impact-gt",
+      "kind": "dataset",
+      "url": "https://huggingface.co/datasets/finebooks/bhl-impact-gt",
+      "decision": "external_control",
+      "reason": "Full-page PAGE XML for English/French/German/Latin, but no Greek."
+    },
+    {
+      "id": "cgpg",
+      "kind": "dataset",
+      "url": "https://zenodo.org/records/20008699",
+      "decision": "specialist_control",
+      "reason": "Ancient-Greek recognition annotations are not closed-world mixed-language page gold."
+    },
+    {
+      "id": "orli",
+      "kind": "geometry_engine",
+      "url": "https://github.com/mittagessen/orli",
+      "decision": "shortlist",
+      "reason": "Historical line detection and ordering in one model; bfloat16 and distribution feasibility remain gates."
+    },
+    {
+      "id": "ocrd-kraken",
+      "kind": "geometry_engine",
+      "url": "https://github.com/OCR-D/ocrd_kraken",
+      "decision": "shortlist",
+      "reason": "Historical baseline/line segmentation with PAGE output; model provenance must be pinned."
+    },
+    {
+      "id": "paddleocr-detection",
+      "kind": "geometry_engine",
+      "url": "https://github.com/PaddlePaddle/PaddleOCR/blob/main/docs/version3.x/module_usage/text_detection.en.md",
+      "decision": "shortlist",
+      "reason": "Lightweight detection-only control; reading order must be supplied deterministically by M PDF."
+    },
+    {
+      "id": "tesseract-5",
+      "kind": "geometry_engine",
+      "url": "https://tesseract-ocr.github.io/tessdoc/Command-Line-Usage.html",
+      "decision": "control",
+      "reason": "Already integrated and produces coordinate-bearing TSV/hOCR."
+    },
+    {
+      "id": "apple-vision",
+      "kind": "geometry_engine",
+      "url": "https://developer.apple.com/documentation/vision/recognizedtextobservation",
+      "decision": "exploratory_control",
+      "reason": "Convenient on-device Mac geometry, but not portable or version-stable enough to assume as the product provider."
+    }
+  ]
+}

@@ -36,7 +36,10 @@ and geometry-digest mismatch. The old whole-page-text plus fuzzy alignment and
 Gemini-generated-box paths remain historical experiments only.
 
 Contract `mpdf-ocr-provider/2` remains readable for a future monolithic
-provider that independently supplies stable direct text/geometry.
+provider that supplies stable direct text/geometry. The strict split pipeline
+also qualifies as complete coordinate OCR because every transcript line is
+directly bound to an immutable geometry-owned line id; the historical fuzzy
+page-text alignment experiment does not.
 
 ## Product modes
 
@@ -153,10 +156,14 @@ rules. The legacy `gemini-byok` value is not silently remapped to `local` or
 Historical composite evidence retains its recorded provenance and is never
 relabeled as complete coordinate OCR.
 
-Closed-world transcription evaluation uses
-`schemas/mpdf-closed-world-ocr-gold-page-1.0.schema.json`. CGPG PAGE XML is
-candidate scaffolding only and cannot pass the coverage gate without an
-exhaustive full-page human review.
+First-party closed-world evaluation uses
+`schemas/mpdf-closed-world-ocr-gold-page-1.1.schema.json` and starts from blank
+human annotation of target German/French/English/polytonic-Greek pages. The
+legacy schema 1.0 remains readable for existing CGPG drafts. CGPG is now a
+Greek-only specialist control, not the mixed-page gold. GT4HistComment and
+BHL-IMPACT are external controls for complementary script/language coverage;
+neither replaces the first-party set. See
+[ADR 0013](adr/0013-mixed-script-gold-and-geometry-candidates.md).
 
 See also [`limitations.md`](limitations.md),
 [`distribution.md`](distribution.md), and

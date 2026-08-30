@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Small local macOS GUI for creating closed-world OCR gold.
 
-The tool never calls a model. CGPG boxes/text are orange, unverified
-scaffolding. Green lines are human verified. Shift-drag adds a missing line.
+The default mode opens arbitrary page images and starts from a blank annotation;
+the optional CGPG mode keeps its boxes/text as orange, unverified scaffolding.
+The tool never calls a model. Green lines are human verified. Shift-drag adds a
+line.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ import argparse
 import copy
 import sys
 import unicodedata
+from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image, ImageTk
@@ -22,23 +25,41 @@ import closed_world_gold as gold  # noqa: E402
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_OUTPUT = REPO_ROOT / "gold-data/closed-world-cgpg-v1/pages"
+DEFAULT_OUTPUT = REPO_ROOT / "gold-data/mixed-scholarly-v1/pages"
+CGPG_OUTPUT = REPO_ROOT / "gold-data/closed-world-cgpg-v1/pages"
+
+
+@dataclass(frozen=True)
+class ImagePage:
+    name: str
+    image_path: Path
+    width: int
+    height: int
+
+
+def load_image_page(path: Path) -> ImagePage:
+    path = path.resolve()
+    with Image.open(path) as image:
+        width, height = image.size
+    return ImagePage(path.stem, path, width, height)
 
 
 class GoldAnnotator:
     CANVAS_WIDTH = 650
     CANVAS_HEIGHT = 760
 
-    def __init__(self, root, corpus_root: Path, output_root: Path, page_ids: list[str]):
+    def __init__(self, root, pages: list[object], output_root: Path, *, cgpg_mode: bool):
         import tkinter as tk
         from tkinter import ttk
 
         self.tk = tk
         self.ttk = ttk
         self.root = root
-        self.corpus_root = corpus_root
+        self.pages = pages
         self.output_root = output_root
-        self.page_ids = page_ids
+        self.page_ids = [page.name for page in pages]
+        self.cgpg_mode = cgpg_mode
+        self.default_language = "grc" if cgpg_mode else "mixed"
         self.page_position = 0
         self.page = None
         self.record = None
@@ -51,7 +72,7 @@ class GoldAnnotator:
         self.drag_rectangle = None
         self.loading_form = False
 
-        root.title("M PDF · Closed-world Gold")
+        root.title("M PDF · Mixed-script Closed-world Gold")
         root.geometry("1250x850")
         root.minsize(1060, 720)
         root.protocol("WM_DELETE_WINDOW", self.close)
@@ -66,7 +87,7 @@ class GoldAnnotator:
         self.page_label.pack(side="left", padx=12)
         ttk.Label(
             toolbar,
-            text="单击选框 · Shift+拖动补框 · 橙色=候选 · 绿色=人工核验",
+            text="单击选框 · Shift+拖动加框 · 橙色=草稿 · 绿色=人工核验",
         ).pack(side="right")
 
         body = ttk.Panedwindow(outer, orient="horizontal")
@@ -107,7 +128,7 @@ class GoldAnnotator:
         labels = ttk.Frame(right)
         labels.pack(fill="x", pady=6)
         ttk.Label(labels, text="语言").grid(row=0, column=0, sticky="w")
-        self.language = tk.StringVar(value="grc")
+        self.language = tk.StringVar(value=self.default_language)
         ttk.Combobox(
             labels, textvariable=self.language, values=gold.LANGUAGES, state="readonly", width=10
         ).grid(row=0, column=1, padx=(4, 12))
@@ -171,16 +192,17 @@ class GoldAnnotator:
     def load_page(self, position: int) -> None:
         from tkinter import messagebox
 
-        page_id = self.page_ids[position]
-        try:
-            page = cgpg.load_page(self.corpus_root / f"{page_id}.xml")
-        except Exception as error:
-            messagebox.showerror("无法加载页面", str(error))
-            return
+        page = self.pages[position]
+        page_id = page.name
         self.page_position = position
         self.page = page
         path = self.record_path(page_id)
-        self.record = gold.load_record(path) if path.exists() else gold.draft_from_cgpg(page)
+        if path.exists():
+            self.record = gold.load_record(path)
+        elif self.cgpg_mode:
+            self.record = gold.draft_from_cgpg(page)
+        else:
+            self.record = gold.draft_from_image(page.image_path, page.name)
         try:
             gold.validate_record(self.record, require_complete=False, image_path=page.image_path)
         except gold.GoldError as error:
@@ -395,7 +417,7 @@ class GoldAnnotator:
                 "reading_order": len(self.record["lines"]),
                 "bbox": [round(left, 2), round(top, 2), round(right, 2), round(bottom, 2)],
                 "text": "",
-                "language": "grc",
+                "language": self.default_language,
                 "content_class": "unclassified",
                 "geometry_status": "candidate_unverified",
                 "transcription_status": "candidate_unverified",
@@ -497,8 +519,9 @@ class GoldAnnotator:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--corpus-root", required=True, type=Path)
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--corpus-root", type=Path, help="legacy CGPG PAGE-XML directory")
+    parser.add_argument("--images", nargs="+", type=Path, help="PNG/JPEG/TIFF page images")
+    parser.add_argument("--output-root", type=Path)
     parser.add_argument("--all-holdout", action="store_true", help="annotate all 12 frozen holdout pages")
     parser.add_argument("--pages", nargs="+", choices=gold.HOLDOUT_PAGE_IDS)
     return parser.parse_args()
@@ -506,14 +529,55 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     import tkinter as tk
+    from tkinter import filedialog
 
     args = parse_args()
-    page_ids = list(args.pages or (gold.HOLDOUT_PAGE_IDS if args.all_holdout else gold.FORENSIC_PAGE_IDS))
-    missing = [page_id for page_id in page_ids if not (args.corpus_root / f"{page_id}.xml").is_file()]
-    if missing:
-        raise SystemExit(f"missing corpus pages: {', '.join(missing)}")
+    if args.corpus_root and args.images:
+        raise SystemExit("choose either --corpus-root or --images, not both")
+    if not args.corpus_root and (args.pages or args.all_holdout):
+        raise SystemExit("--pages/--all-holdout require --corpus-root")
     root = tk.Tk()
-    GoldAnnotator(root, args.corpus_root.resolve(), args.output_root.resolve(), page_ids)
+    root.withdraw()
+    if args.corpus_root:
+        page_ids = list(
+            args.pages
+            or (gold.HOLDOUT_PAGE_IDS if args.all_holdout else gold.FORENSIC_PAGE_IDS)
+        )
+        missing = [
+            page_id
+            for page_id in page_ids
+            if not (args.corpus_root / f"{page_id}.xml").is_file()
+        ]
+        if missing:
+            raise SystemExit(f"missing corpus pages: {', '.join(missing)}")
+        pages = [cgpg.load_page(args.corpus_root / f"{page_id}.xml") for page_id in page_ids]
+        cgpg_mode = True
+        output_root = args.output_root or CGPG_OUTPUT
+    else:
+        image_paths = list(args.images or ())
+        if not image_paths:
+            selected = filedialog.askopenfilenames(
+                title="选择要制作 closed-world gold 的页面图像",
+                filetypes=[
+                    ("Page images", "*.png *.jpg *.jpeg *.tif *.tiff"),
+                    ("All files", "*"),
+                ],
+            )
+            image_paths = [Path(path) for path in selected]
+        if not image_paths:
+            root.destroy()
+            return 0
+        missing = [str(path) for path in image_paths if not path.is_file()]
+        if missing:
+            raise SystemExit(f"missing page images: {', '.join(missing)}")
+        pages = [load_image_page(path) for path in image_paths]
+        names = [page.name for page in pages]
+        if len(set(names)) != len(names):
+            raise SystemExit("selected image filenames must have unique stems")
+        cgpg_mode = False
+        output_root = args.output_root or DEFAULT_OUTPUT
+    root.deiconify()
+    GoldAnnotator(root, pages, output_root.resolve(), cgpg_mode=cgpg_mode)
     root.mainloop()
     return 0
 

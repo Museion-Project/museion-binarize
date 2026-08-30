@@ -23,10 +23,12 @@ import cgpg
 
 
 SCHEMA = "mpdf-closed-world-ocr-gold-page"
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
+CGPG_SCHEMA_VERSION = "1.0"
+SUPPORTED_SCHEMA_VERSIONS = {CGPG_SCHEMA_VERSION, SCHEMA_VERSION}
 MANIFEST_SCHEMA = "mpdf-closed-world-ocr-gold-manifest"
 MANIFEST_VERSION = "1.0"
-LANGUAGES = ("grc", "lat", "deu", "eng", "mixed", "zxx", "und")
+LANGUAGES = ("grc", "lat", "deu", "fra", "eng", "mixed", "zxx", "und")
 CONTENT_CLASSES = (
     "main_text",
     "apparatus",
@@ -124,7 +126,7 @@ def draft_from_cgpg(page: cgpg.Page) -> dict:
             )
     return {
         "schema": SCHEMA,
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": CGPG_SCHEMA_VERSION,
         "page_id": page.name,
         "image": {
             "sha256": sha256_file(page.image_path),
@@ -146,6 +148,50 @@ def draft_from_cgpg(page: cgpg.Page) -> dict:
             "warning": "Not gold until every line and page coverage are human_verified.",
         },
         "lines": lines,
+    }
+
+
+def draft_from_image(image_path: Path, page_id: str | None = None) -> dict:
+    """Creates a blank v1.1 draft for first-party closed-world annotation."""
+    from PIL import Image
+
+    image_path = Path(image_path)
+    with Image.open(image_path) as image:
+        width, height = image.size
+        image_format = (image.format or "").upper()
+    mime_type = {
+        "JPEG": "image/jpeg",
+        "PNG": "image/png",
+        "TIFF": "image/tiff",
+    }.get(image_format)
+    if mime_type is None:
+        raise GoldError(f"unsupported annotation image format: {image_format or 'unknown'}")
+    identity = page_id or image_path.stem
+    if not identity:
+        raise GoldError("page_id is required")
+    return {
+        "schema": SCHEMA,
+        "schema_version": SCHEMA_VERSION,
+        "page_id": identity,
+        "image": {
+            "sha256": sha256_file(image_path),
+            "width": width,
+            "height": height,
+            "mime_type": mime_type,
+        },
+        "coverage": {
+            "status": "draft",
+            "closed_world": True,
+            "all_visible_lines_exhaustively_reviewed": False,
+            "reviewer": "",
+            "verified_at": None,
+            "unresolved_notes": "",
+        },
+        "annotation_seed": {
+            "kind": "blank_human_annotation",
+            "warning": "Not gold until every visible line and page coverage are human_verified.",
+        },
+        "lines": [],
     }
 
 
@@ -186,18 +232,22 @@ def validate_record(
     require_complete: bool = True,
     image_path: Path | None = None,
 ) -> None:
+    version = record.get("schema_version")
+    provenance_field = (
+        "candidate_provenance" if version == CGPG_SCHEMA_VERSION else "annotation_seed"
+    )
     required = {
         "schema",
         "schema_version",
         "page_id",
         "image",
         "coverage",
-        "candidate_provenance",
+        provenance_field,
         "lines",
     }
     if set(record) != required:
         raise GoldError("page record has missing or unknown top-level fields")
-    if record["schema"] != SCHEMA or record["schema_version"] != SCHEMA_VERSION:
+    if record["schema"] != SCHEMA or version not in SUPPORTED_SCHEMA_VERSIONS:
         raise GoldError("unsupported closed-world gold schema")
     if not isinstance(record["page_id"], str) or not record["page_id"]:
         raise GoldError("page_id is required")
@@ -237,9 +287,31 @@ def validate_record(
     if not isinstance(coverage["unresolved_notes"], str):
         raise GoldError("unresolved_notes must be text")
 
+    if version == CGPG_SCHEMA_VERSION:
+        provenance = record["candidate_provenance"]
+        if (
+            not isinstance(provenance, dict)
+            or set(provenance) != {"kind", "xml_sha256", "warning"}
+            or provenance.get("kind") != "cgpg_page_xml_scaffolding_only"
+            or not _valid_sha256(provenance.get("xml_sha256"))
+            or not isinstance(provenance.get("warning"), str)
+            or not provenance["warning"]
+        ):
+            raise GoldError("CGPG candidate provenance is malformed")
+    else:
+        seed = record["annotation_seed"]
+        if (
+            not isinstance(seed, dict)
+            or set(seed) != {"kind", "warning"}
+            or seed.get("kind") != "blank_human_annotation"
+            or not isinstance(seed.get("warning"), str)
+            or not seed["warning"]
+        ):
+            raise GoldError("annotation seed is malformed")
+
     lines = record["lines"]
-    if not isinstance(lines, list) or not lines:
-        raise GoldError("a closed-world page must contain at least one visible line")
+    if not isinstance(lines, list) or (require_complete and not lines):
+        raise GoldError("a complete closed-world page must contain at least one visible line")
     line_fields = {
         "line_id",
         "reading_order",
@@ -266,6 +338,15 @@ def validate_record(
             or unicodedata.normalize("NFC", text) != text
             or line["language"] not in LANGUAGES
             or line["content_class"] not in CONTENT_CLASSES
+            or line["geometry_status"] not in {"candidate_unverified", "human_verified"}
+            or line["transcription_status"]
+            not in {"candidate_unverified", "human_verified"}
+            or line["source"]
+            not in (
+                {"cgpg_page_xml_candidate", "human_draft", "human"}
+                if version == CGPG_SCHEMA_VERSION
+                else {"human_draft", "human"}
+            )
         ):
             raise GoldError(f"line {order} has invalid identity, order, box, text, or labels")
         ids.add(line["line_id"])

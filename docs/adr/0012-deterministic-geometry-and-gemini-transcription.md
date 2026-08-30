@@ -49,12 +49,15 @@ not silently bundled into the base application by this decision.
 
 ## Gold and evaluation
 
-Cloud transcription is evaluated only against closed-world gold. CGPG PAGE XML
-may seed an annotation UI, but every candidate line is unverified. A page is
-eligible only when a human has verified every line's box, order, literal text,
+Cloud transcription is evaluated only against closed-world gold. CGPG's
+recognition annotation is Greek-only and therefore remains a specialist stress
+test rather than the target gold for German/French/English/polytonic-Greek
+pages. First-party target pages start from blank annotation. A page is eligible
+only when a human has verified every visible line's box, order, literal text,
 language/class label, inspected the full page for missing text, and cleared all
 unresolved notes. The validator freezes image and record digests and refuses a
-manifest whose page set differs from the declared holdout.
+manifest whose page set differs from the declared holdout. Dataset reuse and
+the deferred GeometryProvider selection gate are specified in ADR 0013.
 
 The existing open-world CGPG evidence remains valid for forensic analysis, but
 cannot select a production transcription provider. A fair bakeoff begins only

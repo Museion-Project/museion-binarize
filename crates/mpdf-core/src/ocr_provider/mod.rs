@@ -2,11 +2,12 @@
 //!
 //! # The one rule this module exists to enforce
 //!
-//! Every complete OCR provider must independently hand back the *same*
-//! canonical structure: [`crate::ocr::OcrPage`], a block/line/word tree with
-//! measured boxes in the page's own pixel coordinate system. A provider is not
-//! complete OCR merely because local code can align its plain text onto boxes
-//! produced by another engine.
+//! Every complete OCR pipeline must hand back the *same* canonical structure:
+//! [`crate::ocr::OcrPage`], a block/line/word tree with measured boxes in the
+//! page's own pixel coordinate system. It may be a single complete engine or a
+//! strict composition of deterministic geometry and geometry-bound
+//! transcription. A provider is not complete OCR merely because local code can
+//! post-hoc align unconstrained page text onto boxes from another engine.
 //!
 //! That is not a stylistic preference. Everything downstream — logical line
 //! assembly, the derived bundle, printed-page mapping, body-heading
@@ -24,7 +25,10 @@
 //! coordinate-bearing page and may return text patches bound to stable word
 //! paths and source digests. It cannot return a replacement page or geometry.
 //!
-//! No HTTP, no credential storage, no key material. `mpdf-core` stays usable
+//! The strict split contract lives in [`geometry_transcription`]: the geometry
+//! component mints immutable line ids, and the transcriber must return an exact
+//! line-id bijection without coordinates. No HTTP, no credential storage, no
+//! key material. `mpdf-core` stays usable
 //! with the network stack removed: the cloud providers in this module are
 //! written against small transport traits, and the real HTTPS implementations
 //! live in `mpdf-api-client`. That also makes the interesting behaviour —
@@ -154,15 +158,18 @@ impl OcrProviderMode {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderRole {
+    /// A single engine or strict deterministic-geometry + line-bound-text
+    /// composition that originates coordinate-bearing OCR evidence.
     CompleteOcr,
     TextEnhancer,
-    /// Plain text plus geometry supplied by a separate local OCR engine.
-    /// Retained for reproducibility; never a complete-OCR claim.
+    /// Unconstrained page text plus geometry supplied by a separate local OCR
+    /// engine and joined by post-hoc alignment. Retained for reproducibility;
+    /// never a complete-OCR claim.
     #[default]
     ExperimentalComposite,
 }
 
-/// Finest coordinate unit independently returned by the provider.
+/// Finest coordinate unit returned by the complete provider pipeline.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CoordinateGranularity {
@@ -190,7 +197,8 @@ pub enum TextGeometryMapping {
     None,
     /// Coordinates came from another recognizer and text was aligned locally.
     LocalAlignment,
-    /// Every returned text unit directly identifies its returned box.
+    /// Every returned text unit directly identifies its box, including an exact
+    /// immutable line-id join in the split geometry/transcription contract.
     Direct,
 }
 
@@ -237,6 +245,10 @@ pub enum GeometrySource {
     /// Boxes were measured locally; the *text* came from a cloud
     /// transcription that aligned to those lines.
     LocalLayoutAlignedText,
+    /// Boxes and stable order came from a deterministic GeometryProvider; text
+    /// was returned against the exact immutable line ids, not aligned after the
+    /// fact.
+    DeterministicGeometryBoundText,
     /// Boxes came from a structured provider response and passed every
     /// cross-validation gate. Experimental; never a default.
     ProviderStructuredValidated,
@@ -248,6 +260,7 @@ impl GeometrySource {
             Self::NativeText => "native_text",
             Self::LocalLayout => "local_layout",
             Self::LocalLayoutAlignedText => "local_layout_aligned_text",
+            Self::DeterministicGeometryBoundText => "deterministic_geometry_bound_text",
             Self::ProviderStructuredValidated => "provider_structured_validated",
         }
     }
@@ -380,7 +393,7 @@ pub struct OcrProviderCapabilities {
 }
 
 impl OcrProviderCapabilities {
-    /// Proves that this is an independently complete OCR capability.
+    /// Proves that this is a complete coordinate-bearing OCR pipeline.
     ///
     /// Production readiness is intentionally checked separately: an
     /// unavailable future backend may describe a valid complete-OCR contract,

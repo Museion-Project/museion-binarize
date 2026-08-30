@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 import closed_world_gold as gold
 import cgpg
@@ -40,6 +41,18 @@ def test_candidate_xml_is_never_complete_gold(tmp_path: Path):
     gold.validate_record(record, require_complete=False)
     with pytest.raises(gold.GoldError, match="still candidate"):
         gold.validate_record(record, require_complete=True)
+
+
+def test_first_party_image_starts_as_valid_empty_draft(tmp_path: Path):
+    image_path = tmp_path / "mixed-page.png"
+    Image.new("RGB", (120, 240), "white").save(image_path)
+    record = gold.draft_from_image(image_path)
+    assert record["schema_version"] == "1.1"
+    assert record["annotation_seed"]["kind"] == "blank_human_annotation"
+    assert record["lines"] == []
+    gold.validate_record(record, require_complete=False, image_path=image_path)
+    with pytest.raises(gold.GoldError, match="must contain at least one"):
+        gold.validate_record(record, require_complete=True, image_path=image_path)
 
 
 def test_verified_closed_world_page_passes(tmp_path: Path):

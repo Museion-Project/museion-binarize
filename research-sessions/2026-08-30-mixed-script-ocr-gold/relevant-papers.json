@@ -1,0 +1,15 @@
+{
+  "schema": "mpdf-relevant-research/1",
+  "items": [
+    {
+      "title": "Optical Character Recognition of 19th Century Classical Commentaries: The Current State of Affairs",
+      "url": "https://arxiv.org/abs/2110.06817",
+      "relevance": "Documents GT4HistComment and mixed Greek/Latin-script OCR behavior in the target genre."
+    },
+    {
+      "title": "End-to-End Text Line Detection and Ordering",
+      "url": "https://arxiv.org/abs/2606.04166",
+      "relevance": "Technical basis of Orli's combined line detection and ordering candidate."
+    }
+  ]
+}
