@@ -1,7 +1,7 @@
 # Patrologia Graeca Corpus / Calfa–GREgORI（2026）项目适配度评估
 
-**评估日期：** 2026-08-29  
-**对象：** Calfa–GREgORI Patrologia Graeca（CGPG）语料、OCR ground truth、公开布局权重与 Calfa 托管识别管线  
+**评估日期：** 2026-08-29
+**对象：** Calfa–GREgORI Patrologia Graeca（CGPG）语料、OCR ground truth、公开布局权重与 Calfa 托管识别管线
 **项目基线：** 本仓库当前的本地优先 OCR、MDP 坐标证据、可搜索 PDF、可替换 sidecar provider 与 200 页真实古希腊文评测目标
 
 ## 结论
@@ -119,8 +119,8 @@ Calfa Vision 可在网页上免费进行标注和使用 `Greek printed (Patrolog
 
 ## 最终决策
 
-**Go：** 将 CGPG Zenodo v2 纳入外部、可固定、不入 Git 的 PG OCR/布局压力测；将 CC BY 语料评估为可选的搜索和审校辅助层。  
-**Conditional Go：** 对公开布局权重做隔离、不发布的技术 spike，前提是先理清运行时许可和安全加载方式。  
+**Go：** 将 CGPG Zenodo v2 纳入外部、可固定、不入 Git 的 PG OCR/布局压力测；将 CC BY 语料评估为可选的搜索和审校辅助层。
+**Conditional Go：** 对公开布局权重做隔离、不发布的技术 spike，前提是先理清运行时许可和安全加载方式。
 **No-Go（现阶段）：** 将 Calfa/CGPG 作为本地默认 OCR provider 或用它取代 `tessdata_best`。
 
 ## 主要资料
@@ -133,4 +133,3 @@ Calfa Vision 可在网页上免费进行标注和使用 `Greek printed (Patrolog
 - Calfa Vision, [annotation platform and plans](https://vision.calfa.fr/)。
 - Calfa, [Research Plan](https://calfa.fr/research-plan)。
 - YOLOv12 reference implementation, [license and runtime](https://github.com/sunsmarterjie/yolov12)（AGPL-3.0）。
-

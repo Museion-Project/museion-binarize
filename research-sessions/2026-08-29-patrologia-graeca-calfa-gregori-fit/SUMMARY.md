@@ -1,13 +1,13 @@
 # Research Query: Patrologia Graeca Corpus / Calfa–GREgORI 2026 对本项目的适配度
 
-**Date:** 2026-08-29  
-**Status:** Complete  
+**Date:** 2026-08-29
+**Status:** Complete
 **Detailed report:** [`docs/patrologia-graeca-calfa-gregori-fit-2026.zh-CN.md`](../../docs/patrologia-graeca-calfa-gregori-fit-2026.zh-CN.md)
 
 ## Search strategy
 
-**Keywords:** Patrologia Graeca Corpus, CGPG, Calfa, GREgORI, polytonic Greek OCR, PAGE XML, YOLO, CRNN, ground truth, license  
-**Sources:** LREC 2026 paper, UCLouvain project page, Zenodo APIs/releases, upstream GitHub contents, Calfa product pages, relevant runtime license  
+**Keywords:** Patrologia Graeca Corpus, CGPG, Calfa, GREgORI, polytonic Greek OCR, PAGE XML, YOLO, CRNN, ground truth, license
+**Sources:** LREC 2026 paper, UCLouvain project page, Zenodo APIs/releases, upstream GitHub contents, Calfa product pages, relevant runtime license
 **Project evidence:** OCR sidecar/provenance contract, current gold evaluation, dataset/provenance rules, local-first distribution policy
 
 ## Results
@@ -30,4 +30,3 @@ Import the CC BY 4.0 PAGE corpus through a pinned external-manifest benchmark pa
 - Locally computed SHA-256: `2ee5d79f3c781dc1b64fa386f0f194a762ab183cd36b97f5d873ce0a3004e1f7`
 - GitHub main commit inspected: `a415fcae253cb2d7ec69a1176cfef1008c252215`
 - Layout weight SHA-256: `47a69c4eae86e765aeb907f170a227c9f64f491e4843729c97f2e6fe06cec5b0`
-
