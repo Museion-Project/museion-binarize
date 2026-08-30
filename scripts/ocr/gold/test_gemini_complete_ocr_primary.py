@@ -106,6 +106,62 @@ def test_request_uses_header_not_url_and_preserves_structured_contract():
     assert result.lines[0].bbox == common.Box(10.0, 10.0, 90.0, 20.0)
 
 
+def test_client_allows_frozen_probe_output_budget_override():
+    transport = FakeTransport(common.HttpResponse(200, {}, _gemini_response()))
+    client = primary.GeminiApiClient(
+        "test-secret", transport, clock=lambda: 1.0, max_output_tokens=8192
+    )
+    client.recognize(b"jpeg", 100, 100)
+    body = json.loads(transport.calls[0][3])
+    assert body["generationConfig"]["maxOutputTokens"] == 8192
+    with pytest.raises(ValueError, match="invalid max_output_tokens"):
+        primary.GeminiApiClient(
+            "test-secret", transport, max_output_tokens=True
+        )
+
+
+def test_http_failure_keeps_private_provider_body_for_raw_store():
+    raw = b'{"error":{"status":"INVALID_ARGUMENT"}}'
+    transport = FakeTransport(common.HttpResponse(400, (), raw))
+    client = primary.GeminiApiClient(
+        "test-secret", transport, clock=lambda: 1.0
+    )
+    with pytest.raises(common.BakeoffError, match="gemini_http_400") as raised:
+        client.recognize(b"jpeg", 100, 100)
+    assert raised.value.raw_response == raw
+    assert raised.value.http_status == 400
+    assert raised.value.provider_response_success is False
+
+
+def test_primary_raw_store_preserves_private_failed_response(
+    monkeypatch, tmp_path
+):
+    root = tmp_path / "raw"
+    monkeypatch.setattr(common, "RAW_OUTPUT_ROOT", root)
+    store = primary.PrimaryRawStore(
+        common.RunBinding("a" * 64, "b" * 64, (("runner", "c" * 64),))
+    )
+    error = common.BakeoffError("gemini_finish_reason_invalid")
+    error.provider_response_success = True
+    error.latency_seconds = 1.5
+    error.raw_response = _gemini_response()
+    outcome = primary._outcome_from_error(error)
+    store.write(
+        "page",
+        0,
+        outcome,
+        failure_raw_response=error.raw_response,
+    )
+    response_path = store.root / "google_gemini_api-page-r0.response.json"
+    meta_path = store.root / "google_gemini_api-page-r0.meta.json"
+    assert response_path.read_bytes() == error.raw_response
+    assert response_path.stat().st_mode & 0o777 == 0o600
+    meta = json.loads(meta_path.read_text())
+    assert meta["status"] == "failure"
+    assert meta["response_present"] is True
+    assert meta["response_sha256"] == common.sha256_bytes(error.raw_response)
+
+
 def test_readiness_is_content_free_and_requires_positive_token_count():
     transport = FakeTransport(
         common.HttpResponse(200, {}, json.dumps({"totalTokens": 1}).encode())

@@ -1,0 +1,85 @@
+{
+  "schema": "mpdf-gemini-complete-ocr-forensic-probe-preregistration",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "preregistered_not_executed",
+  "registered_before_live_execution": true,
+  "purpose": "Use two new Gemini calls plus local replay of the frozen primary run to isolate output truncation and coordinate drift without starting another provider bakeoff.",
+  "configuration_sha256": "0b959dfa6d232368a3afc4ec7e4a645378956ab541d364c98ee85f9655929570",
+  "coverage_contract_sha256": "b3115b5d245634d9c51d5f3609c2925d69848bf81a07e42107c6c802d2f64324",
+  "baseline": {
+    "raw_manifest_sha256": "b931ccf05124c20c27107cca4c7e5472defb911df6d362047e7814beb4ca0d9b",
+    "configuration_sha256": "d826b29637d6abc0c2952b046d96dbc5ee5b37f0228c6978d410b1413965cb91",
+    "model": "gemini-3.7-flash",
+    "thinking_level": "LOW",
+    "max_output_tokens": 4096,
+    "automatic_retries": 0
+  },
+  "design": {
+    "live_calls": 2,
+    "concurrency": 1,
+    "automatic_retries": 0,
+    "truncation_pages": [
+      "grc_grna_or_443",
+      "grc_grna_or_503"
+    ],
+    "calls_per_truncation_page": 1,
+    "probe_thinking_level": "LOW",
+    "probe_max_output_tokens": 8192,
+    "geometry_pages": [
+      "grc_grna_or_399",
+      "grc_grna_or_489"
+    ],
+    "new_geometry_calls": 0,
+    "geometry_source": "Replay all three byte-verified baseline responses for each geometry page.",
+    "same_prompt_and_response_schema_as_baseline": true,
+    "same_frozen_JPEG_bytes": true,
+    "ground_truth_sent_to_provider": false
+  },
+  "hypotheses": {
+    "truncation": {
+      "observation_to_explain": "Each target page had two 4096-token finish-reason failures and one much shorter STOP response in the baseline.",
+      "direct_output_budget_confirmation": "The 8192-token call returns STOP with more than 4096 candidate tokens.",
+      "stochastic_overgeneration_not_reproduced": "The 8192-token call returns STOP with at most 4096 candidate tokens.",
+      "unresolved_but_preserved": "The 8192-token call still fails and its response body is preserved privately for inspection."
+    },
+    "geometry": {
+      "observation_to_explain": "399 repetition 2 and 489 repetition 1 had low target-alignment F1 despite stable text.",
+      "coordinate_generation_stochasticity": "Target text CER and line count remain stable while pairwise box F1 materially changes between byte-verified repetitions.",
+      "text_or_segmentation_coupling": "Low box F1 coincides with changed target text or line count."
+    }
+  },
+  "coverage_and_scoring": {
+    "mode": "open_world_annotated_target",
+    "unmatched_provider_lines": "unassessed_not_false_positive",
+    "unmatched_reference_lines": "missing_target_error",
+    "inline_parenthetical_anchors": "removed_symmetrically_before_target_CER",
+    "apostrophe_equivalents": "canonicalized_symmetrically_before_target_CER",
+    "complete_OCR_eligibility": false
+  },
+  "raw_response_policy": {
+    "all_HTTP_200_responses": "Preserve privately whether parsing succeeds or fails.",
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "committed": false,
+    "content_free_evidence": true
+  },
+  "cost": {
+    "input_ceiling_tokens_per_call": 4894,
+    "output_ceiling_tokens_per_call": 8192,
+    "planned_ceiling_usd": "0.0687810",
+    "hard_maximum_usd": "0.07",
+    "actual_billed_cost_usd": null
+  },
+  "decision": {
+    "provider_selection_permitted": false,
+    "Azure_execution_permitted": false,
+    "Complete_OCR_competition_permitted": false,
+    "reason": "The probe diagnoses mechanisms only; closed-world complete gold is not ready."
+  },
+  "limitations": [
+    "One new call per truncation page cannot estimate a failure probability.",
+    "The probe can identify evidence consistent with output-budget truncation but cannot prove hidden model internals.",
+    "The geometry diagnosis is limited to the existing three repetitions on two pages."
+  ]
+}

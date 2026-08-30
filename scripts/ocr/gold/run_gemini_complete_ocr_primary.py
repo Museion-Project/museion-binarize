@@ -226,13 +226,22 @@ class GeminiApiClient:
         api_key: str,
         transport: common.HttpTransport,
         clock=time.perf_counter,
+        *,
+        max_output_tokens: int = common.GEMINI_MAX_OUTPUT_TOKENS,
     ) -> None:
+        if (
+            isinstance(max_output_tokens, bool)
+            or not isinstance(max_output_tokens, int)
+            or max_output_tokens < 1
+            or max_output_tokens > 65536
+        ):
+            raise ValueError("invalid max_output_tokens")
         self._api_key = api_key
         self._transport = transport
         self._clock = clock
+        self._max_output_tokens = max_output_tokens
 
-    @staticmethod
-    def _request_body(image_bytes: bytes) -> bytes:
+    def _request_body(self, image_bytes: bytes) -> bytes:
         return common.canonical_json_bytes(
             {
                 "contents": [
@@ -252,7 +261,7 @@ class GeminiApiClient:
                     }
                 ],
                 "generationConfig": {
-                    "maxOutputTokens": common.GEMINI_MAX_OUTPUT_TOKENS,
+                    "maxOutputTokens": self._max_output_tokens,
                     "responseMimeType": "application/json",
                     "responseJsonSchema": GEMINI_API_RESPONSE_SCHEMA,
                     "thinkingConfig": {
@@ -290,6 +299,8 @@ class GeminiApiClient:
                 in (400, 401, 403, 404, 408, 409, 429, 500, 502, 503, 504)
                 else "gemini_http_error"
             )
+            error.raw_response = response.body
+            error.http_status = response.status
             error.latency_seconds = self._clock() - started
             raise error
         try:
@@ -381,10 +392,18 @@ class PrimaryRawStore:
         page_id: str,
         repetition: int,
         outcome: common.InvocationOutcome,
+        *,
+        failure_raw_response: bytes | None = None,
     ) -> None:
         stem = self._stem(page_id, repetition)
         result = outcome.result
-        raw = result.raw_response if result is not None else None
+        if result is not None and failure_raw_response is not None:
+            raise common.BakeoffError("raw_output_outcome_invalid")
+        raw = (
+            result.raw_response
+            if result is not None
+            else failure_raw_response
+        )
         if raw is not None:
             common._private_write(self.root / f"{stem}.response.json", raw)
         meta = {
@@ -490,7 +509,15 @@ def execute(
             except common.BakeoffError as error:
                 outcome = _outcome_from_error(error)
                 status = error.code
-            store.write(page.name, repetition, outcome)
+                failure_raw_response = error.raw_response
+            else:
+                failure_raw_response = None
+            store.write(
+                page.name,
+                repetition,
+                outcome,
+                failure_raw_response=failure_raw_response,
+            )
             outcomes[(page.name, repetition)] = outcome
             print(
                 json.dumps(

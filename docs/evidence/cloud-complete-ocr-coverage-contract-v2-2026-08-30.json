@@ -1,0 +1,97 @@
+{
+  "schema": "mpdf-complete-ocr-coverage-contract",
+  "schema_version": "2.0",
+  "date": "2026-08-30",
+  "status": "frozen",
+  "frozen_before_forensic_probe": true,
+  "configuration_sha256": "5bd3d7c27a38bd7d9d7d69d7c8febf6552fa24f0972a01ba436df25f91c5ada4",
+  "supersedes_interpretation": "The original closed-world scorer treated every provider line inside a broad annotated region as covered by CGPG gold. For these pages that assumption is false and must not be used for provider comparison.",
+  "source": {
+    "corpus": "Corpus of Ground-truthed Patrologia Graeca",
+    "doi": "10.5281/zenodo.20008699",
+    "formal_input_manifest_sha256": "6ab387adc9da8c55d227d3ef88dfe47af9e9f1c757b2f974ba06d8bf0eb4a751",
+    "page_count": 12,
+    "page_ids": [
+      "grc_grna_or_399",
+      "grc_grna_or_409",
+      "grc_grna_or_423",
+      "grc_grna_or_429",
+      "grc_grna_or_443",
+      "grc_grna_or_447",
+      "grc_grna_or_461",
+      "grc_grna_or_475",
+      "grc_grna_or_487",
+      "grc_grna_or_489",
+      "grc_grna_or_503",
+      "grc_grna_or_513"
+    ]
+  },
+  "coverage": {
+    "mode": "open_world_annotated_target",
+    "annotated_target": "Greek lines transcribed in the verified PAGE XML",
+    "known_unannotated_visible_content": [
+      "parenthetical Arabic footnote anchors embedded in annotated Greek lines",
+      "visible Latin apparatus or translation lines",
+      "possibly other visible content not represented by PAGE XML"
+    ],
+    "evidence": {
+      "minimum_counterexample": "The frozen page grc_grna_or_399 visibly contains parenthetical footnote anchors and a Latin line that are absent from PAGE XML.",
+      "prior_successful_response_audit": {
+        "responses": 32,
+        "unannotated_parenthetical_anchors_observed": 458,
+        "unannotated_Latin_lines_observed": 29,
+        "status": "diagnostic_not_gold"
+      }
+    },
+    "unmatched_reference_line": "A missing annotated target and therefore an error.",
+    "unmatched_provider_line": "Unassessed. It is neither a false positive nor evidence of correct completeness because the source gold is open-world.",
+    "inline_anchor_rule": {
+      "pattern": "\\s*\\(\\s*[0-9]+\\s*\\)",
+      "application": "Remove symmetrically from reference and hypothesis text before target CER because CGPG omits these visibly printed editorial anchors from the target transcription."
+    },
+    "apostrophe_equivalence": {
+      "members": ["'", "´", "ʹ", "ʼ", "΄", "᾽", "᾿", "’"],
+      "canonical": "ʼ",
+      "application": "Normalize symmetrically before target CER; these code points represent visually equivalent apostrophe-like edition glyphs in this target task."
+    }
+  },
+  "identity_and_scoring": {
+    "line_identity": "Maximum-weight one-to-one box matching at IoU >= 0.50.",
+    "text": "For every annotated target line, score normalized provider text from its matched line; an unmatched target is compared with empty text. Ignore unmatched provider-line text.",
+    "geometry": {
+      "primary": [
+        "target recall at IoU >= 0.50",
+        "target recall at IoU >= 0.75",
+        "mean IoU among IoU >= 0.50 target matches"
+      ],
+      "diagnostic": "Count unmatched provider lines as unassessed_provider_lines without precision or F1 claims."
+    },
+    "reading_order": "Evaluate pairwise order only among IoU >= 0.50 matched annotated target lines.",
+    "same_for_every_provider": true,
+    "provider_specific_cleanup": false
+  },
+  "eligibility": {
+    "target_recognition_comparison": true,
+    "target_geometry_comparison": true,
+    "provider_completeness_claim": false,
+    "production_provider_selection": false,
+    "reason": "Open-world target gold cannot measure whether a provider found every visible line or hallucinated additional text."
+  },
+  "closed_world_complete_gold_gate": {
+    "status": "not_ready",
+    "requirements": [
+      "Every visible printed line has independently verified text and page coordinates.",
+      "Every line has a verified reading-order identity, content class, and language.",
+      "Inline editorial anchors are explicitly included or explicitly masked by predeclared polygons.",
+      "Every visible-text region has zero unresolved coverage status.",
+      "The gold is frozen before either provider is run and neither provider output is used as ground truth.",
+      "Gemini and Azure receive byte-identical images and are scored by byte-identical code and thresholds."
+    ],
+    "competition_rule": "Do not run or select between Gemini and Azure as Complete OCR providers until this gate is ready and a closed-world manifest digest has been frozen."
+  },
+  "historical_results": {
+    "original_evidence_immutable": true,
+    "original_metrics_remain_valid_under_their_registered_scorer": true,
+    "provider_capability_interpretation_requires_this_coverage_correction": true
+  }
+}
