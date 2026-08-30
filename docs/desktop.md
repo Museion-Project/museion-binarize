@@ -1,11 +1,15 @@
-# API route and cross-device tasks (M6)
+# Generic API route and cross-device tasks (M6 compatibility surface)
 
-The desktop exposes Local, Cloud enhanced, and Cloud then local as explicit
-route choices. Local never constructs an API client. Cloud enhanced never
-falls back silently; Cloud then local records the user-selected fallback
-reason. Before upload, the consent summary shows endpoint origin, provider,
-model, source digest, integer micros budget, and retention. Only credential
-presence is displayed—tokens never enter frontend state or IPC responses.
+The desktop retains a generic `mpdf-api/0.1` developer/private-service panel
+with Local, Cloud enhanced, and Cloud then local routes. This panel predates
+the v2 OCR product contract: it is not a `CompleteOcrProvider`, Gemini BYOK,
+or the unavailable `mpdf-credits` service, and it is not the provider picker
+described below. Local never constructs an API client. An explicit remote
+route never falls back silently; Cloud then local records the user-selected
+fallback reason. Before an operator-directed upload, the consent summary shows
+endpoint origin, provider, model, source digest, integer micros budget, and
+retention. Only credential presence is displayed—tokens never enter frontend
+state or IPC responses.
 
 Portable task receipts can be imported on another device after selecting a
 credential profile for the same origin. Progress, cost, cancellation, resume,
@@ -277,12 +281,12 @@ pipeline order, because a second implementation is how "OCR the binarized
 output" gets reintroduced.
 
 A person using it chooses where the finished PDF goes and a working folder,
-then presses **Start**. Provider/model details live behind **Advanced** and
-the production default is the one the gold evaluation cleared (see
-[`ocr-engines.md`](ocr-engines.md)). In the current source build the sidecar
-and model directory must be configured once: the start button remains disabled
-until readiness succeeds. Packaging these dependencies is still an rc.3
-release gate, not something the UI silently works around.
+then presses **Start**. `local` is the stable default route. The base app may
+start without OCR-plugin readiness: a PDF with reliable native text completes,
+while the first scanned/image-only page reports that the optional local OCR
+plugin is required. Advanced settings can point at an explicitly staged
+sidecar and model directory. Plugin readiness gates only the independent
+plugin artifact, never the base application's Start button.
 
 ### Commands and events
 
@@ -312,9 +316,9 @@ Resume is not a separate command. The run is keyed to a durable workspace, so
 starting again with the same workspace reuses every OCR page that was already
 committed and digest-verified in the same fingerprint namespace, and continues
 from there. Cancelling propagates through the desktop worker, durable SQLite
-job and cloud retry loop. It keeps committed pages: the panel says so, and the
-button changes to **Resume**. An already in-flight blocking HTTP call may still
-take until its request deadline to return, but no later retry or page begins.
+job, and selected provider loop. It keeps committed pages: the panel says so,
+and the button changes to **Resume**. No current product cloud mode can create
+an in-flight HTTP OCR call.
 
 Changing the source, engine, sidecar bytes, model-file bytes, language profile,
 or OCR DPI changes the durable job's fingerprint, so evidence from different
@@ -340,39 +344,26 @@ DPI, so it is described as "311% larger".
 
 ## Choosing where recognition runs
 
-The provider picker sits above the Start button and offers three modes; the
-default is Local, and nothing moves it. Each row states plainly whether page
-images are uploaded, where execution happens, and — for a mode that is not
-production ready — the exact blockers, rendered verbatim from the core rather
-than paraphrased in the UI.
+The provider picker sits above the Start button and offers the two current
+product modes: `local` and `mpdf-credits`. Legacy `gemini-byok` state remains
+deserializable but is not listed. The base app can process native-text PDFs
+without OCR; scanned pages need the separately installed local plugin.
 
-Three rules shape the component, all of them about not misleading someone into
-an upload they did not intend:
+Three rules shape the component:
 
-1. **Local is preselected and no error path falls forward into a cloud mode.**
-   Removing a stored key returns the selection to Local.
-2. **Consent names the actual document**: "Upload 412 rendered page images of
-   this document to Gemini API — Use My Key". "Enable cloud OCR" is a shrug;
-   a page count is a decision.
-3. **A key is written, never read.** The only controls are store, replace,
-   remove and test. There is no "show" button, because the app never receives
-   the value back — `store_model_provider_credential` is the single command in
-   the whole IPC surface that carries a key, and it returns a masked
-   reference.
+1. **Local is preselected and no error path falls forward into cloud.** The UI
+   explains that the base app handles native text while scanned pages require
+   the optional offline plugin.
+2. **M PDF Credits is visibly unavailable.** It is the future paid, brokered
+   complete-OCR path, and the core supplies the exact production-service
+   blockers. The control cannot start a run.
+3. **Consent and cost are backend gates.** A future enabled brokered run must
+   name the page-image upload and require a positive credit ceiling. The
+   backend re-checks both; a disabled button is only a courtesy.
 
-The Start button is disabled when consent is missing, no key is stored for the
-selected slot, no credit ceiling has been authorized, or the mode has no
-production service. **The backend re-checks every one of those conditions**:
-a Tauri command is a public API of the process, so a disabled button is a
-courtesy and `start_local_pipeline` is the enforcement point.
-
-The completion panel reports which mode ran, and lists by page number every
-page whose text came from the local engine instead of the cloud provider,
-alongside token usage and — for brokered runs — credits charged, released and
-refunded.
-
-M PDF Cloud OCR is shown, is described accurately, and cannot be started:
-there is no production service. See
+Retained credential IPC command names exist only so an older renderer receives
+the stable BYOK-disabled error. They do not inspect the supplied payload,
+consult a credential store, or reactivate a key workflow. See
 [`ocr-providers.md`](ocr-providers.md).
 
 ## Bookmark review and automatic table of contents

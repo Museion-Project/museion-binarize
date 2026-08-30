@@ -9,22 +9,27 @@
     "current_state_docs": "pass_static",
     "sbom_manifest_schema": "pass_local",
     "pdfium_runtime_smoke": "pending",
-    "macos_arm64_install_runtime": "pass_local",
+    "macos_arm64_install_runtime": "pending",
     "reader_matrix": "pending",
     "distribution_ci_rc3": "not_run",
     "developer_id_notary": "pending_owner_credentials",
     "cross_platform_runtime": "pending",
     "upgrade_install": "not_run",
-    "ocr_runtime_distribution": "pending",
+    "optional_local_ocr_plugin": "pending",
     "human_gold_bookmarks": "pending",
-    "privacy_accessibility_performance": "pending_evidence_review"
+    "privacy_accessibility_performance": "pending_evidence_review",
+    "gemini_byok_product_mode": "disabled",
+    "mpdf_credits_complete_ocr_backend": "blocked_no_service",
+    "mpdf_credits_payment_integration": "blocked_no_service",
+    "cloud_privacy_policy_and_deletion": "blocked_not_published"
   },
   "notes": [
     "A reproducible aarch64 four-gate evidence record is available at docs/evidence/pdfium-smoke-aarch64.json; pass_local requires explicitly supplying it to release_readiness.py.",
     "Synthetic fixtures are not production accuracy evidence.",
-    "Remote OCR is explicit consent/opt-in and uploads only the declared source; local conversion/OCR remain offline.",
-    "The adopted Tesseract runtime, sidecar, and tessdata_best files are not yet bundled; downloaded rc.3 artifacts cannot claim turnkey local OCR until this gate closes.",
+    "Provider discovery in the base artifact has no available cloud OCR product path: paid brokered mpdf-credits is unavailable and Gemini BYOK is disabled. The explicit-endpoint generic API compatibility surface is separate.",
+    "The base artifact intentionally omits and does not require an OCR runtime. Native-text PDFs work; scanned pages that require OCR report provider unavailable without the optional plugin.",
+    "Tesseract, the sidecar, and tessdata_best belong to an independently staged and verified optional-local-ocr-plugin artifact; its pending gate does not block the base profile.",
     "Cloud bookmark generation does not exist.",
-    "Local macOS arm64 install/runtime evidence is recorded in docs/evidence/rc3-local-install-arm64.json; Gatekeeper rejection remains expected for the ad-hoc build."
+    "The historical macOS arm64 record in docs/evidence/rc3-local-install-arm64.json predates the profile split and contains the old OCR overlay. A fresh docs/evidence/rc3-base-install-arm64.json record with distribution_profile=base and without bundled_ocr is required; Gatekeeper rejection remains expected for an ad-hoc build."
   ]
 }

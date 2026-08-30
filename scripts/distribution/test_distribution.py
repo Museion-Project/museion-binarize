@@ -36,7 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class NamingTests(unittest.TestCase):
-    def test_ocr_resource_is_opt_in_overlay_not_required_by_base_tauri_config(self):
+    def test_optional_ocr_plugin_is_overlay_not_required_by_base_tauri_config(self):
         base = json.loads((REPO_ROOT / "apps/desktop/src-tauri/tauri.dist.conf.json").read_text())
         overlay = json.loads((REPO_ROOT / "apps/desktop/src-tauri/tauri.ocr-runtime.overlay.json").read_text())
         self.assertNotIn("resources/ocr-runtime/*", base["bundle"]["resources"])
@@ -930,6 +930,15 @@ class RenderReleaseNotesTests(unittest.TestCase):
         self.assertNotIn("available on the Mac App Store", body)
         self.assertNotIn("now available on the App Store", body)
 
+    def test_rc3_notes_keep_base_and_optional_ocr_plugin_separate(self):
+        body = " ".join(
+            render_release_notes.render(self._manifest(), "0.1.0-rc.3").split()
+        )
+        self.assertIn("base artifact does not require OCR", body)
+        self.assertIn("scanned-page OCR requires the separate optional local OCR plugin", body)
+        self.assertIn("Gemini BYOK is disabled", body)
+        self.assertNotIn("with local OCR", body)
+
     def test_version_mismatch_between_manifest_and_argument_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             manifest_path = Path(tmp) / "release-manifest.json"
@@ -1354,10 +1363,10 @@ class PublishReleaseWorkflowInvariantTests(unittest.TestCase):
             self.assertTrue(inputs[name]["required"])
         profile = inputs["release_profile"]
         self.assertEqual(profile["type"], "choice")
-        self.assertEqual(profile["default"], "local-core")
+        self.assertEqual(profile["default"], "base")
         self.assertEqual(
             profile["options"],
-            ["local-core", "local-ocr-preview", "cloud-beta"],
+            ["base", "optional-local-ocr-plugin"],
         )
         self.assertNotIn("source", profile["options"])
 
@@ -1419,6 +1428,15 @@ class PublishReleaseWorkflowInvariantTests(unittest.TestCase):
             '--profile "${{ github.event.inputs.release_profile }}"',
             self.non_comment_text,
         )
+        self.assertIn(
+            "--macos-install-evidence docs/evidence/rc3-base-install-arm64.json",
+            self.non_comment_text,
+        )
+        self.assertNotIn(
+            "--macos-install-evidence docs/evidence/rc3-local-install-arm64.json",
+            self.non_comment_text,
+        )
+        self.assertIn("--ocr-runtime-evidence", self.non_comment_text)
 
     def test_source_profile_cannot_authorize_publish_workflow(self):
         inputs = self.triggers["workflow_dispatch"]["inputs"]

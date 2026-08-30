@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Copy an already verified OCR runtime into Tauri's stable resource path.
+"""Copy a verified optional OCR plugin into Tauri's opt-in resource path.
 
 The source runtime must have passed ``verify_ocr_runtime.py``.  This command
 does not download or build anything and intentionally writes only the ignored
-``apps/desktop/src-tauri/resources/ocr-runtime`` staging directory.
+``apps/desktop/src-tauri/resources/ocr-runtime`` staging directory. The base
+Tauri config does not reference that directory; the separate overlay does.
 """
 from __future__ import annotations
 

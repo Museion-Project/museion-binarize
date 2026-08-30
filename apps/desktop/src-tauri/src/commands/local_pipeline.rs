@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use mpdf_core::jobs::JobStore;
 use mpdf_core::ocr::{self, OcrEngine};
-use mpdf_core::ocr_provider::{credits, CloudFallback, OcrProviderMode};
+use mpdf_core::ocr_provider::{credits, OcrProviderMode, BYOK_DISABLED_MESSAGE};
 use mpdf_core::orchestrator::{Halt, PipelineStage, ReviewPolicy};
 use mpdf_core::progress::{ProgressEvent, ProgressReporter};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -98,34 +98,6 @@ fn provider_mode_of(value: &Option<String>) -> Result<OcrProviderMode, UiErrorDt
             request_error("invalid_parameter", format!("unknown OCR provider: {name}"))
         }),
     }
-}
-
-fn cloud_fallback_of(value: &Option<String>) -> Result<CloudFallback, UiErrorDto> {
-    match value.as_deref() {
-        None | Some("") => Ok(CloudFallback::default()),
-        Some(name) => CloudFallback::parse(name).ok_or_else(|| {
-            request_error(
-                "invalid_parameter",
-                format!("unknown cloud fallback policy: {name}"),
-            )
-        }),
-    }
-}
-
-fn credential_slot_of(value: &Option<String>) -> Result<String, UiErrorDto> {
-    let slot = value.as_deref().unwrap_or("default");
-    if slot.is_empty()
-        || slot.len() > 256
-        || !slot
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
-    {
-        return Err(request_error(
-            "invalid_parameter",
-            "the credential slot name is not a plain identifier",
-        ));
-    }
-    Ok(slot.to_owned())
 }
 
 fn review_of(value: &str) -> Result<ReviewPolicy, UiErrorDto> {
@@ -315,6 +287,39 @@ pub async fn start_local_pipeline(
         .map_err(|message| request_error("invalid_parameter", message))?;
     let engine = engine_of(&request.engine)?;
     let review = review_of(&request.on_review)?;
+    let provider_mode = provider_mode_of(&request.ocr_provider_mode)?;
+    if provider_mode == OcrProviderMode::GeminiByok {
+        // Legacy request compatibility only. Reject before inspecting the
+        // credential slot, endpoint, plugin paths, filesystem, or transport.
+        return Err(request_error("byok_disabled", BYOK_DISABLED_MESSAGE));
+    }
+    if provider_mode == OcrProviderMode::Local && request.cloud_consent {
+        return Err(request_error(
+            "invalid_parameter",
+            "cloud consent was given but local processing uploads nothing",
+        ));
+    }
+    if provider_mode.uses_network() && !request.cloud_consent {
+        return Err(request_error(
+            "cloud_consent_required",
+            "cloud OCR uploads a rendered image of every OCR'd page; confirm that before starting",
+        ));
+    }
+    if provider_mode == OcrProviderMode::MpdfCredits {
+        if request.max_credits.unwrap_or(0) == 0 {
+            return Err(request_error(
+                "invalid_parameter",
+                "a hard cost limit must be authorized before a paid brokered OCR run can start",
+            ));
+        }
+        return Err(request_error(
+            "not_available",
+            format!(
+                "M PDF Cloud OCR is unavailable: no production backend currently returns the complete coordinate OCR contract; {}",
+                credits::release_blockers().join("; ")
+            ),
+        ));
+    }
     // Validate every fallible request field before claiming the per-window
     // pipeline slot. Otherwise a malformed optional path could return below
     // with `auto_bookmark` still populated, making all later starts look busy.
@@ -328,48 +333,6 @@ pub async fn start_local_pipeline(
         },
         (sidecar, model_dir) => (None, sidecar, model_dir),
     };
-    let provider_mode = provider_mode_of(&request.ocr_provider_mode)?;
-    let cloud_fallback = cloud_fallback_of(&request.cloud_fallback)?;
-    let credential_slot = credential_slot_of(&request.credential_slot)?;
-    // The backend enforces consent and the credit ceiling itself. A disabled
-    // button in the UI is a courtesy; this is the actual gate.
-    if provider_mode.uses_network() && !request.cloud_consent {
-        return Err(request_error(
-            "cloud_consent_required",
-            "cloud OCR uploads a rendered image of every OCR'd page; confirm that before starting",
-        ));
-    }
-    if provider_mode == OcrProviderMode::MpdfCredits && credits::PRODUCTION_BACKEND.is_none() {
-        if !cfg!(feature = "dev-credits") {
-            return Err(request_error(
-                "not_available",
-                "M PDF Credits is not compiled into this production build",
-            ));
-        }
-        if request.cloud_endpoint.is_none() {
-            return Err(request_error(
-                "not_available",
-                format!(
-                    "M PDF Cloud OCR has no production service in this build: {}",
-                    credits::release_blockers().join("; ")
-                ),
-            ));
-        }
-        if request.max_credits.unwrap_or(0) == 0 {
-            return Err(request_error(
-                "invalid_parameter",
-                "a credit ceiling must be authorized before a brokered run can start",
-            ));
-        }
-    }
-    if let Some(endpoint) = request.cloud_endpoint.as_deref() {
-        if !endpoint.starts_with("https://") || endpoint.len() > 2048 {
-            return Err(request_error(
-                "invalid_parameter",
-                "the provider endpoint must be a plain HTTPS origin",
-            ));
-        }
-    }
     if ocr::required_model_files(&request.language_profile).is_none() {
         return Err(request_error(
             "invalid_parameter",
@@ -446,11 +409,7 @@ pub async fn start_local_pipeline(
             language_profile: request.language_profile.clone(),
             provider_mode,
             cloud_consent: request.cloud_consent,
-            credential_slot,
-            cloud_fallback,
-            cloud_endpoint: request.cloud_endpoint.clone(),
             max_credits: request.max_credits.unwrap_or(0),
-            credits_per_page: request.credits_per_page.unwrap_or(1),
             engine,
             engine_binary,
             sidecar,
@@ -459,7 +418,6 @@ pub async fn start_local_pipeline(
             overwrite: request.overwrite,
             ocr_dpi: request.ocr_dpi.unwrap_or(mpdf_core::ocr::CANONICAL_OCR_DPI),
             job_id: job_id.clone(),
-            cancelled: cancelled.clone(),
             progress: Box::new(PipelineProgress {
                 cancelled: cancelled.clone(),
             }),

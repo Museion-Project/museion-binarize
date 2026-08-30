@@ -297,12 +297,17 @@ pub struct LocalPipelineRequestDto {
     /// the backend; a `true` here is necessary, never sufficient.
     #[serde(default)]
     pub cloud_consent: bool,
-    /// Credential slot label. Never a key: the webview has no path to one.
+    /// Legacy compatibility fields. Current product surfaces do not expose
+    /// BYOK, and the backend rejects that mode before inspecting any of them.
+    #[allow(dead_code)]
     pub credential_slot: Option<String>,
     /// `local` | `fail`.
+    #[allow(dead_code)]
     pub cloud_fallback: Option<String>,
+    #[allow(dead_code)]
     pub cloud_endpoint: Option<String>,
     pub max_credits: Option<u64>,
+    #[allow(dead_code)]
     pub credits_per_page: Option<u64>,
 }
 
@@ -334,16 +339,16 @@ pub struct OcrProviderStatusDto {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct CredentialSlotRequestDto {
     pub slot: String,
 }
 
-/// A key on its way *into* the OS credential store, and nowhere else.
-///
-/// It is never echoed back, never stored in frontend state, and never part of
-/// any other DTO. The only response is [`MaskedCredentialDto`].
+/// Historical BYOK payload retained only so old clients receive the stable
+/// disabled error. Its fields are never inspected.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct StoreCredentialRequestDto {
     pub slot: String,
     pub secret: String,
@@ -372,7 +377,9 @@ pub struct ConnectionTestDto {
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionTestRequestDto {
     pub mode: String,
+    #[allow(dead_code)]
     pub slot: String,
+    #[allow(dead_code)]
     pub endpoint: Option<String>,
 }
 

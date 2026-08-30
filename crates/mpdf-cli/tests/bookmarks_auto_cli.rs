@@ -66,6 +66,7 @@ fn generate_writes_a_zero_two_snapshot_and_a_generation_report() {
         serde_json::from_slice(&fs::read(root.join("bookmarks/generation-report.json")).unwrap())
             .unwrap();
     assert_eq!(report["schema"], "mpdf-bookmark-generation-report");
+    assert_eq!(report["schema_version"], "0.2");
     assert_eq!(report["status"], "auto_confirmed");
     assert_eq!(report["generation_digest"], snapshot["generation_digest"]);
 

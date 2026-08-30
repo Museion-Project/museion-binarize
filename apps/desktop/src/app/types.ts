@@ -265,27 +265,6 @@ export interface OcrProviderStatus {
   modes: OcrProviderMode[];
 }
 
-/**
- * Everything the app is ever told about a stored key: which slot, whether
- * something is in it, and a constant mask. There is deliberately no field
- * that could hold a prefix, a suffix, a length or a digest.
- */
-export interface MaskedCredential {
-  slot: string;
-  present: boolean;
-  masked: string;
-}
-
-export interface ConnectionTest {
-  mode: string;
-  providerName: string;
-  model: string;
-  modelAvailable: boolean;
-  credential: MaskedCredential;
-  /** Already redacted and length-bounded by the backend. */
-  diagnostic: string;
-}
-
 export interface LocalPipelineStarted {
   jobId: string;
   documentId: string;

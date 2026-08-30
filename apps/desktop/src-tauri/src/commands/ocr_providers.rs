@@ -1,22 +1,12 @@
-//! Provider selection and credential commands.
+//! Provider selection and retained legacy credential command names.
 //!
-//! # The rule that shapes this file
-//!
-//! A key crosses the IPC boundary exactly once, in one direction: from the
-//! password field into [`store_model_provider_credential`], which hands it
-//! straight to the OS credential store. Nothing here ever returns one, and no
-//! other DTO in this app has a field that could carry one. That is why the
-//! settings screen can offer "replace" but not "show": there is nothing to
-//! show, by construction rather than by policy.
+//! BYOK is disabled in this version. The old IPC commands return one stable
+//! migration error without inspecting their payload or consulting a credential
+//! store, so an older renderer cannot accidentally reactivate the path.
 
-use mpdf_api_client::cloud_ocr::{
-    CloudTransportPolicy, GeminiByokFactory, ModelProviderSecretStore, GEMINI_ENDPOINT,
-};
-use mpdf_api_client::{Secret, SecretStore};
 use mpdf_core::ocr_provider::credits;
-use mpdf_core::ocr_provider::gemini::{CloudOcrConfig, DEFAULT_MODEL};
 use mpdf_core::ocr_provider::structured_bbox;
-use mpdf_core::ocr_provider::OcrProviderMode;
+use mpdf_core::ocr_provider::{OcrProviderMode, BYOK_DISABLED_MESSAGE};
 
 use crate::dto::{
     ConnectionTestDto, ConnectionTestRequestDto, CredentialSlotRequestDto, MaskedCredentialDto,
@@ -24,40 +14,16 @@ use crate::dto::{
 };
 use crate::errors::request_error;
 
-const DEFAULT_SLOT: &str = "default";
-
-fn valid_slot(slot: &str) -> Result<&str, UiErrorDto> {
-    if slot.is_empty()
-        || slot.len() > 256
-        || !slot
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
-    {
-        return Err(request_error(
-            "invalid_parameter",
-            "the credential slot name is not a plain identifier",
-        ));
-    }
-    Ok(slot)
-}
-
-fn masked(slot: &str) -> MaskedCredentialDto {
-    let described = ModelProviderSecretStore.describe(slot);
-    MaskedCredentialDto {
-        slot: described.slot,
-        present: described.present,
-        masked: described.masked,
-    }
+fn byok_disabled() -> UiErrorDto {
+    request_error("byok_disabled", BYOK_DISABLED_MESSAGE)
 }
 
 /// Everything the provider picker needs, computed from the core's own
 /// capability data rather than restated in the UI.
 #[tauri::command]
 pub fn ocr_provider_status(slot: Option<String>) -> Result<OcrProviderStatusDto, UiErrorDto> {
-    let slot = slot.unwrap_or_else(|| DEFAULT_SLOT.to_owned());
-    let slot = valid_slot(&slot)?;
-    let credential_present = ModelProviderSecretStore.describe(slot).present;
-    let modes = OcrProviderMode::ALL
+    let _ = slot;
+    let modes = OcrProviderMode::PRODUCT_MODES
         .into_iter()
         .map(|mode| {
             let production_ready = mode.availability() == "stable";
@@ -66,7 +32,7 @@ pub fn ocr_provider_status(slot: Option<String>) -> Result<OcrProviderStatusDto,
                 display_name: mode.display_name().to_owned(),
                 default_mode: mode.is_default(),
                 uses_network: mode.uses_network(),
-                requires_credential: mode.uses_network(),
+                requires_credential: false,
                 execution_location: mode.execution_location().to_owned(),
                 production_ready,
                 availability: mode.availability().to_owned(),
@@ -75,11 +41,8 @@ pub fn ocr_provider_status(slot: Option<String>) -> Result<OcrProviderStatusDto,
                     .into_iter()
                     .map(str::to_owned)
                     .collect(),
-                model: mode.uses_network().then(|| DEFAULT_MODEL.to_owned()),
-                // Only the BYOK slot is a user-managed key; brokered mode uses
-                // a session token this build cannot obtain.
-                credential_present: matches!(mode, OcrProviderMode::GeminiByok)
-                    && credential_present,
+                model: None,
+                credential_present: false,
                 structured_bbox_default_enabled: structured_bbox::GATES_VALIDATED_FOR_DEFAULT,
             }
         })
@@ -90,102 +53,53 @@ pub fn ocr_provider_status(slot: Option<String>) -> Result<OcrProviderStatusDto,
     })
 }
 
-/// Stores a key. The only command in this app that accepts one.
+/// Rejects the retained legacy credential command without reading its payload.
 #[tauri::command]
 pub fn store_model_provider_credential(
     request: StoreCredentialRequestDto,
 ) -> Result<MaskedCredentialDto, UiErrorDto> {
-    let slot = valid_slot(&request.slot)?.to_owned();
-    let secret = request.secret.trim().to_owned();
-    if secret.is_empty() || secret.len() > 4096 {
-        return Err(request_error(
-            "invalid_parameter",
-            "the key is empty or implausibly long",
-        ));
-    }
-    // `request` owns the only other copy; dropping it here keeps the plaintext
-    // out of the rest of this function's frame. `Secret` zeroizes on drop.
-    drop(request);
-    ModelProviderSecretStore
-        .set(&slot, Secret::new(secret))
-        .map_err(|error| {
-            // The store's error, never the key's.
-            request_error("input_error", error.to_string())
-        })?;
-    Ok(masked(&slot))
+    let _ = request;
+    Err(byok_disabled())
 }
 
 #[tauri::command]
 pub fn model_provider_credential_status(
     request: CredentialSlotRequestDto,
 ) -> Result<MaskedCredentialDto, UiErrorDto> {
-    let slot = valid_slot(&request.slot)?;
-    Ok(masked(slot))
+    let _ = request;
+    Err(byok_disabled())
 }
 
-/// Removes the key. Explicit, reversible only by storing a new one, and the
-/// documented way back to a fully local, offline configuration.
+/// Rejects the retained legacy credential deletion command without touching storage.
 #[tauri::command]
 pub fn delete_model_provider_credential(
     request: CredentialSlotRequestDto,
 ) -> Result<MaskedCredentialDto, UiErrorDto> {
-    let slot = valid_slot(&request.slot)?;
-    ModelProviderSecretStore
-        .delete(slot)
-        .map_err(|error| request_error("input_error", error.to_string()))?;
-    Ok(masked(slot))
+    let _ = request;
+    Err(byok_disabled())
 }
 
-/// Non-billable connection test.
+/// Validates the selected product mode without making a network request.
 #[tauri::command]
 pub fn test_ocr_provider(
     request: ConnectionTestRequestDto,
 ) -> Result<ConnectionTestDto, UiErrorDto> {
-    let slot = valid_slot(&request.slot)?;
     let mode = OcrProviderMode::parse(&request.mode)
         .ok_or_else(|| request_error("invalid_parameter", "unknown provider mode"))?;
     match mode {
         OcrProviderMode::Local => Ok(ConnectionTestDto {
             mode: mode.id().to_owned(),
-            provider_name: "local".into(),
-            model: "tesseract".into(),
-            model_available: true,
+            provider_name: "optional-local-ocr-plugin".into(),
+            model: "not-inspected".into(),
+            model_available: false,
             credential: MaskedCredentialDto {
-                slot: slot.to_owned(),
+                slot: "disabled".to_owned(),
                 present: false,
                 masked: mpdf_core::ocr_provider::redaction::MASKED_CREDENTIAL.to_owned(),
             },
-            diagnostic: "local OCR uses no network and needs no credential".into(),
+            diagnostic: "the base app uses reliable native PDF text without a network; scanned pages require the separately installed and verified offline OCR plugin".into(),
         }),
-        OcrProviderMode::GeminiByok => {
-            if let Some(endpoint) = request.endpoint.as_deref() {
-                if !endpoint.starts_with("https://") {
-                    return Err(request_error(
-                        "invalid_parameter",
-                        "the provider endpoint must be HTTPS",
-                    ));
-                }
-            }
-            let factory = GeminiByokFactory::new(
-                CloudOcrConfig::gemini_byok(slot),
-                request.endpoint.as_deref().unwrap_or(GEMINI_ENDPOINT),
-                CloudTransportPolicy::default(),
-                "connection-test",
-            );
-            let result = factory.connection_test();
-            Ok(ConnectionTestDto {
-                mode: result.mode.id().to_owned(),
-                provider_name: result.provider_name,
-                model: result.model,
-                model_available: result.model_available,
-                credential: MaskedCredentialDto {
-                    slot: result.credential.slot,
-                    present: result.credential.present,
-                    masked: result.credential.masked,
-                },
-                diagnostic: result.diagnostic,
-            })
-        }
+        OcrProviderMode::GeminiByok => Err(byok_disabled()),
         OcrProviderMode::MpdfCredits => Err(request_error(
             "not_available",
             format!(
@@ -201,10 +115,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_picker_offers_three_modes_and_defaults_to_local() {
+    fn the_picker_offers_current_modes_only_and_defaults_to_local() {
         let status = ocr_provider_status(None).unwrap();
         assert_eq!(status.default_mode, "local");
-        assert_eq!(status.modes.len(), 3);
+        assert_eq!(status.modes.len(), 2);
         let local = status
             .modes
             .iter()
@@ -228,49 +142,53 @@ mod tests {
     }
 
     #[test]
-    fn the_picker_labels_gemini_as_beta() {
+    fn the_picker_does_not_expose_legacy_byok() {
         let status = ocr_provider_status(None).unwrap();
-        let gemini = status
-            .modes
-            .iter()
-            .find(|mode| mode.id == "gemini-byok")
-            .unwrap();
-        assert_eq!(gemini.availability, "beta");
-        assert!(!gemini.production_ready);
-        assert!(!gemini.blockers.is_empty());
+        assert!(status.modes.iter().all(|mode| mode.id != "gemini-byok"));
     }
 
     #[test]
-    fn a_slot_name_must_be_a_plain_identifier() {
-        for slot in ["", "../etc", "a b", &"x".repeat(300)] {
-            assert!(
-                model_provider_credential_status(CredentialSlotRequestDto {
-                    slot: slot.to_owned()
-                })
-                .is_err(),
-                "{slot:?} must be refused"
-            );
-        }
-    }
-
-    #[test]
-    fn an_empty_key_is_refused_before_it_reaches_the_credential_store() {
-        assert!(store_model_provider_credential(StoreCredentialRequestDto {
-            slot: "default".into(),
-            secret: "   ".into(),
+    fn local_connection_test_does_not_claim_the_optional_plugin_is_installed() {
+        let result = test_ocr_provider(ConnectionTestRequestDto {
+            mode: "local".into(),
+            slot: "ignored".into(),
+            endpoint: None,
         })
-        .is_err());
+        .unwrap();
+        assert!(!result.model_available);
+        assert!(result.diagnostic.contains("native PDF text"));
+        assert!(result.diagnostic.contains("offline OCR plugin"));
     }
 
     #[test]
-    fn a_plain_http_endpoint_is_refused_for_a_connection_test() {
+    fn legacy_byok_commands_return_the_stable_disabled_error() {
         let error = test_ocr_provider(ConnectionTestRequestDto {
             mode: "gemini-byok".into(),
-            slot: "default".into(),
-            endpoint: Some("http://example.com".into()),
+            slot: "../must-not-be-read".into(),
+            endpoint: Some("http://must-not-be-read.invalid".into()),
         })
         .unwrap_err();
-        assert_eq!(error.code, "invalid_parameter");
+        assert_eq!(error.code, "byok_disabled");
+        assert_eq!(error.message, BYOK_DISABLED_MESSAGE);
+
+        let error = store_model_provider_credential(StoreCredentialRequestDto {
+            slot: "ignored".into(),
+            secret: "ignored-canary".into(),
+        })
+        .unwrap_err();
+        assert_eq!(error.code, "byok_disabled");
+        for command in [
+            model_provider_credential_status
+                as fn(CredentialSlotRequestDto) -> Result<MaskedCredentialDto, UiErrorDto>,
+            delete_model_provider_credential,
+        ] {
+            let error = command(CredentialSlotRequestDto {
+                slot: "../ignored".into(),
+            })
+            .unwrap_err();
+            assert_eq!(error.code, "byok_disabled");
+            assert_eq!(error.message, BYOK_DISABLED_MESSAGE);
+        }
     }
 
     #[test]

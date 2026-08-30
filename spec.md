@@ -24,9 +24,11 @@
   `benchmark`；
 - Tauri 2 + React 桌面端：单文档打开、缩略图、前后预览、估算、处理、取消和结果报告；
 - 版本化 JSON 报告、合成基准、PDFium 分发和跨平台打包基础；
-- MDP 0.1、持久化 jobs/provider、local OCR、AI-ready/revisions、证据书签、可搜索
-  PDF、明确同意的 API OCR 与 automatic bookmarks v2；转换和本地 OCR 可离线运行。
-  RapidOCR 模型由用户提供，不随包捆绑；不存在云端书签生成。
+- MDP 0.1、持久化 jobs、`mpdf-ocr-provider/2` 完整坐标 OCR 契约、
+  AI-ready/revisions、证据书签、可搜索 PDF 与 automatic bookmarks v2；基础转换和
+  原生文字 PDF 不需要 OCR 运行时。本地 OCR 是单独安装、单独验证的可选插件；
+  `mpdf-credits` 因无生产完整 OCR 服务而不可用，Gemini BYOK 已禁用。不存在
+  云端书签生成。
 
 ### 1.2 目标发布序列
 
@@ -71,7 +73,8 @@ OCR候选  1-bit派生物    缩略图/预览
 ```
 
 - 用户必须能只运行二值化，保持现有快速路径；
-- OCR、书签和 MDP 必须可以分别启用，不强制所有用户承担模型和存储成本；
+- OCR、书签和 MDP 必须可以分别启用；基础发行包不得因 OCR 强制所有用户
+  承担引擎、模型、依赖库和存储成本；
 - 默认设置必须保守，不为视觉“更白、更锐”牺牲古希腊文附加符号或校勘细节；
 - 原始输入不得被原地覆盖；输出覆盖默认关闭并继续使用安全临时文件策略；
 - 任何失败必须区分输入错误、引擎不可用、单页失败、资源不足、用户取消和输出验证失败。
@@ -112,8 +115,14 @@ OCR 页结果必须包含：
 - 引擎名、引擎版本、模型/语言包版本、输入候选、参数和置信信息；
 - 机器结果、AI 修订和人工修订的分层记录。
 
-OCR 引擎必须通过可替换接口接入。本地候选包括 Kraken 与 Tesseract `grc`；Gemini Flash
-等视觉模型只作为可配置的疑难页分析、结构推断或校订提供者，不能写死为产品能力。
+OCR 引擎必须通过 `CompleteOcrProvider` 可替换接口接入，并独立返回上述完整
+文本与实测坐标；只返回文本、需要另一个 OCR 引擎提供几何的组件不是完整 OCR
+provider。本地候选包括 Kraken 与 Tesseract `grc`，但必须作为可选插件分发。
+
+`TextEnhancer` 只能在已存在的规范坐标证据上提出带 provenance 的文字修订，不得
+创建几何、补齐没有完整 OCR/原生文字的扫描页，也不得直接产生权威书签。
+历史的“本地检测 + Gemini 转写”路径归类为 `experimental-composite`，不是产品 OCR
+模式。
 
 #### 古希腊文保真
 
@@ -128,7 +137,8 @@ OCR 引擎必须通过可替换接口接入。本地候选包括 Kraken 与 Tess
 
 ### 2.4 Bookmark
 
-目录/书签生成必须优先使用可检查证据：
+目录/书签生成只能消费经验证的规范原生文字/OCR 证据与用户修订，并由
+确定性核心求解。证据优先级为：
 
 1. 原 PDF 已有但可安全读取的书签；
 2. 目录页中的标题、印刷页码和 OCR 坐标；
@@ -144,7 +154,8 @@ OCR 引擎必须通过可替换接口接入。本地候选包括 Kraken 与 Tess
 - 生成者和修订来源。
 
 系统不得因为目录页缺失或页码映射不确定而静默虚构章节。低置信条目必须进入审阅界面；
-用户必须能编辑标题、层级和目标页，并把修订写回 MDP。
+用户必须能编辑标题、层级和目标页，并把修订写回 MDP。OCR provider 和
+`TextEnhancer` 不得绕过这些门禁直接写入 PDF outline。
 
 ### 2.5 可搜索 PDF
 
@@ -195,7 +206,8 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 - 本地模式无需登录，不调用业务网络，不要求订阅；
 - CLI 允许脚本循环和本地批量使用；不人为限制文件数；
 - GUI 应提供“快速二值化”和“专业 PDF”两个清晰任务，而不是一次展示所有高级参数；
-- OCR 模型不可用时，二值化功能仍必须工作，并给出安装/选择模型的可操作说明；
+- 未安装本地 OCR 插件时，二值化和原生文字 PDF 必须继续工作；扫描页的
+  OCR/可搜索输出请求必须明确报告 provider 不可用，并给出安装可选插件的说明；
 - 用户可以查看每页 OCR 与书签置信、跳到证据页并人工修订。
 
 ### 2.8 手机端
@@ -248,15 +260,17 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
                                │ project-owned DTO / job spec
 ┌──────────────────────────────▼──────────────────────────────┐
 │ 文档编排：source → assets → OCR → layout → outline → export│
-└──────────────┬──────────────────────────────┬───────────────┘
-               │                              │
-┌──────────────▼──────────────┐  ┌────────────▼───────────────┐
-│ 确定性本地核心              │  │ 可替换 Provider            │
-│ raster/image/bilevel/PDF    │  │ OCR / AI / cloud enhance   │
-└──────────────┬──────────────┘  └────────────┬───────────────┘
-               │                              │ provenance
-┌──────────────▼──────────────────────────────▼───────────────┐
-│ MDP model + schema + validator + searchable PDF exporter   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ responsibility boundaries
+┌─────────────────────┬─────────────────────┬─────────────────┐
+│ 确定性核心          │ CompleteOcrProvider │ TextEnhancer    │
+│ native text / 验证  │ 完整文本 + 实测坐标 │ 可追溯文字修订  │
+│ 证据 / 书签 / PDF   │ 独立完成坐标 OCR    │ 不创建几何/书签 │
+└─────────────────────┴─────────────────────┴─────────────────┘
+                               │ provider result / revision proposal
+                               │ 仅由确定性核心验收
+┌──────────────────────────────▼──────────────────────────────┐
+│ MDP canonical evidence + deterministic bookmark/PDF export │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -264,7 +278,7 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 
 - `mpdf-core` 继续拥有现有 PDFium 和二值化路径，避免一次性重写；
 - 新增的 MDP、OCR、outline 和 searchable-PDF 类型必须是项目自有类型，不向前端
-  暴露 PDFium、Kraken、Tesseract、Gemini 或夸克的 SDK 类型；
+  暴露 PDFium、Kraken、Tesseract 或任何云端厂商的 SDK 类型；
 - Provider 接口不得让商业模型依赖进入纯二值化快速路径；
 - 需要被手机复用的图像算法最终应从 PDFium 依赖中拆为更小的纯 Rust crate；现有 crate
   通过重导出或适配层保持源代码兼容；
@@ -272,18 +286,21 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
   核心，避免把桌面 PDFium 假设强加给手机；
 - 机构编排、账号、计费和供应商密钥属于独立服务，不进入开源本地核心。
 
-### 3.3 Provider 接口
+### 3.3 Provider 与 enhancer 接口
 
-每个 OCR、AI outline 或云增强 provider 必须：
+每个 `CompleteOcrProvider` 必须：
 
 - 声明能力、语言、版本、是否本地、是否确定、输入限制和成本类别；
 - 接受由核心验证过的页面资产与资源上限；
-- 返回项目自有 DTO，不把供应商响应直接持久化为唯一事实；
+- 按 `mpdf-ocr-provider/2`、schema `mpdf-ocr-provider` 0.2 返回完整坐标的项目自有
+  DTO，不把供应商响应直接持久化为唯一事实；
 - 支持取消、超时和逐页错误；
 - 生成 provenance，并允许保留原始响应用于调试时进行显式、受控选择；
 - 不读取包内未授权文件，不根据 OCR 文本执行命令、打开链接或改变系统配置。
 
-第一版接口应先用 fake/reference provider 完成契约测试，再接真实引擎。
+每个 `TextEnhancer` 必须接受已验证的规范坐标证据，只返回可追溯的文字修订；
+不能因为它输出文字就声称 OCR 可用。完整 OCR 和 enhancer 的 fake/reference 契约
+必须分别测试。
 
 ### 3.4 数据与任务状态
 
@@ -317,6 +334,10 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 - 新 MDP/OCR/outline 报告使用新 schema 名和独立版本；
 - 增加字段可以保持同一 schema major；删除、改义或改变单位必须升级 schema major；
 - 人类可读输出可以使用新品牌名，但脚本输出必须以稳定 schema 和字段为准。
+- 历史 `gemini-byok` 值必须可反序列化，但可用性固定为 `disabled`，不出现在
+  provider list/picker，执行时明确拒绝，不得静默映射为 `local` 或 `mpdf-credits`；
+- 旧 MDP/job/bookmark/provider 记录继续按其已声明的 schema 规则读取；历史
+  composite 结果不得被重标为 complete OCR。
 
 ### 4.3 PDF 与 MDP
 
@@ -330,7 +351,8 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 
 - 当前真正运行验证的平台仍是 Apple Silicon macOS；Windows/Linux 在实际验收前不得仅因
   CI 构建成功而声称完整支持；
-- OCR provider 和模型包必须按平台报告可用性，不得让一个平台缺失模型时整个应用崩溃；
+- OCR provider 和可选插件必须按平台报告可用性；缺失插件时基础应用与原生文字
+  PDF 仍必须正常工作，只有需要 OCR 的扫描页请求明确失败；
 - 手机端不承诺与桌面端相同吞吐量，但相同共享算法、输入和参数必须通过跨平台 fixture
   证明语义一致。
 
@@ -366,6 +388,10 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 
 ### 5.4 AI 与云服务
 
+- 产品可选云端 OCR 模式仅为付费托管 `mpdf-credits`；它在生产完整坐标 OCR
+  后端、支付、签名密钥、保留/删除政策完备前必须报告 `unavailable`；
+- Gemini BYOK 在当前版本必须报告 `disabled`；只有能独立返回完整坐标 OCR 的
+  API 才可在未来重新评估 BYOK；
 - 文档内容一律视为数据，不是系统指令；
 - AI provider 只能返回约束 schema，不得获得 shell、文件系统写入或任意网络工具；
 - 服务端凭据使用密钥管理，按 provider、环境和最小权限隔离；
@@ -398,9 +424,10 @@ MDP 是开放、版本化的逻辑文档模型。0.x 阶段可以使用目录或
 | 最终应用 identifier | 外部 Apple owner gate | 已冻结 `me.mpdf.processor`；注册/商标法律状态未结论 |
 | MDP 是目录、ZIP 还是两者 | MDP 0.1 ADR | 逻辑模型先行；目录用于开发，ZIP 用于交换 |
 | MDP 是否默认内嵌源 PDF | MDP 0.1 ADR | 默认引用/摘要；用户选择内嵌，避免体积与版权问题 |
-| OCR provider 的进程/FFI/服务边界 | 第一个真实 OCR 适配器前 | 先定义项目自有接口和 sidecar 契约 |
-| 默认本地 OCR 引擎 | M3 首个闭环 | RapidOCR/ONNX 作为通用首接；古希腊文专项 provider 由 200 页基准决定 |
-| Gemini 的默认用途 | Release B 评测后 | 疑难页、目录与校订，不作为唯一 OCR 真值 |
+| OCR provider 的进程/FFI/服务边界 | 已由 ADR 0011 决定 | `CompleteOcrProvider` 使用 `mpdf-ocr-provider/2`；`TextEnhancer` 为独立边界 |
+| 默认本地 OCR 引擎 | 已由 ADR 0011 取消默认 | 基础包不捆绑 OCR；可验证的完整坐标 OCR 作为单独本地插件 |
+| Gemini BYOK | 已由 ADR 0011 决定 | 禁用；历史值仅为兼容可反序列化 |
+| 云端 OCR 产品路径 | 生产服务发布前 | 只保留付费托管 `mpdf-credits`；当前 `unavailable` |
 | 手机技术栈与 Rust 共享方式 | Release C 开工前 | 原生捕获 + 共享纯 Rust 图像/MDP 核心 |
 | 手机 App 买断、订阅或混合 | 封闭测试前 | 本地功能买断；持续云成本单独计费 |
 | 是否接夸克 API | 合同与样本评测后 | 可选抢救模式，不作默认依赖 |

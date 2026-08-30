@@ -27,10 +27,10 @@ successfully but do not yet have human runtime acceptance (see
 exactly what this repository can and cannot do today.
 
 The current source is preparing `0.1.0-rc.3` and includes the MDP evidence
-package, persistent jobs/provider contracts, local OCR, AI-ready revisions,
-evidence bookmarks/searchable PDF output, and deterministic automatic
-bookmarks v2. These source capabilities are not yet a public rc.3 download;
-the links below intentionally remain on rc.2.
+package, persistent jobs, the complete-coordinate OCR provider contract,
+AI-ready revisions, evidence bookmarks/searchable PDF output, and
+deterministic automatic bookmarks v2. These source capabilities are not yet a
+public rc.3 download; the links below intentionally remain on rc.2.
 
 The MDP 0.1 evidence-package slice is available from the CLI:
 `mpdf package create book.pdf --output book.mdp` and
@@ -38,18 +38,18 @@ The MDP 0.1 evidence-package slice is available from the CLI:
 geometry evidence and SHA-256 references without OCR or copying the source
 PDF; see [`docs/document-package.md`](docs/document-package.md).
 
-The M3 local OCR route is available without a network dependency. It preserves
-reliable native text, renders only pages that need OCR, and writes typed
+The M3 OCR route preserves reliable native text and writes typed
 block/line/word evidence under `ocr/` while checkpointing pages in the M2
-SQLite store:
+SQLite store. PDFs with usable native text need no OCR engine. Scanned pages
+need a complete-coordinate OCR provider:
 
 ```bash
 mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 --provider reference
 ```
 
-That command is the legacy M3 surface; `reference` is a development stub and
-RapidOCR remains available only for historical/provider-contract testing. The
-current main flow uses the adopted Tesseract sidecar and pinned polytonic
+That command is the legacy M3 development surface; `reference` is a test stub
+and RapidOCR remains only for historical/provider-contract testing. Source
+developers can explicitly supply the Tesseract sidecar and pinned polytonic
 Greek/German/English models:
 
 ```bash
@@ -58,9 +58,12 @@ mpdf run scan.pdf --output scan-final.pdf \
   --models /path/to/tessdata_best
 ```
 
-The source build never downloads models. The rc.3 distribution still has an
-open gate to bundle the Tesseract runtime, sidecar, and trained data; until
-that closes, packaged builds must not claim turnkey OCR.
+The source build never downloads models. Base release artifacts intentionally
+do not bundle or require an OCR runtime. A separately staged and verified
+per-platform local OCR plugin may provide Tesseract, its sidecar, libraries,
+models, and licenses. Without that plugin, native-text PDFs continue to work;
+an OCR request for a scanned page fails explicitly because no complete OCR
+provider is available. See [`docs/ocr-providers.md`](docs/ocr-providers.md).
 
 M4 can derive deterministic AI-ready records and a local review queue without
 cloud access. Use `mpdf export book.mdp --format all --output book-derived`,
@@ -89,9 +92,10 @@ mpdf job status --db .mpdf/jobs.sqlite --job-id demo
 
 M PDF Processor is not described as "AI-powered." Phase 1 binarization and
 bookmark decisions use classical, deterministic methods rather than
-generative or black-box models. The production OCR route is Tesseract 5 LSTM
-with pinned `tessdata_best` data; recognized text is kept as evidence and is
-never dictionary- or LLM-rewritten.
+generative or black-box models. Complete OCR providers must return measured
+coordinate evidence; optional text enhancement cannot supply geometry or
+decide bookmarks. Recognized source text is kept as evidence and is never
+silently dictionary- or LLM-rewritten.
 
 ## Phase 1 features
 
@@ -105,19 +109,20 @@ never dictionary- or LLM-rewritten.
 - Both a graphical desktop application and a command-line interface, sharing
   the same processing core.
 - Native single-PDF drag-and-drop in the desktop application.
-- Local OCR with the pinned Tesseract polytonic Greek/German/English profile
-  (explicitly provisioned in source builds; release bundling is still open).
+- Optional local OCR plugin with the pinned Tesseract polytonic
+  Greek/German/English profile; it is a separate artifact, not a dependency of
+  the base release.
 - Evidence bookmarks, searchable output, and automatic bookmarks v2.
-- Explicit-consent remote OCR API; conversion and local OCR remain offline.
-- Opt-in cloud OCR with your own Gemini key, where the *coordinates* still
-  come from the local detector and the model only supplies characters. Local
-  is the default, cloud is never selected implicitly, and every page that fell
-  back to local recognition is reported by number. M PDF Cloud OCR (brokered
-  credits) is implemented but has no production service — see
-  [`docs/ocr-providers.md`](docs/ocr-providers.md).
+- Provider-neutral complete-coordinate OCR contract
+  (`mpdf-ocr-provider/2`) and a separate `TextEnhancer` boundary.
+- Planned paid, brokered `mpdf-credits` OCR with explicit consent and a credit
+  ceiling; it is currently **unavailable** because no production service
+  exists. Gemini BYOK is **disabled** and is not an available product mode.
+  See [`docs/ocr-providers.md`](docs/ocr-providers.md).
 - A reproducible benchmarking framework for evaluating output quality.
 
-All of the above is implemented in this repository today. See
+The implemented behavior and the unavailable/disabled states above are
+represented explicitly in this repository today. See
 [`docs/roadmap.md`](docs/roadmap.md) for the milestone-by-milestone
 history of how it was built, and "Download" below for how to get a
 packaged build.

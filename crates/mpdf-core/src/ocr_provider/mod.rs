@@ -1,11 +1,12 @@
-//! The provider-neutral OCR contract.
+//! The provider-neutral OCR and text-enhancement contracts.
 //!
 //! # The one rule this module exists to enforce
 //!
-//! Every OCR provider — local Tesseract, a cloud model driven with the user's
-//! own key, or the same model executed on M PDF's behalf — must hand back the
-//! *same* canonical structure: [`crate::ocr::OcrPage`], a block/line/word tree
-//! with measured boxes in the page's own pixel coordinate system.
+//! Every complete OCR provider must independently hand back the *same*
+//! canonical structure: [`crate::ocr::OcrPage`], a block/line/word tree with
+//! measured boxes in the page's own pixel coordinate system. A provider is not
+//! complete OCR merely because local code can align its plain text onto boxes
+//! produced by another engine.
 //!
 //! That is not a stylistic preference. Everything downstream — logical line
 //! assembly, the derived bundle, printed-page mapping, body-heading
@@ -18,6 +19,10 @@
 //! case; it gets to be an implementation of this trait.
 //!
 //! # What is deliberately *not* here
+//!
+//! Text enhancement is a second, narrower contract. It consumes an existing
+//! coordinate-bearing page and may return text patches bound to stable word
+//! paths and source digests. It cannot return a replacement page or geometry.
 //!
 //! No HTTP, no credential storage, no key material. `mpdf-core` stays usable
 //! with the network stack removed: the cloud providers in this module are
@@ -32,6 +37,7 @@ pub mod gemini;
 pub mod redaction;
 pub mod runner;
 pub mod structured_bbox;
+pub mod text_enhancer;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -41,14 +47,23 @@ use image::DynamicImage;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::jobs::ExecutionLocation;
 use crate::ocr::{OcrError, OcrPage};
 
 /// Version of the provider contract itself. Bound into the checkpoint
 /// fingerprint of any cloud run, so changing the contract cannot silently
 /// reuse evidence produced under the previous one.
-pub const PROVIDER_CONTRACT_VERSION: &str = "mpdf-ocr-provider/1";
+pub const PROVIDER_SCHEMA: &str = "mpdf-ocr-provider";
+pub const PROVIDER_SCHEMA_VERSION: &str = "0.2";
+pub const PROVIDER_CONTRACT_VERSION: &str = "mpdf-ocr-provider/2";
 
-/// Which of the three supported execution modes produced a page.
+/// Stable product-level refusal for the retained legacy BYOK surface.
+///
+/// Both front ends use this exact text and reject before consulting a
+/// credential store or constructing a transport.
+pub const BYOK_DISABLED_MESSAGE: &str = "gemini-byok is disabled in this version; BYOK will be reconsidered only for an API that independently returns complete coordinate OCR";
+
+/// Which recognized current or historical execution mode produced a page.
 ///
 /// `Local` is the default and the only mode that never touches the network.
 /// Nothing in this crate may select a non-local mode implicitly.
@@ -62,7 +77,11 @@ pub enum OcrProviderMode {
 }
 
 impl OcrProviderMode {
+    /// All values accepted by historical evidence and request deserializers.
+    /// `GeminiByok` remains here solely for compatibility.
     pub const ALL: [OcrProviderMode; 3] = [Self::Local, Self::GeminiByok, Self::MpdfCredits];
+    /// Modes a current product surface may offer for a new run.
+    pub const PRODUCT_MODES: [OcrProviderMode; 2] = [Self::Local, Self::MpdfCredits];
 
     pub fn id(self) -> &'static str {
         match self {
@@ -74,8 +93,8 @@ impl OcrProviderMode {
 
     pub fn display_name(self) -> &'static str {
         match self {
-            Self::Local => "Local OCR",
-            Self::GeminiByok => "Gemini API — Use My Key",
+            Self::Local => "Local OCR plugin",
+            Self::GeminiByok => "Gemini BYOK (legacy, disabled)",
             Self::MpdfCredits => "M PDF Cloud OCR",
         }
     }
@@ -83,7 +102,7 @@ impl OcrProviderMode {
     pub fn availability(self) -> &'static str {
         match self {
             Self::Local => "stable",
-            Self::GeminiByok => "beta",
+            Self::GeminiByok => "disabled",
             Self::MpdfCredits => "unavailable",
         }
     }
@@ -91,11 +110,7 @@ impl OcrProviderMode {
     pub fn release_blockers(self) -> Vec<&'static str> {
         match self {
             Self::Local => Vec::new(),
-            Self::GeminiByok => vec![
-                "live Gemini success, rejection, rate-limit, timeout and cancellation validation is pending",
-                "provider terms, privacy disclosure and retention review are pending",
-                "cross-platform credential-store validation is pending",
-            ],
+            Self::GeminiByok => vec![BYOK_DISABLED_MESSAGE],
             Self::MpdfCredits => credits::release_blockers(),
         }
     }
@@ -119,11 +134,113 @@ impl OcrProviderMode {
     /// the *same* model, so the provenance has to distinguish who executed
     /// it, not just what executed.
     pub fn execution_location(self) -> &'static str {
+        self.execution_location_kind().as_str()
+    }
+
+    /// Typed durable provenance for OCR page records and job checkpoints.
+    /// The historical BYOK variant is intentionally only a value mapping;
+    /// it does not change that mode's disabled product availability.
+    pub const fn execution_location_kind(self) -> ExecutionLocation {
         match self {
-            Self::Local => "local",
-            Self::GeminiByok => "remote:user-key",
-            Self::MpdfCredits => "remote:mpdf-brokered",
+            Self::Local => ExecutionLocation::Local,
+            Self::GeminiByok => ExecutionLocation::LegacyUserKey,
+            Self::MpdfCredits => ExecutionLocation::BrokeredCloud,
         }
+    }
+}
+
+/// The role a component plays. Only `CompleteOcr` may originate OCR evidence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderRole {
+    CompleteOcr,
+    TextEnhancer,
+    /// Plain text plus geometry supplied by a separate local OCR engine.
+    /// Retained for reproducibility; never a complete-OCR claim.
+    ExperimentalComposite,
+}
+
+impl Default for ProviderRole {
+    fn default() -> Self {
+        Self::ExperimentalComposite
+    }
+}
+
+/// Finest coordinate unit independently returned by the provider.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CoordinateGranularity {
+    None,
+    Line,
+    Word,
+}
+
+impl Default for CoordinateGranularity {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+/// Whether reading order is part of the provider's machine contract.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadingOrderCapability {
+    None,
+    BestEffort,
+    Stable,
+}
+
+impl Default for ReadingOrderCapability {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+/// How returned text is bound to returned geometry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TextGeometryMapping {
+    None,
+    /// Coordinates came from another recognizer and text was aligned locally.
+    LocalAlignment,
+    /// Every returned text unit directly identifies its returned box.
+    Direct,
+}
+
+impl Default for TextGeometryMapping {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+/// Finest level at which optional metadata is available.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MetadataSupport {
+    Unsupported,
+    Page,
+    Line,
+    Word,
+}
+
+impl Default for MetadataSupport {
+    fn default() -> Self {
+        Self::Unsupported
+    }
+}
+
+/// How use of a provider is paid for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BillingModel {
+    Free,
+    UserManaged,
+    BrokeredCredits,
+}
+
+impl Default for BillingModel {
+    fn default() -> Self {
+        Self::Free
     }
 }
 
@@ -245,11 +362,36 @@ impl FallbackReason {
 
 /// What a provider can do, asked before anything is sent anywhere.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OcrProviderCapabilities {
     pub mode: OcrProviderMode,
     pub provider_name: String,
     pub model: String,
     pub model_version: String,
+    /// A machine-readable classification. A text-only model aligned onto
+    /// another engine's boxes must declare `experimental_composite`.
+    #[serde(default)]
+    pub role: ProviderRole,
+    /// At least `line` is required for complete OCR.
+    #[serde(default)]
+    pub coordinate_granularity: CoordinateGranularity,
+    /// Complete OCR requires stable, provider-owned reading order.
+    #[serde(default)]
+    pub reading_order: ReadingOrderCapability,
+    /// Complete OCR requires direct text-to-box identity suitable for the
+    /// hidden PDF text layer. Local post-hoc alignment does not qualify.
+    #[serde(default)]
+    pub text_geometry_mapping: TextGeometryMapping,
+    #[serde(default)]
+    pub confidence_metadata: MetadataSupport,
+    #[serde(default)]
+    pub language_metadata: MetadataSupport,
+    #[serde(default)]
+    pub billing: BillingModel,
+    #[serde(default)]
+    pub requires_explicit_consent: bool,
+    #[serde(default)]
+    pub requires_cost_limit: bool,
     pub uses_network: bool,
     pub requires_credential: bool,
     /// Whether this provider *can* return line rectangles at all.
@@ -264,6 +406,120 @@ pub struct OcrProviderCapabilities {
     /// Why not, when `production_ready` is false. Shown verbatim by the CLI
     /// and the desktop app so neither can claim more than is true.
     pub not_production_ready_reason: Option<String>,
+}
+
+impl OcrProviderCapabilities {
+    /// Proves that this is an independently complete OCR capability.
+    ///
+    /// Production readiness is intentionally checked separately: an
+    /// unavailable future backend may describe a valid complete-OCR contract,
+    /// while an available plain-text model still cannot pass this gate.
+    pub fn validate_complete_ocr(&self) -> Result<(), ProviderContractError> {
+        if self.role != ProviderRole::CompleteOcr {
+            return Err(ProviderContractError::NotCompleteOcrRole(self.role));
+        }
+        if self.coordinate_granularity == CoordinateGranularity::None
+            || !self.supports_structured_bbox
+        {
+            return Err(ProviderContractError::CoordinatesRequired);
+        }
+        if self.reading_order != ReadingOrderCapability::Stable {
+            return Err(ProviderContractError::StableReadingOrderRequired);
+        }
+        if self.text_geometry_mapping != TextGeometryMapping::Direct {
+            return Err(ProviderContractError::DirectTextGeometryMappingRequired);
+        }
+        if self.mode == OcrProviderMode::GeminiByok {
+            return Err(ProviderContractError::ByokDisabled);
+        }
+        match self.mode {
+            OcrProviderMode::GeminiByok => unreachable!("rejected above"),
+            OcrProviderMode::Local => {
+                if self.billing != BillingModel::Free
+                    || self.uses_network
+                    || self.requires_credential
+                    || self.requires_explicit_consent
+                    || self.requires_cost_limit
+                {
+                    return Err(ProviderContractError::ModePolicyMismatch);
+                }
+            }
+            OcrProviderMode::MpdfCredits => {
+                if self.billing != BillingModel::BrokeredCredits
+                    || !self.uses_network
+                    || self.requires_credential
+                    || !self.requires_explicit_consent
+                    || !self.requires_cost_limit
+                {
+                    return Err(ProviderContractError::BrokeredCloudControlsRequired);
+                }
+            }
+        }
+        if self.provider_name.trim().is_empty()
+            || self.provider_name.chars().count() > 256
+            || self.model.trim().is_empty()
+            || self.model.chars().count() > 256
+            || self.model_version.trim().is_empty()
+            || self.model_version.chars().count() > 128
+            || self.model_version.eq_ignore_ascii_case("latest")
+        {
+            return Err(ProviderContractError::PinnedIdentityRequired);
+        }
+        Ok(())
+    }
+}
+
+/// A serializable 0.2 provider contract manifest.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OcrProviderContractV2 {
+    pub schema: String,
+    pub schema_version: String,
+    pub capabilities: OcrProviderCapabilities,
+}
+
+impl OcrProviderContractV2 {
+    pub fn new(capabilities: OcrProviderCapabilities) -> Self {
+        Self {
+            schema: PROVIDER_SCHEMA.to_owned(),
+            schema_version: PROVIDER_SCHEMA_VERSION.to_owned(),
+            capabilities,
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), ProviderContractError> {
+        if self.schema != PROVIDER_SCHEMA || self.schema_version != PROVIDER_SCHEMA_VERSION {
+            return Err(ProviderContractError::UnsupportedSchema {
+                schema: self.schema.clone(),
+                version: self.schema_version.clone(),
+            });
+        }
+        self.capabilities.validate_complete_ocr()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ProviderContractError {
+    #[error("provider role {0:?} is not complete OCR")]
+    NotCompleteOcrRole(ProviderRole),
+    #[error("complete OCR must independently return line or word coordinates")]
+    CoordinatesRequired,
+    #[error("complete OCR must return stable reading order")]
+    StableReadingOrderRequired,
+    #[error("complete OCR must directly map returned text to returned geometry")]
+    DirectTextGeometryMappingRequired,
+    #[error("gemini-byok is disabled in this version; BYOK will be reconsidered only for an API that independently returns complete coordinate OCR")]
+    ByokDisabled,
+    #[error("brokered cloud OCR requires explicit consent and a hard cost limit")]
+    BrokeredCloudControlsRequired,
+    #[error(
+        "provider mode, network, credential, consent, cost, and billing declarations conflict"
+    )]
+    ModePolicyMismatch,
+    #[error("provider, model, and a pinned model version are required")]
+    PinnedIdentityRequired,
+    #[error("unsupported provider contract {schema}/{version}")]
+    UnsupportedSchema { schema: String, version: String },
 }
 
 /// Everything a provider is told about one page.
@@ -353,7 +609,7 @@ pub struct PageOcrOutcome {
     pub usage: ProviderUsage,
     pub warnings: Vec<String>,
     pub fallback_reason: Option<FallbackReason>,
-    pub execution_location: String,
+    pub execution_location: ExecutionLocation,
     /// Per-line reason codes: what was replaced, kept, or dropped and why.
     pub decisions: alignment::DecisionSummary,
 }
@@ -464,10 +720,14 @@ pub enum ProviderConfigError {
     NotProductionReady(String),
 }
 
-/// The provider-neutral OCR contract.
+/// Shared lifecycle for provider implementations.
 ///
 /// Implementations must be safe to call for the same `page_index` twice with
-/// the same `idempotency_key` without double-charging.
+/// the same `idempotency_key` without double-charging. Implementing this trait
+/// is not itself a complete-OCR claim; callers must validate
+/// [`OcrProviderCapabilities::validate_complete_ocr`]. This distinction keeps
+/// the retained plain-text-plus-local-alignment experiment from masquerading
+/// as independent OCR.
 pub trait OcrProvider {
     fn capabilities(&self) -> OcrProviderCapabilities;
 
@@ -492,6 +752,12 @@ pub trait OcrProvider {
     /// `Authorization` header, or any reversible function of a secret.
     fn fingerprint_contribution(&self) -> String;
 }
+
+/// Marker implemented only by providers intended to originate complete OCR.
+///
+/// The runtime capability gate remains mandatory because a marker alone cannot
+/// prove what a remote response contains.
+pub trait CompleteOcrProvider: OcrProvider {}
 
 /// What to do when a cloud provider cannot produce a page.
 ///
@@ -553,6 +819,74 @@ pub(crate) fn digest_str(value: &str) -> String {
 mod tests {
     use super::*;
 
+    fn complete_capabilities() -> OcrProviderCapabilities {
+        OcrProviderCapabilities {
+            mode: OcrProviderMode::Local,
+            provider_name: "fixture-coordinate-ocr".into(),
+            model: "fixture".into(),
+            model_version: "1.0.0".into(),
+            role: ProviderRole::CompleteOcr,
+            coordinate_granularity: CoordinateGranularity::Word,
+            reading_order: ReadingOrderCapability::Stable,
+            text_geometry_mapping: TextGeometryMapping::Direct,
+            confidence_metadata: MetadataSupport::Word,
+            language_metadata: MetadataSupport::Line,
+            billing: BillingModel::Free,
+            requires_explicit_consent: false,
+            requires_cost_limit: false,
+            uses_network: false,
+            requires_credential: false,
+            supports_structured_bbox: true,
+            structured_bbox_default_enabled: true,
+            production_ready: true,
+            not_production_ready_reason: None,
+        }
+    }
+
+    struct FixtureCompleteProvider;
+
+    impl OcrProvider for FixtureCompleteProvider {
+        fn capabilities(&self) -> OcrProviderCapabilities {
+            complete_capabilities()
+        }
+
+        fn validate_configuration(&self) -> Result<(), ProviderConfigError> {
+            Ok(())
+        }
+
+        fn prepare_job(&mut self, job: &JobPreparation) -> Result<JobTicket, OcrError> {
+            Ok(JobTicket {
+                job_id: job.job_id.clone(),
+                reservation_id: None,
+                reserved_credits: 0,
+                estimated_credits: 0,
+            })
+        }
+
+        fn recognize_page(
+            &mut self,
+            _request: &PageOcrRequest<'_>,
+        ) -> Result<PageOcrOutcome, OcrError> {
+            Err(OcrError::ProviderUnavailable(
+                "fixture has no page script".into(),
+            ))
+        }
+
+        fn cancel_job(&mut self, _ticket: &JobTicket) -> Result<(), OcrError> {
+            Ok(())
+        }
+
+        fn finalize_job(&mut self, _ticket: &JobTicket) -> Result<JobSettlement, OcrError> {
+            Ok(JobSettlement::default())
+        }
+
+        fn fingerprint_contribution(&self) -> String {
+            "fixture-coordinate-ocr/1".into()
+        }
+    }
+
+    impl CompleteOcrProvider for FixtureCompleteProvider {}
+
     #[test]
     fn local_is_the_only_default_and_the_only_offline_mode() {
         let defaults: Vec<_> = OcrProviderMode::ALL
@@ -575,12 +909,160 @@ mod tests {
     }
 
     #[test]
+    fn current_product_modes_exclude_legacy_byok_without_breaking_its_parse() {
+        assert_eq!(
+            OcrProviderMode::PRODUCT_MODES,
+            [OcrProviderMode::Local, OcrProviderMode::MpdfCredits]
+        );
+        assert_eq!(
+            OcrProviderMode::parse("gemini-byok"),
+            Some(OcrProviderMode::GeminiByok)
+        );
+        assert_eq!(OcrProviderMode::GeminiByok.availability(), "disabled");
+    }
+
+    #[test]
+    fn zero_one_capabilities_still_deserialize_but_never_gain_complete_ocr_status() {
+        let legacy = serde_json::json!({
+            "mode": "gemini-byok",
+            "provider_name": "legacy-gemini",
+            "model": "gemini-2.5-flash",
+            "model_version": "2025-06",
+            "uses_network": true,
+            "requires_credential": true,
+            "supports_structured_bbox": false,
+            "structured_bbox_default_enabled": false,
+            "production_ready": false,
+            "not_production_ready_reason": "historical fixture"
+        });
+        let capabilities: OcrProviderCapabilities = serde_json::from_value(legacy).unwrap();
+        assert_eq!(capabilities.mode, OcrProviderMode::GeminiByok);
+        assert_eq!(capabilities.role, ProviderRole::ExperimentalComposite);
+        assert_eq!(
+            capabilities.validate_complete_ocr(),
+            Err(ProviderContractError::NotCompleteOcrRole(
+                ProviderRole::ExperimentalComposite
+            ))
+        );
+    }
+
+    #[test]
+    fn incomplete_capabilities_are_rejected_but_coordinate_ocr_passes() {
+        let provider: &dyn CompleteOcrProvider = &FixtureCompleteProvider;
+        provider.capabilities().validate_complete_ocr().unwrap();
+        let mut incomplete = complete_capabilities();
+        incomplete.coordinate_granularity = CoordinateGranularity::None;
+        assert_eq!(
+            incomplete.validate_complete_ocr(),
+            Err(ProviderContractError::CoordinatesRequired)
+        );
+        let mut contradictory = complete_capabilities();
+        contradictory.supports_structured_bbox = false;
+        assert_eq!(
+            contradictory.validate_complete_ocr(),
+            Err(ProviderContractError::CoordinatesRequired)
+        );
+        let mut incomplete = complete_capabilities();
+        incomplete.reading_order = ReadingOrderCapability::BestEffort;
+        assert_eq!(
+            incomplete.validate_complete_ocr(),
+            Err(ProviderContractError::StableReadingOrderRequired)
+        );
+        let mut incomplete = complete_capabilities();
+        incomplete.text_geometry_mapping = TextGeometryMapping::LocalAlignment;
+        assert_eq!(
+            incomplete.validate_complete_ocr(),
+            Err(ProviderContractError::DirectTextGeometryMappingRequired)
+        );
+        let mut contradictory = complete_capabilities();
+        contradictory.uses_network = true;
+        assert_eq!(
+            contradictory.validate_complete_ocr(),
+            Err(ProviderContractError::ModePolicyMismatch)
+        );
+    }
+
+    #[test]
+    fn a_plain_text_composite_cannot_claim_complete_ocr() {
+        let mut capabilities = complete_capabilities();
+        capabilities.role = ProviderRole::ExperimentalComposite;
+        capabilities.coordinate_granularity = CoordinateGranularity::None;
+        capabilities.text_geometry_mapping = TextGeometryMapping::LocalAlignment;
+        assert_eq!(
+            capabilities.validate_complete_ocr(),
+            Err(ProviderContractError::NotCompleteOcrRole(
+                ProviderRole::ExperimentalComposite
+            ))
+        );
+    }
+
+    #[test]
+    fn a_complete_credits_provider_must_be_paid_brokered_and_budgeted() {
+        let mut capabilities = complete_capabilities();
+        capabilities.mode = OcrProviderMode::MpdfCredits;
+        capabilities.billing = BillingModel::BrokeredCredits;
+        capabilities.uses_network = true;
+        capabilities.requires_explicit_consent = true;
+        capabilities.requires_cost_limit = true;
+        capabilities.validate_complete_ocr().unwrap();
+
+        capabilities.requires_cost_limit = false;
+        assert_eq!(
+            capabilities.validate_complete_ocr(),
+            Err(ProviderContractError::BrokeredCloudControlsRequired)
+        );
+    }
+
+    #[test]
+    fn provider_0_2_rust_shape_matches_the_strict_schema() {
+        let contract = OcrProviderContractV2::new(complete_capabilities());
+        contract.validate().unwrap();
+        let actual = serde_json::to_value(&contract).unwrap();
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../../schemas/mpdf-ocr-provider-0.2.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(actual["schema"], schema["properties"]["schema"]["const"]);
+        assert_eq!(
+            actual["schema_version"],
+            schema["properties"]["schema_version"]["const"]
+        );
+        fn keys(value: &serde_json::Value) -> std::collections::BTreeSet<String> {
+            value.as_object().unwrap().keys().cloned().collect()
+        }
+        let expected_top: std::collections::BTreeSet<String> = schema["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect();
+        assert_eq!(keys(&actual), expected_top);
+        let expected_capabilities: std::collections::BTreeSet<String> = schema["$defs"]
+            ["capabilities"]["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect();
+        assert_eq!(keys(&actual["capabilities"]), expected_capabilities);
+        assert_eq!(
+            schema["$defs"]["capabilities"]["additionalProperties"],
+            false
+        );
+        assert_eq!(schema["additionalProperties"], false);
+    }
+
+    #[test]
     fn byok_and_brokered_execution_are_distinguishable_even_on_one_model() {
         // The same Gemini model can run either way. Provenance has to say
         // *who executed it*, because the privacy and billing stories differ.
-        assert_ne!(
-            OcrProviderMode::GeminiByok.execution_location(),
-            OcrProviderMode::MpdfCredits.execution_location()
+        assert_eq!(
+            OcrProviderMode::GeminiByok.execution_location_kind(),
+            ExecutionLocation::LegacyUserKey
+        );
+        assert_eq!(
+            OcrProviderMode::MpdfCredits.execution_location_kind(),
+            ExecutionLocation::BrokeredCloud
         );
     }
 

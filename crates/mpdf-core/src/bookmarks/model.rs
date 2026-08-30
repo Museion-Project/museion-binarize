@@ -16,6 +16,11 @@ pub const MAX_TOC_ENTRIES: usize = 10_000;
 pub const MAX_TITLE_BYTES: usize = 4 * 1024;
 pub const REPORT_SCHEMA: &str = "mpdf-bookmark-generation-report";
 pub const REPORT_SCHEMA_VERSION: &str = "0.1";
+/// The report schema written by the current automatic engine. Report 0.1 is
+/// still accepted verbatim; 0.2 adds exact/disagreeing anchor accounting
+/// without changing the published 0.1 shape in place.
+pub const REPORT_SCHEMA_VERSION_V2: &str = "0.2";
+pub const REPORT_SCHEMA_VERSIONS: [&str; 2] = [REPORT_SCHEMA_VERSION, REPORT_SCHEMA_VERSION_V2];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BookmarkSnapshot {
@@ -524,10 +529,18 @@ pub(crate) mod schema_tests {
         include_str!("../../../../schemas/mpdf-bookmark-reviews-0.1.schema.json");
     const REPORT_0_1: &str =
         include_str!("../../../../schemas/mpdf-bookmark-generation-report-0.1.schema.json");
+    const REPORT_0_2: &str =
+        include_str!("../../../../schemas/mpdf-bookmark-generation-report-0.2.schema.json");
 
     #[test]
     fn persistent_schemas_are_strict_and_have_no_dangling_local_refs() {
-        for source in [BOOKMARKS_0_1, BOOKMARKS_0_2, REVIEWS_0_1, REPORT_0_1] {
+        for source in [
+            BOOKMARKS_0_1,
+            BOOKMARKS_0_2,
+            REVIEWS_0_1,
+            REPORT_0_1,
+            REPORT_0_2,
+        ] {
             let schema: Value = serde_json::from_str(source).unwrap();
             assert_eq!(schema["additionalProperties"], false);
             assert_local_refs_resolve(&schema, &schema);
@@ -600,6 +613,10 @@ pub(crate) mod schema_tests {
         serde_json::from_str(REPORT_0_1).unwrap()
     }
 
+    pub(crate) fn report_0_2_schema() -> Value {
+        serde_json::from_str(REPORT_0_2).unwrap()
+    }
+
     #[test]
     fn zero_two_schema_allows_the_automatic_statuses_and_zero_one_does_not() {
         let old: Value = serde_json::from_str(BOOKMARKS_0_1).unwrap();
@@ -615,6 +632,34 @@ pub(crate) mod schema_tests {
         assert!(!statuses(&old).contains(&"auto_confirmed".to_owned()));
         assert!(statuses(&new).contains(&"auto_confirmed".to_owned()));
         assert!(statuses(&new).contains(&"skipped".to_owned()));
+        assert_eq!(old["properties"]["schema_version"]["const"], "0.1");
+        assert_eq!(new["properties"]["schema_version"]["const"], "0.2");
+    }
+
+    #[test]
+    fn report_schema_versions_keep_their_distinct_segment_contracts() {
+        let old = report_0_1_schema();
+        let new = report_0_2_schema();
+        let required = |schema: &Value| -> Vec<String> {
+            schema["$defs"]["segment"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_str().unwrap().to_owned())
+                .collect()
+        };
+        let old_required = required(&old);
+        let new_required = required(&new);
+        assert!(old_required.iter().any(|field| field == "anchor_count"));
+        assert!(!old_required.iter().any(|field| field == "member_count"));
+        assert!(new_required.iter().any(|field| field == "member_count"));
+        assert!(new_required
+            .iter()
+            .any(|field| field == "exact_anchor_count"));
+        assert!(new_required
+            .iter()
+            .any(|field| field == "disagreeing_anchor_count"));
+        assert!(!new_required.iter().any(|field| field == "anchor_count"));
         assert_eq!(old["properties"]["schema_version"]["const"], "0.1");
         assert_eq!(new["properties"]["schema_version"]["const"], "0.2");
     }

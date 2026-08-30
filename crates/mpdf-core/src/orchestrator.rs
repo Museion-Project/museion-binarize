@@ -110,6 +110,10 @@ pub enum ReviewPolicy {
 /// Which local OCR provider to run.
 #[derive(Debug, Clone)]
 pub enum OcrProviderChoice {
+    /// Base-package path when the optional offline OCR plugin is absent.
+    /// Native text pages remain fully usable; the first page that actually
+    /// needs recognition receives the explicit diagnostic carried here.
+    NativeTextOnly { diagnostic: String },
     /// The deterministic offline reference provider. Development and tests
     /// only: it recognizes nothing and can never produce real bookmarks.
     Reference,
@@ -120,6 +124,7 @@ pub enum OcrProviderChoice {
 impl OcrProviderChoice {
     fn label(&self) -> &'static str {
         match self {
+            Self::NativeTextOnly { .. } => "native-text-only",
             Self::Reference => "reference",
             Self::Sidecar(_) => "sidecar",
         }
@@ -618,6 +623,11 @@ fn run_ocr(
         return Err(CoreError::Cancelled);
     }
     let local: Box<dyn PageOcrProvider> = match &request.provider {
+        OcrProviderChoice::NativeTextOnly { diagnostic } => {
+            Box::new(ocr::OptionalOcrPluginUnavailable {
+                diagnostic: diagnostic.clone(),
+            })
+        }
         OcrProviderChoice::Reference => Box::new(ocr::ReferenceOcrProvider),
         OcrProviderChoice::Sidecar(config) => {
             Box::new(ocr::SidecarOcrProvider::from_sidecar(config.clone()))
@@ -648,16 +658,28 @@ fn run_ocr(
             request.ocr_dpi,
             &|| progress.is_cancelled(),
         )?;
+        if matches!(&request.provider, OcrProviderChoice::NativeTextOnly { .. }) {
+            if let Some(error) = run
+                .errors
+                .iter()
+                .find(|error| error.code == "provider_unavailable")
+            {
+                return Err(CoreError::InvalidParameter(error.message.clone()));
+            }
+        }
         return Ok((run, CloudRunSummary::default()));
     };
 
     let mut cloud = factory.build(local)?;
     // Everything checkable without spending anything happens before the first
     // page image is encoded, let alone uploaded.
+    let capabilities = cloud.capabilities();
+    capabilities
+        .validate_complete_ocr()
+        .map_err(|error| CoreError::InvalidParameter(error.to_string()))?;
     cloud
         .validate_configuration()
         .map_err(|error| CoreError::InvalidParameter(error.to_string()))?;
-    let capabilities = cloud.capabilities();
     let ticket = cloud
         .prepare_job(&JobPreparation {
             job_id: request.job_id.clone(),
@@ -799,6 +821,7 @@ fn parse_usage_parameter(
 /// the fingerprint of any aligned page.
 fn local_layout_version(request: &FinalPdfRequest<'_>) -> String {
     match &request.provider {
+        OcrProviderChoice::NativeTextOnly { .. } => "native-text-only".to_owned(),
         OcrProviderChoice::Reference => "reference".to_owned(),
         OcrProviderChoice::Sidecar(config) => format!(
             "{}/{}/{}",
@@ -827,6 +850,9 @@ fn job_fingerprint(
         request.ocr_dpi, request.language_profile
     );
     match &request.provider {
+        OcrProviderChoice::NativeTextOnly { .. } => {
+            identity.push_str("|engine=native-text-only|optional_local_ocr_plugin=absent")
+        }
         OcrProviderChoice::Reference => identity.push_str("|engine=reference"),
         OcrProviderChoice::Sidecar(config) => {
             identity.push_str(&format!(
@@ -1044,6 +1070,7 @@ mod tests {
         use std::collections::BTreeMap;
 
         use crate::bookmark_fixtures::{ocr_run, FixtureLine, FixturePage};
+        use crate::jobs::ExecutionLocation;
         use crate::ocr::OcrProviderProvenance;
 
         let parameters = BTreeMap::from([
@@ -1060,7 +1087,7 @@ mod tests {
             version: "test".into(),
             parameters,
             input_asset_sha256: "a".repeat(64),
-            execution_location: "remote_user_key".into(),
+            execution_location: ExecutionLocation::LegacyUserKey,
             language_profile: Some("greek-ancient".into()),
             model_digest: None,
             model_license: None,

@@ -47,7 +47,10 @@ too. **OCR never reads a binarized page.**
 
 ### Configuration
 
-Local OCR needs a sidecar and a provisioned model directory. Set them once:
+The base CLI does not require OCR. Native-text PDFs and non-OCR conversion
+work without a sidecar or models. Scanned-page OCR requires the separately
+installed local plugin; source developers can stage equivalent explicit
+sidecar and model paths:
 
 ```sh
 export MPDF_OCR_SIDECAR="$PWD/scripts/ocr/mpdf_ocr_sidecar.py"
@@ -83,53 +86,33 @@ a developer/packaging tool and verifies every file against the pinned
 
 ### Choosing where recognition runs
 
-Default: `--ocr-provider local`. Nothing leaves the machine, no credential is
-read, and no network call is made. Everything below is opt-in.
+Product choices are `local` and `mpdf-credits`:
 
-- `--ocr-provider <local|gemini-byok|mpdf-credits>` — execution mode.
-- `--cloud-consent` — **required** by every non-local mode. It acknowledges
-  that a rendered image of every OCR'd page is uploaded to that provider.
-  There is no default and no configuration file that can pre-supply it.
-- `--cloud-fallback <local|fail>` — default `local`: a page the provider could
-  not do is recognized here instead, and every such page is listed in the
-  evidence and in the report. `fail` stops the run and writes nothing. Local
-  is the default because one transient 503 on page 300 should not discard a
-  400-page run, and because a fallback is never silent.
-- `--credential-slot <NAME>` — default `default`. A slot **label**; see
-  `mpdf provider credential` below. **There is no `--api-key` flag**, and
-  there will not be one: a key on a command line is in your shell history, in
-  `ps` output, and in every CI log that echoes the command.
-- `--cloud-model`, `--cloud-model-version`, `--cloud-endpoint` — advanced
-  pins. The version is never `latest`: a floating alias would let a resumed
-  job re-run against different weights.
-- `--structured-bbox <disabled|evaluate-with-fallback>` — default `disabled`.
-  Model-returned rectangles are never a coordinate source in this build.
-- `--credits-per-page`, `--max-credits` — M PDF Credits only. `--max-credits`
-  is a hard ceiling; the run refuses to start rather than exceed it.
-- `--dry-run` — print exactly what would be uploaded and what it would cost,
-  then exit. Opens nothing, calls nothing, reserves nothing, charges nothing.
+- `--ocr-provider local` requests the optional offline complete-OCR plugin.
+  Nothing leaves the machine. If the input has usable native text, the base
+  path needs no plugin; if a scanned page needs OCR and the plugin is absent,
+  the command reports provider unavailable.
+- `--ocr-provider mpdf-credits` names the future paid, brokered complete-OCR
+  service. It is `unavailable` in this version because no production backend
+  exists. A future run must require `--cloud-consent` and a positive
+  `--max-credits` hard ceiling before any upload or reservation.
+- The parser retains `--ocr-provider gemini-byok` only for legacy scripts. It
+  always returns: `gemini-byok is disabled in this version; BYOK will be
+  reconsidered only for an API that independently returns complete coordinate
+  OCR`. It is omitted from `mpdf provider list` and is not a product choice.
 
-Cloud modes still need the local sidecar and models: the local detector
-supplies the geometry that the cloud transcription is aligned onto. See
-[`ocr-providers.md`](ocr-providers.md).
+Cloud-model, endpoint, fallback, credential-slot, and structured-bbox flags
+remain compatibility/evaluation surfaces; they do not make a disabled or
+unavailable mode executable. See [`ocr-providers.md`](ocr-providers.md).
 
-```sh
-mpdf run book.pdf --output book-bw.pdf --ocr-provider gemini-byok \
-  --cloud-consent --language greek-ancient-german-english --dry-run
-```
+### Provider status and legacy credentials
 
-### Managing model-provider credentials
-
-```sh
-pbpaste | mpdf provider credential set --slot default   # stdin only
-mpdf provider credential status --slot default          # present / absent, masked
-mpdf provider credential delete --slot default          # back to fully local
-mpdf provider list --json                               # modes, capabilities, blockers
-mpdf provider test --mode gemini-byok --slot default    # metadata only; bills nothing
-```
-
-The key goes to this machine's OS credential store and is never shown again,
-written to a settings file, included in a log, or placed in a checkpoint.
+`mpdf provider list --json` reports only the current product choices (`local`
+and unavailable `mpdf-credits`) with capabilities and blockers. Historical
+`provider credential set/status/delete` command names still parse for migration
+compatibility, but all return the stable BYOK-disabled error before reading
+stdin or consulting a credential store. No BYOK key setup or connection-test
+workflow is supported.
 
 ### Reviewing and continuing
 
@@ -150,10 +133,9 @@ re-recognize the book.
 - **`safe_refusal`** — no reliable structure was found, so no bookmark was
   invented. Exit code 0; **no file written**. If a plain conversion is what
   you want, use `mpdf process`.
-- **cloud fallback pages** — in a cloud run, `cloud_fallback_pages` in the
-  JSON report lists every page whose text came from the local engine instead.
-  The run completed and the PDF is valid; the field exists so "I paid for a
-  cloud model" and "these twelve pages are Tesseract" can never be confused.
+- **legacy composite fallback pages** — `cloud_fallback_pages` remains in the
+  compatibility report schema for experimental composite fixtures. No current
+  product cloud mode can start a run, so ordinary product runs leave it empty.
 
 ## Global options
 
@@ -231,10 +213,16 @@ the same source-matching MDP directory; it never adopts malformed or
 out-of-range files. RapidOCR fingerprints include the source, protocol,
 configuration, and SHA-256 of each provisioned ONNX model file.
 
-## Consented API OCR (M6)
+## Generic consented API protocol (M6 compatibility surface)
 
-The API path is opt-in and remains separate from local OCR. Create a plan
-first; it contains source metadata and a digest but no path or secret:
+This explicit-endpoint `mpdf-api/0.1` client predates the v2 OCR product
+contract. It remains a developer/private-service interoperability surface; it
+is not a `CompleteOcrProvider`, a product picker choice, Gemini BYOK, or the
+unavailable `mpdf-credits` service. Invoking it can upload to the endpoint an
+operator supplies, so it never runs as an implicit OCR fallback.
+
+Create a plan first; it contains source metadata and a digest but no path or
+secret:
 
 ```bash
 mpdf api plan scan.pdf --endpoint https://provider.example --model ocr-1 \

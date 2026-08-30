@@ -8,25 +8,27 @@ deterministic loopback HTTP fixture. It uses the platform-native
 Keychain/Credential Manager/Secret Service; an unavailable or locked store
 fails visibly and never falls back to a plaintext token. Endpoint discovery,
 OAuth, telemetry, cloud bookmark generation, and automatic upload remain out
-of scope.
+of scope. This explicit-endpoint developer/private-service protocol is not a
+v2 OCR product mode, Gemini BYOK, or the unavailable `mpdf-credits` service.
 
 ### Local text recognition
 
-The production default is Tesseract 5 (LSTM) with the pinned `tessdata_best`
-4.1.0 model set, language profile `auto` = `grc+deu+eng`. It is the only
-candidate that cleared the gold evaluation in `scripts/ocr/gold`; see
-[`ocr-engines.md`](ocr-engines.md) for the full bake-off.
+The base release has no OCR runtime. Tesseract 5 (LSTM) with the pinned
+`tessdata_best` 4.1.0 model set is the adopted local-plugin candidate and the
+only candidate that cleared the recorded gold evaluation; see
+[`ocr-engines.md`](ocr-engines.md) for the full bake-off. It is not a required
+dependency of the deterministic base application.
 
 Known boundaries:
 
-- **Models are never downloaded.** With no provisioned model directory the
-  local OCR path reports itself unavailable; it does not silently degrade to a
-  worse recognizer or to no text layer that looks successful.
-- **The rc.3 packaging path is not yet turnkey for OCR.** The adopted
-  Tesseract executable, Python sidecar, and pinned trained data are not yet
-  staged into every desktop/CLI artifact. Source builds require explicit
-  sidecar and model paths; closing this distribution gate is required before
-  a downloaded rc.3 build can advertise one-click local OCR.
+- **Models are never downloaded by the application.** Without the optional
+  local OCR plugin, native-text PDFs and non-OCR conversion still work. A
+  scanned page that needs recognition reports provider unavailable; it does
+  not silently degrade to a worse recognizer or to a successful empty layer.
+- **OCR is an independent optional artifact.** Tesseract, its sidecar, pinned
+  models, runtime closure, licenses, SBOM, and installed smoke belong to the
+  `optional-local-ocr-plugin` profile. Their pending cross-platform evidence
+  does not block or become a hidden dependency of the base profile.
 - **Isolated accented characters are unreliable.** Accented Greek vowels
   printed on their own, with no surrounding word, are recognized at a
   measurably worse rate (diacritic error ≈0.26 on the `grc-codepoints`
@@ -305,44 +307,30 @@ for the actual first-run numbers and their interpretation, and
 rights-cleared real corpus would need before that broader claim could
 be made.
 
-Conversion and local OCR can run offline. Remote OCR is an explicit,
-consented opt-in API path and uploads only the declared source; there is no
-cloud bookmark generation, telemetry, or account requirement.
+Conversion and the optional local OCR plugin run offline. Provider discovery
+has no available remote OCR product mode; there is no cloud bookmark
+generation, telemetry, or account requirement. The retained generic M6 API
+client can upload only when an operator separately supplies an endpoint,
+credential, and matching consent digest; it is not an OCR provider fallback.
 
 ## Cloud OCR providers
 
-Local OCR is the default and none of the following applies to it.
-
-- **M PDF Cloud OCR (`mpdf-credits`) has no production service.** The client
-  protocol, reservation/settlement/refund state machine, idempotency rules and
-  signature verification are implemented and tested against an in-process
-  fake. No payment provider is integrated, no credits can be bought, no
-  server-side custody of a platform model credential exists, no signing keys
-  are provisioned, and no privacy policy or deletion endpoint is published.
-  Both front ends print those blockers verbatim and neither will start a run.
-- **Gemini BYOK has not been validated live in CI.** The recognition path,
-  alignment, gates, fallback and redaction are covered by deterministic tests
-  against a scripted transport. Real-API validation is a manual, opt-in,
-  operator-funded step and is not part of any automatic suite.
-- **Model-returned rectangles are never used.** The strict parser and the
-  geometry gates exist so the path can be evaluated; the flag that would make
-  it a default is off, and no gate-failing rectangle can become a coordinate
-  in a written PDF. The gates have not been run against a hand-labelled
-  fixture set.
-- **The alignment cannot detect a reordering among near-identical lines.**
-  Monotone matching catches a swapped column when the lines are
-  distinguishable. A page of repeated stems — "Kapitel I / Kapitel II /
-  Kapitel III" — returned in the wrong order can still align, because every
-  pairing scores highly and the matcher has no evidence to prefer one over
-  another. Nothing in the text can settle it; only a rectangle could, and the
-  model did not measure one.
-- **A cloud run still requires provisioned local models.** The local detector
-  is the geometry source, not a fallback. There is no configuration in which
-  a cloud model supplies coordinates on its own.
-- **Cost is the user's.** In BYOK mode you are Google's API customer: their
-  terms, pricing and data handling apply to your key and your documents. This
-  project does not accept them on your behalf, does not proxy your traffic,
-  and does not estimate your bill.
+- **M PDF Cloud OCR (`mpdf-credits`) is unavailable.** It is the only planned
+  cloud product mode and would be paid and brokered, with task-level consent
+  and a hard maximum-credit ceiling. No production backend independently
+  returns the complete-coordinate OCR contract; payment, production signing
+  keys, provider-key custody, privacy/retention, and deletion are also absent.
+  Protocol fixtures are not a production service, no credits can be bought,
+  and neither front end can start a run.
+- **Gemini BYOK is disabled.** The legacy value remains deserializable so old
+  settings fail predictably, but it is omitted from provider lists/pickers and
+  no credential command reads a key. It will be reconsidered only for an API
+  that independently returns complete coordinate OCR.
+- **Text-only/model-rectangle experiments are not complete OCR.** The retained
+  local-geometry plus transcription path is `experimental-composite`.
+  `TextEnhancer` output may become a reviewable revision over existing
+  canonical evidence; it cannot recognize an empty scan, supply authoritative
+  coordinates, or decide bookmarks.
 
 ## Phase 1 non-goals and remaining limitations
 
@@ -355,9 +343,9 @@ explicitly **out of scope for all of Phase 1**, not just this milestone:
   intentionally add typed text and bookmarks from typed evidence.
 - **Generative or black-box models for binarization/bookmark decisions.**
   Those decisions use deterministic, classical image-processing and explicit
-  evidence rules (see [`algorithms.md`](algorithms.md)). An OCR provider may
-  use an explicitly configured user-provided RapidOCR/ONNX model; it is not
-  bundled and is not used by the binarization or bookmark decision engine.
+  evidence rules (see [`algorithms.md`](algorithms.md)). An optional OCR plugin
+  may use explicitly provisioned models; it is a separate artifact and is not
+  used by the binarization or bookmark decision engine.
 - **Generative restoration.** No inpainting, super-resolution, or other
   generative reconstruction of damaged, faded, or missing content.
 - **Dewarping.** No geometric correction for curved or skewed page scans.
@@ -369,7 +357,3 @@ Whether and how any of these might be addressed is a question for later
 phases (see [`roadmap.md`](roadmap.md)) — most notably Phase 2's benchmark
 work on preserving Ancient Greek typography — and no commitment is made
 here about if or when that will happen.
-M6 desktop `api_then_local` uses the deterministic bundled reference OCR
-provider when the remote service cannot complete. It is a safe, offline,
-audited fallback and never downloads a model, but production-quality scanned
-OCR still requires an explicitly configured RapidOCR/ONNX installation.

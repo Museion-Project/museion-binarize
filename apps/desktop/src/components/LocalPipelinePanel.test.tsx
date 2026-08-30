@@ -12,10 +12,6 @@ import { LocalPipelinePanel } from "./LocalPipelinePanel";
 const mocks = vi.hoisted(() => ({
   localOcrReadiness: vi.fn(),
   ocrProviderStatus: vi.fn(),
-  storeModelProviderCredential: vi.fn(),
-  modelProviderCredentialStatus: vi.fn(),
-  deleteModelProviderCredential: vi.fn(),
-  testOcrProvider: vi.fn(),
   startLocalPipeline: vi.fn(),
   cancelLocalPipeline: vi.fn(),
   cancelLocalPipelineJob: vi.fn(),
@@ -59,7 +55,7 @@ const PROVIDER_STATUS = {
   modes: [
     {
       id: "local" as const,
-      displayName: "Local OCR",
+      displayName: "Local OCR plugin",
       defaultMode: true,
       usesNetwork: false,
       requiresCredential: false,
@@ -72,30 +68,16 @@ const PROVIDER_STATUS = {
       structuredBboxDefaultEnabled: false,
     },
     {
-      id: "gemini-byok" as const,
-      displayName: "Gemini API — Use My Key",
-      defaultMode: false,
-      usesNetwork: true,
-      requiresCredential: true,
-      executionLocation: "remote:user-key",
-      productionReady: false,
-      availability: "beta",
-      blockers: ["live validation pending"],
-      model: "gemini-3.7-flash",
-      credentialPresent: false,
-      structuredBboxDefaultEnabled: false,
-    },
-    {
       id: "mpdf-credits" as const,
       displayName: "M PDF Cloud OCR",
       defaultMode: false,
       usesNetwork: true,
-      requiresCredential: true,
+      requiresCredential: false,
       executionLocation: "remote:mpdf-brokered",
       productionReady: false,
       availability: "unavailable",
       blockers: ["no payment provider is integrated"],
-      model: "gemini-3.7-flash",
+      model: null,
       credentialPresent: false,
       structuredBboxDefaultEnabled: false,
     },
@@ -179,7 +161,7 @@ describe("LocalPipelinePanel", () => {
     );
   });
 
-  it("reports what is missing instead of offering an unrunnable start", async () => {
+  it("reports the optional plugin gap but still allows native-text PDFs to start", async () => {
     mocks.localOcrReadiness.mockResolvedValue({
       ...ready,
       ready: false,
@@ -188,9 +170,12 @@ describe("LocalPipelinePanel", () => {
     });
     renderPanel();
     await waitFor(() =>
-      expect(screen.getByRole("alert").textContent).toContain("2 model file(s) are missing"),
+      expect(screen.getByRole("status").textContent).toContain("2 model file(s) are missing"),
     );
-    expect(screen.getByRole("alert").textContent).toContain("grc.traineddata");
+    expect(screen.getByRole("status").textContent).toContain("grc.traineddata");
+    expect(screen.getByRole("status").textContent).toContain(
+      "Native-text PDFs can still start",
+    );
 
     mocks.pickOutputDestination.mockResolvedValue("/out/final.pdf");
     mocks.pickPackageDirectory.mockResolvedValue("/out/work");
@@ -201,7 +186,7 @@ describe("LocalPipelinePanel", () => {
       fireEvent.click(screen.getByRole("button", { name: /Choose a working folder/ }));
     });
     expect((screen.getByRole("button", { name: "Start" }) as HTMLButtonElement).disabled).toBe(
-      true,
+      false,
     );
   });
 

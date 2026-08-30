@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://mpdf.example/schema/bookmark-generation-report/0.1",
-  "title": "MPDF bookmark generation report 0.1",
+  "$id": "https://mpdf.example/schema/bookmark-generation-report/0.2",
+  "title": "MPDF bookmark generation report 0.2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -39,7 +39,7 @@
       "const": "mpdf-bookmark-generation-report"
     },
     "schema_version": {
-      "const": "0.1"
+      "const": "0.2"
     },
     "source_digest": {
       "$ref": "#/$defs/digest"
@@ -320,7 +320,9 @@
         "numbering_family",
         "segment_index",
         "offset",
-        "anchor_count",
+        "member_count",
+        "exact_anchor_count",
+        "disagreeing_anchor_count",
         "first_printed_number",
         "last_printed_number",
         "residual_min",
@@ -340,7 +342,15 @@
         "offset": {
           "type": "integer"
         },
-        "anchor_count": {
+        "member_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exact_anchor_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disagreeing_anchor_count": {
           "type": "integer",
           "minimum": 0
         },

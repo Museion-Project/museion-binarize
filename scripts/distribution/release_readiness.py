@@ -11,7 +11,6 @@ import contextlib
 import io
 import json
 import re
-import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -55,27 +54,22 @@ STATIC_REQUIRED = {
     "version_wix", "identity_freeze", "unreleased_rc3_scope",
     "current_state_docs", "sbom_manifest_schema",
 }
+BASE_REQUIRED = STATIC_REQUIRED | {
+    "pdfium_runtime_smoke", "macos_arm64_install_runtime", "reader_matrix",
+    "distribution_ci_rc3", "developer_id_notary", "cross_platform_runtime",
+    "upgrade_install", "privacy_accessibility_performance",
+}
 PROFILE_REQUIRED = {
     "source": STATIC_REQUIRED,
-    "local-core": STATIC_REQUIRED | {
-        "pdfium_runtime_smoke", "macos_arm64_install_runtime", "reader_matrix",
-        "distribution_ci_rc3", "developer_id_notary", "cross_platform_runtime",
-        "upgrade_install", "privacy_accessibility_performance",
+    "base": BASE_REQUIRED,
+    "optional-local-ocr-plugin": BASE_REQUIRED | {
+        "optional_local_ocr_plugin", "human_gold_bookmarks",
     },
-    "local-ocr-preview": STATIC_REQUIRED | {
-        "pdfium_runtime_smoke", "macos_arm64_install_runtime", "reader_matrix",
-        "distribution_ci_rc3", "developer_id_notary", "cross_platform_runtime",
-        "upgrade_install", "privacy_accessibility_performance",
-        "ocr_runtime_distribution", "human_gold_bookmarks",
-    },
-    "cloud-beta": STATIC_REQUIRED | {
-        "pdfium_runtime_smoke", "macos_arm64_install_runtime", "reader_matrix",
-        "distribution_ci_rc3", "developer_id_notary", "cross_platform_runtime",
-        "upgrade_install", "privacy_accessibility_performance",
-        "ocr_runtime_distribution", "human_gold_bookmarks",
-        "gemini_byok_live_validation", "gemini_terms_of_service_review",
-        "cloud_privacy_policy_and_deletion",
-    },
+}
+CLOUD_GATE_NAMES = {
+    "mpdf_credits_complete_ocr_backend",
+    "mpdf_credits_payment_integration",
+    "cloud_privacy_policy_and_deletion",
 }
 
 
@@ -111,6 +105,8 @@ def validate_macos_install_evidence(path: Path) -> bool:
     if (evidence.get("schema") != "mpdf-release-evidence"
             or evidence.get("schema_version") != "0.1"
             or evidence.get("release") != "0.1.0-rc.3"
+            or evidence.get("distribution_profile") != "base"
+            or "bundled_ocr" in evidence
             or evidence.get("target") != "aarch64-apple-darwin"):
         return False
     if (artifact.get("kind") != "dmg"
@@ -177,20 +173,6 @@ def validate_ocr_runtime_evidence(path: Path) -> bool:
             and re.fullmatch(r"[0-9a-f]{64}", str(output.get("sha256", ""))) is not None)
 
 
-def evidence_artifacts_match(*paths: Path) -> bool:
-    """Require independent installed-runtime records to name one artifact."""
-    try:
-        digests = {
-            json.loads(path.read_text(encoding="utf-8"))["artifact"]["sha256"]
-            for path in paths
-        }
-    except (KeyError, OSError, TypeError, json.JSONDecodeError):
-        return False
-    return len(digests) == 1 and all(
-        re.fullmatch(r"[0-9a-f]{64}", str(digest)) is not None for digest in digests
-    )
-
-
 def run(*, pdfium_evidence: Path | None = None,
         macos_install_evidence: Path | None = None,
         ocr_runtime_evidence: Path | None = None) -> dict[str, str]:
@@ -207,10 +189,21 @@ def run(*, pdfium_evidence: Path | None = None,
     changelog = (ROOT / "CHANGELOG.md").read_text()
     gates["unreleased_rc3_scope"] = "pass_static" if "rc.3" in changelog and "Unreleased" in changelog else "fail"
     current_docs = "\n".join((ROOT / name).read_text(errors="ignore") for name in (
-        "README.md", "README.zh-CN.md", "spec.md", "docs/limitations.md", "THIRD_PARTY_LICENSES.md"
+        "README.md", "README.zh-CN.md", "spec.md", "docs/ocr-providers.md",
+        "docs/distribution.md", "docs/limitations.md", "THIRD_PARTY_LICENSES.md",
     ))
     stale_phrases = ("there is no networking, telemetry, account, OCR", "无 OCR、AI、书签")
-    gates["current_state_docs"] = "pass_static" if "local OCR" in current_docs and not any(p in current_docs for p in stale_phrases) else "fail"
+    required_phrases = (
+        "optional local OCR plugin", "mpdf-ocr-provider/2",
+        "gemini-byok is disabled in this version", "mpdf-credits",
+    )
+    normalized_docs = current_docs.lower()
+    gates["current_state_docs"] = (
+        "pass_static"
+        if all(phrase.lower() in normalized_docs for phrase in required_phrases)
+        and not any(phrase in current_docs for phrase in stale_phrases)
+        else "fail"
+    )
     try:
         with (ROOT / "distribution/pdfium/manifest.toml").open("rb") as f:
             pdfium = tomllib.load(f)
@@ -223,8 +216,6 @@ def run(*, pdfium_evidence: Path | None = None,
         gates["sbom_manifest_schema"] = "fail"
     macos_install_valid = bool(macos_install_evidence and validate_macos_install_evidence(macos_install_evidence))
     ocr_runtime_valid = bool(ocr_runtime_evidence and validate_ocr_runtime_evidence(ocr_runtime_evidence))
-    if macos_install_valid and ocr_runtime_valid:
-        ocr_runtime_valid = evidence_artifacts_match(macos_install_evidence, ocr_runtime_evidence)
     gates.update({
         # Runtime smoke is evidence-driven. Merely having a provisioned
         # library is never sufficient; callers must pass --pdfium-evidence.
@@ -235,43 +226,36 @@ def run(*, pdfium_evidence: Path | None = None,
         "developer_id_notary": "pending_owner_credentials",
         "cross_platform_runtime": "pending",
         "upgrade_install": "not_run",
-        # The adopted Tesseract engine, Python sidecar and pinned trained data
-        # are not staged into the desktop/CLI artifacts yet. Source-tree gold
-        # evaluation is not evidence that a downloaded application can OCR.
-        "ocr_runtime_distribution": "pass_local" if ocr_runtime_valid else "pending",
+        # This is an independent optional-plugin artifact gate. It is not a
+        # base-release dependency, and its artifact digest need not equal the
+        # base desktop artifact digest.
+        "optional_local_ocr_plugin": "pass_local" if ocr_runtime_valid else "pending",
         "human_gold_bookmarks": "pending",
         "privacy_accessibility_performance": "pending_evidence_review",
-        # Cloud OCR. Local remains the default and is unaffected by any of
-        # these; a build may ship with all three pending, and does.
-        #
-        # BYOK is code-complete but has never been exercised against the real
-        # provider in CI (by design: the opt-in suite is manual and costs the
-        # operator money), and the provider's terms of service have not been
-        # reviewed for the redistribution this project does.
-        "gemini_byok_live_validation": "pending",
-        "gemini_terms_of_service_review": "pending_owner_review",
-        # Credits has no production service at all. This is a hard blocker,
-        # not a pending piece of evidence: see
-        # mpdf_core::ocr_provider::credits::release_blockers.
-        "mpdf_credits_production_backend": "blocked_no_service",
+        # Gemini BYOK is intentionally not a product mode. Legacy values stay
+        # readable but cannot start work or appear in provider discovery.
+        "gemini_byok_product_mode": "disabled",
+        # The only planned cloud product is paid/brokered mpdf-credits. It has
+        # no production complete-coordinate OCR service. These are product
+        # availability blockers, not base-release gates.
+        "mpdf_credits_complete_ocr_backend": "blocked_no_service",
         "mpdf_credits_payment_integration": "blocked_no_service",
         "cloud_privacy_policy_and_deletion": "blocked_not_published",
-        # Model-returned rectangles are never a coordinate source in this
-        # build; the gates in ocr_provider::structured_bbox have not been run
-        # against a labelled fixture set.
-        "structured_bbox_geometry_validation": "pending",
     })
     return gates
 
 
 def cloud_blockers(gates: dict[str, str]) -> list[str]:
-    """Gates that must be cleared before any cloud mode is advertised.
+    """Gates that must be cleared before mpdf-credits is advertised.
 
     ``blocked_*`` is deliberately distinct from ``pending``: pending means
     evidence has not been gathered, blocked means the thing being evidenced
     does not exist yet.
     """
-    return sorted(name for name, value in gates.items() if value.startswith("blocked_"))
+    return sorted(
+        name for name in CLOUD_GATE_NAMES
+        if gates.get(name, "missing").startswith("blocked_")
+    )
 
 
 def required_failures(gates: dict[str, str], profile: str) -> list[str]:
@@ -307,7 +291,7 @@ def main() -> int:
             print(f"{key}: {value}")
         blocked = cloud_blockers(result)
         if blocked:
-            print("\ncloud OCR is not releasable; local OCR is unaffected:")
+            print("\nmpdf-credits is unavailable; base and local plugin releases are unaffected:")
             for name in blocked:
                 print(f"  - {name}: {result[name]}")
         if missing_required:

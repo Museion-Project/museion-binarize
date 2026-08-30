@@ -2,6 +2,9 @@ schema = "mpdf-macos-ocr-components"
 schema_version = "1.0"
 target = "aarch64-apple-darwin"
 
+# Dependency closure for the separate optional local OCR plugin artifact.
+# Nothing in this manifest is required by the base desktop or CLI release.
+
 [[component]]
 formula = "tesseract"
 version = "5.5.3"

@@ -139,15 +139,15 @@ def render(manifest: dict, version: str) -> str:
             mac_status = "No macOS DMG signing evidence is present in the manifest; no trust claim is made."
         body = body.replace(
             "true 1-bit (bilevel) PDFs using deterministic thresholding — no OCR, no\nAI, no generative restoration.",
-            "true 1-bit (bilevel) PDFs using deterministic binarization and\nbookmark decisions, with local OCR, evidence packages, searchable output,\nand automatic bookmarks v2.",
+            "true 1-bit (bilevel) PDFs using deterministic binarization and\nbookmark decisions, with evidence packages, native-text searchable output,\nand automatic bookmarks v2. The base artifact does not require OCR.",
         )
         body = body.replace(
             "- All processing is local. No upload, no telemetry, no network access\n  at runtime.",
-            "- Conversion and local OCR remain offline. Remote OCR is an explicit\n  consented opt-in path and uploads only the declared source; cloud bookmark\n  generation does not exist.",
+            "- Base conversion and native-text processing are offline. No cloud OCR\n  path is available: mpdf-credits has no production service and Gemini BYOK\n  is disabled. Cloud bookmark generation does not exist.",
         )
         body = body.replace(
             "- No OCR, no preservation of hidden OCR text layers.",
-            "- RapidOCR models are user-provisioned and not bundled; searchable\n  output may contain typed text and bookmarks.",
+            "- The base artifact does not include an OCR runtime. Native-text PDFs\n  work without one; scanned-page OCR requires the separate optional local OCR\n  plugin and fails explicitly when that plugin is absent.",
         )
         body = body.replace(
             "- The macOS build is **ad-hoc signed**, not Developer ID signed or\n  notarized. Right-click (Control-click) the app and choose **Open** on\n  first launch. Do not disable Gatekeeper system-wide to work around\n  this.",

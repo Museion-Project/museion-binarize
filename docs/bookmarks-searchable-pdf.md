@@ -77,11 +77,14 @@ automatic score, reason, rule version, and rule-config digest.
 
 New generations write `mpdf-bookmarks` **0.2**
 (`schemas/mpdf-bookmarks-0.2.schema.json`) plus a generation report
-(`schemas/mpdf-bookmark-generation-report-0.1.schema.json`). Existing **0.1**
-snapshots and review logs stay readable, listable, reviewable, and buildable
-exactly as they are; nothing migrates them in place, and a 0.1 file carrying a
-0.2 field or status is rejected rather than reinterpreted. Regenerating over a
-non-empty review log is refused with an explanation.
+(`schemas/mpdf-bookmark-generation-report-0.2.schema.json`). Report **0.2**
+separates all mapping-segment members from exact and disagreeing anchors;
+published report **0.1** keeps its original `anchor_count` shape and remains
+readable. Existing **0.1** snapshots and review logs likewise stay readable,
+listable, reviewable, and buildable exactly as they are; nothing migrates them
+in place, and a 0.1 file carrying a 0.2 field or status is rejected rather than
+reinterpreted. Regenerating over a non-empty review log is refused with an
+explanation.
 
 ## Automatic confirmation: two routes (rule 0.4)
 

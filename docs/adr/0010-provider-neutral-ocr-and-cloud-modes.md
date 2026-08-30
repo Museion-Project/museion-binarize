@@ -1,11 +1,18 @@
 # ADR 0010: Provider-neutral OCR, and what a cloud model is allowed to decide
 
-Status: accepted on 2026-08-29.
+Status: superseded on 2026-08-30 by
+[ADR 0011](0011-complete-coordinate-ocr-and-optional-local-plugin.md).
+
+ADR 0011 replaces this ADR's default-provider, cloud-composition, BYOK, and
+distribution decisions. This file remains as the historical record for the
+experimental v1 composite path and its security work; it is no longer the
+normative product contract.
 
 ## Context
 
-Local Tesseract is this project's OCR. On the corpus that matters here —
-polytonic Ancient Greek printed alongside German and Latin — it is the weakest
+When this ADR was written, local Tesseract was treated as the project's
+default OCR. On the corpus that matters here —
+polytonic Ancient Greek printed alongside German and Latin — it was the weakest
 link. The measurements are unambiguous:
 
 | Holdout | Engine | CER | WER | Diacritic errors | Script confusions |
@@ -21,11 +28,10 @@ the entire page rather than pre-segmented boxes. And the model returns
 transcription, and a coordinate the model volunteers is a second generation,
 not an observation.
 
-Three things then have to be true at once. Local must stay the default and
-stay fully offline. A user's own API key must be usable without that key ever
-touching a config file, a log, a checkpoint or a command line. And a brokered
-"we run it for you" mode must be expressible without shipping the platform's
-own provider key inside every desktop binary.
+The superseded design tried to satisfy three constraints at once: an offline
+local default, a user-supplied key that never touched serialized state, and a
+brokered mode that did not ship the platform key in desktop binaries. ADR 0011
+removes the user-supplied-key mode and makes local OCR an optional plugin.
 
 ## Decision
 
@@ -92,20 +98,20 @@ and is never recorded as one. A replaced line carries *corroboration*: the
 noisy-OR of two independent readings, capped by their agreement, so weak
 agreement cannot borrow certainty from a confident local engine.
 
-### Credentials
+### Historical credential design (not available)
 
-BYOK keys live in the OS credential store under their own service
-(`org.mpdf.model-provider`), separate from the M PDF task token, so "delete my
-key" is unambiguous. Settings hold a slot *label*; the key is read immediately
-before a request and dropped after. There is no `--api-key` flag, no
-environment echo, no serializable field, and no path by which a key reaches a
-fingerprint, a checkpoint, an evidence record, or an IPC payload. Provider
-error bodies — which sometimes quote the key back — are never returned to a
-caller unredacted.
+The superseded prototype stored BYOK keys in the OS credential store under
+their own service (`org.mpdf.model-provider`), separate from the M PDF task
+token, so "delete my key" was unambiguous. Settings held a slot *label*; the
+key was read immediately before a request and dropped after. There was no
+`--api-key` flag, no environment echo, no serializable field, and no path by
+which a key reached a fingerprint, checkpoint, evidence record, or IPC
+payload. Provider error bodies — which sometimes quote the key back — were
+never returned to a caller unredacted.
 
-Rotating a key inside a slot deliberately does *not* invalidate evidence: the
-same model under the same prompt produced it. Switching slots does, because
-that is a different account.
+In that prototype, rotating a key inside a slot deliberately did *not*
+invalidate evidence: the same model under the same prompt produced it.
+Switching slots did, because that was a different account.
 
 ### Checkpoints
 
@@ -134,7 +140,7 @@ There is no production service. `credits::PRODUCTION_BACKEND` is `None`,
 verbatim. Shipping a convincing but unbacked billing flow would be worse than
 shipping none.
 
-## Consequences
+## Historical consequences (superseded)
 
 - Local remains the default, offline, and unchanged. Selecting a cloud mode
   requires an explicit flag plus explicit consent, in both front ends and

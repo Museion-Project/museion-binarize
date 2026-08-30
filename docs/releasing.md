@@ -148,8 +148,10 @@ Cargo metadata and the desktop installation graph reported by
 `pnpm list --json --depth Infinity` (with lockfile/source-only fallback for
 offline checks), plus pinned PDFium provenance. This describes the installed
 desktop graph; it is not a claim that every optional platform dependency is
-locked into one universal graph. RapidOCR models are user-provisioned and
-never listed as bundled.
+locked into one universal graph. The base SBOM contains no OCR-runtime claim.
+A separate plugin-bearing artifact supplies
+`--ocr-runtime-manifest` so its engine, sidecar, models, libraries, and licenses
+are added to that artifact's SBOM.
 `creationInfo.created` is always an explicit UTC-second value: CI derives it
 from the checked-out `HEAD` commit time, while reproducible local runs pass
 the same value with `generate_sbom.py --created` (or set `SOURCE_DATE_EPOCH`).
@@ -286,9 +288,13 @@ separate, owner-triggered workflow: `.github/workflows/publish-release.yml`.
 That publication workflow requires a product readiness profile. `source` is
 deliberately unavailable there: it is sufficient for pull-request CI and a
 private `build-distribution.yml` run, but cannot authorize creation of binary
-release assets. The owner must select `local-core`, `local-ocr-preview`, or
-`cloud-beta`; `release_readiness.py` runs before artifact download and fails
-closed on every missing runtime, installation, privacy, or provider gate.
+release assets. The owner must select `base` or
+`optional-local-ocr-plugin`; `release_readiness.py` runs before artifact
+download and fails closed on every gate required by that artifact. The base
+profile intentionally has no OCR-runtime gate. The optional-plugin profile
+requires its independently staged, verified, and installed-smoke-tested OCR
+artifact. Cloud OCR cannot be selected as a release profile:
+`mpdf-credits` is unavailable and Gemini BYOK is disabled.
 
 ```
 build-distribution.yml (workflow_dispatch, per-target)

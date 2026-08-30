@@ -68,7 +68,7 @@ pub enum Command {
     /// Build a searchable derivative while preserving the source PDF.
     #[command(subcommand)]
     Pdf(PdfCommand),
-    /// Inspect OCR provider modes and manage model-provider credentials.
+    /// Inspect current OCR product modes and their availability.
     #[command(subcommand)]
     Provider(ProviderCommand),
 }
@@ -716,10 +716,11 @@ pub struct EstimateArgs {
 /// why `--cloud-consent` is required alongside it.
 #[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
 pub enum OcrProviderModeArg {
-    /// Local Tesseract. No network access, no credential, no cost.
+    /// Local OCR when the optional plugin is installed; native text otherwise.
     Local,
-    /// Google Gemini, called with the key stored in this machine's OS
-    /// credential store. Page images are uploaded to Google.
+    /// Historical compatibility value. Always returns the stable disabled
+    /// migration error and is hidden from current choices.
+    #[value(hide = true)]
     GeminiByok,
     /// M PDF's own service executes the model. No production service exists
     /// in this build; see `mpdf provider list`.
@@ -753,25 +754,25 @@ pub enum ProviderCommand {
     List(ProviderListArgs),
     /// Non-billable connection test. Never prints a credential.
     Test(ProviderTestArgs),
-    /// Store, inspect or remove a model-provider key in the OS credential
-    /// store. There is deliberately no way to pass a key on the command line.
-    #[command(subcommand)]
+    /// Historical BYOK commands. Retained only to return a stable disabled
+    /// migration error; no command reads stdin or a credential store.
+    #[command(subcommand, hide = true)]
     Credential(ProviderCredentialCommand),
 }
 
 #[derive(Subcommand)]
 pub enum ProviderCredentialCommand {
-    /// Read a key from stdin and store it in the OS credential store.
+    /// Legacy compatibility command; always reports that BYOK is disabled.
     Set(ProviderCredentialArgs),
-    /// Report whether a slot holds a key. Never reveals it.
+    /// Legacy compatibility command; never consults credential storage.
     Status(ProviderCredentialArgs),
-    /// Remove the key from the slot.
+    /// Legacy compatibility command; never changes credential storage.
     Delete(ProviderCredentialArgs),
 }
 
 #[derive(Args)]
 pub struct ProviderCredentialArgs {
-    /// Credential slot name. A label, never the key itself.
+    /// Retained legacy slot label; ignored by the disabled command.
     #[arg(long, default_value = "default")]
     pub slot: String,
     #[command(flatten)]
@@ -789,9 +790,10 @@ pub struct ProviderTestArgs {
     #[arg(long, value_enum, default_value_t = OcrProviderModeArg::Local)]
     pub mode: OcrProviderModeArg,
     #[arg(long, default_value = "default")]
+    #[arg(hide = true)]
     pub slot: String,
     /// Advanced: override the provider endpoint. Must be HTTPS.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     pub endpoint: Option<String>,
     #[command(flatten)]
     pub output_mode: OutputArgs,
@@ -874,21 +876,21 @@ pub struct RunArgs {
     /// recognized page and recording the fallback.
     #[arg(long, value_enum, default_value_t = CloudFallbackArg::Local)]
     pub cloud_fallback: CloudFallbackArg,
-    /// Credential slot to read the model-provider key from. A label; the key
-    /// itself is never accepted on the command line.
-    #[arg(long, default_value = "default")]
+    /// Historical BYOK slot label. Accepted only so old invocations receive a
+    /// stable disabled error; it is never read from a credential store.
+    #[arg(long, default_value = "default", hide = true)]
     pub credential_slot: String,
     /// Advanced: model-provider endpoint. Must be HTTPS.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     pub cloud_endpoint: Option<String>,
     /// Advanced: pinned model name for cloud modes.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     pub cloud_model: Option<String>,
     /// Advanced: pinned model version for cloud modes. Never `latest`.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     pub cloud_model_version: Option<String>,
     /// Advanced: whether model-returned rectangles may be evaluated.
-    #[arg(long, value_enum, default_value_t = StructuredBboxArg::Disabled)]
+    #[arg(long, value_enum, default_value_t = StructuredBboxArg::Disabled, hide = true)]
     pub structured_bbox: StructuredBboxArg,
     /// M PDF Credits: credits to reserve per page.
     #[arg(long, default_value_t = 1)]
@@ -897,8 +899,9 @@ pub struct RunArgs {
     /// to start rather than exceed it.
     #[arg(long, default_value_t = 0)]
     pub max_credits: u64,
-    /// Validate the configuration, print what would be uploaded and what it
-    /// would cost, and exit. Performs no provider call and reserves nothing.
+    /// Print the declared plan, upload boundary, and cost ceiling, then exit.
+    /// Checks argument/policy consistency only: it does not open the input or
+    /// inspect the optional OCR plugin/runtime, and makes no provider call.
     #[arg(long)]
     pub dry_run: bool,
 

@@ -1,0 +1,969 @@
+{
+  "schema": "mpdf-cgpg-greek-model-bakeoff",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "content_policy": "Metrics and provenance only; no CGPG transcription, OCR text, page image, page image path, corpus directory, or local runtime path is serialized.",
+  "host": {
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.11.15"
+  },
+  "corpus": {
+    "name": "Corpus of Ground-truthed Patrologia Graeca",
+    "doi": "10.5281/zenodo.20008699",
+    "archive_sha256": "2ee5d79f3c781dc1b64fa386f0f194a762ab183cd36b97f5d873ce0a3004e1f7",
+    "license": "CC BY 4.0",
+    "pages_in_archive": 304,
+    "scorable_pages_under_loader": 264,
+    "development_pages": 227,
+    "holdout_pages": 77,
+    "scorable_holdout_pages": 63,
+    "selection_rule": "lexicographically first 12 pages with at least one non-empty transcribed line from cgpg.split_corpus's deterministic holdout split",
+    "page_ids": [
+      "grc_grna_or_399",
+      "grc_grna_or_409",
+      "grc_grna_or_423",
+      "grc_grna_or_429",
+      "grc_grna_or_443",
+      "grc_grna_or_447",
+      "grc_grna_or_461",
+      "grc_grna_or_475",
+      "grc_grna_or_487",
+      "grc_grna_or_489",
+      "grc_grna_or_503",
+      "grc_grna_or_513"
+    ]
+  },
+  "runtime": {
+    "tesseract_version": "tesseract 5.5.3",
+    "binary_sha256": "1753aebbdee8096c9860fe177ac0f9089f813cf9f4f340b5257c979f3c1e75ac",
+    "binary_size_bytes": 68800,
+    "tessdata_manifest_sha256": "0f01b37332e3efad95d9055dfc3faecdd476130a4f2dc5f066c069438142277c",
+    "model_set": "tessdata_best",
+    "model_set_version": "4.1.0",
+    "model_license": "Apache-2.0",
+    "environment": {
+      "TESSDATA_PREFIX": "<TESSDATA_DIR>",
+      "OMP_THREAD_LIMIT": "1"
+    }
+  },
+  "pre_registration": {
+    "registered_before_candidate_execution": true,
+    "page_count": 12,
+    "psm": 6,
+    "oem": 1,
+    "thresholds": {
+      "ell_plus_enhancer_polytonic_cer_improvement_percent_min": 30.0,
+      "base_letter_cer_degradation_percentage_points_max": 0.5,
+      "correct_base_rewrite_percent_max": 0.5,
+      "token_lineage_percent_required": 100.0,
+      "box_lineage_percent_required": 100.0
+    },
+    "thresholds_are_not_cli_options": true
+  },
+  "metric_definitions": {
+    "polytonic_cer": "Unicode character Levenshtein edits divided by reference characters after NFC and whitespace normalization; all polytonic marks remain significant",
+    "base_letter_cer": "the same CER after NFD decomposition and removal of all combining marks; case and script remain significant",
+    "correct_base_rewrite_percent": "enhancer-changed base-letter positions that exactly matched the reference before enhancement, divided by all exactly matching baseline base-letter positions",
+    "token_lineage_percent": "ordered enhanced token lineage IDs exactly equal to the ordered ell-source IDs, divided by the ell-source token count; a token-count difference preserves zero tokens",
+    "box_lineage_percent": "ordered (lineage ID, x, y, width, height) tuples exactly equal between enhanced and ell-source responses, divided by the ell-source token count; a token-count difference preserves zero boxes",
+    "aggregation": "micro-average from summed integer edit and reference counts across reference-defined PAGE regions",
+    "gate_precision": "checks use unrounded integer edit/reference counts; JSON CER values are rounded to six decimal places for display"
+  },
+  "enhancer_contract": {
+    "input": "OCR token text plus that token's normalized Tesseract word confidence only",
+    "normalization": "NFC",
+    "enhancer_id": "conservative-greek-text",
+    "enhancer_version": "1",
+    "minimum_confidence": 0.95,
+    "confidence_normalization": "Tesseract TSV conf is parsed as a decimal and divided by 100.0, then clamped to [0.0, 1.0]; the candidate requires normalized confidence >= 0.95",
+    "token_predicate": "after NFC, at least one character is in Greek/Greek Extended and every alphabetic character is Greek or a key in the fixed Latin-lookalike mapping",
+    "eligible_position": "every position in an eligible token, including edges",
+    "repair": "fixed Latin-lookalike to Greek mapping, one code point to one code point",
+    "mapping": {
+      "A": "Α",
+      "B": "Β",
+      "E": "Ε",
+      "H": "Η",
+      "I": "Ι",
+      "K": "Κ",
+      "M": "Μ",
+      "N": "Ν",
+      "O": "Ο",
+      "P": "Ρ",
+      "T": "Τ",
+      "X": "Χ",
+      "Y": "Υ",
+      "Z": "Ζ",
+      "o": "ο",
+      "p": "ρ",
+      "x": "χ"
+    },
+    "mapping_sha256": "f7684df08afc7bfd28d295aa051f640e1695cca005140273b90639aace3a4b9d",
+    "reference_mirror_source_sha256": "907355bb88bcedefed8216d31c9c5598279d341a5348f5bb8fa281c0d070fb83",
+    "shipped_rust_source_sha256": "3b9c5f0dc2f5860203dfd5554c3ad40d86880e4364030805a1d23007411f19be",
+    "excluded_inputs": [
+      "page image",
+      "token geometry",
+      "other tokens",
+      "ground truth",
+      "dictionary",
+      "language model",
+      "sample IDs",
+      "sample-specific rules"
+    ]
+  },
+  "execution": {
+    "harness_argv": [
+      "python3",
+      "scripts/ocr/gold/run_cgpg_model_bakeoff.py",
+      "--corpus",
+      "<CGPG_DATA_DIR>",
+      "--tesseract",
+      "<TESSERACT_BIN>",
+      "--tessdata",
+      "<TESSDATA_DIR>",
+      "--json",
+      "docs/evidence/ocr-cgpg-greek-model-bakeoff-2026-08-30.json"
+    ],
+    "levenshtein_backend": "rapidfuzz 3.14.1",
+    "candidate_environment": {
+      "TESSDATA_PREFIX": "<TESSDATA_DIR>",
+      "OMP_THREAD_LIMIT": "1"
+    },
+    "candidate_invocation_note": "Replace <CGPG_PAGE_IMAGE> with the image paired to each page_id; ell+enhancer reuses the ell TSV and performs no second OCR invocation.",
+    "evaluated_code_sha256": {
+      "scripts/ocr/gold/cgpg.py": "4e1dee46d9c29dfca26c5e5e7ee9ae1a140ef3861dd68bd7228945cf2f70a5b0",
+      "scripts/ocr/gold/metrics.py": "6f60219039f478c958ce7b15659ea2be4782c1d65340ff23235c2f42aca16ccf",
+      "scripts/ocr/gold/run_cgpg.py": "88dc9617b9d401e982c146d5b76fdf1969d68b74da451df84c8adc56ad1fe197",
+      "scripts/ocr/gold/greek_text_enhancer.py": "907355bb88bcedefed8216d31c9c5598279d341a5348f5bb8fa281c0d070fb83",
+      "scripts/ocr/gold/run_cgpg_model_bakeoff.py": "323d52d621d40b74a3f5c823a580d491df32572f7ca24d293ff0aeac570d05fd",
+      "crates/mpdf-core/src/ocr_provider/text_enhancer.rs": "3b9c5f0dc2f5860203dfd5554c3ad40d86880e4364030805a1d23007411f19be"
+    }
+  },
+  "candidates": {
+    "ell": {
+      "candidate_sha256": "edaef050eeb8228ca576a33f1e1739b757b1b5fe34f99f55d8f65f00f8d65ad3",
+      "languages": "ell",
+      "models": [
+        {
+          "filename": "ell.traineddata",
+          "sha256": "288b4ea00bab450cf39893d22f04a2835a8469b673b5b20dcb39b159d1bbc9b8",
+          "size_bytes": 8945021,
+          "model_set": "tessdata_best",
+          "model_set_version": "4.1.0",
+          "license": "Apache-2.0"
+        }
+      ],
+      "enhancement": null,
+      "tesseract_argv_template": [
+        "<TESSERACT_BIN>",
+        "<CGPG_PAGE_IMAGE>",
+        "stdout",
+        "--tessdata-dir",
+        "<TESSDATA_DIR>",
+        "-l",
+        "ell",
+        "--psm",
+        "6",
+        "--oem",
+        "1",
+        "-c",
+        "preserve_interword_spaces=1",
+        "-c",
+        "tessedit_create_tsv=1"
+      ],
+      "pages_attempted": 12,
+      "pages_succeeded": 12,
+      "failures": [],
+      "seconds_total": 39.257,
+      "seconds_per_page": 3.271,
+      "missing_lines": 0,
+      "extra_lines": 11,
+      "polytonic": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2273,
+        "cer": 0.106674,
+        "nfc_violations": 0
+      },
+      "base_letter": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2148,
+        "cer": 0.100807,
+        "nfc_violations": 0
+      },
+      "by_script": {
+        "greek": {
+          "polytonic": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2273,
+            "cer": 0.106674,
+            "nfc_violations": 0
+          },
+          "base_letter": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2148,
+            "cer": 0.100807,
+            "nfc_violations": 0
+          }
+        }
+      },
+      "per_page": [
+        {
+          "page_id": "grc_grna_or_399",
+          "transcribed_regions": 1,
+          "reference_chars": 1970,
+          "polytonic_cer": 0.097462,
+          "base_letter_cer": 0.089848,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_409",
+          "transcribed_regions": 1,
+          "reference_chars": 1656,
+          "polytonic_cer": 0.116546,
+          "base_letter_cer": 0.1093,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_423",
+          "transcribed_regions": 1,
+          "reference_chars": 1706,
+          "polytonic_cer": 0.137749,
+          "base_letter_cer": 0.131887,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_429",
+          "transcribed_regions": 1,
+          "reference_chars": 1889,
+          "polytonic_cer": 0.121758,
+          "base_letter_cer": 0.116993,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_443",
+          "transcribed_regions": 1,
+          "reference_chars": 1672,
+          "polytonic_cer": 0.116627,
+          "base_letter_cer": 0.108254,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_447",
+          "transcribed_regions": 1,
+          "reference_chars": 1559,
+          "polytonic_cer": 0.140475,
+          "base_letter_cer": 0.135343,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_461",
+          "transcribed_regions": 1,
+          "reference_chars": 2040,
+          "polytonic_cer": 0.090686,
+          "base_letter_cer": 0.083333,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_475",
+          "transcribed_regions": 1,
+          "reference_chars": 1979,
+          "polytonic_cer": 0.076301,
+          "base_letter_cer": 0.073775,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_487",
+          "transcribed_regions": 1,
+          "reference_chars": 1497,
+          "polytonic_cer": 0.114896,
+          "base_letter_cer": 0.109552,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_489",
+          "transcribed_regions": 1,
+          "reference_chars": 1743,
+          "polytonic_cer": 0.095238,
+          "base_letter_cer": 0.086632,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_503",
+          "transcribed_regions": 1,
+          "reference_chars": 1759,
+          "polytonic_cer": 0.104605,
+          "base_letter_cer": 0.100625,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_513",
+          "transcribed_regions": 1,
+          "reference_chars": 1838,
+          "polytonic_cer": 0.082155,
+          "base_letter_cer": 0.078346,
+          "missing_lines": 0,
+          "extra_lines": 0
+        }
+      ]
+    },
+    "ell+enhancer": {
+      "candidate_sha256": "119a5e91cbed221a24e4ddf96106d7a4c8f07a9e99454c277657d9f38f0f8bbb",
+      "languages": "ell",
+      "models": [
+        {
+          "filename": "ell.traineddata",
+          "sha256": "288b4ea00bab450cf39893d22f04a2835a8469b673b5b20dcb39b159d1bbc9b8",
+          "size_bytes": 8945021,
+          "model_set": "tessdata_best",
+          "model_set_version": "4.1.0",
+          "license": "Apache-2.0"
+        }
+      ],
+      "enhancement": {
+        "enhancer_id": "conservative-greek-text",
+        "enhancer_version": "1",
+        "minimum_confidence": 0.95,
+        "reference_mirror_source_sha256": "907355bb88bcedefed8216d31c9c5598279d341a5348f5bb8fa281c0d070fb83",
+        "shipped_rust_source_sha256": "3b9c5f0dc2f5860203dfd5554c3ad40d86880e4364030805a1d23007411f19be",
+        "mapping_sha256": "f7684df08afc7bfd28d295aa051f640e1695cca005140273b90639aace3a4b9d"
+      },
+      "tesseract_argv_template": [
+        "<TESSERACT_BIN>",
+        "<CGPG_PAGE_IMAGE>",
+        "stdout",
+        "--tessdata-dir",
+        "<TESSDATA_DIR>",
+        "-l",
+        "ell",
+        "--psm",
+        "6",
+        "--oem",
+        "1",
+        "-c",
+        "preserve_interword_spaces=1",
+        "-c",
+        "tessedit_create_tsv=1"
+      ],
+      "pages_attempted": 12,
+      "pages_succeeded": 12,
+      "failures": [],
+      "seconds_total": 39.281,
+      "seconds_per_page": 3.273,
+      "missing_lines": 0,
+      "extra_lines": 11,
+      "polytonic": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2273,
+        "cer": 0.106674,
+        "nfc_violations": 0
+      },
+      "base_letter": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2148,
+        "cer": 0.100807,
+        "nfc_violations": 0
+      },
+      "by_script": {
+        "greek": {
+          "polytonic": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2273,
+            "cer": 0.106674,
+            "nfc_violations": 0
+          },
+          "base_letter": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2148,
+            "cer": 0.100807,
+            "nfc_violations": 0
+          }
+        }
+      },
+      "per_page": [
+        {
+          "page_id": "grc_grna_or_399",
+          "transcribed_regions": 1,
+          "reference_chars": 1970,
+          "polytonic_cer": 0.097462,
+          "base_letter_cer": 0.089848,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_409",
+          "transcribed_regions": 1,
+          "reference_chars": 1656,
+          "polytonic_cer": 0.116546,
+          "base_letter_cer": 0.1093,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_423",
+          "transcribed_regions": 1,
+          "reference_chars": 1706,
+          "polytonic_cer": 0.137749,
+          "base_letter_cer": 0.131887,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_429",
+          "transcribed_regions": 1,
+          "reference_chars": 1889,
+          "polytonic_cer": 0.121758,
+          "base_letter_cer": 0.116993,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_443",
+          "transcribed_regions": 1,
+          "reference_chars": 1672,
+          "polytonic_cer": 0.116627,
+          "base_letter_cer": 0.108254,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_447",
+          "transcribed_regions": 1,
+          "reference_chars": 1559,
+          "polytonic_cer": 0.140475,
+          "base_letter_cer": 0.135343,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_461",
+          "transcribed_regions": 1,
+          "reference_chars": 2040,
+          "polytonic_cer": 0.090686,
+          "base_letter_cer": 0.083333,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_475",
+          "transcribed_regions": 1,
+          "reference_chars": 1979,
+          "polytonic_cer": 0.076301,
+          "base_letter_cer": 0.073775,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_487",
+          "transcribed_regions": 1,
+          "reference_chars": 1497,
+          "polytonic_cer": 0.114896,
+          "base_letter_cer": 0.109552,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_489",
+          "transcribed_regions": 1,
+          "reference_chars": 1743,
+          "polytonic_cer": 0.095238,
+          "base_letter_cer": 0.086632,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_503",
+          "transcribed_regions": 1,
+          "reference_chars": 1759,
+          "polytonic_cer": 0.104605,
+          "base_letter_cer": 0.100625,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_513",
+          "transcribed_regions": 1,
+          "reference_chars": 1838,
+          "polytonic_cer": 0.082155,
+          "base_letter_cer": 0.078346,
+          "missing_lines": 0,
+          "extra_lines": 0
+        }
+      ],
+      "enhancer_seconds_total": 0.02452,
+      "enhancer_audit": {
+        "source_tokens": 3758,
+        "output_tokens": 3758,
+        "token_lineage_preserved": 3758,
+        "box_lineage_preserved": 3758,
+        "lookalike_rewrites": 0,
+        "nfc_normalized_tokens": 0,
+        "token_lineage_percent": 100.0,
+        "box_lineage_percent": 100.0,
+        "correct_base_letters_before": 16463,
+        "base_changing_rewrites": 0,
+        "correct_base_rewrites": 0,
+        "correct_base_rewrite_rate": 0.0,
+        "correct_base_rewrite_percent": 0.0
+      }
+    },
+    "grc": {
+      "candidate_sha256": "5720f82e4630214bfd71818fd71b819115cc1ad802672c6e7e74ef0ba7099cca",
+      "languages": "grc",
+      "models": [
+        {
+          "filename": "grc.traineddata",
+          "sha256": "dfc9bda286cd9d8755b1832e5731a5425d1cf0803393a5fa6dee078466178cf1",
+          "size_bytes": 5168122,
+          "model_set": "tessdata_best",
+          "model_set_version": "4.1.0",
+          "license": "Apache-2.0"
+        }
+      ],
+      "enhancement": null,
+      "tesseract_argv_template": [
+        "<TESSERACT_BIN>",
+        "<CGPG_PAGE_IMAGE>",
+        "stdout",
+        "--tessdata-dir",
+        "<TESSDATA_DIR>",
+        "-l",
+        "grc",
+        "--psm",
+        "6",
+        "--oem",
+        "1",
+        "-c",
+        "preserve_interword_spaces=1",
+        "-c",
+        "tessedit_create_tsv=1"
+      ],
+      "pages_attempted": 12,
+      "pages_succeeded": 12,
+      "failures": [],
+      "seconds_total": 21.611,
+      "seconds_per_page": 1.801,
+      "missing_lines": 0,
+      "extra_lines": 11,
+      "polytonic": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2642,
+        "cer": 0.123991,
+        "nfc_violations": 0
+      },
+      "base_letter": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2509,
+        "cer": 0.117749,
+        "nfc_violations": 0
+      },
+      "by_script": {
+        "greek": {
+          "polytonic": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2642,
+            "cer": 0.123991,
+            "nfc_violations": 0
+          },
+          "base_letter": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2509,
+            "cer": 0.117749,
+            "nfc_violations": 0
+          }
+        }
+      },
+      "per_page": [
+        {
+          "page_id": "grc_grna_or_399",
+          "transcribed_regions": 1,
+          "reference_chars": 1970,
+          "polytonic_cer": 0.115228,
+          "base_letter_cer": 0.108122,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_409",
+          "transcribed_regions": 1,
+          "reference_chars": 1656,
+          "polytonic_cer": 0.138285,
+          "base_letter_cer": 0.131039,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_423",
+          "transcribed_regions": 1,
+          "reference_chars": 1706,
+          "polytonic_cer": 0.153576,
+          "base_letter_cer": 0.147128,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_429",
+          "transcribed_regions": 1,
+          "reference_chars": 1889,
+          "polytonic_cer": 0.148756,
+          "base_letter_cer": 0.140286,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_443",
+          "transcribed_regions": 1,
+          "reference_chars": 1672,
+          "polytonic_cer": 0.126794,
+          "base_letter_cer": 0.118421,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_447",
+          "transcribed_regions": 1,
+          "reference_chars": 1559,
+          "polytonic_cer": 0.162284,
+          "base_letter_cer": 0.155869,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_461",
+          "transcribed_regions": 1,
+          "reference_chars": 2040,
+          "polytonic_cer": 0.106863,
+          "base_letter_cer": 0.10049,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_475",
+          "transcribed_regions": 1,
+          "reference_chars": 1979,
+          "polytonic_cer": 0.09146,
+          "base_letter_cer": 0.087923,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_487",
+          "transcribed_regions": 1,
+          "reference_chars": 1497,
+          "polytonic_cer": 0.128925,
+          "base_letter_cer": 0.12358,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_489",
+          "transcribed_regions": 1,
+          "reference_chars": 1743,
+          "polytonic_cer": 0.111876,
+          "base_letter_cer": 0.104991,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_503",
+          "transcribed_regions": 1,
+          "reference_chars": 1759,
+          "polytonic_cer": 0.121092,
+          "base_letter_cer": 0.116543,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_513",
+          "transcribed_regions": 1,
+          "reference_chars": 1838,
+          "polytonic_cer": 0.096844,
+          "base_letter_cer": 0.092492,
+          "missing_lines": 0,
+          "extra_lines": 0
+        }
+      ]
+    },
+    "ell+grc": {
+      "candidate_sha256": "b29534fad2538d1a1de2cb2e0636280cf4d32e1335392df53e54075202d669b0",
+      "languages": "ell+grc",
+      "models": [
+        {
+          "filename": "ell.traineddata",
+          "sha256": "288b4ea00bab450cf39893d22f04a2835a8469b673b5b20dcb39b159d1bbc9b8",
+          "size_bytes": 8945021,
+          "model_set": "tessdata_best",
+          "model_set_version": "4.1.0",
+          "license": "Apache-2.0"
+        },
+        {
+          "filename": "grc.traineddata",
+          "sha256": "dfc9bda286cd9d8755b1832e5731a5425d1cf0803393a5fa6dee078466178cf1",
+          "size_bytes": 5168122,
+          "model_set": "tessdata_best",
+          "model_set_version": "4.1.0",
+          "license": "Apache-2.0"
+        }
+      ],
+      "enhancement": null,
+      "tesseract_argv_template": [
+        "<TESSERACT_BIN>",
+        "<CGPG_PAGE_IMAGE>",
+        "stdout",
+        "--tessdata-dir",
+        "<TESSDATA_DIR>",
+        "-l",
+        "ell+grc",
+        "--psm",
+        "6",
+        "--oem",
+        "1",
+        "-c",
+        "preserve_interword_spaces=1",
+        "-c",
+        "tessedit_create_tsv=1"
+      ],
+      "pages_attempted": 12,
+      "pages_succeeded": 12,
+      "failures": [],
+      "seconds_total": 39.19,
+      "seconds_per_page": 3.266,
+      "missing_lines": 0,
+      "extra_lines": 11,
+      "polytonic": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2273,
+        "cer": 0.106674,
+        "nfc_violations": 0
+      },
+      "base_letter": {
+        "samples": 12,
+        "reference_chars": 21308,
+        "char_edits": 2148,
+        "cer": 0.100807,
+        "nfc_violations": 0
+      },
+      "by_script": {
+        "greek": {
+          "polytonic": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2273,
+            "cer": 0.106674,
+            "nfc_violations": 0
+          },
+          "base_letter": {
+            "samples": 12,
+            "reference_chars": 21308,
+            "char_edits": 2148,
+            "cer": 0.100807,
+            "nfc_violations": 0
+          }
+        }
+      },
+      "per_page": [
+        {
+          "page_id": "grc_grna_or_399",
+          "transcribed_regions": 1,
+          "reference_chars": 1970,
+          "polytonic_cer": 0.097462,
+          "base_letter_cer": 0.089848,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_409",
+          "transcribed_regions": 1,
+          "reference_chars": 1656,
+          "polytonic_cer": 0.116546,
+          "base_letter_cer": 0.1093,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_423",
+          "transcribed_regions": 1,
+          "reference_chars": 1706,
+          "polytonic_cer": 0.137749,
+          "base_letter_cer": 0.131887,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_429",
+          "transcribed_regions": 1,
+          "reference_chars": 1889,
+          "polytonic_cer": 0.121758,
+          "base_letter_cer": 0.116993,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_443",
+          "transcribed_regions": 1,
+          "reference_chars": 1672,
+          "polytonic_cer": 0.116627,
+          "base_letter_cer": 0.108254,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_447",
+          "transcribed_regions": 1,
+          "reference_chars": 1559,
+          "polytonic_cer": 0.140475,
+          "base_letter_cer": 0.135343,
+          "missing_lines": 0,
+          "extra_lines": 2
+        },
+        {
+          "page_id": "grc_grna_or_461",
+          "transcribed_regions": 1,
+          "reference_chars": 2040,
+          "polytonic_cer": 0.090686,
+          "base_letter_cer": 0.083333,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_475",
+          "transcribed_regions": 1,
+          "reference_chars": 1979,
+          "polytonic_cer": 0.076301,
+          "base_letter_cer": 0.073775,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_487",
+          "transcribed_regions": 1,
+          "reference_chars": 1497,
+          "polytonic_cer": 0.114896,
+          "base_letter_cer": 0.109552,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_489",
+          "transcribed_regions": 1,
+          "reference_chars": 1743,
+          "polytonic_cer": 0.095238,
+          "base_letter_cer": 0.086632,
+          "missing_lines": 0,
+          "extra_lines": 0
+        },
+        {
+          "page_id": "grc_grna_or_503",
+          "transcribed_regions": 1,
+          "reference_chars": 1759,
+          "polytonic_cer": 0.104605,
+          "base_letter_cer": 0.100625,
+          "missing_lines": 0,
+          "extra_lines": 1
+        },
+        {
+          "page_id": "grc_grna_or_513",
+          "transcribed_regions": 1,
+          "reference_chars": 1838,
+          "polytonic_cer": 0.082155,
+          "base_letter_cer": 0.078346,
+          "missing_lines": 0,
+          "extra_lines": 0
+        }
+      ]
+    }
+  },
+  "comparisons_to_ell": {
+    "ell+enhancer": {
+      "polytonic_cer_delta_percentage_points": 0.0,
+      "polytonic_cer_relative_improvement_percent": 0.0,
+      "base_letter_cer_delta_percentage_points": 0.0
+    },
+    "grc": {
+      "polytonic_cer_delta_percentage_points": 1.731744,
+      "polytonic_cer_relative_improvement_percent": -16.234052,
+      "base_letter_cer_delta_percentage_points": 1.694199
+    },
+    "ell+grc": {
+      "polytonic_cer_delta_percentage_points": 0.0,
+      "polytonic_cer_relative_improvement_percent": 0.0,
+      "base_letter_cer_delta_percentage_points": 0.0
+    }
+  },
+  "gate": {
+    "outcome": "fail",
+    "checks": {
+      "polytonic_cer_improvement": {
+        "operator": ">=",
+        "threshold_percent": 30.0,
+        "actual_percent": 0.0,
+        "passed": false
+      },
+      "base_letter_cer_degradation": {
+        "operator": "<=",
+        "threshold_percentage_points": 0.5,
+        "actual_percentage_points": 0.0,
+        "passed": true
+      },
+      "correct_base_rewrite": {
+        "operator": "<=",
+        "threshold_percent": 0.5,
+        "actual_percent": 0.0,
+        "numerator": 0,
+        "denominator": 16463,
+        "passed": true
+      },
+      "token_lineage": {
+        "operator": "==",
+        "threshold_percent": 100.0,
+        "actual_percent": 100.0,
+        "passed": true
+      },
+      "box_lineage": {
+        "operator": "==",
+        "threshold_percent": 100.0,
+        "actual_percent": 100.0,
+        "passed": true
+      },
+      "all_pages_completed": {
+        "operator": "==",
+        "threshold_pages": 12,
+        "actual_pages": 12,
+        "passed": true
+      }
+    }
+  },
+  "limitations": [
+    "The public CGPG package is not the paper's 30-page test split; these metrics must not be compared with the paper's headline accuracy.",
+    "The fixed slice is the first 12 scorable pages in the repository's deterministic holdout split, not a random or blinded sample, and all scored regions in this slice are reference-labelled Greek.",
+    "The slice comes from one corpus and typography family; it does not establish generalization to other editions.",
+    "CGPG provides no clean/degraded condition label used by this harness, so the fixed slice cannot report separate clean and degraded strata or attribute errors to degradation severity.",
+    "Latin-language safety is represented only by the correct-base rewrite and lineage gates because this slice contains no reference-labelled Latin regions.",
+    "The enhancer cannot restore missing accents or infer words; it can only normalize NFC and repair the pre-registered internal lookalike set."
+  ]
+}

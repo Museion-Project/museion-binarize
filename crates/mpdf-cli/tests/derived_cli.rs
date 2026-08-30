@@ -14,6 +14,7 @@ use mpdf_core::document_package::{
     Page, Source, SourceKind, ToolInfo, ValidationSummary, CANONICAL_MASTER_DPI, MDP_SCHEMA,
     MDP_SCHEMA_VERSION,
 };
+use mpdf_core::jobs::ExecutionLocation;
 use mpdf_core::ocr::{
     OcrBlock, OcrBox, OcrLine, OcrPage, OcrProviderProvenance, OcrRoute, OcrRouteReason, OcrRun,
     OcrWord, OCR_PROTOCOL, OCR_PROTOCOL_VERSION,
@@ -161,7 +162,7 @@ fn fixture(root: &Path) -> (PathBuf, OcrRun) {
             version: "0.1".into(),
             parameters: BTreeMap::new(),
             input_asset_sha256: "a".repeat(64),
-            execution_location: "local".into(),
+            execution_location: ExecutionLocation::Local,
             language_profile: None,
             model_digest: None,
             model_license: None,

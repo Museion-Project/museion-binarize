@@ -20,6 +20,7 @@ use mpdf_core::bookmarks::{
 };
 use mpdf_core::derived::DerivedDocument;
 use mpdf_core::document_package::DocumentPackage;
+use mpdf_core::jobs::ExecutionLocation;
 use mpdf_core::ocr::{
     OcrError, OcrPage, OcrProviderProvenance, OcrRun, PageOcrProvider, OCR_PROTOCOL,
     OCR_PROTOCOL_VERSION,
@@ -66,6 +67,10 @@ struct FixtureLocalProvider {
 }
 
 impl PageOcrProvider for FixtureLocalProvider {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
     fn recognize(
         &mut self,
         page_index: u32,
@@ -85,7 +90,7 @@ impl PageOcrProvider for FixtureLocalProvider {
                 version: "5.3".into(),
                 parameters: BTreeMap::new(),
                 input_asset_sha256: digest.to_owned(),
-                execution_location: "local".into(),
+                execution_location: ExecutionLocation::Local,
                 language_profile: Some("auto".into()),
                 model_digest: None,
                 model_license: None,
@@ -314,7 +319,10 @@ fn every_mode_produces_a_run_the_evidence_validator_accepts() {
                 .as_ref()
                 .expect("every cloud page records its provenance");
             assert_eq!(provenance.parameters["provider_mode"], mode.id());
-            assert_eq!(provenance.execution_location, mode.execution_location());
+            assert_eq!(
+                provenance.execution_location,
+                mode.execution_location_kind()
+            );
         }
     }
     // The local route's own evidence is unchanged and still valid.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage a relocatable, auditable OCR runtime.
+"""Stage a relocatable, auditable optional local OCR plugin artifact.
 
 This is deliberately a *staging* tool, not a dependency installer.  Every
 input is explicit and the default path is network-free.  A real macOS build
@@ -7,9 +7,10 @@ may pass a frozen sidecar, a Tesseract installation root and a provisioned
 ``tessdata_best`` directory.  Tests can pass ordinary executable fixtures;
 the generated manifest records whether Mach-O inspection was performed.
 
-The output directory is an artifact directory (normally under ``target`` or
-``dist-out``), never a source-tree Git path.  The application does not invoke
-this module at runtime.
+The output directory is an independent artifact directory (normally under
+``target`` or ``dist-out``), never a source-tree Git path. The base release
+does not require this artifact. The application does not invoke this module at
+runtime.
 """
 from __future__ import annotations
 

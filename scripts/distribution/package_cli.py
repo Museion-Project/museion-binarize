@@ -47,9 +47,11 @@ including the bundled PDFium library's own license and provenance.
 
 Project: https://github.com/Museion-Project/museion-binarize
 
-OCR is included only when this archive was built with an explicitly verified
-``ocr-runtime/`` directory.  Otherwise this is a PDFium/source-core archive;
-it does not claim a bundled Tesseract or Python runtime.
+The CLI's base functionality does not require OCR. A separately selected
+plugin-bearing artifact includes OCR only when it was built with an explicitly verified
+``ocr-runtime/`` directory. Without it, native-text PDFs and non-OCR
+conversion work; a scanned-page OCR request reports provider unavailable. No
+bundled Tesseract or Python runtime is claimed.
 """
 
 

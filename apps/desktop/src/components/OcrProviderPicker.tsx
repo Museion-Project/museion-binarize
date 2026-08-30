@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 
-import type { CloudFallback, ConnectionTest, OcrProviderStatus } from "../app/types";
+import type { OcrProviderStatus } from "../app/types";
 import type { OcrProviderSelection } from "../app/ocrProvider";
-import {
-  deleteModelProviderCredential,
-  ocrProviderStatus,
-  storeModelProviderCredential,
-  testOcrProvider,
-} from "../lib/tauri";
+import { ocrProviderStatus } from "../lib/tauri";
 
 export interface OcrProviderPickerProps {
   value: OcrProviderSelection;
@@ -25,11 +20,11 @@ export interface OcrProviderPickerProps {
  *
  * 1. **Local is preselected and stays preselected.** Nothing here changes the
  *    mode on its own, and no error path falls forward into a cloud mode.
- * 2. **Consent names the actual document.** "Upload 412 page images to
- *    Google" is a decision; "enable cloud OCR" is a shrug.
- * 3. **A key is written, never read.** The only credential control is
- *    store/replace/remove. There is no "show" button because there is
- *    nothing to show: the app never receives the value back.
+ * 2. **Consent names the actual document.** "Upload 412 page images to paid
+ *    brokered OCR" is a decision; "enable cloud OCR" is a shrug.
+ * 3. **There is no BYOK path.** The only cloud product mode is paid,
+ *    brokered M PDF Credits, which remains unavailable until a production
+ *    complete-coordinate OCR backend exists.
  */
 export function OcrProviderPicker({
   value,
@@ -38,21 +33,13 @@ export function OcrProviderPicker({
   pageCount,
 }: OcrProviderPickerProps) {
   const [status, setStatus] = useState<OcrProviderStatus | null>(null);
-  const [keyInput, setKeyInput] = useState("");
-  const [credentialPresent, setCredentialPresent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [test, setTest] = useState<ConnectionTest | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    ocrProviderStatus(value.credentialSlot)
+    ocrProviderStatus()
       .then((next) => {
         if (cancelled) return;
         setStatus(next);
-        setCredentialPresent(
-          next.modes.some((mode) => mode.id === "gemini-byok" && mode.credentialPresent),
-        );
       })
       .catch(() => {
         if (!cancelled) setStatus(null);
@@ -60,14 +47,11 @@ export function OcrProviderPicker({
     return () => {
       cancelled = true;
     };
-  }, [value.credentialSlot]);
+  }, []);
 
   const selected = status?.modes.find((mode) => mode.id === value.mode) ?? null;
 
-  function update(
-    patch: Partial<OcrProviderSelection>,
-    credentialPresentOverride?: boolean,
-  ) {
+  function update(patch: Partial<OcrProviderSelection>) {
     const next = { ...value, ...patch };
     const mode = status?.modes.find((item) => item.id === next.mode) ?? null;
     let blocked: string | null = null;
@@ -76,65 +60,11 @@ export function OcrProviderPicker({
         blocked = mode.blockers.join("; ");
       } else if (!next.cloudConsent) {
         blocked = "confirm that page images will be uploaded";
-      } else if (
-        next.mode === "gemini-byok" &&
-        !(credentialPresentOverride ?? credentialPresent)
-      ) {
-        blocked = "no key is stored for this slot";
       } else if (next.mode === "mpdf-credits" && next.maxCredits <= 0) {
         blocked = "authorize a credit ceiling first";
       }
     }
     onChange({ ...next, ready: blocked === null, blockedReason: blocked });
-  }
-
-  async function storeKey() {
-    if (!keyInput.trim()) return;
-    setBusy(true);
-    setProblem(null);
-    try {
-      const masked = await storeModelProviderCredential(value.credentialSlot, keyInput);
-      // The field is cleared immediately: there is no reason for the key to
-      // stay in the renderer's memory after it reaches the credential store.
-      setKeyInput("");
-      setCredentialPresent(masked.present);
-      update({}, masked.present);
-    } catch (reason) {
-      const failure = reason as { error?: { message?: string } };
-      setProblem(failure.error?.message ?? "the key could not be stored");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function removeKey() {
-    setBusy(true);
-    setProblem(null);
-    try {
-      await deleteModelProviderCredential(value.credentialSlot);
-      setCredentialPresent(false);
-      setTest(null);
-      // Removing the key returns the app to a fully local configuration.
-      update({ mode: "local", cloudConsent: false });
-    } catch (reason) {
-      const failure = reason as { error?: { message?: string } };
-      setProblem(failure.error?.message ?? "the key could not be removed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function runTest() {
-    setBusy(true);
-    setProblem(null);
-    try {
-      setTest(await testOcrProvider(value.mode, value.credentialSlot));
-    } catch (reason) {
-      const failure = reason as { error?: { message?: string } };
-      setProblem(failure.error?.message ?? "the connection test failed");
-    } finally {
-      setBusy(false);
-    }
   }
 
   return (
@@ -156,10 +86,15 @@ export function OcrProviderPicker({
             {mode.availability === "beta" && <> (Beta)</>}
           </label>
           <p className="ocr-provider-detail">
-            {mode.usesNetwork
+            {mode.id === "local"
+              ? "Native-text PDFs work in the base app. Scanned pages require the optional offline OCR plugin; nothing is uploaded."
+              : mode.usesNetwork
               ? `Page images are uploaded. Runs at ${mode.executionLocation}.`
               : "Nothing leaves this machine."}
             {mode.model && <> Model: {mode.model}.</>}
+            {mode.id === "mpdf-credits" && (
+              <> Paid and brokered; explicit consent and a hard cost limit are required.</>
+            )}
           </p>
           {mode.availability !== "stable" && (
             <ul role="note" className="ocr-provider-blockers">
@@ -184,115 +119,27 @@ export function OcrProviderPicker({
             this document to {selected.displayName}.
           </label>
 
-          <label>
-            If a page fails
-            <select
-              value={value.cloudFallback}
-              disabled={disabled}
-              onChange={(event) =>
-                update({ cloudFallback: event.target.value as CloudFallback })
-              }
-            >
-              <option value="local">
-                Recognize it here instead, and tell me which pages
-              </option>
-              <option value="fail">Stop and write nothing</option>
-            </select>
-          </label>
-
-          {selected.id === "gemini-byok" && (
-            <div className="ocr-provider-credential">
-              <p>
-                Key slot <code>{value.credentialSlot}</code>:{" "}
-                {credentialPresent ? "a key is stored (****)" : "no key is stored"}
-              </p>
-              <label>
-                {credentialPresent ? "Replace the key" : "Store a key"}
-                <input
-                  type="password"
-                  value={keyInput}
-                  disabled={disabled || busy}
-                  autoComplete="off"
-                  onChange={(event) => setKeyInput(event.target.value)}
-                  placeholder="paste your API key"
-                />
-              </label>
-              <button type="button" onClick={storeKey} disabled={disabled || busy || !keyInput}>
-                Save to this computer's keychain
-              </button>
-              <button
-                type="button"
-                onClick={removeKey}
-                disabled={disabled || busy || !credentialPresent}
-              >
-                Remove the key
-              </button>
-              <button type="button" onClick={runTest} disabled={disabled || busy}>
-                Test the connection
-              </button>
-              <p className="ocr-provider-hint">
-                The key is stored in this computer's keychain and is never shown
-                again, written to a settings file, or included in a log.
-              </p>
-              {test && (
-                <p role="status">
-                  {test.providerName} / {test.model}:{" "}
-                  {test.modelAvailable ? "reachable" : "not reachable"} — {test.diagnostic}
-                </p>
-              )}
-            </div>
-          )}
-
           {selected.id === "mpdf-credits" && (
             <div className="ocr-provider-credits">
-              <label>
-                Service endpoint
-                <input
-                  value={value.cloudEndpoint}
-                  disabled={disabled}
-                  onChange={(event) => update({ cloudEndpoint: event.target.value })}
-                  placeholder="https://…"
-                />
-              </label>
-              <label>
-                Credits per page
-                <input
-                  type="number"
-                  min={0}
-                  value={value.creditsPerPage}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    update({ creditsPerPage: Number(event.target.value) || 0 })
-                  }
-                />
-              </label>
               <label>
                 Never spend more than
                 <input
                   type="number"
                   min={0}
                   value={value.maxCredits}
-                  disabled={disabled}
+                  disabled={disabled || selected.availability === "unavailable"}
                   onChange={(event) => update({ maxCredits: Number(event.target.value) || 0 })}
                 />
               </label>
               <p className="ocr-provider-hint">
-                Estimated for this document:{" "}
-                {value.creditsPerPage * pageCount} credit
-                {value.creditsPerPage * pageCount === 1 ? "" : "s"}. The estimate
-                is reserved before the first page is sent; whatever is not used
-                is released.
+                Pricing is not shown until a production complete-coordinate OCR
+                service and auditable reservation policy exist.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {problem && (
-        <p role="alert" className="ocr-provider-error">
-          {problem}
-        </p>
-      )}
       {!value.ready && value.blockedReason && (
         <p role="status" className="ocr-provider-blocked">
           Cannot start: {value.blockedReason}

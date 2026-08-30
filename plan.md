@@ -1,7 +1,7 @@
 # Plan：M PDF 处理器分阶段实施与 GitHub CI 门禁
 
 **状态：** Active
-**日期：** 2026-08-27
+**日期：** 2026-08-30
 **当前分支：** `main`
 
 本文把当前 OCR + AI-ready 中间层方案拆成可以独立审查、测试、回退的 milestones。
@@ -150,6 +150,8 @@ checkpoint，支持重跑跳过已校验页、取消保留已提交页，失败�
 page JSON 是提交标记，raw artifact 先落盘并可幂等校验；崩溃留下的合法 page+raw 可被
 同源新 job adopt，临时 provider 失败按 M2 retryable 语义在后续运行重试。RapidOCR
 指纹包含协议、DPI、配置和三个 ONNX 模型内容摘要；原生文字的行/词框明确是近似几何。
+该里程碑保留为 v1 历史与兼容基线。根据 ADR 0011，当前发行契约不再把本地
+OCR 运行时当作基础包必需组件；它以独立可选插件交付。
 
 出口条件：扫描 PDF、混合 PDF 和 born-digital PDF fixture 全部通过；重跑可复用已完成页；
 内存随并发页数有界；没有模型时基础二值化仍可用。
@@ -205,7 +207,8 @@ M6。M5 的待填验收包仍保留并继续如实标记为 pending，不把未�
 - 证据信号：原 PDF outline、目录页、印刷页码、标题区域、字体/字号、编号、重复页眉页脚、
   阅读顺序和用户修订；
 - bookmark candidate 包含标题、层级、目标页、证据引用、置信状态和生成者；
-- 确定性规则先行，可选 AI 只做结构建议和疑难匹配；
+- 书签只消费经验证的规范原生文字/OCR 证据和用户修订，由确定性核心完成
+  目录检测、页码映射、层级、评分和 safe refusal；provider/enhancer 不直接写 outline；
 - 书签审阅 UI；
 - 写入不可见文字层和 PDF outline，并重新打开验证页数、坐标、搜索和跳转目标。
 
@@ -234,6 +237,34 @@ OCR；不在 M6 引入云端 LLM bookmark 生成或具体厂商 SDK。
 
 出口条件：关闭云端时产品完整成立；相同任务可切换 provider；隐私、失败语义、成本和删除
 策略均有自动化测试与用户可见说明。
+
+上述 M6 是已合并的历史基线。ADR 0011 已取代 ADR 0010 的默认产品决策：文本转写
+不再伪装成完整 OCR，Gemini BYOK 已禁用，托管 `mpdf-credits` 在无生产完整坐标
+OCR 服务时报告 `unavailable`。
+
+### OCR provider contract v2（ADR 0011，当前契约）
+
+**目标：** 把确定性核心、完整坐标 OCR 与文字增强拆成三层，并使基础发行包
+不依赖 OCR 运行时。
+
+交付：
+
+- `CompleteOcrProvider` 使用 `mpdf-ocr-provider/2`、schema `mpdf-ocr-provider` 0.2，
+  必须独立返回 block/line/word 文本、实测坐标、阅读顺序与 provenance；
+- `TextEnhancer` 仅对现有规范坐标证据提出可审阅文字修订，不能充当 OCR 或
+  书签决策器；历史 Gemini composite 只保留为实验路径；
+- 用户可选 mode 仅为 `local` 与 `mpdf-credits`；`local` 是稳定的离线/原生文字路由，
+  扫描页 OCR 能力则取决于运行时是否发现并验证可选插件；`mpdf-credits` 是需明确
+  同意和点数上限的付费托管模式，当前不可用；
+- 历史 `gemini-byok` 值保持可反序列化，但 availability 为 `disabled`、不出现在
+  provider list/picker，且不会静默切换模式；
+- 基础包无插件时原生文字 PDF 正常工作，需要 OCR 的扫描页明确报告 provider
+  不可用；本地 OCR 插件通过独立 overlay/staging/verifier/SBOM/smoke 契约交付；
+- 旧 MDP/job/bookmark/provider 记录按已声明 schema 继续读取，历史 composite 证据不重标。
+
+出口条件：基础发行 readiness 不需要 OCR 插件证据；
+`optional-local-ocr-plugin` 独立 profile 必须通过结构、许可、安装后四页 OCR smoke 与
+人工准确性门禁。
 
 ### 自动书签目录 v2（独立功能，非 milestone 编号）
 
@@ -284,7 +315,8 @@ outline；不是让模型自由生成语义目录。
 
 - 产品名、仓库名、bundle identifier、CLI/crate/schema identity 冻结与兼容矩阵；
 - Windows/macOS/Linux 安装包与升级验证；
-- SBOM、第三方模型许可、签名、公证、release manifest 和回滚演练；
+- 基础包 SBOM、签名、公证、release manifest 和回滚演练；可选本地 OCR 插件的
+  模型/运行时许可、SBOM 和 smoke 证据独立管理；
 - 性能、OCR、书签、隐私和无障碍发布报告。
 
 出口条件：三平台分发 CI 和安装实测通过；正式命名迁移不会破坏已有 MDP、设置或自动化脚本。
@@ -300,6 +332,7 @@ outline；不是让模型自由生成语义目录。
 | M4 AI-ready/校对 | 已合并 | [PR #17](https://github.com/Museion-Project/museion-binarize/pull/17) | GitHub CI 全绿；merge `181265f` |
 | M5 自动书签/PDF | 代码已合并；人工结果后补（不阻塞 M6） | [PR #18](https://github.com/Museion-Project/museion-binarize/pull/18)；[验收 PR #21](https://github.com/Museion-Project/museion-binarize/pull/21)；[人工验收包 PR #23](https://github.com/Museion-Project/museion-binarize/pull/23)，merge `2ff7001` | 产品负责人之后提供 Acrobat/Preview/iOS 与单人标注结果 |
 | M6 API | 已合并 | [PR #25](https://github.com/Museion-Project/museion-binarize/pull/25)；merge `3dd3389` | 发布准备留待 M7 |
+| OCR provider contract v2 | 当前契约 | ADR 0011 | 基础包与可选本地 OCR 插件独立验收；`mpdf-credits` 保持 unavailable |
 | 自动书签目录 v2 | 已交付并保留于 commit `11b0ae1` | `codex/auto-bookmark-v2-fixes` | 真实 reader/人工 gold/真机 Tauri 仍需分别记录，不得伪报通过 |
 | M7 发布/正式命名 | rc.3 hardening 进行中 | 本轮源码 | 版本/身份、SBOM、分发、签名、公证与跨平台证据分别过门 |
 
@@ -310,9 +343,10 @@ PDF.js 及 Foxit 证据。产品负责人将之后补充 digital/scanned TOC、s
 Preview UI 和 iOS 结果；这些结果仍不得伪报通过，但按 2026-08-28 的明确授权不再阻塞 M6。
 自动书签目录 v2 的代码回归和 reader matrix 已使用本机认可 PDFium 完成；商业阅读器真机、
 真实人工金标准语料和真机 Tauri/MAS 交互仍未运行，本轮不产出真实准确率或人工验收数字。
-另外，rc.3 分发流尚未把 Tesseract 可执行文件、OCR sidecar 与固定
-`tessdata_best` 模型装入各平台安装包；源码环境的合成 gold 通过不能替代这个
-分发证据，因此它是 M7 发布阻塞项。
+另外，可选本地 OCR 插件尚未在所有平台完成 Tesseract、sidecar、固定
+`tessdata_best` 模型的独立产物验收；源码环境的合成 gold 通过不能替代这个
+分发证据。这是 `optional-local-ocr-plugin` profile 的阻塞项，不阻塞无 OCR 运行时的
+基础发行包；基础包中原生文字 PDF 正常工作，需 OCR 的扫描页会明确失败。
 
 M6 当前没有外部阻塞。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。

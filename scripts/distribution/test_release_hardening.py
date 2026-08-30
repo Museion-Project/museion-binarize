@@ -26,10 +26,25 @@ ROOT = HERE.parents[1]
 PDFIUM = {"asset": [{"target_triple": "aarch64-apple-darwin", "version": "151.0.7920.0", "build": "7920", "library_sha256": "a" * 64, "archive_url": "https://example.invalid/pdfium.tgz"}]}
 
 
+def write_base_install_fixture(path: Path) -> Path:
+    """Derive fixture-shaped base evidence without rewriting the audit record."""
+    source = ROOT / "docs/evidence/rc3-local-install-arm64.json"
+    evidence = json.loads(source.read_text())
+    evidence["distribution_profile"] = "base"
+    evidence.pop("bundled_ocr", None)
+    path.write_text(json.dumps(evidence))
+    return path
+
+
 class HardeningTests(unittest.TestCase):
-    def test_checked_in_macos_install_evidence_is_explicit_and_valid(self):
+    def test_legacy_combined_install_evidence_cannot_prove_base(self):
         evidence = HERE.parents[1] / "docs/evidence/rc3-local-install-arm64.json"
-        self.assertTrue(release_readiness.validate_macos_install_evidence(evidence))
+        self.assertFalse(release_readiness.validate_macos_install_evidence(evidence))
+
+    def test_base_install_evidence_is_explicit_and_valid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = write_base_install_fixture(Path(tmp) / "base-install.json")
+            self.assertTrue(release_readiness.validate_macos_install_evidence(evidence))
 
     def test_sbom_is_deterministic_and_contains_transitive_fixture_and_pdfium(self):
         metadata = {"packages": [
@@ -302,30 +317,47 @@ class CredentialLeakScan(unittest.TestCase):
     def test_readiness_reports_the_cloud_blockers_it_cannot_clear(self):
         gates = release_readiness.run()
         blocked = release_readiness.cloud_blockers(gates)
-        self.assertIn("mpdf_credits_production_backend", blocked)
+        self.assertIn("mpdf_credits_complete_ocr_backend", blocked)
         self.assertIn("cloud_privacy_policy_and_deletion", blocked)
-        # Local OCR must never be gated on any of this.
+        self.assertEqual(gates["gemini_byok_product_mode"], "disabled")
+        # The base and optional local plugin must never be gated on cloud.
         self.assertNotIn("local", " ".join(blocked))
+        synthetic = dict(gates, optional_local_ocr_plugin="blocked_missing")
+        self.assertNotIn(
+            "optional_local_ocr_plugin",
+            release_readiness.cloud_blockers(synthetic),
+        )
 
     def test_release_profiles_turn_pending_evidence_into_a_machine_failure(self):
         gates = release_readiness.run()
+        self.assertEqual(
+            set(release_readiness.PROFILE_REQUIRED),
+            {"source", "base", "optional-local-ocr-plugin"},
+        )
         self.assertEqual(release_readiness.required_failures(gates, "source"), [])
-        local_ocr = release_readiness.required_failures(gates, "local-ocr-preview")
-        self.assertIn("ocr_runtime_distribution", local_ocr)
-        cloud = release_readiness.required_failures(gates, "cloud-beta")
-        self.assertIn("gemini_byok_live_validation", cloud)
-        self.assertIn("cloud_privacy_policy_and_deletion", cloud)
+        base = release_readiness.required_failures(gates, "base")
+        self.assertNotIn("optional_local_ocr_plugin", base)
+        plugin = release_readiness.required_failures(
+            gates, "optional-local-ocr-plugin"
+        )
+        self.assertIn("optional_local_ocr_plugin", plugin)
+        self.assertNotIn("gemini_byok_product_mode", plugin)
+        self.assertNotIn("mpdf_credits_complete_ocr_backend", plugin)
 
-    def test_installed_evidence_must_bind_to_the_same_artifact(self):
+    def test_optional_plugin_evidence_is_independent_from_base_artifact(self):
+        source = ROOT / "docs/evidence/rc3-ocr-runtime-smoke-arm64.json"
+        evidence = json.loads(source.read_text())
+        evidence["artifact"]["sha256"] = "f" * 64
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            one = root / "one.json"
-            two = root / "two.json"
-            one.write_text(json.dumps({"artifact": {"sha256": "a" * 64}}))
-            two.write_text(json.dumps({"artifact": {"sha256": "b" * 64}}))
-            self.assertFalse(release_readiness.evidence_artifacts_match(one, two))
-            two.write_text(json.dumps({"artifact": {"sha256": "a" * 64}}))
-            self.assertTrue(release_readiness.evidence_artifacts_match(one, two))
+            install = write_base_install_fixture(Path(tmp) / "base-install.json")
+            plugin = Path(tmp) / "plugin-smoke.json"
+            plugin.write_text(json.dumps(evidence))
+            gates = release_readiness.run(
+                macos_install_evidence=install,
+                ocr_runtime_evidence=plugin,
+            )
+        self.assertEqual(gates["macos_arm64_install_runtime"], "pass_local")
+        self.assertEqual(gates["optional_local_ocr_plugin"], "pass_local")
 
 
 class OcrRuntimeStructureTests(unittest.TestCase):

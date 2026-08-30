@@ -22,9 +22,10 @@ Silicon）** 完成了人工端到端运行验收——桌面 GUI 的原生应�
 请参阅 [`docs/limitations.md`](docs/limitations.md) 了解本仓库当前能做
 什么、不能做什么。
 
-当前源码正在准备 `0.1.0-rc.3`，已包含 MDP 证据包、持久化任务/provider
-契约、本地 OCR、AI-ready 修订、证据书签/可搜索 PDF 以及确定性的自动书签
-v2。这些源码能力尚未形成公开 rc.3 下载；下方链接有意继续指向 rc.2。
+当前源码正在准备 `0.1.0-rc.3`，已包含 MDP 证据包、持久化任务、
+完整坐标 OCR provider 契约、AI-ready 修订、证据书签/可搜索 PDF 以及
+确定性的自动书签 v2。这些源码能力尚未形成公开 rc.3 下载；下方链接
+有意继续指向 rc.2。
 
 MDP 0.1 证据包切片也可通过 CLI 使用：
 `mpdf package create book.pdf --output book.mdp` 和
@@ -40,10 +41,10 @@ mpdf job status --db .mpdf/jobs.sqlite --job-id demo
 mpdf job cancel --db .mpdf/jobs.sqlite --job-id demo
 ```
 
-M3 本地 OCR 最小入口会优先复用 PDF 原生文字层，只对空白、极少文字或乱码页逐页
-渲染并写入 typed block/line/word 证据；`reference` 仅是开发测试桩，RapidOCR 仅保留用于
-历史/provider 契约测试。当前主流程使用固定的 Tesseract `tessdata_best`
-`grc+deu+eng` 模型：
+M3 OCR 入口优先复用 PDF 原生文字层，原生文字可用时不需要 OCR 引擎；
+纯扫描页则需要一个完整坐标 OCR provider。`reference` 仅是开发测试桩，RapidOCR
+仅保留用于历史/provider 契约测试。源码开发者可显式提供 Tesseract sidecar 与固定的
+`tessdata_best` `grc+deu+eng` 模型：
 
 ```bash
 mpdf ocr scan.pdf --output scan.mdp --jobs-db .mpdf/jobs.sqlite --job-id scan-1 --provider reference
@@ -53,8 +54,10 @@ mpdf run scan.pdf --output scan-final.pdf \
   --models /path/to/tessdata_best
 ```
 
-源码运行不会自动下载模型。rc.3 尚未把 Tesseract 运行时、sidecar 与训练数据装入
-各平台安装包；在这个发布门禁关闭前，不声称下载包可开箱即用 OCR。
+源码运行不会自动下载模型。基础发行包有意不捆绑、也不依赖 OCR 运行时；
+可选的独立本地 OCR 插件才包含 Tesseract、sidecar、依赖库、模型和许可。
+未安装插件时，原生文字 PDF 仍正常处理；扫描页的 OCR 请求会明确报告无可用
+完整 OCR provider。详见 [`docs/ocr-providers.md`](docs/ocr-providers.md)。
 
 M4 提供确定性的 AI-ready 派生导出和本地校对队列：
 `mpdf export scan.mdp --format all --output scan-derived`、
@@ -71,8 +74,9 @@ M4 提供确定性的 AI-ready 派生导出和本地校对队列：
 - 默认跨平台：macOS、Windows 和 Linux 都是一等目标，而非事后添加的支持。
 
 M PDF 处理器 不会将自身描述为“AI 驱动”。Phase 1 的二值化和书签决策使用经典、
-确定性方法，而非生成式或黑箱模型；生产 OCR 路径使用 Tesseract 5 LSTM 与固定
-`tessdata_best` 数据，识别文本作为证据保留，不做词典或 LLM 改写。
+确定性方法，而非生成式或黑箱模型。完整 OCR provider 必须返回实测坐标证据；
+可选文字增强不能提供几何或决定书签。识别原文作为证据保留，不会被静默的词典或
+LLM 改写。
 
 ## Phase 1 功能
 
@@ -83,17 +87,17 @@ M PDF 处理器 不会将自身描述为“AI 驱动”。Phase 1 的二值化�
 - 采用 **CCITT Group 4** 压缩，输出紧凑的双色文件。
 - 提供图形化桌面应用与命令行界面，二者共享同一处理核心。
 - 桌面应用支持原生单 PDF 拖入打开。
-- 支持固定的 Tesseract 多音调古希腊语/德语/英语本地 OCR（源码环境需显式配置，
-  安装包捆绑仍是 rc.3 待完成门禁）。
+- 可选的 Tesseract 多音调古希腊语/德语/英语本地 OCR 插件；它是独立产物，
+  不是基础发行包的依赖。
 - 支持证据书签、可搜索输出和自动书签 v2。
-- 支持明确同意后才启用的远程 OCR API；转换和本地 OCR 可保持离线。
-- 可选的云端 OCR：使用你自己的 Gemini 密钥，**坐标仍来自本地版面检测**，模型
-  只提供字符。本地始终是默认模式，云端绝不会被隐式选中，任何回退到本地识别的
-  页面都会按页号报告。M PDF 云端 OCR（点数模式）已实现客户端协议，但没有生产
-  服务，详见 [`docs/ocr-providers.md`](docs/ocr-providers.md)。
+- provider-neutral 的完整坐标 OCR 契约（`mpdf-ocr-provider/2`）和独立的
+  `TextEnhancer` 边界。
+- 计划中的付费托管 `mpdf-credits` OCR 必须显式同意并设定点数上限；当前因无
+  生产服务而 **不可用**。Gemini BYOK 已 **禁用**，不是可用的产品模式。详见
+  [`docs/ocr-providers.md`](docs/ocr-providers.md)。
 - 提供可复现的基准测试框架，用于评估输出质量。
 
-以上功能均已在本仓库中实现。里程碑演进历史详见
+上述已实现行为与 unavailable/disabled 状态都在本仓库中显式表达。里程碑演进历史详见
 [`docs/roadmap.md`](docs/roadmap.md)；如何获取打包版本请见下方"下载"一节。
 
 ## 下载

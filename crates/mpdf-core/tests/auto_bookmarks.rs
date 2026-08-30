@@ -9,6 +9,7 @@ use mpdf_core::bookmarks::{
 };
 use mpdf_core::derived::DerivedDocument;
 use mpdf_core::document_package::{DocumentPackage, ExistingOutlineEvidence};
+use mpdf_core::jobs::ExecutionLocation;
 use mpdf_core::ocr::{OcrProviderProvenance, OcrRun};
 
 fn derived_of(package: &DocumentPackage, ocr: &OcrRun) -> DerivedDocument {
@@ -202,7 +203,7 @@ fn local_and_remote_installed_ocr_reach_the_same_decisions() {
             version: "2026.1".into(),
             parameters: Default::default(),
             input_asset_sha256: "0".repeat(64),
-            execution_location: "remote".into(),
+            execution_location: ExecutionLocation::LegacyUserKey,
             language_profile: None,
             model_digest: None,
             model_license: None,

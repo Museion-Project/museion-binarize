@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Execute bundled CLI OCR and emit strict evidence."""
+"""Execute a plugin-bearing CLI artifact and emit strict OCR evidence.
+
+This is an optional-plugin gate, never a base-release prerequisite.
+"""
 from __future__ import annotations
 
 import argparse

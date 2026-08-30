@@ -138,13 +138,7 @@ pub struct FinalPdfWork {
     /// re-checked here rather than trusted.
     pub provider_mode: mpdf_core::ocr_provider::OcrProviderMode,
     pub cloud_consent: bool,
-    pub credential_slot: String,
-    pub cloud_fallback: mpdf_core::ocr_provider::CloudFallback,
-    pub cloud_endpoint: Option<String>,
-    #[cfg_attr(not(feature = "dev-credits"), allow(dead_code))]
     pub max_credits: u64,
-    #[cfg_attr(not(feature = "dev-credits"), allow(dead_code))]
-    pub credits_per_page: u64,
     pub engine: mpdf_core::ocr::OcrEngine,
     pub engine_binary: Option<PathBuf>,
     pub sidecar: Option<PathBuf>,
@@ -153,7 +147,6 @@ pub struct FinalPdfWork {
     pub overwrite: bool,
     pub ocr_dpi: u16,
     pub job_id: String,
-    pub cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub progress: Box<dyn ProgressReporter>,
     pub stage: Box<dyn Fn(&str) + Send>,
 }
@@ -353,14 +346,15 @@ fn final_pdf(
 fn final_pdf_cloud(
     work: &FinalPdfWork,
 ) -> CoreResult<Option<Box<dyn mpdf_core::orchestrator::CloudProviderFactory>>> {
-    use mpdf_api_client::cloud_ocr::{CloudTransportPolicy, GeminiByokFactory, GEMINI_ENDPOINT};
-    #[cfg(feature = "dev-credits")]
-    use mpdf_core::ocr_provider::credits;
-    use mpdf_core::ocr_provider::gemini::CloudOcrConfig;
-    use mpdf_core::ocr_provider::OcrProviderMode;
+    use mpdf_core::ocr_provider::{credits, OcrProviderMode, BYOK_DISABLED_MESSAGE};
 
     if work.provider_mode == OcrProviderMode::Local {
         return Ok(None);
+    }
+    if work.provider_mode == OcrProviderMode::GeminiByok {
+        return Err(CoreError::InvalidParameter(
+            BYOK_DISABLED_MESSAGE.to_owned(),
+        ));
     }
     if !work.cloud_consent {
         return Err(CoreError::InvalidParameter(
@@ -369,65 +363,30 @@ fn final_pdf_cloud(
                 .to_owned(),
         ));
     }
-    let layout = format!("{}/{}", work.engine.as_str(), work.language_profile);
     match work.provider_mode {
         OcrProviderMode::Local => unreachable!("handled above"),
-        OcrProviderMode::GeminiByok => {
-            let mut config = CloudOcrConfig::gemini_byok(&work.credential_slot);
-            config.fallback = work.cloud_fallback;
-            Ok(Some(Box::new(
-                GeminiByokFactory::new(
-                    config,
-                    work.cloud_endpoint.as_deref().unwrap_or(GEMINI_ENDPOINT),
-                    CloudTransportPolicy::default(),
-                    layout,
-                )
-                .with_cancellation(work.cancelled.clone()),
-            )))
-        }
+        OcrProviderMode::GeminiByok => unreachable!("disabled above"),
         OcrProviderMode::MpdfCredits => {
-            #[cfg(not(feature = "dev-credits"))]
-            return Err(CoreError::InvalidParameter(
-                "M PDF Credits is not compiled into this production build".to_owned(),
-            ));
-            #[cfg(feature = "dev-credits")]
-            {
-                let Some(endpoint) = work.cloud_endpoint.as_deref() else {
-                    return Err(CoreError::InvalidParameter(format!(
-                        "M PDF Cloud OCR has no production service in this build: {}",
-                        credits::release_blockers().join("; ")
-                    )));
-                };
-                if work.max_credits == 0 {
-                    return Err(CoreError::InvalidParameter(
-                        "a credit ceiling must be authorized before a brokered run can start"
-                            .to_owned(),
-                    ));
-                }
-                let mut config = CloudOcrConfig::mpdf_credits(work.credits_per_page);
-                config.fallback = work.cloud_fallback;
-                Ok(Some(Box::new(
-                    mpdf_api_client::cloud_ocr::MpdfCreditsFactory::new(
-                        config,
-                        endpoint,
-                        CloudTransportPolicy::default(),
-                        layout,
-                        work.max_credits,
-                        b"mpdf-credits-development-verification".to_vec(),
-                    )
-                    .with_cancellation(work.cancelled.clone()),
-                )))
+            if work.max_credits == 0 {
+                return Err(CoreError::InvalidParameter(
+                    "a hard cost limit must be authorized before a paid brokered OCR run can start"
+                        .to_owned(),
+                ));
             }
+            Err(CoreError::InvalidParameter(format!(
+                "M PDF Cloud OCR is unavailable: no production backend currently returns the complete coordinate OCR contract; {}",
+                credits::release_blockers().join("; ")
+            )))
         }
     }
 }
 
 /// Builds the real OCR provider for a user-visible desktop conversion.
 ///
-/// The reference provider is a deterministic development stub that emits no
-/// words. Falling back to it would turn a missing runtime dependency into a
-/// successful-looking but unsearchable PDF, so the desktop path fails closed
-/// unless both halves of the production provider are present.
+/// A base installation without the optional plugin uses `NativeTextOnly`:
+/// reliable native-text pages still work, while a scanned page fails with the
+/// installation diagnostic rather than producing a successful-looking but
+/// unsearchable PDF.
 fn final_pdf_provider(
     engine: mpdf_core::ocr::OcrEngine,
     engine_binary: Option<&std::path::Path>,
@@ -440,10 +399,15 @@ fn final_pdf_provider(
 
     let (executable, model_dir) = match (sidecar, model_dir) {
         (Some(executable), Some(model_dir)) => (executable, model_dir),
-        _ => return Err(CoreError::InvalidParameter(
-            "local OCR is not configured; both the OCR sidecar and model directory are required"
-                .to_owned(),
-        )),
+        (None, None) => return Ok(OcrProviderChoice::NativeTextOnly {
+            diagnostic: "this scanned or image-only page requires the optional local OCR plugin; install and verify the offline OCR runtime, or configure both the OCR sidecar and model directory. PDFs with a reliable native text layer do not require the plugin".to_owned(),
+        }),
+        _ => {
+            return Err(CoreError::InvalidParameter(
+                "an explicit optional local OCR plugin configuration requires both the OCR sidecar and model directory"
+                    .to_owned(),
+            ))
+        }
     };
     let mut config = SidecarOcrConfig::tesseract(
         executable.to_path_buf(),
@@ -731,9 +695,19 @@ mod final_pdf_provider_tests {
     use mpdf_core::ocr::OcrEngine;
 
     #[test]
-    fn a_user_visible_run_never_falls_back_to_the_empty_reference_provider() {
+    fn a_base_run_without_the_plugin_uses_native_text_only() {
+        let provider = final_pdf_provider(OcrEngine::Tesseract, None, "auto", None, None).unwrap();
+        let mpdf_core::orchestrator::OcrProviderChoice::NativeTextOnly { diagnostic } = provider
+        else {
+            panic!("the base package must not substitute an empty OCR provider");
+        };
+        assert!(diagnostic.contains("optional local OCR plugin"));
+        assert!(diagnostic.contains("reliable native text"));
+    }
+
+    #[test]
+    fn a_partial_explicit_plugin_configuration_fails_closed() {
         for (sidecar, models) in [
-            (None, None),
             (Some(std::path::Path::new("sidecar")), None),
             (None, Some(std::path::Path::new("models"))),
         ] {

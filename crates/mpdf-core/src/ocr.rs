@@ -244,7 +244,7 @@ pub struct OcrProviderProvenance {
     pub version: String,
     pub parameters: BTreeMap<String, String>,
     pub input_asset_sha256: String,
-    pub execution_location: String,
+    pub execution_location: ExecutionLocation,
     /// The language profile the page was recognized under. A page recognized
     /// with the wrong profile is the single largest source of the Greek and
     /// German failures this layer exists to prevent, so it is recorded as a
@@ -273,7 +273,7 @@ impl OcrProviderProvenance {
         version: String,
         parameters: BTreeMap<String, String>,
         input_asset_sha256: String,
-        execution_location: String,
+        execution_location: ExecutionLocation,
     ) -> Self {
         let take = |key: &str| parameters.get(key).filter(|v| !v.is_empty()).cloned();
         let model_set = match (take("model_set"), take("model_set_version")) {
@@ -327,7 +327,7 @@ impl OcrRun {
             if !seen.insert(page.page_index) {
                 return Err(OcrError::InvalidEvidence("duplicate page index".into()));
             }
-            validate_page(page)?;
+            validate_ocr_page(page)?;
         }
         for error in &self.errors {
             if error.message.is_empty()
@@ -375,7 +375,11 @@ fn validate_protocol(protocol: &str, version: &str) -> std::result::Result<(), O
     Ok(())
 }
 
-fn validate_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
+/// Validates one canonical coordinate-bearing OCR page.
+///
+/// Public so complete providers and text-enhancement application can share the
+/// exact same evidence boundary instead of maintaining weaker copies.
+pub fn validate_ocr_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
     if page.width == 0 || page.height == 0 || page.blocks.len() > MAX_OCR_BLOCKS {
         return Err(OcrError::InvalidEvidence(
             "invalid OCR page dimensions/count".into(),
@@ -467,7 +471,6 @@ fn validate_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
             || provenance.model.len() > 256
             || provenance.version.is_empty()
             || provenance.version.len() > 64
-            || provenance.execution_location.is_empty()
             || provenance.input_asset_sha256.len() != 64
             || !provenance
                 .input_asset_sha256
@@ -534,12 +537,41 @@ fn validate_confidence(confidence: f32) -> std::result::Result<(), OcrError> {
 }
 
 pub trait PageOcrProvider {
+    /// Where this provider executes when recognition is attempted. This is
+    /// deliberately mandatory: a future network provider must make the
+    /// choice explicitly, so even failed attempts cannot silently inherit a
+    /// local default in durable provenance.
+    fn execution_location(&self) -> ExecutionLocation;
+
     fn recognize(
         &mut self,
         page_index: u32,
         image: &DynamicImage,
         input_asset_sha256: &str,
     ) -> std::result::Result<OcrPage, OcrError>;
+}
+
+/// Provider used by the base package when the optional offline OCR plugin is
+/// absent. Reliable native text pages never call it; a scanned/image-only page
+/// receives the supplied actionable diagnostic.
+#[derive(Debug, Clone)]
+pub struct OptionalOcrPluginUnavailable {
+    pub diagnostic: String,
+}
+
+impl PageOcrProvider for OptionalOcrPluginUnavailable {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
+    fn recognize(
+        &mut self,
+        _page_index: u32,
+        _image: &DynamicImage,
+        _input_asset_sha256: &str,
+    ) -> std::result::Result<OcrPage, OcrError> {
+        Err(OcrError::ProviderUnavailable(self.diagnostic.clone()))
+    }
 }
 
 /// Deterministic provider used by integration tests and development builds.
@@ -550,6 +582,10 @@ pub trait PageOcrProvider {
 pub struct ReferenceOcrProvider;
 
 impl PageOcrProvider for ReferenceOcrProvider {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
     fn recognize(
         &mut self,
         page_index: u32,
@@ -597,7 +633,7 @@ impl PageOcrProvider for ReferenceOcrProvider {
                 version: "0.1".into(),
                 parameters: BTreeMap::new(),
                 input_asset_sha256: input_asset_sha256.into(),
-                execution_location: "local".into(),
+                execution_location: ExecutionLocation::Local,
                 language_profile: None,
                 model_digest: None,
                 model_license: None,
@@ -806,10 +842,14 @@ struct RapidResponse {
     model: String,
     version: String,
     parameters: BTreeMap<String, String>,
-    execution_location: String,
+    execution_location: ExecutionLocation,
 }
 
 impl PageOcrProvider for RapidOcrProvider {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
     fn recognize(
         &mut self,
         page_index: u32,
@@ -1006,7 +1046,7 @@ impl PageOcrProvider for RapidOcrProvider {
             // writer also stores it under ocr/raw/ without logging it.
             provider_raw_artifact: Some(raw_response),
         };
-        validate_page(&page)?;
+        validate_ocr_page(&page)?;
         Ok(page)
     }
 }
@@ -1158,7 +1198,10 @@ pub fn run_session<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 evidence.route = OcrRoute::Ocr {
                     reason: route_reason.clone(),
                 };
-                if let Err(error) = validate_page(&evidence) {
+                let validation =
+                    validate_page_execution_location(&evidence, provider.execution_location())
+                        .and_then(|()| validate_ocr_page(&evidence));
+                if let Err(error) = validation {
                     run.errors.push(OcrPageError {
                         page_index: page.index,
                         route_reason: route_reason.clone(),
@@ -1267,6 +1310,8 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
             if matches!(record.status, crate::jobs::PageStatus::Completed) {
                 let existing = read_ocr_page_at_root(&run_root, page.index)
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                validate_page_execution_location(&existing, provider.execution_location())
+                    .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
                 let page_path = run_root
                     .join("ocr/pages")
                     .join(format!("p{:06}.json", page.index.saturating_add(1)));
@@ -1296,6 +1341,8 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
             {
                 let orphan = read_ocr_page_at_root(&run_root, page.index)
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                validate_page_execution_location(&orphan, provider.execution_location())
+                    .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
                 let claimed = store
                     .claim_page_at(job_id, owner, page.index, unix_seconds()?, 3_600)
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
@@ -1308,16 +1355,35 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
                 let bytes = read_bounded_file(&page_path, MAX_PROVIDER_OUTPUT_BYTES)
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
                 let digest = crate::document_package::sha256_digest(&bytes);
-                store
-                    .checkpoint_page(
-                        job_id,
-                        page.index,
-                        owner,
-                        &format!("ocr-page-{}", page.index + 1),
-                        &digest,
-                        unix_seconds()?,
-                    )
-                    .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                let checkpointed_at = unix_seconds()?;
+                if let Some(response) = provider_response_for_page(&orphan, digest.clone()) {
+                    // Preserve provider provenance when adopting a page that
+                    // reached disk before the SQLite transaction. Otherwise
+                    // a paid remote result would survive only as a generic
+                    // checkpoint with no provider-run location.
+                    store
+                        .record_provider_success_and_checkpoint(
+                            job_id,
+                            page.index,
+                            owner,
+                            &format!("ocr-page-{}", page.index + 1),
+                            &response,
+                            checkpointed_at,
+                            checkpointed_at,
+                        )
+                        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                } else {
+                    store
+                        .checkpoint_page(
+                            job_id,
+                            page.index,
+                            owner,
+                            &format!("ocr-page-{}", page.index + 1),
+                            &digest,
+                            checkpointed_at,
+                        )
+                        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                }
                 run.pages.push(orphan);
                 continue;
             }
@@ -1386,12 +1452,16 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
                 Err(error) => {
                     check_durable_cancelled(store, job_id, cancelled)?;
                     let provenance = ProviderProvenance {
-                        engine: "local-ocr".into(),
+                        // The attempt can be local or remote. Until the page
+                        // provider exposes richer failure identity, keep this
+                        // label neutral and let the mandatory typed location
+                        // carry the privacy/billing distinction.
+                        engine: "ocr-provider".into(),
                         model: "unavailable".into(),
                         version: OCR_PROTOCOL_VERSION.into(),
                         parameters: BTreeMap::new(),
                         input_asset_sha256: input_digest,
-                        execution_location: ExecutionLocation::Local,
+                        execution_location: provider.execution_location(),
                     };
                     store
                         .record_provider_failure(
@@ -1420,7 +1490,10 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
             }
         };
         check_durable_cancelled(store, job_id, cancelled)?;
-        validate_page(&evidence).map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+        validate_page_execution_location(&evidence, provider.execution_location())
+            .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+        validate_ocr_page(&evidence)
+            .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         write_ocr_page(&run_root, &evidence)
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         // `write_ocr_page` persists pretty JSON; hash those exact canonical
@@ -1429,20 +1502,7 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
         let bytes = serde_json::to_vec_pretty(&evidence)
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         let output_digest = crate::document_package::sha256_digest(&bytes);
-        if let Some(provenance) = &evidence.provider_provenance {
-            let response = ProviderResponse {
-                protocol: JOB_PROTOCOL.into(),
-                protocol_version: JOB_PROTOCOL_VERSION.into(),
-                output_digest,
-                provenance: ProviderProvenance {
-                    engine: provenance.engine.clone(),
-                    model: provenance.model.clone(),
-                    version: provenance.version.clone(),
-                    parameters: provenance.parameters.clone(),
-                    input_asset_sha256: provenance.input_asset_sha256.clone(),
-                    execution_location: ExecutionLocation::Local,
-                },
-            };
+        if let Some(response) = provider_response_for_page(&evidence, output_digest.clone()) {
             store
                 .record_provider_success_and_checkpoint(
                     job_id,
@@ -1488,6 +1548,40 @@ pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + 
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
     }
     Ok(run)
+}
+
+fn provider_response_for_page(page: &OcrPage, output_digest: String) -> Option<ProviderResponse> {
+    let provenance = page.provider_provenance.as_ref()?;
+    Some(ProviderResponse {
+        protocol: JOB_PROTOCOL.into(),
+        protocol_version: JOB_PROTOCOL_VERSION.into(),
+        output_digest,
+        provenance: ProviderProvenance {
+            engine: provenance.engine.clone(),
+            model: provenance.model.clone(),
+            version: provenance.version.clone(),
+            parameters: provenance.parameters.clone(),
+            input_asset_sha256: provenance.input_asset_sha256.clone(),
+            execution_location: provenance.execution_location,
+        },
+    })
+}
+
+fn validate_page_execution_location(
+    page: &OcrPage,
+    declared_location: ExecutionLocation,
+) -> std::result::Result<(), OcrError> {
+    let Some(provenance) = &page.provider_provenance else {
+        return Ok(());
+    };
+    if provenance.execution_location != declared_location {
+        return Err(OcrError::InvalidEvidence(format!(
+            "OCR provider execution location mismatch: provider declared {}, page recorded {}",
+            declared_location.as_str(),
+            provenance.execution_location.as_str()
+        )));
+    }
+    Ok(())
 }
 
 fn check_durable_cancelled(
@@ -1714,7 +1808,7 @@ pub fn write_ocr_summary(root: &Path, run: &OcrRun) -> std::result::Result<(), O
 /// before its SQLite checkpoint; an interrupted write therefore cannot make
 /// a completed database page appear successful on resume.
 pub fn write_ocr_page(root: &Path, page: &OcrPage) -> std::result::Result<(), OcrError> {
-    validate_page(page)?;
+    validate_ocr_page(page)?;
     let pages_dir = root.join("ocr/pages");
     if !pages_dir.is_dir() {
         return Err(OcrError::Package("OCR pages directory is missing".into()));
@@ -1836,7 +1930,7 @@ fn read_ocr_page_at_root(root: &Path, page_index: u32) -> std::result::Result<Oc
             "OCR page index does not match path".into(),
         ));
     }
-    validate_page(&page)?;
+    validate_ocr_page(&page)?;
     verify_raw_artifact(root, &page)?;
     Ok(page)
 }
@@ -2119,6 +2213,27 @@ mod tests {
     }
 
     #[test]
+    fn base_package_without_plugin_keeps_native_text_but_explains_scanned_pages() {
+        let diagnostic = "scanned pages require the optional offline OCR plugin";
+        let mut provider = OptionalOcrPluginUnavailable {
+            diagnostic: diagnostic.into(),
+        };
+        let native = run_session(
+            &session(&["reliable native text layer"]),
+            &mut provider,
+            300,
+        )
+        .unwrap();
+        assert!(native.errors.is_empty());
+        assert!(matches!(native.pages[0].route, OcrRoute::NativeText));
+
+        let scanned = run_session(&session(&[""]), &mut provider, 300).unwrap();
+        assert!(scanned.pages.is_empty());
+        assert_eq!(scanned.errors[0].code, "provider_unavailable");
+        assert!(scanned.errors[0].message.contains(diagnostic));
+    }
+
+    #[test]
     fn native_text_builds_approximate_line_and_word_structure() {
         let mut provider = ReferenceOcrProvider;
         let run = run_session(&session(&["one two\nthree e\u{301}"]), &mut provider, 300).unwrap();
@@ -2176,6 +2291,35 @@ mod tests {
     }
 
     #[test]
+    fn execution_location_round_trips_in_ocr_records_and_reads_legacy_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut provider = ReferenceOcrProvider;
+        let mut run = run_session(&session(&["", "", ""]), &mut provider, 300).unwrap();
+        for (page, location) in run.pages.iter_mut().zip([
+            ExecutionLocation::Local,
+            ExecutionLocation::BrokeredCloud,
+            ExecutionLocation::LegacyUserKey,
+        ]) {
+            page.provider_provenance
+                .as_mut()
+                .unwrap()
+                .execution_location = location;
+        }
+
+        write_ocr_records(dir.path(), &run).unwrap();
+        assert_eq!(read_ocr_records(dir.path()).unwrap(), run);
+
+        let canonical = serde_json::to_string(&run.pages[2]).unwrap();
+        assert!(canonical.contains("remote:user-key"));
+        let legacy = canonical.replace("remote:user-key", "remote_user_key");
+        let migrated: OcrPage = serde_json::from_str(&legacy).unwrap();
+        assert_eq!(
+            migrated.provider_provenance.unwrap().execution_location,
+            ExecutionLocation::LegacyUserKey
+        );
+    }
+
+    #[test]
     fn a_whole_book_summary_is_not_bounded_by_the_single_response_limit() {
         // The regression this pins: `ocr/summary.json` holds every page, so
         // bounding it with the per-page provider limit made the pipeline die
@@ -2224,6 +2368,10 @@ mod tests {
         calls: usize,
     }
     impl PageOcrProvider for CountingProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -2233,6 +2381,226 @@ mod tests {
             self.calls += 1;
             ReferenceOcrProvider.recognize(page_index, image, digest)
         }
+    }
+
+    struct LocatedProvider {
+        calls: usize,
+        location: ExecutionLocation,
+        fail: bool,
+    }
+
+    impl PageOcrProvider for LocatedProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            self.location
+        }
+
+        fn recognize(
+            &mut self,
+            page_index: u32,
+            image: &DynamicImage,
+            digest: &str,
+        ) -> std::result::Result<OcrPage, OcrError> {
+            self.calls += 1;
+            if self.fail {
+                return Err(OcrError::ProviderFailed {
+                    page: page_index,
+                    reason: "remote fixture failed".into(),
+                });
+            }
+            let mut page = ReferenceOcrProvider.recognize(page_index, image, digest)?;
+            page.provider_provenance
+                .as_mut()
+                .unwrap()
+                .execution_location = self.location;
+            Ok(page)
+        }
+    }
+
+    struct MismatchedLocationProvider;
+
+    impl PageOcrProvider for MismatchedLocationProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::BrokeredCloud
+        }
+
+        fn recognize(
+            &mut self,
+            page_index: u32,
+            image: &DynamicImage,
+            digest: &str,
+        ) -> std::result::Result<OcrPage, OcrError> {
+            // Reference evidence is explicitly local, contradicting this
+            // provider's brokered-cloud declaration.
+            ReferenceOcrProvider.recognize(page_index, image, digest)
+        }
+    }
+
+    #[test]
+    fn durable_run_rejects_a_remote_provider_that_labels_its_page_local() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let mut provider = MismatchedLocationProvider;
+        let error = run_session_durable(
+            &session(&[""]),
+            &mut provider,
+            &store,
+            "mismatched-location",
+            "mismatched-location-fingerprint",
+            dir.path(),
+            "worker",
+            300,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("execution location mismatch"));
+        assert!(store
+            .provider_runs("mismatched-location")
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn durable_remote_success_and_failure_keep_their_execution_location() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let document = session(&[""]);
+
+        let mut success = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: false,
+        };
+        let run = run_session_durable(
+            &document,
+            &mut success,
+            &store,
+            "brokered-success",
+            "brokered-success-fingerprint",
+            dir.path(),
+            "worker-success",
+            300,
+        )
+        .unwrap();
+        assert_eq!(
+            run.pages[0]
+                .provider_provenance
+                .as_ref()
+                .unwrap()
+                .execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+        assert_eq!(
+            store.provider_runs("brokered-success").unwrap()[0].execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+
+        let mut failure = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: true,
+        };
+        let failed = run_session_durable(
+            &document,
+            &mut failure,
+            &store,
+            "brokered-failure",
+            "brokered-failure-fingerprint",
+            dir.path(),
+            "worker-failure",
+            300,
+        )
+        .unwrap();
+        assert_eq!(failed.errors.len(), 1);
+        let attempts = store.provider_runs("brokered-failure").unwrap();
+        assert_eq!(attempts.len(), 1);
+        assert_eq!(attempts[0].outcome, crate::jobs::ProviderOutcome::Failed);
+        assert_eq!(
+            attempts[0].execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+    }
+
+    #[test]
+    fn adopting_a_remote_page_restores_provider_run_provenance() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let document = session(&[""]);
+        let job_id = "brokered-adoption";
+        let fingerprint = "brokered-adoption-fingerprint";
+        store.ensure_job(job_id, 1, fingerprint).unwrap();
+
+        prepare_ocr_directory(dir.path()).unwrap();
+        let run_root = prepare_durable_run_root(dir.path(), fingerprint).unwrap();
+        let image = document.render_page(0, 300).unwrap();
+        let digest = image_sha256(&image).unwrap();
+        let mut page = ReferenceOcrProvider.recognize(0, &image, &digest).unwrap();
+        page.provider_provenance
+            .as_mut()
+            .unwrap()
+            .execution_location = ExecutionLocation::BrokeredCloud;
+        write_ocr_page(&run_root, &page).unwrap();
+
+        let mut provider = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: false,
+        };
+        let adopted = run_session_durable(
+            &document,
+            &mut provider,
+            &store,
+            job_id,
+            fingerprint,
+            dir.path(),
+            "worker",
+            300,
+        )
+        .unwrap();
+        assert_eq!(provider.calls, 0);
+        assert_eq!(adopted.pages, vec![page]);
+        let attempts = store.provider_runs(job_id).unwrap();
+        assert_eq!(attempts.len(), 1);
+        assert_eq!(attempts[0].outcome, crate::jobs::ProviderOutcome::Succeeded);
+        assert_eq!(
+            attempts[0].execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+    }
+
+    #[test]
+    fn adopting_a_remote_job_rejects_an_orphan_page_labelled_local() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let document = session(&[""]);
+        let job_id = "brokered-adoption-mismatch";
+        let fingerprint = "brokered-adoption-mismatch-fingerprint";
+        store.ensure_job(job_id, 1, fingerprint).unwrap();
+
+        prepare_ocr_directory(dir.path()).unwrap();
+        let run_root = prepare_durable_run_root(dir.path(), fingerprint).unwrap();
+        let image = document.render_page(0, 300).unwrap();
+        let digest = image_sha256(&image).unwrap();
+        let local_page = ReferenceOcrProvider.recognize(0, &image, &digest).unwrap();
+        write_ocr_page(&run_root, &local_page).unwrap();
+
+        let mut provider = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: false,
+        };
+        let error = run_session_durable(
+            &document,
+            &mut provider,
+            &store,
+            job_id,
+            fingerprint,
+            dir.path(),
+            "worker",
+            300,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("execution location mismatch"));
+        assert_eq!(provider.calls, 0);
+        assert!(store.provider_runs(job_id).unwrap().is_empty());
     }
 
     #[test]
@@ -2282,6 +2650,10 @@ mod tests {
     }
 
     impl PageOcrProvider for ExternalCancelingProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -2296,6 +2668,10 @@ mod tests {
     }
 
     impl PageOcrProvider for CancelingProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -2427,6 +2803,10 @@ mod tests {
     }
 
     impl PageOcrProvider for FailOnceProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,

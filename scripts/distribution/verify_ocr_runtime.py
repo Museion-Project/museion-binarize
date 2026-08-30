@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Verify a self-contained OCR runtime staged for one release target.
+"""Verify a self-contained optional OCR plugin staged for one release target.
 
 This is an artifact-structure gate, not an OCR accuracy or installed-runtime
-smoke test.  It verifies the complete file inventory, pinned model bytes and
+smoke test or a base-release gate. It verifies the complete file inventory, pinned model bytes and
 the absence of system Python/Tesseract dependencies declared by the bundle.
 It never downloads dependencies and never executes files from the bundle.
 """

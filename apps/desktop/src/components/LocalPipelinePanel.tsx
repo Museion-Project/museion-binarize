@@ -75,8 +75,9 @@ export function LocalPipelinePanel({
 
   const running = jobId !== null;
 
-  // Readiness is re-checked whenever the profile or the configured paths
-  // change, so "Start" is never offered for a configuration that cannot run.
+  // Optional-plugin readiness is re-checked whenever its profile or explicit
+  // paths change. It informs scanned-page handling; it does not block a base
+  // run because reliable native-text PDFs need no OCR plugin.
   useEffect(() => {
     let cancelled = false;
     localOcrReadiness({
@@ -158,11 +159,7 @@ export function LocalPipelinePanel({
         overwrite,
         ocrProviderMode: provider.mode,
         cloudConsent: provider.cloudConsent,
-        credentialSlot: provider.credentialSlot,
-        cloudFallback: provider.cloudFallback,
-        cloudEndpoint: provider.cloudEndpoint || null,
         maxCredits: provider.maxCredits,
-        creditsPerPage: provider.creditsPerPage,
       });
       activeJob.current = started.jobId;
       setJobId(started.jobId);
@@ -192,13 +189,9 @@ export function LocalPipelinePanel({
     }
   }
 
-  // Local recognition is required even for a cloud run: it is the geometry
-  // source the transcription is aligned onto, so "cloud" never means "no
-  // local models needed".
   const canStart =
     !running &&
     !starting &&
-    readiness?.ready === true &&
     provider.ready &&
     Boolean(outputPath) &&
     Boolean(workspacePath);
@@ -250,11 +243,13 @@ export function LocalPipelinePanel({
       </label>
 
       {readiness && !readiness.ready && (
-        <p role="alert" className="local-pipeline-readiness">
-          Local text recognition is not ready: {readiness.diagnostic}
+        <p role="status" className="local-pipeline-readiness">
+          Optional local OCR plugin is not ready: {readiness.diagnostic}
           {readiness.missingFiles.length > 0 && (
             <> Missing: {readiness.missingFiles.join(", ")}.</>
           )}
+          {" "}Native-text PDFs can still start; a scanned page will stop with
+          an installation error rather than producing an empty text layer.
         </p>
       )}
       {readiness?.ready && (

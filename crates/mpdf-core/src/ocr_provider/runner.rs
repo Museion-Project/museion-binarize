@@ -16,6 +16,7 @@ use std::time::Duration;
 
 use image::DynamicImage;
 
+use crate::jobs::ExecutionLocation;
 use crate::ocr::{OcrError, OcrPage, PageOcrProvider};
 
 use super::credits::page_idempotency_key;
@@ -44,6 +45,7 @@ pub struct ProviderPageAdapter<'a> {
     local_layout_version: String,
     provider_config_digest: String,
     output_contract: OutputContract,
+    execution_location: ExecutionLocation,
     deadline: Duration,
     ledger: Vec<PageLedgerEntry>,
     usage: ProviderUsage,
@@ -58,6 +60,7 @@ impl<'a> ProviderPageAdapter<'a> {
         local_layout_version: impl Into<String>,
         provider_config_digest: impl Into<String>,
     ) -> Self {
+        let execution_location = provider.capabilities().mode.execution_location_kind();
         Self {
             provider,
             document_sha256: document_sha256.into(),
@@ -66,6 +69,7 @@ impl<'a> ProviderPageAdapter<'a> {
             local_layout_version: local_layout_version.into(),
             provider_config_digest: provider_config_digest.into(),
             output_contract: OutputContract::TranscriptionOnly,
+            execution_location,
             deadline: Duration::from_secs(180),
             ledger: Vec::new(),
             usage: ProviderUsage::default(),
@@ -96,6 +100,10 @@ impl<'a> ProviderPageAdapter<'a> {
 }
 
 impl PageOcrProvider for ProviderPageAdapter<'_> {
+    fn execution_location(&self) -> ExecutionLocation {
+        self.execution_location
+    }
+
     fn recognize(
         &mut self,
         page_index: u32,
@@ -151,6 +159,10 @@ mod tests {
     struct FixtureLocal;
 
     impl PageOcrProvider for FixtureLocal {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,

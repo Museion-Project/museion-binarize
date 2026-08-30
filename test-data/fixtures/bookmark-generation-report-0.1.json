@@ -1,0 +1,43 @@
+{
+  "schema": "mpdf-bookmark-generation-report",
+  "schema_version": "0.1",
+  "source_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+  "package_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+  "ocr_digest": null,
+  "derived_digest": null,
+  "revision_digest": null,
+  "rule_config_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+  "rule_version": "0.2",
+  "mode": "existing_outline",
+  "status": "needs_review",
+  "safe_refusal_reason": null,
+  "ocr_provenance": [],
+  "front_page_limit": 12,
+  "scanned_front_pages": 3,
+  "toc_pages": [],
+  "parsed_entries": 3,
+  "auto_confirmed": 0,
+  "needs_review": 3,
+  "skipped": 0,
+  "reason_code_counts": {
+    "total_score_below_gate": 3
+  },
+  "mapping_segments": [
+    {
+      "numbering_family": "arabic",
+      "segment_index": 0,
+      "offset": 7,
+      "anchor_count": 3,
+      "first_printed_number": 1,
+      "last_printed_number": 9,
+      "residual_min": -1,
+      "residual_max": 0
+    }
+  ],
+  "truncated": false,
+  "truncation_reasons": [],
+  "shortlist_postings_visited": 17,
+  "body_lines_indexed": 42,
+  "generation_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+  "report_digest": "62097c4100395da824d0a4b9ea6fd1345d86950c72f41bf37c7f2bbdcbc5d819"
+}

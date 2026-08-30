@@ -1,11 +1,10 @@
-//! The cloud OCR provider: a full-page transcription joined to local geometry.
+//! Disabled experimental composite: cloud text joined to local OCR geometry.
 //!
-//! One type serves both cloud modes. `gemini-byok` and `mpdf-credits` run the
-//! same model with the same prompt and the same gates; what differs is *who
-//! holds the credential* and *who is billed*, and those differences are
-//! expressed as a transport and an optional credits backend rather than as a
-//! second copy of the recognition logic. Two implementations would drift, and
-//! the one that drifted would be the one nobody was watching.
+//! This module preserves the earlier Gemini transcription and alignment work
+//! for reproducible experiments. It is not an independent complete-OCR
+//! provider: every usable rectangle comes from the local OCR engine. Current
+//! product surfaces disable BYOK, and brokered cloud OCR remains unavailable
+//! until a backend can itself return the complete coordinate contract.
 //!
 //! # Order of operations, and why it is not negotiable
 //!
@@ -40,9 +39,11 @@ use super::credits::{
 use super::redaction;
 use super::structured_bbox::{self, GeometryGates, StructuredBboxPolicy};
 use super::{
-    digest_str, CloudFallback, FallbackReason, GeometrySource, JobPreparation, JobSettlement,
-    JobTicket, OcrProvider, OcrProviderCapabilities, OcrProviderMode, OutputContract,
-    PageOcrOutcome, PageOcrRequest, ProviderConfigError, ProviderUsage,
+    digest_str, BillingModel, CloudFallback, CoordinateGranularity, FallbackReason, GeometrySource,
+    JobPreparation, JobSettlement, JobTicket, MetadataSupport, OcrProvider,
+    OcrProviderCapabilities, OcrProviderMode, OutputContract, PageOcrOutcome, PageOcrRequest,
+    ProviderConfigError, ProviderRole, ProviderUsage, ReadingOrderCapability, TextGeometryMapping,
+    BYOK_DISABLED_MESSAGE,
 };
 
 /// Version of this provider implementation. Part of every cloud fingerprint,
@@ -598,7 +599,7 @@ impl CloudOcrProvider {
             usage,
             warnings: Vec::new(),
             fallback_reason,
-            execution_location: self.config.mode.execution_location().to_owned(),
+            execution_location: self.config.mode.execution_location_kind(),
             decisions: summary,
         };
         // The provenance the durable evidence keeps is this outcome's own
@@ -609,7 +610,7 @@ impl CloudOcrProvider {
             version: CLOUD_PROVIDER_VERSION.to_owned(),
             parameters: outcome.provenance_parameters(),
             input_asset_sha256: request.page_image_sha256.to_owned(),
-            execution_location: self.config.mode.execution_location().to_owned(),
+            execution_location: self.config.mode.execution_location_kind(),
             language_profile: Some(request.language_profile.to_owned()),
             model_digest: None,
             model_license: None,
@@ -625,23 +626,37 @@ impl CloudOcrProvider {
 
 impl OcrProvider for CloudOcrProvider {
     fn capabilities(&self) -> OcrProviderCapabilities {
-        let (production_ready, reason) = match self.config.mode {
-            OcrProviderMode::MpdfCredits if credits::PRODUCTION_BACKEND.is_none() => {
-                (false, Some(credits::release_blockers().join("; ")))
+        let reason = match self.config.mode {
+            OcrProviderMode::GeminiByok => BYOK_DISABLED_MESSAGE.to_owned(),
+            OcrProviderMode::MpdfCredits => credits::release_blockers().join("; "),
+            OcrProviderMode::Local => {
+                "the experimental composite is not a local complete-OCR provider".to_owned()
             }
-            _ => (true, None),
         };
         OcrProviderCapabilities {
             mode: self.config.mode,
             provider_name: self.config.provider_name.clone(),
             model: self.config.model.clone(),
             model_version: self.config.model_version.clone(),
+            role: ProviderRole::ExperimentalComposite,
+            coordinate_granularity: CoordinateGranularity::None,
+            reading_order: ReadingOrderCapability::BestEffort,
+            text_geometry_mapping: TextGeometryMapping::LocalAlignment,
+            confidence_metadata: MetadataSupport::Unsupported,
+            language_metadata: MetadataSupport::Page,
+            billing: match self.config.mode {
+                OcrProviderMode::MpdfCredits => BillingModel::BrokeredCredits,
+                OcrProviderMode::GeminiByok => BillingModel::UserManaged,
+                OcrProviderMode::Local => BillingModel::Free,
+            },
+            requires_explicit_consent: self.config.mode.uses_network(),
+            requires_cost_limit: self.config.mode == OcrProviderMode::MpdfCredits,
             uses_network: true,
-            requires_credential: true,
+            requires_credential: self.config.mode == OcrProviderMode::GeminiByok,
             supports_structured_bbox: true,
             structured_bbox_default_enabled: structured_bbox::GATES_VALIDATED_FOR_DEFAULT,
-            production_ready,
-            not_production_ready_reason: reason,
+            production_ready: false,
+            not_production_ready_reason: Some(reason),
         }
     }
 
@@ -963,6 +978,10 @@ mod tests {
     struct FixtureLocal(Vec<String>);
 
     impl PageOcrProvider for FixtureLocal {
+        fn execution_location(&self) -> crate::jobs::ExecutionLocation {
+            crate::jobs::ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -1024,7 +1043,7 @@ mod tests {
                     version: "5".into(),
                     parameters: Default::default(),
                     input_asset_sha256: input_asset_sha256.to_owned(),
-                    execution_location: "local".into(),
+                    execution_location: crate::jobs::ExecutionLocation::Local,
                     language_profile: Some("auto".into()),
                     model_digest: None,
                     model_license: None,
@@ -1402,6 +1421,13 @@ mod tests {
             .unwrap()
             .contains("payment"));
         assert!(!capabilities.structured_bbox_default_enabled);
+        assert_eq!(capabilities.role, ProviderRole::ExperimentalComposite);
+        assert_eq!(
+            capabilities.validate_complete_ocr(),
+            Err(super::super::ProviderContractError::NotCompleteOcrRole(
+                ProviderRole::ExperimentalComposite
+            ))
+        );
     }
 
     #[test]

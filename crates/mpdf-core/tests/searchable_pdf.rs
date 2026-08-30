@@ -8,6 +8,7 @@ use mpdf_core::document_package::{
     RegionEvidence, TypographyEvidence,
 };
 use mpdf_core::document_session::{DocumentSession, PdfDocumentSession, PdfOpenOptions};
+use mpdf_core::jobs::ExecutionLocation;
 use mpdf_core::ocr::{
     OcrBlock, OcrBox, OcrLine, OcrPage, OcrProviderProvenance, OcrRoute, OcrRouteReason, OcrRun,
     OcrWord, OCR_PROTOCOL, OCR_PROTOCOL_VERSION,
@@ -81,7 +82,7 @@ fn ocr_fixture(package: &DocumentPackage) -> OcrRun {
                     version: "0.1".into(),
                     parameters: BTreeMap::new(),
                     input_asset_sha256: "a".repeat(64),
-                    execution_location: "local".into(),
+                    execution_location: ExecutionLocation::Local,
                     language_profile: None,
                     model_digest: None,
                     model_license: None,

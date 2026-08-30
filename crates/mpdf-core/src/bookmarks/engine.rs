@@ -396,9 +396,10 @@ fn compile_printed_contents(
             numbering_family: segment.family.as_str().to_owned(),
             segment_index: segment.index,
             offset: segment.offset,
-            member_count: segment.member_count,
-            exact_anchor_count: segment.exact_anchor_count,
-            disagreeing_anchor_count: segment.disagreeing_anchor_count,
+            anchor_count: segment.member_count,
+            member_count: Some(segment.member_count),
+            exact_anchor_count: Some(segment.exact_anchor_count),
+            disagreeing_anchor_count: Some(segment.disagreeing_anchor_count),
             first_printed_number: segment.first_printed,
             last_printed_number: segment.last_printed,
             residual_min: segment.residual_min,
@@ -1044,7 +1045,7 @@ fn provenance_summary(ocr: Option<&OcrRun>) -> Vec<OcrProvenanceSummary> {
                 .map(|provenance| provenance.version.clone()),
             page.provider_provenance
                 .as_ref()
-                .map(|provenance| provenance.execution_location.clone()),
+                .map(|provenance| provenance.execution_location.as_str().to_owned()),
         );
         *grouped.entry(key).or_default() += 1;
     }
@@ -1173,7 +1174,7 @@ impl ReportBuilder {
         self.truncation_reasons.dedup();
         let mut report = BookmarkGenerationReport {
             schema: REPORT_SCHEMA.into(),
-            schema_version: REPORT_SCHEMA_VERSION.into(),
+            schema_version: REPORT_SCHEMA_VERSION_V2.into(),
             source_digest: self.source_digest,
             package_digest: self.package_digest,
             ocr_digest: if mode == GenerationMode::TocAligned {
@@ -1218,7 +1219,7 @@ mod tests {
     use super::*;
     use crate::bookmark_fixtures as fixtures;
     use crate::bookmarks::model::schema_tests::{
-        assert_conforms, bookmarks_0_2_schema, report_0_1_schema,
+        assert_conforms, bookmarks_0_2_schema, report_0_2_schema,
     };
 
     fn aligned_result() -> AutoBookmarkResult {
@@ -1242,9 +1243,14 @@ mod tests {
         let snapshot_schema = bookmarks_0_2_schema();
         let snapshot = serde_json::to_value(&result.snapshot).unwrap();
         assert_conforms(&snapshot, &snapshot_schema, &snapshot_schema, "snapshot");
-        let report_schema = report_0_1_schema();
+        let report_schema = report_0_2_schema();
         let report = serde_json::to_value(&result.report).unwrap();
         assert_conforms(&report, &report_schema, &report_schema, "report");
+        assert_eq!(report["schema_version"], REPORT_SCHEMA_VERSION_V2);
+        assert_eq!(
+            report["schema_version"],
+            report_schema["properties"]["schema_version"]["const"]
+        );
         assert!(result.snapshot.candidates.iter().any(|candidate| candidate
             .confidence_breakdown
             .is_some_and(|breakdown| breakdown.is_consistent())));

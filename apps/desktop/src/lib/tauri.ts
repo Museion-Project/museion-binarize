@@ -33,8 +33,6 @@ import type {
   ApiPlanRequest,
   ApiRunRequest,
   ApiTaskProgress,
-  ConnectionTest,
-  MaskedCredential,
   OcrProviderStatus,
   LocalOcrReadiness,
   LocalOcrReadinessRequest,
@@ -151,42 +149,8 @@ export function startLocalPipeline(
  * Reads the provider picker's data. Cheap, offline, and safe to call on every
  * render of the settings section: it makes no provider request.
  */
-export function ocrProviderStatus(slot?: string): Promise<OcrProviderStatus> {
-  return call("ocr_provider_status", { slot: slot ?? null });
-}
-
-/**
- * Sends a key to the OS credential store. The only call in this app that
- * carries one, and it returns a masked reference, never the value.
- */
-export function storeModelProviderCredential(
-  slot: string,
-  secret: string,
-): Promise<MaskedCredential> {
-  return call("store_model_provider_credential", { request: { slot, secret } });
-}
-
-export function modelProviderCredentialStatus(
-  slot: string,
-): Promise<MaskedCredential> {
-  return call("model_provider_credential_status", { request: { slot } });
-}
-
-export function deleteModelProviderCredential(
-  slot: string,
-): Promise<MaskedCredential> {
-  return call("delete_model_provider_credential", { request: { slot } });
-}
-
-/** Non-billable: it transcribes nothing and reserves nothing. */
-export function testOcrProvider(
-  mode: string,
-  slot: string,
-  endpoint?: string,
-): Promise<ConnectionTest> {
-  return call("test_ocr_provider", {
-    request: { mode, slot, endpoint: endpoint ?? null },
-  });
+export function ocrProviderStatus(): Promise<OcrProviderStatus> {
+  return call("ocr_provider_status", { slot: null });
 }
 
 export function cancelLocalPipeline(): Promise<void> {

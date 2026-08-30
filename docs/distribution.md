@@ -97,93 +97,87 @@ artifact (a *builder* still needs the normal toolchain — see
 - **No Mac App Store submission work** (StoreKit, App Sandbox migration,
   App Store Connect metadata, paid-app agreements) exists.
 - **No auto-updater, telemetry, or crash-report upload** was added.
-- **No cloud OCR mode is releasable.** The three-mode provider architecture
-  (Local / Gemini BYOK / M PDF Credits) is implemented and tested, and Local
-  is unaffected by any of it. The other two carry blockers that
-  `scripts/distribution/release_readiness.py` reports separately from ordinary
-  pending evidence, because `blocked_*` means "the thing does not exist yet"
-  rather than "we have not measured it":
+- **No cloud OCR mode is available.** ADR 0011 exposes only `local` and the
+  planned paid/brokered `mpdf-credits` product modes. `mpdf-credits` has
+  availability `unavailable`: no production complete-coordinate OCR backend,
+  payment path, production receipt keys, or published retention/deletion
+  policy exists. Legacy `gemini-byok` state remains readable but its
+  availability is `disabled`; it is omitted from provider lists/pickers and
+  cannot authorize a release capability. Readiness records these states:
 
   | Gate | State |
   |---|---|
-  | `mpdf_credits_production_backend` | `blocked_no_service` |
+  | `mpdf_credits_complete_ocr_backend` | `blocked_no_service` |
   | `mpdf_credits_payment_integration` | `blocked_no_service` |
   | `cloud_privacy_policy_and_deletion` | `blocked_not_published` |
-  | `gemini_byok_live_validation` | `pending` |
-  | `gemini_terms_of_service_review` | `pending_owner_review` |
-  | `structured_bbox_geometry_validation` | `pending` |
+  | `gemini_byok_product_mode` | `disabled` |
 
-  Readiness is profile-gated rather than treating the report as informational:
-  `--profile source` checks source/static consistency,
-  `--profile local-core` requires the signed cross-platform deterministic
-  converter evidence, `--profile local-ocr-preview` additionally requires the
-  bundled OCR runtime and bookmark human-gold, and `--profile cloud-beta`
-  additionally requires the BYOK live, terms, and privacy gates. Ordinary CI
-  and `build-distribution.yml` explicitly run only the `source` profile because
-  they produce source evidence or private workflow artifacts. The separate
-  `publish-release.yml` workflow does not offer `source` as an input: before it
-  downloads artifacts or creates even a draft release, the owner must select
-  `local-core`, `local-ocr-preview`, or `cloud-beta`, and every required gate
-  for that product profile must be an explicit pass. Any required `pending`,
-  `not_run` or `blocked_*` gate exits non-zero.
+  Readiness is profile-gated rather than treating the report as informational.
+  `--profile source` checks source/static consistency. `--profile base`
+  requires the signed cross-platform deterministic converter evidence and
+  deliberately does **not** require an OCR engine, sidecar, model, or OCR smoke.
+  `--profile optional-local-ocr-plugin` requires all base gates plus the
+  independently staged plugin and installed OCR smoke/human-gold evidence.
+  Ordinary CI and `build-distribution.yml` run only `source` because they
+  produce source evidence or private workflow artifacts. The separate
+  `publish-release.yml` workflow does not offer `source`; it offers `base` and
+  `optional-local-ocr-plugin`, and every required gate for the selected
+  artifact must be an explicit pass. Any required `pending`, `not_run`, or
+  `blocked_*` gate exits non-zero.
 
-  The selected packaging direction for turnkey Local OCR is a per-target,
-  self-contained OCR runtime: a frozen sidecar executable (including its image
-  dependency), a pinned Tesseract executable and its required shared
-  libraries, and the verified `tessdata_best` files. A production artifact must
-  not depend on Homebrew, a system `python3`, or a separately installed Pillow.
-  The macOS arm64 rc.3 candidate now satisfies this contract locally, including
-  an installed four-page GUI conversion and an artifact-bound OCR smoke. The
-  release-wide `distribution/ocr-models/manifest.toml` flag remains
-  `bundled_in_release = false` until Windows and Linux artifacts are also
-  hash-inspected and pass installed OCR smoke tests. The structure half of that contract
-  is enforced by `scripts/distribution/verify_ocr_runtime.py`: it rejects
-  system Python/Tesseract requirements, symlinks, unlisted files, missing
-  licenses, non-executable entry points, target/release mismatches, and model
-  bytes that differ from the pinned manifest. Its result is deliberately
-  `pass_structure_only`; it cannot close `ocr_runtime_distribution` without a
-  separate installed OCR run.
+  A base artifact contains the deterministic converter and PDFium, not OCR.
+  Native-text PDFs work without a plugin. If a scanned page needs OCR, an
+  OCR/searchable-output request fails explicitly with provider unavailable;
+  unrelated binarization still works. This is intended product behavior, not a
+  missing base-release dependency.
 
-  Licensing consequence: BYOK ships **no** Google SDK and no bundled model —
-  the transport is a direct HTTPS call over the `reqwest`/`rustls` stack
-  already in the dependency set, and the user is the API customer under
-  Google's own terms. Nothing new enters `THIRD_PARTY_LICENSES.md` beyond the
-  `base64` crate. A release that advertised either cloud mode as available
-  would need the owner review above completed first; a release that simply
-  ships them opt-in and honestly labelled needs only the truthful blocker
-  copy, which both front ends already print. See
-  [`ocr-providers.md`](ocr-providers.md).
+  The checked-in macOS install record predates this profile split and contains
+  the historical OCR overlay. Readiness keeps it for auditability but rejects
+  it as `base` evidence; a fresh base install record must declare
+  `distribution_profile: base` and omit `bundled_ocr`.
 
-  ### OCR runtime staging (macOS arm64)
+  ### Optional local OCR plugin artifact
 
-  `scripts/distribution/stage_ocr_runtime.py` is the audited, network-free
-  staging boundary. It accepts only an explicitly frozen sidecar, a pinned
-  Tesseract root/binary, a previously provisioned `tessdata_best` directory,
-  and three explicit license files plus a restricted `--sidecar-license-expression`.
-  It copies real files, records source
-  hashes, target/architecture, model hashes, dependency observations and
-  `install_name_tool` rewrites in `runtime-manifest.json`, and refuses a
-  missing closure or a model that differs from `distribution/ocr-models/manifest.toml`.
-  An optional `--dependency-manifest` records frozen Python/sidecar packages
-  (including Pillow) with their versions, hashes and licenses for the SBOM.
-  The default command never downloads anything; model downloads remain an
-  explicit `provision_models.py --download` operation with per-file checksums.
+  The local plugin is a separate per-target, self-contained artifact: a frozen
+  sidecar executable (including its image dependency), a pinned Tesseract
+  executable and required shared libraries, verified `tessdata_best` files,
+  and licenses. It must not depend on Homebrew, system `python3`, system
+  Tesseract, or a separately installed Pillow. The macOS arm64 candidate has
+  local installed four-page GUI and artifact-bound OCR smoke evidence; the
+  cross-platform optional-plugin profile remains pending. The release-wide
+  `distribution/ocr-models/manifest.toml` flag remains
+  `bundled_in_release = false`: the models are not part of the base release.
 
-  A verified runtime can be added to a CLI archive with `package_cli.py
-  --ocr-runtime PATH --pinned-ocr-models PATH`, or copied to the ignored,
-  stable Tauri resource directory with
-  `stage_desktop_ocr_runtime.py`, then opt in to
-  `tauri.ocr-runtime.overlay.json` alongside the base distribution config.
-  Without that explicit input, existing source/local-core packaging remains
-  compatible and makes no bundled OCR claim. `generate_sbom.py --ocr-runtime-manifest PATH` adds Tesseract, the
-  frozen sidecar, each trained model, every staged dylib and the associated
-  license records; without it the SBOM explicitly describes OCR as optional.
+  `scripts/distribution/stage_ocr_runtime.py` remains the audited, network-free
+  plugin staging boundary. It accepts only an explicitly frozen sidecar, a
+  pinned Tesseract root/binary, a previously provisioned `tessdata_best`
+  directory, and explicit license files. It records source hashes,
+  target/architecture, model hashes, dependency observations, and loader-path
+  rewrites in `runtime-manifest.json`. Model downloads remain a separate,
+  explicit checksum-verified provisioning operation.
 
-  `ocr_runtime_smoke.py` emits
-  `mpdf-ocr-runtime-smoke-evidence` with `pass`, `blocked`, or `not_run` and
-  binds the result to artifact/runtime/engine/sidecar/model hashes and source
-  immutability. A structure-only verification is never accepted by
-  `release_readiness.py --profile local-ocr-preview`.
+  `scripts/distribution/verify_ocr_runtime.py` remains the independent plugin
+  verifier. It rejects system Python/Tesseract requirements, symlinks, unlisted
+  files, missing licenses, non-executable entry points, target/release
+  mismatches, and model bytes that differ from the pinned manifest. Its
+  `pass_structure_only` result cannot close the optional-plugin release gate
+  without a separate installed OCR run.
+
+  A verified plugin can be staged into a plugin-bearing CLI archive with
+  `package_cli.py --ocr-runtime PATH --pinned-ocr-models PATH`, or copied to the
+  ignored stable Tauri resource directory with
+  `stage_desktop_ocr_runtime.py` and the explicit
+  `tauri.ocr-runtime.overlay.json`. Those opt-in artifacts are distinct from
+  the base artifacts. Without the input/overlay, packaging remains compatible
+  and makes no OCR claim. `generate_sbom.py --ocr-runtime-manifest PATH`
+  expands the plugin SBOM with Tesseract, sidecar, models, staged libraries,
+  and licenses; the base SBOM explicitly describes OCR as optional.
+
+  `ocr_runtime_smoke.py` emits `mpdf-ocr-runtime-smoke-evidence` with `pass`,
+  `blocked`, or `not_run` and binds the result to artifact/runtime/engine/
+  sidecar/model hashes and source immutability. A structure-only verification
+  is never accepted by
+  `release_readiness.py --profile optional-local-ocr-plugin`.
 
 ## Verification-state discipline
 

@@ -9,25 +9,17 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-#[cfg(feature = "dev-credits")]
-use mpdf_api_client::cloud_ocr::MpdfCreditsFactory;
-use mpdf_api_client::cloud_ocr::{CloudTransportPolicy, GeminiByokFactory, GEMINI_ENDPOINT};
 use mpdf_core::error::CoreError;
 use mpdf_core::ocr::{self, SidecarOcrConfig};
 use mpdf_core::ocr_provider::credits;
-use mpdf_core::ocr_provider::gemini::CloudOcrConfig;
-use mpdf_core::ocr_provider::structured_bbox::StructuredBboxPolicy;
-use mpdf_core::ocr_provider::{CloudFallback, OcrProviderMode, OutputContract};
+use mpdf_core::ocr_provider::{OcrProviderMode, BYOK_DISABLED_MESSAGE};
 use mpdf_core::orchestrator::{
     self, CloudProviderFactory, FinalPdfOutcome, FinalPdfRequest, Halt, OcrProviderChoice,
     OutputVerification, PipelineStage, ReviewPolicy,
 };
 use mpdf_core::pipeline::OutputWriteStrategy;
 
-use crate::cli::{
-    CloudFallbackArg, OcrProviderModeArg, ReviewPolicyArg, RunArgs, RunProviderArg,
-    StructuredBboxArg,
-};
+use crate::cli::{CloudFallbackArg, OcrProviderModeArg, ReviewPolicyArg, RunArgs, RunProviderArg};
 use crate::errors::{self, ExitReason};
 use crate::output;
 use crate::progress::StderrProgress;
@@ -348,9 +340,9 @@ fn build_provider(args: &RunArgs, workspace: &Path) -> Result<OcrProviderChoice,
         (Some(executable), Some(model_dir)) => (executable, model_dir, None),
         (None, None) => match mpdf_core::ocr_runtime::resolve_executable_adjacent(&args.language) {
             Ok(Some(runtime)) => (runtime.sidecar, runtime.model_dir, Some(runtime.engine)),
-            Ok(None) => return Err(
-                "no OCR sidecar/model directory configured: pass --ocr-sidecar and --models, set MPDF_OCR_SIDECAR/MPDF_OCR_MODELS, or provide a verified adjacent ocr-runtime".to_owned()
-            ),
+            Ok(None) => return Ok(OcrProviderChoice::NativeTextOnly {
+                diagnostic: "this scanned or image-only page requires the optional local OCR plugin; install and verify the offline OCR runtime, or pass --ocr-sidecar and --models. PDFs with a reliable native text layer do not require the plugin".to_owned(),
+            }),
             Err(error) => return Err(format!("bundled OCR runtime refused: {error}")),
         },
         (None, Some(_)) => return Err("OCR models were configured but no sidecar was configured".into()),
@@ -387,6 +379,11 @@ fn provider_mode(arg: OcrProviderModeArg) -> OcrProviderMode {
 /// page, or holding credits.
 fn build_cloud_factory(args: &RunArgs) -> Result<Option<Box<dyn CloudProviderFactory>>, String> {
     let mode = provider_mode(args.ocr_provider);
+    if mode == OcrProviderMode::GeminiByok {
+        // Compatibility parse only. This happens before consent, endpoint,
+        // credential labels, files, transports, or credential-store access.
+        return Err(BYOK_DISABLED_MESSAGE.to_owned());
+    }
     if mode == OcrProviderMode::Local {
         // Belt and braces: cloud-only flags on a local run are a usage error
         // rather than something silently ignored, because "I thought I was
@@ -407,102 +404,30 @@ fn build_cloud_factory(args: &RunArgs) -> Result<Option<Box<dyn CloudProviderFac
             mode.display_name()
         ));
     }
-    let structured = match args.structured_bbox {
-        StructuredBboxArg::Disabled => StructuredBboxPolicy::Disabled,
-        StructuredBboxArg::EvaluateWithFallback => StructuredBboxPolicy::EvaluateWithFallback,
-    };
-    let fallback = match args.cloud_fallback {
-        CloudFallbackArg::Local => CloudFallback::Local,
-        CloudFallbackArg::Fail => CloudFallback::Fail,
-    };
-    // The local detector's identity travels with the cloud run: its
-    // rectangles are what the transcription is aligned onto, so different
-    // weights are different evidence.
-    let layout = format!(
-        "{}/{}",
-        match args.provider {
-            RunProviderArg::Tesseract => "tesseract",
-            RunProviderArg::Paddleocr => "paddleocr",
-            RunProviderArg::Reference => "reference",
-        },
-        args.language
-    );
-
     match mode {
         OcrProviderMode::Local => unreachable!("handled above"),
-        OcrProviderMode::GeminiByok => {
-            let mut config = CloudOcrConfig::gemini_byok(&args.credential_slot);
-            apply_common(&mut config, args, structured, fallback);
-            Ok(Some(Box::new(GeminiByokFactory::new(
-                config,
-                args.cloud_endpoint.as_deref().unwrap_or(GEMINI_ENDPOINT),
-                CloudTransportPolicy::default(),
-                layout,
-            ))))
-        }
+        OcrProviderMode::GeminiByok => unreachable!("disabled above"),
         OcrProviderMode::MpdfCredits => {
-            #[cfg(not(feature = "dev-credits"))]
-            return Err(
-                "M PDF Credits is not compiled into this production build; use a dedicated development build with the dev-credits feature"
-                    .to_owned(),
-            );
-            #[cfg(feature = "dev-credits")]
-            {
-                let Some(endpoint) = args.cloud_endpoint.as_deref() else {
-                    return Err(format!(
-                        "M PDF Cloud OCR has no production service in this build, so \
-                     --cloud-endpoint must name one explicitly. Outstanding blockers:\n  - {}",
-                        credits::release_blockers().join("\n  - ")
-                    ));
-                };
-                if args.max_credits == 0 {
-                    return Err(
-                    "--max-credits must be set for --ocr-provider mpdf-credits; it is the ceiling \
-                     the run may reserve"
+            if args.max_credits == 0 {
+                return Err(
+                    "--max-credits must be set for --ocr-provider mpdf-credits; it is the hard cost ceiling the paid brokered run may reserve"
                         .to_owned(),
                 );
-                }
-                let mut config = CloudOcrConfig::mpdf_credits(args.credits_per_page);
-                apply_common(&mut config, args, structured, fallback);
-                Ok(Some(Box::new(MpdfCreditsFactory::new(
-                    config,
-                    endpoint,
-                    CloudTransportPolicy::default(),
-                    layout,
-                    args.max_credits,
-                    // No signing key is provisioned: settlement verification runs
-                    // against a documented development secret, which is one of the
-                    // reasons Credits is not production-ready.
-                    b"mpdf-credits-development-verification".to_vec(),
-                ))))
             }
+            Err(format!(
+                "M PDF Cloud OCR is unavailable: no production backend currently returns the complete coordinate OCR contract. Outstanding blockers:\n  - {}",
+                credits::release_blockers().join("\n  - ")
+            ))
         }
     }
-}
-
-fn apply_common(
-    config: &mut CloudOcrConfig,
-    args: &RunArgs,
-    structured: StructuredBboxPolicy,
-    fallback: CloudFallback,
-) {
-    if let Some(model) = &args.cloud_model {
-        config.model = model.clone();
-    }
-    if let Some(version) = &args.cloud_model_version {
-        config.model_version = version.clone();
-    }
-    config.structured_bbox = structured;
-    config.output_contract = match structured {
-        StructuredBboxPolicy::Disabled => OutputContract::TranscriptionOnly,
-        StructuredBboxPolicy::EvaluateWithFallback => OutputContract::StructuredLines,
-    };
-    config.fallback = fallback;
 }
 
 fn print_dry_run(args: &RunArgs, workspace: &Path) {
     let mode = provider_mode(args.ocr_provider);
-    println!("dry run — nothing was opened, uploaded, reserved or charged.");
+    println!(
+        "dry run — argument/policy checks only; the input and optional OCR plugin/runtime were not inspected."
+    );
+    println!("  side effects: nothing was opened, uploaded, reserved or charged");
     println!("  input:      {}", args.input.display());
     println!("  output:     {}", args.output.display());
     println!("  workspace:  {}", workspace.display());
@@ -524,10 +449,6 @@ fn print_dry_run(args: &RunArgs, workspace: &Path) {
                 CloudFallbackArg::Fail => "fail (the run stops and writes nothing)",
             }
         );
-        println!(
-            "  slot:       {} (**** — the key is never shown or logged)",
-            args.credential_slot
-        );
         if mode == OcrProviderMode::MpdfCredits {
             println!(
                 "  credits:    up to {} per page, ceiling {}",
@@ -540,6 +461,9 @@ fn print_dry_run(args: &RunArgs, workspace: &Path) {
         }
     } else {
         println!("  uploads:    nothing; local OCR makes no network request");
+        println!(
+            "  OCR plugin: optional and not inspected by dry-run; reliable native-text PDFs work without it, while scanned pages require it"
+        );
     }
 }
 

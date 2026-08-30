@@ -16,18 +16,18 @@ fn mpdf(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
-fn provider_list_reports_three_modes_and_names_local_as_the_default() {
+fn provider_list_excludes_legacy_byok_and_names_local_as_the_default() {
     let result = mpdf(&["provider", "list", "--json"]);
     assert!(result.status.success());
     let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
     assert_eq!(report["default_mode"], "local");
     let modes = report["modes"].as_array().unwrap();
-    assert_eq!(modes.len(), 3);
+    assert_eq!(modes.len(), 2);
     let ids: Vec<&str> = modes
         .iter()
         .map(|mode| mode["id"].as_str().unwrap())
         .collect();
-    assert_eq!(ids, vec!["local", "gemini-byok", "mpdf-credits"]);
+    assert_eq!(ids, vec!["local", "mpdf-credits"]);
 
     let local = &modes[0];
     assert_eq!(local["default"], true);
@@ -36,10 +36,21 @@ fn provider_list_reports_three_modes_and_names_local_as_the_default() {
 }
 
 #[test]
+fn current_help_does_not_advertise_byok_or_credential_management() {
+    for args in [vec!["run", "--help"], vec!["provider", "--help"]] {
+        let result = mpdf(&args);
+        assert!(result.status.success());
+        let help = String::from_utf8_lossy(&result.stdout);
+        assert!(!help.contains("gemini-byok"), "{args:?}: {help}");
+        assert!(!help.contains("\n  credential"), "{args:?}: {help}");
+    }
+}
+
+#[test]
 fn provider_list_never_claims_credits_is_production_ready() {
     let result = mpdf(&["provider", "list", "--json"]);
     let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
-    let credits = &report["modes"][2];
+    let credits = &report["modes"][1];
     assert_eq!(credits["id"], "mpdf-credits");
     assert_eq!(credits["production_ready"], false);
     let blockers = credits["blockers"].as_array().unwrap();
@@ -69,14 +80,14 @@ fn no_command_anywhere_accepts_a_key_as_an_argument() {
 }
 
 #[test]
-fn a_cloud_run_without_explicit_consent_is_refused_before_anything_is_opened() {
+fn a_brokered_cloud_run_without_explicit_consent_is_refused_before_anything_is_opened() {
     let result = mpdf(&[
         "run",
         "/nonexistent/source.pdf",
         "--output",
         "/nonexistent/out.pdf",
         "--ocr-provider",
-        "gemini-byok",
+        "mpdf-credits",
     ]);
     assert!(!result.status.success());
     let stderr = String::from_utf8_lossy(&result.stderr);
@@ -87,7 +98,7 @@ fn a_cloud_run_without_explicit_consent_is_refused_before_anything_is_opened() {
 }
 
 #[test]
-fn production_binary_compiles_out_brokered_execution() {
+fn brokered_execution_requires_a_cost_limit_before_reporting_backend_unavailability() {
     let result = mpdf(&[
         "run",
         "/nonexistent/source.pdf",
@@ -99,11 +110,7 @@ fn production_binary_compiles_out_brokered_execution() {
     ]);
     assert!(!result.status.success());
     let stderr = String::from_utf8_lossy(&result.stderr);
-    assert!(
-        stderr.contains("not compiled into this production build"),
-        "{stderr}"
-    );
-    assert!(stderr.contains("dev-credits"), "{stderr}");
+    assert!(stderr.contains("--max-credits"), "{stderr}");
 }
 
 #[test]
@@ -118,18 +125,15 @@ fn a_custom_broker_endpoint_cannot_bypass_the_production_compile_gate() {
         "--cloud-consent",
         "--cloud-endpoint",
         "https://credits.example.invalid",
+        "--max-credits",
+        "100",
     ]);
     assert!(!result.status.success());
-    assert!(
-        String::from_utf8_lossy(&result.stderr).contains("not compiled into this production build")
-    );
+    assert!(String::from_utf8_lossy(&result.stderr).contains("complete coordinate OCR contract"));
 }
 
 #[test]
-fn a_dry_run_describes_the_upload_without_opening_or_calling_anything() {
-    // The source does not exist. A dry run must still succeed, because it is
-    // a description of intent, not an execution — and it must never reach a
-    // provider.
+fn legacy_byok_is_disabled_before_consent_files_credentials_or_a_dry_run() {
     let result = mpdf(&[
         "run",
         "/nonexistent/source.pdf",
@@ -137,18 +141,15 @@ fn a_dry_run_describes_the_upload_without_opening_or_calling_anything() {
         "/nonexistent/out.pdf",
         "--ocr-provider",
         "gemini-byok",
-        "--cloud-consent",
         "--dry-run",
     ]);
-    assert!(
-        result.status.success(),
-        "{}",
-        String::from_utf8_lossy(&result.stderr)
-    );
-    let stdout = String::from_utf8_lossy(&result.stdout);
-    assert!(stdout.contains("dry run"), "{stdout}");
-    assert!(stdout.contains("uploads:"), "{stdout}");
-    assert!(stdout.contains("****"), "{stdout}");
+    assert!(!result.status.success());
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(stderr.contains("disabled in this version"), "{stderr}");
+    assert!(stderr.contains("complete coordinate OCR"), "{stderr}");
+    assert!(!stderr.contains("--cloud-consent"), "{stderr}");
+    assert!(!stderr.contains("No such file"), "{stderr}");
+
     // A dry run of a local conversion says plainly that nothing leaves.
     let local = mpdf(&[
         "run",
@@ -158,8 +159,32 @@ fn a_dry_run_describes_the_upload_without_opening_or_calling_anything() {
         "--dry-run",
     ]);
     assert!(local.status.success());
-    assert!(String::from_utf8_lossy(&local.stdout)
-        .contains("nothing; local OCR makes no network request"));
+    let stdout = String::from_utf8_lossy(&local.stdout);
+    assert!(stdout.contains("argument/policy checks only"), "{stdout}");
+    assert!(
+        stdout.contains("input and optional OCR plugin/runtime were not inspected"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("nothing; local OCR makes no network request"));
+    assert!(stdout.contains("reliable native-text PDFs work without it"));
+    assert!(stdout.contains("scanned pages require it"));
+}
+
+#[test]
+fn dry_run_help_does_not_claim_runtime_or_input_validation() {
+    let result = mpdf(&["run", "--help"]);
+    assert!(result.status.success());
+    let help = String::from_utf8_lossy(&result.stdout);
+    assert!(
+        help.contains("Checks argument/policy consistency only"),
+        "{help}"
+    );
+    assert!(help.contains("does not open the input"), "{help}");
+    assert!(
+        help.contains("inspect the optional OCR plugin/runtime"),
+        "{help}"
+    );
+    assert!(!help.contains("Validate the configuration"), "{help}");
 }
 
 #[test]
@@ -178,11 +203,14 @@ fn consent_on_a_local_run_is_a_usage_error_rather_than_silently_ignored() {
 }
 
 #[test]
-fn the_credential_command_refuses_to_take_a_key_from_a_terminal() {
-    // stdin here is not a terminal (the test harness pipes it), so this
-    // exercises the empty-input path rather than the interactive refusal.
-    let result = mpdf(&["provider", "credential", "set", "--slot", "default"]);
-    assert!(!result.status.success());
+fn legacy_credential_commands_return_the_disabled_error_without_reading_a_key() {
+    for verb in ["set", "status", "delete"] {
+        let result = mpdf(&["provider", "credential", verb, "--slot", "../ignored"]);
+        assert!(!result.status.success());
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(stderr.contains("disabled in this version"), "{stderr}");
+        assert!(stderr.contains("complete coordinate OCR"), "{stderr}");
+    }
 }
 
 #[test]
@@ -190,4 +218,12 @@ fn a_local_connection_test_makes_no_request_and_says_so() {
     let result = mpdf(&["provider", "test", "--mode", "local"]);
     assert!(result.status.success());
     assert!(String::from_utf8_lossy(&result.stdout).contains("no network"));
+}
+
+#[test]
+fn legacy_byok_connection_test_is_disabled_without_reading_credentials() {
+    let result = mpdf(&["provider", "test", "--mode", "gemini-byok"]);
+    assert!(!result.status.success());
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(stderr.contains("disabled in this version"), "{stderr}");
 }

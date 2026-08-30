@@ -30,11 +30,10 @@ on:
         description: "Product profile whose runtime, distribution, and policy gates must pass"
         required: true
         type: choice
-        default: local-core
+        default: base
         options:
-          - local-core
-          - local-ocr-preview
-          - cloud-beta
+          - base
+          - optional-local-ocr-plugin
 
 # Nothing beyond what release/tag creation and cross-run artifact
 # download actually require. No `issues`, `pull-requests`, `packages`,
@@ -87,13 +86,16 @@ jobs:
       - name: Enforce product release-readiness profile
         # `source` is intentionally not an allowed workflow input. A source
         # preflight can authorize private builds, never creation of a release
-        # carrying binary artifacts. Missing runtime or owner evidence fails
-        # closed before artifacts are downloaded or GitHub Releases touched.
+        # carrying binary artifacts. `base` deliberately has no OCR-runtime
+        # gate; the independent optional plugin profile fails closed on its
+        # own runtime evidence before artifacts are downloaded or Releases
+        # touched.
         run: |
           python3 scripts/distribution/release_readiness.py \
             --profile "${{ github.event.inputs.release_profile }}" \
             --pdfium-evidence docs/evidence/pdfium-smoke-aarch64.json \
-            --macos-install-evidence docs/evidence/rc3-local-install-arm64.json
+            --macos-install-evidence docs/evidence/rc3-base-install-arm64.json \
+            --ocr-runtime-evidence docs/evidence/rc3-ocr-runtime-smoke-arm64.json
 
       - name: Verify the selected distribution run succeeded and matches git_sha
         env:

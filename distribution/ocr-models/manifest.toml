@@ -10,7 +10,8 @@
 #
 #   1. The application NEVER downloads a model at runtime. Models are
 #      provisioned out of band by `scripts/ocr/provision_models.py` (a
-#      developer/packaging tool) or shipped inside a release bundle.
+#      developer/packaging tool) or shipped inside a separate optional OCR
+#      plugin artifact. The base release never requires this manifest.
 #   2. A model may only be bundled or auto-provisioned when its license is
 #      recorded here AND permits redistribution. A model whose license is
 #      absent, unclear, or non-commercial stays a development-only candidate:
@@ -39,9 +40,9 @@ license_url = "https://github.com/tesseract-ocr/tessdata_best/blob/4.1.0/LICENSE
 upstream_project = "tessdata_best"
 upstream_url = "https://github.com/tesseract-ocr/tessdata_best"
 redistributable = true
-# The macOS arm64 rc.3 candidate stages and smoke-tests this set. Keep the
-# release-wide claim false until Windows and Linux artifacts prove the same
-# self-contained contract; this field is deliberately not a per-target flag.
+# The macOS arm64 optional-plugin candidate stages and smoke-tests this set.
+# Keep the base-release claim false: these models belong to a separately
+# staged plugin artifact, not the deterministic desktop/CLI base package.
 bundled_in_release = false
 date_verified = "2026-08-28"
 

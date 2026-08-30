@@ -497,6 +497,30 @@ identical on and off — CER 0.1766, WER 0.4530, diacritic error rate 0.0913,
 951 script confusions, 0 missing lines, 148 extra lines in both. The pass
 finds no candidates in this typeface.
 
+### Conservative text-enhancer hypothesis (2026-08-30)
+
+The v2 `TextEnhancer` slice pre-registered a separate fixed check on the
+lexicographically first 12 scorable CGPG pages. It ran the bundled Tesseract
+5.5.3 binary with PSM 6/OEM 1 and compared `ell`, `ell` plus the shipped
+conservative NFC/lookalike enhancer, `grc`, and `ell+grc`:
+
+| Candidate | Polytonic CER | Base-letter CER | Polytonic change vs `ell` |
+|---|---:|---:|---:|
+| `ell` | 0.123819 | 0.116329 | baseline |
+| `ell+enhancer` | 0.123819 | 0.116329 | 0.000% |
+| `grc` | 0.141830 | 0.133983 | 14.546% worse |
+| `ell+grc` | 0.123819 | 0.116329 | 0.000% |
+
+The enhancer gate **failed**: it required at least 30% polytonic-CER
+improvement and measured 0%. The safety checks passed (0.000 percentage-point
+base-letter degradation, 0/12,903 correct-base rewrites, and 100% token/box
+lineage), but the candidate found zero eligible high-confidence lookalikes and
+therefore changed nothing. No threshold or rule was relaxed, and this profile
+is not a product default. CGPG exposes no clean/degraded label to this harness,
+so this fixed slice cannot make separate claims for those strata; it also has
+no reference-labelled Latin region. The content-free evidence record is
+[`ocr-cgpg-greek-model-bakeoff-2026-08-30.json`](evidence/ocr-cgpg-greek-model-bakeoff-2026-08-30.json).
+
 ## Orientation
 
 Orientation detection and recognition are **separate passes**. Tesseract's
@@ -538,19 +562,20 @@ derived document is built.
   Combining marks, breathings, accents, diaereses, and iota subscripts are
   never stripped.
 
-  A cloud model is not an exception to this rule; it is a *different
-  recognizer*, selected explicitly, whose output replaces a line only when it
-  aligns to a line this layer measured — never a post-hoc "correction" of
-  local text. See [`ocr-providers.md`](ocr-providers.md) and
-  [ADR 0010](adr/0010-provider-neutral-ocr-and-cloud-modes.md). The local
-  reading is kept for every line the alignment could not place, and a model's
-  confidence in its own output is never recorded as accuracy.
+  A text model is not a complete OCR provider. Under
+  [ADR 0011](adr/0011-complete-coordinate-ocr-and-optional-local-plugin.md), a
+  `TextEnhancer` may propose a provenance-bearing revision only after complete
+  canonical coordinate evidence exists. The historical local-geometry plus
+  cloud-transcription path is `experimental-composite`; it is not an available
+  product mode, cannot recognize an otherwise empty scan, and cannot decide
+  bookmarks. See [`ocr-providers.md`](ocr-providers.md).
 * **No silent transliteration.** A Greek profile returns Greek Unicode or
   fails. Latin lookalikes are measured (`script_confusion_rate`), never
   accepted as a fallback.
 * **No runtime downloads.** Models are provisioned out of band by
-  `scripts/ocr/provision_models.py` or shipped in a release bundle. The
-  sidecar never fetches anything.
+  `scripts/ocr/provision_models.py` or shipped in a separate optional local OCR
+  plugin artifact. The base release does not require them, and the sidecar
+  never fetches anything.
 * **No text in logs.** The sidecar prints a fixed string to stderr on
   failure. Page content never reaches a log or the parent process's
   diagnostics.
