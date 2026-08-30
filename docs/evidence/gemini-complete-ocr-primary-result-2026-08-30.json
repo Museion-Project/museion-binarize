@@ -1,0 +1,484 @@
+{
+  "schema": "mpdf-cloud-complete-ocr-bakeoff",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "completed_primary_only",
+  "content_policy": "Content-free metrics, usage, latency, digests, stable error codes, and public tariff calculations only.",
+  "corpus": {
+    "doi": "10.5281/zenodo.20008699",
+    "license": "CC BY 4.0",
+    "archive_sha256": "2ee5d79f3c781dc1b64fa386f0f194a762ab183cd36b97f5d873ce0a3004e1f7",
+    "formal_input_manifest_sha256": "6ab387adc9da8c55d227d3ef88dfe47af9e9f1c757b2f974ba06d8bf0eb4a751",
+    "page_ids": [
+      "grc_grna_or_399",
+      "grc_grna_or_409",
+      "grc_grna_or_423",
+      "grc_grna_or_429",
+      "grc_grna_or_443",
+      "grc_grna_or_447",
+      "grc_grna_or_461",
+      "grc_grna_or_475",
+      "grc_grna_or_487",
+      "grc_grna_or_489",
+      "grc_grna_or_503",
+      "grc_grna_or_513"
+    ],
+    "single_column_limitation": true
+  },
+  "execution": {
+    "provider": "google_gemini_api",
+    "backend": "gemini_developer_api",
+    "model": "gemini-3.7-flash",
+    "repetitions_per_page": 3,
+    "planned_calls": 36,
+    "automatic_retries": 0,
+    "concurrency": 1,
+    "identical_jpeg_bytes_enforced": true
+  },
+  "preregistration_sha256": "01e103561b52ca4770c74454519b4de245720c07bed842c3d70b9cddf3759f62",
+  "configuration_sha256": "d826b29637d6abc0c2952b046d96dbc5ee5b37f0228c6978d410b1413965cb91",
+  "code_sha256": {
+    "cgpg_loader": "4e1dee46d9c29dfca26c5e5e7ee9ae1a140ef3861dd68bd7228945cf2f70a5b0",
+    "cgpg_region_scorer": "88dc9617b9d401e982c146d5b76fdf1969d68b74da451df84c8adc56ad1fe197",
+    "cloud_complete_ocr_bakeoff_harness": "9fdab7727b0c5c9a45e348df87cb31be053ae713579e5670a934c045846b6ed2",
+    "gemini_primary_runner": "2173bbb7259e284c14aa46471a1c627e26b9f5afd2ee790afab644e0338febef",
+    "levenshtein_backend": "6f60219039f478c958ce7b15659ea2be4782c1d65340ff23235c2f42aca16ccf",
+    "prior_selector_and_cer_metrics": "323d52d621d40b74a3f5c823a580d491df32572f7ca24d293ff0aeac570d05fd"
+  },
+  "raw_run_manifest_sha256": "b931ccf05124c20c27107cca4c7e5472defb911df6d362047e7814beb4ca0d9b",
+  "providers": {
+    "google_gemini_api": {
+      "provider": "google_gemini_api",
+      "expected_invocations": 36,
+      "successful_invocations": 32,
+      "failures": [
+        {
+          "page_id": "grc_grna_or_443",
+          "repetition": 0,
+          "error_code": "gemini_finish_reason_invalid"
+        },
+        {
+          "page_id": "grc_grna_or_443",
+          "repetition": 2,
+          "error_code": "gemini_finish_reason_invalid"
+        },
+        {
+          "page_id": "grc_grna_or_503",
+          "repetition": 0,
+          "error_code": "gemini_finish_reason_invalid"
+        },
+        {
+          "page_id": "grc_grna_or_503",
+          "repetition": 2,
+          "error_code": "gemini_finish_reason_invalid"
+        }
+      ],
+      "recognition_metrics": {
+        "polytonic": {
+          "samples": 36,
+          "reference_chars": 63924,
+          "char_edits": 10739,
+          "cer": 0.167996,
+          "nfc_violations": 8
+        },
+        "base_letter": {
+          "samples": 36,
+          "reference_chars": 63924,
+          "char_edits": 10684,
+          "cer": 0.167136,
+          "nfc_violations": 0
+        }
+      },
+      "box_alignment": {
+        "at_0_5": {
+          "reference_lines": 1380,
+          "provider_lines": 1260,
+          "matched_lines": 1200,
+          "unmatched_reference_lines": 180,
+          "unmatched_provider_lines": 60,
+          "precision": 0.952381,
+          "recall": 0.869565,
+          "f1": 0.909091
+        },
+        "at_0_75": {
+          "reference_lines": 1380,
+          "provider_lines": 1260,
+          "matched_lines": 991,
+          "unmatched_reference_lines": 389,
+          "unmatched_provider_lines": 269,
+          "precision": 0.786508,
+          "recall": 0.718116,
+          "f1": 0.750758
+        },
+        "positive_iou_matches": 1231,
+        "matched_mean_iou": 0.809264,
+        "invalid_boxes": 0,
+        "degenerate_boxes": 0,
+        "out_of_page_boxes": 0,
+        "exact_duplicate_boxes": 0
+      },
+      "reading_order": {
+        "matched_lines": 1200,
+        "reference_lines": 1380,
+        "matched_gt_coverage": 0.869565,
+        "comparable_pairs": 22306,
+        "inversions": 0,
+        "pairwise_accuracy": 1.0
+      },
+      "repeat_stability": {
+        "structural_pages_passed": 8,
+        "recognition_quality_pages_passed": 9,
+        "pages_required": 12,
+        "structural_all_pages_passed": false,
+        "recognition_quality_all_pages_passed": false,
+        "per_page": [
+          {
+            "page_id": "grc_grna_or_399",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 0.698795,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.033398,
+            "maximum_relative_line_count_delta": 0.02381,
+            "structural_passed": false,
+            "recognition_quality_passed": false
+          },
+          {
+            "page_id": "grc_grna_or_409",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 1.0,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.008389,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_423",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 1.0,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.011242,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_429",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 1.0,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.007748,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_443",
+            "complete_repetitions": 1,
+            "pair_count": 0,
+            "minimum_box_f1_at_0_5": 0.0,
+            "minimum_pairwise_order_accuracy": 0.0,
+            "maximum_inter_run_text_cer": 1.0,
+            "maximum_relative_line_count_delta": 1.0,
+            "structural_passed": false,
+            "recognition_quality_passed": false
+          },
+          {
+            "page_id": "grc_grna_or_447",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 1.0,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.007589,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_461",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 1.0,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.006667,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_475",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 0.909091,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.002959,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_487",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 0.909091,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.006975,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_489",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 0.710526,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.004948,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": false,
+            "recognition_quality_passed": true
+          },
+          {
+            "page_id": "grc_grna_or_503",
+            "complete_repetitions": 1,
+            "pair_count": 0,
+            "minimum_box_f1_at_0_5": 0.0,
+            "minimum_pairwise_order_accuracy": 0.0,
+            "maximum_inter_run_text_cer": 1.0,
+            "maximum_relative_line_count_delta": 1.0,
+            "structural_passed": false,
+            "recognition_quality_passed": false
+          },
+          {
+            "page_id": "grc_grna_or_513",
+            "complete_repetitions": 3,
+            "pair_count": 3,
+            "minimum_box_f1_at_0_5": 1.0,
+            "minimum_pairwise_order_accuracy": 1.0,
+            "maximum_inter_run_text_cer": 0.004702,
+            "maximum_relative_line_count_delta": 0.0,
+            "structural_passed": true,
+            "recognition_quality_passed": true
+          }
+        ]
+      },
+      "latency": {
+        "samples": 36,
+        "total_seconds": 420.624204,
+        "mean_seconds": 11.684006,
+        "median_seconds": 9.981239,
+        "p95_seconds": 26.828003,
+        "max_seconds": 28.058512
+      },
+      "usage": {
+        "prompt_tokens": 44112,
+        "candidate_tokens": 103354,
+        "thought_tokens": 0,
+        "cached_tokens": 0,
+        "accepted_pages": 0,
+        "billable_pages": 0,
+        "native_words": 0,
+        "confidence": {
+          "samples": 0,
+          "mean": 0.0,
+          "minimum": null,
+          "maximum": null
+        },
+        "usage_unavailable_invocations": 0,
+        "ambiguous_usage_invocations": 0,
+        "incomplete_cost_usage_invocations": 0
+      },
+      "provider_response_provenance": {
+        "records": 36,
+        "observed_model_versions": [
+          "gemini-3.7-flash"
+        ],
+        "response_id_sha256": [
+          "005ce1adb04bbd823fa1845b00b5736b80d0def650d6f61bd50f5483331b2cb2",
+          "0a9f7726a06786d35506734f2399bc17aa29a12efd30ea1b147692b59456e39c",
+          "1215e21c2a42c4793c476058d13e72509c6bee2d527720b741c7325822702ea9",
+          "1ec28cf754c8e278dda44b7a7dd4c5f1f0e7e086afa0b9f7f7257bb728a8ad16",
+          "2bd7262edc20fb262934aace929ba1f03e9846c0004bcf86404c00421bfead9b",
+          "2dda6ff06701640948e83700c4f80bc2779153394b4730660e46dc2492067dd4",
+          "2e2ea84176b49811940c0543734feda5672a76d3190978e0efd1cf84c2c89c31",
+          "39a1b464d4d07a93e314cb0a4ac2dad2731632bb7b65a8739e0d6baae309ea2c",
+          "5044428078396ea5f7fb4b3207232d64c7733c13c3b0b1d953d771d0b6225e84",
+          "51540e0a51f2162fca5dfd2f405e2c517f2bbdc574cead16890ef0030111f96f",
+          "51b6c340b94ba24f9ea0228225958b0432c42ceab40d28834ef11802544b436b",
+          "5c647f5224a9c7d7d2bece868ac1d8d4e1d03a388348013f97a411dbfd010237",
+          "5cea874c5463236db6ce28c01be98e5d2e29d0c2e0f5c3636f84e038945c254c",
+          "5e6c02dfcbcfb3f2efbf3a89d2baf2947ea32b39e7e1d3bfed7d99a40e2caf10",
+          "5e920c9ae8a7656d45daab350a07915246e048d279f36fecea7931ade618e76d",
+          "67a10c24ca31553b1335b4ef3faabd830433035b27d36ea2d9ac7f49f4dc07e6",
+          "683dc2a4d7f89c8870451cdc116a266b544b67e708f5d3837a120435f6d7d593",
+          "6f3470f59f86669b6e08cd84ecccbd37ab0849f49eeb6427b6a41fef1c1275ec",
+          "6fc749b893b029b3426ca5a6d406f5a45304f8f09f84e82a8fdbaa09148cb2fd",
+          "85a6e906cdeee226b603d1ad2a77f734f3db6ea3bdd220c0d7f7a2b30965f9d6",
+          "8c7244f948f7ea2b2643accd3179e5abc880932f56e8ab5c7b9524c778a085c7",
+          "8e4e57a33274a1671043a31bf1edf2d675dce185557da2ecc0a45d3d88fc4786",
+          "936904764161a7a2b4d615b0af47828327451548aed6be25b2292cb4ecd41295",
+          "9cdd8e1b8dce906bb4688fc931f4e9656100c40c3a7e5974b8981e8830328b09",
+          "9f03ecd17ac29d1785fa2a4a9e458b416e455f4dfcb133054791a17ce5df621d",
+          "aceb8deb6f229e9fe1b45a20cd829eaada585b3dc232969a6770946621bd6d08",
+          "b87eb81766c25f8d451ac140abb9df4a525aff7437e5864c103bae944a005485",
+          "bca610399971c9ca662e836ec07886b1b10c9df99764424e091345cf4d0d9a1d",
+          "bcd35c62f3dc2668eec905cdf8c671800ba6715be47f367c18b3209fbdb81e89",
+          "bd326d9d3d306fd34ff38c7be14937109d8337bed6cc070f204346925cd41ea2",
+          "c3e0bb5ec35a5f1e230da5c7ebf338b2d6e4265168f1d18c15e312ef8622e0dc",
+          "df739ecfbe5178fbffc14c2fbaf901f50ce7b7514a37a73317e5e019bf1e9597",
+          "e0620483369a43bb6408e114f79e5c22cbb6ba11f04686e6fede528344dfc209",
+          "e64d25f8b9d28142b35fc48f0de77e72657f2e45a4e2d289f122f7bccd05450d",
+          "fcffec3833f1f62d2ee1763197ef22c2e722714721a02026ef4f48b45a6e76ff",
+          "fdb5c32b7a8bc775ccdd332b86f243a57073c9d5c7bf1964df483db9f6bf737d"
+        ],
+        "observed_model_ids": [],
+        "observed_api_versions": []
+      },
+      "cost": {
+        "tariff_cost_usd": 0.420662,
+        "known_measured_usage_tariff_cost_lower_bound_usd": 0.420662,
+        "usage_complete": true,
+        "cost_status": "complete_measured_usage",
+        "actual_billed_cost": null,
+        "tariff_snapshot": {
+          "effective_date": "2026-08-30",
+          "scope": "global_standard_paygo",
+          "input_usd_per_million_tokens": 0.75,
+          "cached_input_usd_per_million_tokens": 0.075,
+          "output_and_thinking_usd_per_million_tokens": 3.75,
+          "backend": "gemini_developer_api"
+        }
+      },
+      "structural_contract_gate": {
+        "outcome": "fail",
+        "checks": {
+          "response_success": {
+            "operator": "==",
+            "threshold": 1.0,
+            "actual": 1.0,
+            "passed": true
+          },
+          "strict_schema_valid": {
+            "operator": "==",
+            "threshold": 1.0,
+            "actual": 0.888889,
+            "passed": false
+          },
+          "pages_with_three_valid_repetitions": {
+            "operator": "==",
+            "threshold": 12,
+            "actual": 10,
+            "passed": false
+          },
+          "invalid_boxes": {
+            "operator": "==",
+            "threshold": 0,
+            "actual": 0,
+            "passed": true
+          },
+          "degenerate_boxes": {
+            "operator": "==",
+            "threshold": 0,
+            "actual": 0,
+            "passed": true
+          },
+          "out_of_page_boxes": {
+            "operator": "==",
+            "threshold": 0,
+            "actual": 0,
+            "passed": true
+          },
+          "exact_duplicate_boxes": {
+            "operator": "==",
+            "threshold": 0,
+            "actual": 0,
+            "passed": true
+          },
+          "box_f1_at_0_5": {
+            "operator": ">=",
+            "threshold": 0.85,
+            "actual": 0.909091,
+            "passed": true
+          },
+          "box_f1_at_0_75": {
+            "operator": ">=",
+            "threshold": 0.6,
+            "actual": 0.750758,
+            "passed": true
+          },
+          "matched_mean_iou": {
+            "operator": ">=",
+            "threshold": 0.7,
+            "actual": 0.809264,
+            "passed": true
+          },
+          "reading_order_pairwise_accuracy": {
+            "operator": ">=",
+            "threshold": 0.99,
+            "actual": 1.0,
+            "passed": true
+          },
+          "reading_order_matched_gt_coverage": {
+            "operator": ">=",
+            "threshold": 0.85,
+            "actual": 0.869565,
+            "passed": true
+          },
+          "repeat_stability_all_pages": {
+            "operator": "==",
+            "threshold": 12,
+            "actual": 8,
+            "passed": false
+          }
+        }
+      },
+      "recognition_quality_gate": {
+        "outcome": "fail",
+        "checks": {
+          "polytonic_cer": {
+            "operator": "<=",
+            "threshold": 0.15,
+            "actual": 0.167996,
+            "passed": false
+          },
+          "base_letter_cer": {
+            "operator": "<=",
+            "threshold": 0.12,
+            "actual": 0.167136,
+            "passed": false
+          },
+          "repeat_text_stability_all_pages": {
+            "operator": "==",
+            "threshold": 12,
+            "actual": 9,
+            "passed": false
+          }
+        }
+      },
+      "backend": "gemini_developer_api"
+    }
+  },
+  "contract_control": {
+    "provider": "azure_document_intelligence",
+    "status": "not_run_missing_credentials"
+  },
+  "comparison": {
+    "status": "deferred_until_control_run"
+  },
+  "decision": {
+    "outcome": "inconclusive_missing_control",
+    "candidate_retained": null,
+    "production_eligibility": "not_established_by_primary_only_run"
+  },
+  "limitations": [
+    "Azure Document Intelligence control was not run, so no provider selection is permitted.",
+    "The fixed CGPG slice is single-column Greek and does not validate complex-layout reading order.",
+    "Tariff cost is calculated from response-reported usage; actual billed cost remains null without a billing export.",
+    "A structural pass remains experimental evidence and does not override ADR 0011 production eligibility rules."
+  ],
+  "run_sha256": "705462895d4b9ea7501d7e450972fd4718b928afead415be36daa3cfe6c1efbf"
+}
