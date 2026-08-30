@@ -1,9 +1,9 @@
 # OCR providers and text enhancement
 
-This page is the operational reference for the provider contract adopted in
+This page is the operational reference for the split provider contract adopted
+in [ADR 0012](adr/0012-deterministic-geometry-and-gemini-transcription.md).
+ADR 0012 supersedes the cloud-composition decision in
 [ADR 0011](adr/0011-complete-coordinate-ocr-and-optional-local-plugin.md).
-ADR 0011 supersedes the default-provider and cloud-composition decisions in
-[ADR 0010](adr/0010-provider-neutral-ocr-and-cloud-modes.md).
 
 ## What works without OCR
 
@@ -14,36 +14,36 @@ account, or API key.
 - A PDF with usable embedded text can be processed, indexed, and used as
   canonical evidence without an OCR plugin.
 - Binarization and other non-OCR conversion remain available for every PDF.
-- A scanned page with no usable native text needs a complete OCR provider. If
-  none is installed or available, the OCR/searchable-output request stops with
-  an explicit provider-unavailable error. It does not invent text or silently
-  mark the page as recognized.
+- A scanned page with no usable native text needs either the selected
+  deterministic-geometry plus transcription pipeline or a compatible
+  monolithic complete provider. If neither is available, OCR/searchable output
+  stops with an explicit provider-unavailable error.
 
-## The three responsibility layers
+## Responsibility boundaries
 
 | Layer | Owns | Must not do |
 |---|---|---|
 | Deterministic core | native-text extraction, routing, validation, canonical evidence, coordinate transforms, checkpoints, searchable PDF, deterministic bookmarks | invent OCR coordinates or delegate bookmark decisions to a model |
-| `CompleteOcrProvider` | complete block/line/word text, measured coordinates, stable reading order, direct text/geometry identity, declared language/confidence support, engine identity, provenance | return text alone and call it OCR |
-| `TextEnhancer` | optional, provenance-bearing text revisions over existing canonical coordinate evidence | create geometry, recognize an otherwise empty scan, or directly create authoritative bookmarks |
+| `GeometryProvider` | deterministic line boxes, stable reading order, line ids, image/config digest and geometry provenance; no authoritative text | accept transcription or allow a model to change boxes/order |
+| `TranscriptionProvider` | literal text plus optional language/confidence keyed to every supplied line id; Gemini 3.7 Flash is the selected paid implementation | return geometry, add/drop/merge/split/reorder lines, or satisfy missing geometry |
+| Deterministic compositor | exact line-id bijection, geometry-digest verification, canonical `OcrPage` construction and fail-closed validation | fuzzy-align incomplete text or synthesize word boxes |
+| `TextEnhancer` | optional, provenance-bearing later revisions over canonical coordinate evidence | create geometry, recognize an otherwise empty scan, or directly create authoritative bookmarks |
 
-Complete providers use contract `mpdf-ocr-provider/2` and schema
-`mpdf-ocr-provider` version `0.2`. A valid page result is complete coordinate
-OCR: its evidence can stand on its own without another OCR engine supplying
-the rectangles.
+The selected split pipeline uses `mpdf-geometry-transcription/1`. Gemini sees
+immutable geometry and must return exactly one text item for every supplied
+line id. The compositor rejects missing, duplicate, unknown or reordered ids
+and geometry-digest mismatch. The old whole-page-text plus fuzzy alignment and
+Gemini-generated-box paths remain historical experiments only.
 
-The older local-detection plus cloud-transcription implementation is an
-`experimental-composite`. It is useful for evaluation, but it is neither a
-complete provider nor an available product mode. Deterministic alignment can
-attach revised characters to measured lines; it cannot make generated or
-missing geometry observational evidence.
+Contract `mpdf-ocr-provider/2` remains readable for a future monolithic
+provider that independently supplies stable direct text/geometry.
 
 ## Product modes
 
 | Requested mode | What executes | Cost | Availability in this version |
 |---|---|---:|---|
 | `local` | stable offline/native-text route; optional local plugin for scanned pages | no service charge | route is **stable**; scanned-page OCR is runtime-dependent |
-| `mpdf-credits` | future M PDF brokered complete-OCR service | paid credits | **unavailable**: no production complete-OCR backend exists |
+| `mpdf-credits` | deterministic geometry + brokered Gemini 3.7 Flash transcription | paid credits | **unavailable**: production broker/payment/privacy gates remain open |
 | legacy `gemini-byok` | historical text-only composite | provider billing | **disabled** and omitted from provider lists/pickers |
 
 There is no implicit fallback that changes modes. The `local` route is stable
@@ -68,7 +68,7 @@ not close the optional-plugin release gate. See
 
 ### M PDF Credits
 
-`mpdf-credits` is the only planned cloud OCR product mode. It is brokered: the
+`mpdf-credits` is the only planned cloud transcription product mode. It is brokered: the
 platform's provider credential remains server-side, while the client receives
 a short-lived job token. Every job requires explicit upload consent and an
 explicit maximum-credit ceiling.
@@ -77,7 +77,7 @@ The client protocol and development fixtures do not constitute a service.
 Availability remains `unavailable` because all of the following production
 requirements are still absent:
 
-- a deployed backend that independently returns complete coordinate OCR;
+- a deployed backend implementing geometry-bound line transcription;
 - payment and real-credit purchase/settlement integration;
 - production receipt-signing keys and server-side provider credential custody;
 - a published privacy policy, retention window, and deletion endpoint.
@@ -102,10 +102,11 @@ message is:
 
 > `gemini-byok is disabled in this version; BYOK will be reconsidered only for an API that independently returns complete coordinate OCR`
 
-No key setup, test, or run workflow is supported. BYOK will be reconsidered
-only if an API independently returns complete coordinate OCR under the v2
-contract. A text-only response, or rectangles generated by a model rather than
-measured by an OCR system, does not qualify.
+No key setup, test, or run workflow is supported. The quoted refusal remains
+unchanged for compatibility with existing clients. Under ADR 0012, Gemini is
+explicitly a text-only component behind the paid brokered route; BYOK remains
+out of scope because it neither supplies the deterministic geometry dependency
+nor the platform's consent, metering and credential-custody boundary.
 
 ## What leaves the machine
 
@@ -152,6 +153,11 @@ rules. The legacy `gemini-byok` value is not silently remapped to `local` or
 Historical composite evidence retains its recorded provenance and is never
 relabeled as complete coordinate OCR.
 
+Closed-world transcription evaluation uses
+`schemas/mpdf-closed-world-ocr-gold-page-1.0.schema.json`. CGPG PAGE XML is
+candidate scaffolding only and cannot pass the coverage gate without an
+exhaustive full-page human review.
+
 See also [`limitations.md`](limitations.md),
 [`distribution.md`](distribution.md), and
-[ADR 0011](adr/0011-complete-coordinate-ocr-and-optional-local-plugin.md).
+[ADR 0012](adr/0012-deterministic-geometry-and-gemini-transcription.md).

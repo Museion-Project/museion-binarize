@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mpdf-closed-world-ocr-gold-page-1.0",
+  "title": "Closed-world human OCR gold page",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "page_id", "image", "coverage", "candidate_provenance", "lines"],
+  "properties": {
+    "schema": { "const": "mpdf-closed-world-ocr-gold-page" },
+    "schema_version": { "const": "1.0" },
+    "page_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "width", "height", "mime_type"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "mime_type": { "enum": ["image/jpeg", "image/png", "image/tiff"] }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "closed_world", "all_visible_lines_exhaustively_reviewed", "reviewer", "verified_at", "unresolved_notes"],
+      "properties": {
+        "status": { "enum": ["draft", "verified"] },
+        "closed_world": { "const": true },
+        "all_visible_lines_exhaustively_reviewed": { "type": "boolean" },
+        "reviewer": { "type": "string", "maxLength": 256 },
+        "verified_at": { "type": ["string", "null"], "format": "date-time" },
+        "unresolved_notes": { "type": "string", "maxLength": 4096 }
+      }
+    },
+    "candidate_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "xml_sha256", "warning"],
+      "properties": {
+        "kind": { "const": "cgpg_page_xml_scaffolding_only" },
+        "xml_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "warning": { "type": "string", "minLength": 1 }
+      }
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["line_id", "reading_order", "bbox", "text", "language", "content_class", "geometry_status", "transcription_status", "source"],
+        "properties": {
+          "line_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "reading_order": { "type": "integer", "minimum": 0 },
+          "bbox": {
+            "description": "[left, top, right, bottom] in original image pixels; semantic bounds are enforced by the Python validator.",
+            "type": "array",
+            "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}, {"type": "number"}],
+            "items": false
+          },
+          "text": { "type": "string", "maxLength": 16384 },
+          "language": { "enum": ["grc", "lat", "deu", "eng", "mixed", "zxx", "und"] },
+          "content_class": { "enum": ["main_text", "apparatus", "running_head", "page_number", "footnote", "caption", "other", "unclassified"] },
+          "geometry_status": { "enum": ["candidate_unverified", "human_verified"] },
+          "transcription_status": { "enum": ["candidate_unverified", "human_verified"] },
+          "source": { "enum": ["cgpg_page_xml_candidate", "human_draft", "human"] }
+        }
+      }
+    }
+  }
+}

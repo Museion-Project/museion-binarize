@@ -317,17 +317,21 @@ credential, and matching consent digest; it is not an OCR provider fallback.
 
 - **M PDF Cloud OCR (`mpdf-credits`) is unavailable.** It is the only planned
   cloud product mode and would be paid and brokered, with task-level consent
-  and a hard maximum-credit ceiling. No production backend independently
-  returns the complete-coordinate OCR contract; payment, production signing
-  keys, provider-key custody, privacy/retention, and deletion are also absent.
+  and a hard maximum-credit ceiling. The selected architecture is deterministic
+  line geometry followed by geometry-bound Gemini 3.7 Flash transcription. No
+  production broker implements that contract; payment, production signing keys,
+  provider-key custody, privacy/retention, and deletion are also absent.
   Protocol fixtures are not a production service, no credits can be bought,
   and neither front end can start a run.
 - **Gemini BYOK is disabled.** The legacy value remains deserializable so old
   settings fail predictably, but it is omitted from provider lists/pickers and
-  no credential command reads a key. It will be reconsidered only for an API
-  that independently returns complete coordinate OCR.
-- **Text-only/model-rectangle experiments are not complete OCR.** The retained
-  local-geometry plus transcription path is `experimental-composite`.
+  no credential command reads a key. The historical refusal string is retained
+  for client compatibility; the selected transcription route is brokered.
+- **Old alignment/model-rectangle experiments are not production OCR.** The
+  retained whole-page text alignment and model-generated rectangle paths are
+  `experimental-composite`. Production composition requires immutable
+  deterministic geometry, an exact geometry digest and an exact line-id
+  bijection under `mpdf-geometry-transcription/1`.
   `TextEnhancer` output may become a reviewable revision over existing
   canonical evidence; it cannot recognize an empty scan, supply authoritative
   coordinates, or decide bookmarks.

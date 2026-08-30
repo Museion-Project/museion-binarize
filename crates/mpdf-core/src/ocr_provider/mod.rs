@@ -34,6 +34,7 @@
 pub mod alignment;
 pub mod credits;
 pub mod gemini;
+pub mod geometry_transcription;
 pub mod redaction;
 pub mod runner;
 pub mod structured_bbox;
