@@ -43,11 +43,41 @@ UPLOAD_ACKNOWLEDGEMENT = (
 )
 DEFAULT_PREREGISTRATION = (
     common.REPO_ROOT
-    / "docs/evidence/gemini-complete-ocr-primary-preregistration-2026-08-30.json"
+    / "docs/evidence/gemini-complete-ocr-primary-preregistration-v2-2026-08-30.json"
 )
 PREREGISTRATION_SHA256 = (
-    "a36239cbf617d3f3767d7ca02d8f34eabd83c943175d4c85c36f2302e976c45c"
+    "f7fed6fe09a3d038177846ca5fff887cbbf17605445dc47b78346e275af27523"
 )
+GEMINI_API_MAX_LINES = 64
+GEMINI_API_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "lines": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": GEMINI_API_MAX_LINES,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "bbox": {
+                        "type": "array",
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "items": {"type": "integer"},
+                    },
+                    "reading_order": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255,
+                    },
+                },
+                "required": ["text", "bbox", "reading_order"],
+            },
+        }
+    },
+    "required": ["lines"],
+}
 
 
 def _endpoint(method: str) -> str:
@@ -66,8 +96,10 @@ def primary_configuration() -> dict[str, object]:
         "model": common.GEMINI_MODEL,
         "prompt_sha256": common.GEMINI_PROMPT_SHA256,
         "response_schema_sha256": common.canonical_digest(
-            common.GEMINI_RESPONSE_SCHEMA
+            GEMINI_API_RESPONSE_SCHEMA
         ),
+        "wire_maximum_lines": GEMINI_API_MAX_LINES,
+        "local_coordinate_range_validation": "integer_0_to_1000",
         "thinking_level": common.GEMINI_THINKING_LEVEL,
         "max_output_tokens": common.GEMINI_MAX_OUTPUT_TOKENS,
         "sampling_parameters": "omitted_provider_defaults",
@@ -148,7 +180,7 @@ def verify_preregistration(
             isinstance(value, dict)
             and value["schema"]
             == "mpdf-gemini-complete-ocr-primary-preregistration"
-            and value["schema_version"] == "1.0"
+            and value["schema_version"] == "1.1"
             and value["status"] == "preregistered_not_executed"
             and value["registered_before_live_execution"] is True
             and value["provider"]["backend"] == BACKEND
@@ -221,7 +253,7 @@ class GeminiApiClient:
                 "generationConfig": {
                     "maxOutputTokens": common.GEMINI_MAX_OUTPUT_TOKENS,
                     "responseMimeType": "application/json",
-                    "responseSchema": common.GEMINI_RESPONSE_SCHEMA,
+                    "responseJsonSchema": GEMINI_API_RESPONSE_SCHEMA,
                     "thinkingConfig": {
                         "thinkingLevel": common.GEMINI_THINKING_LEVEL
                     },
@@ -272,6 +304,14 @@ class GeminiApiClient:
             except common.BakeoffError:
                 pass
             raise
+        if len(parsed.lines) > GEMINI_API_MAX_LINES:
+            error = common.BakeoffError("response_schema_invalid")
+            error.raw_response = response.body
+            error.provider_response_success = True
+            error.latency_seconds = self._clock() - started
+            error.usage = parsed.usage
+            error.provenance = parsed.provenance
+            raise error
         return replace(parsed, latency_seconds=self._clock() - started)
 
 

@@ -1,0 +1,37 @@
+{
+  "schema": "mpdf-gemini-complete-ocr-primary-aborted-attempt",
+  "schema_version": "1.0",
+  "date": "2026-08-30",
+  "status": "aborted_invalid_request_contract",
+  "preregistration_sha256": "a36239cbf617d3f3767d7ca02d8f34eabd83c943175d4c85c36f2302e976c45c",
+  "provider": "google_gemini_api",
+  "backend": "gemini_developer_api",
+  "model": "gemini-3.7-flash",
+  "scheduled_calls": 36,
+  "requests_completed_before_abort": 20,
+  "outcomes": {
+    "gemini_http_400": 20,
+    "provider_response_success": 0,
+    "scorable_responses": 0
+  },
+  "abort_reason": "Every completed request returned HTTP 400 before a model response because the frozen Vertex-oriented response schema exceeded the Gemini Developer API schema compiler's accepted complexity.",
+  "diagnosis": {
+    "method": "Content-free text-only field isolation; response bodies and generated text were not persisted.",
+    "finding": "The Developer API accepts responseJsonSchema with at most 64 line items and a fixed four-integer bbox array when bbox coordinate range constraints are enforced by the unchanged local strict parser rather than the wire schema.",
+    "corpus_maximum_reference_lines": 44,
+    "revised_wire_maximum_lines": 64,
+    "headroom_ratio": 1.4545454545454546
+  },
+  "usage": {
+    "formal_attempt_provider_usage": null,
+    "formal_attempt_tariff_cost_usd": null,
+    "actual_billed_cost_usd": null,
+    "note": "HTTP 400 responses supplied no usage metadata. Small content-free diagnostic requests were outside the formal measurement and were not billed-evidence reconciled."
+  },
+  "raw_data": {
+    "committed": false,
+    "partial_private_metadata_records": 20,
+    "raw_provider_response_bodies": 0
+  },
+  "decision": "This attempt is infrastructure-invalid and supplies no OCR capability result. The original preregistration remains immutable; a separately hashed v2 preregistration is required before retrying."
+}

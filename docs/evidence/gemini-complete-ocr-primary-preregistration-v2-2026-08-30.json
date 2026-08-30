@@ -1,0 +1,107 @@
+{
+  "schema": "mpdf-gemini-complete-ocr-primary-preregistration",
+  "schema_version": "1.1",
+  "date": "2026-08-30",
+  "status": "preregistered_not_executed",
+  "registered_before_live_execution": true,
+  "supersedes": {
+    "preregistration_sha256": "a36239cbf617d3f3767d7ca02d8f34eabd83c943175d4c85c36f2302e976c45c",
+    "reason": "The first attempt made no successful provider inference: 20 requests returned HTTP 400 because the Vertex-oriented wire schema exceeded Gemini Developer API schema complexity. The attempt was aborted and preserved separately before this revision."
+  },
+  "purpose": "Measure Gemini 3.7 Flash as the primary candidate on the frozen CGPG Complete OCR holdout. Azure Document Intelligence remains the unexecuted contract control, so this run cannot select a production provider.",
+  "provider": {
+    "name": "google_gemini_api",
+    "role": "primary_candidate",
+    "backend": "gemini_developer_api",
+    "api_version": "v1beta",
+    "model": "gemini-3.7-flash",
+    "request_asset": "The frozen full-page JPEG with no crop, local OCR text, local geometry, or ground-truth hint.",
+    "response_contract": "Strict ordered line records containing verbatim text, a direct normalized page-relative line box, and a contiguous zero-based reading_order.",
+    "prompt_sha256": "ce534ab2f3fcfd8ea8a45607730e892e9996d26fceb5f693f35361447c2ff4af",
+    "response_json_schema_sha256": "3bb549ef86577172c3077597df4221454b9d6fefe95bf058b301aceb993c7795",
+    "thinking_level": "MEDIUM",
+    "max_output_tokens": 4096,
+    "sampling_parameters": "omitted_provider_defaults",
+    "wire_maximum_lines": 64,
+    "wire_bbox_contract": "Exactly four integers in ymin, xmin, ymax, xmax order.",
+    "local_bbox_contract": "The strict parser independently rejects values outside normalized 0..1000 and rejects degenerate or out-of-page boxes.",
+    "schema_revision_rationale": "The frozen pages contain at most 44 reference lines. A 64-line wire bound has 45.45 percent headroom and is the largest tested power-of-two bound accepted with a fixed four-integer bbox array; 80, 96, 128, and 256 were rejected by the API schema compiler."
+  },
+  "corpus": {
+    "name": "Corpus of Ground-truthed Patrologia Graeca",
+    "doi": "10.5281/zenodo.20008699",
+    "license": "CC BY 4.0",
+    "archive_sha256": "2ee5d79f3c781dc1b64fa386f0f194a762ab183cd36b97f5d873ce0a3004e1f7",
+    "formal_input_manifest_sha256": "6ab387adc9da8c55d227d3ef88dfe47af9e9f1c757b2f974ba06d8bf0eb4a751",
+    "selection": "The lexicographically first 12 non-empty pages of the deterministic CGPG holdout.",
+    "maximum_reference_lines_per_page": 44,
+    "page_ids": [
+      "grc_grna_or_399",
+      "grc_grna_or_409",
+      "grc_grna_or_423",
+      "grc_grna_or_429",
+      "grc_grna_or_443",
+      "grc_grna_or_447",
+      "grc_grna_or_461",
+      "grc_grna_or_475",
+      "grc_grna_or_487",
+      "grc_grna_or_489",
+      "grc_grna_or_503",
+      "grc_grna_or_513"
+    ],
+    "single_column_limitation": "This slice supplies only single-column Greek evidence; it cannot establish multi-column, mixed-language, block-order, or general layout performance."
+  },
+  "design": {
+    "pages": 12,
+    "repetitions_per_page": 3,
+    "planned_calls": 36,
+    "concurrency": 1,
+    "automatic_retries": 0,
+    "input_parity": "Every repetition receives the byte-identical frozen JPEG for its page.",
+    "run_validity": "Failures remain failures and are not replaced or retried. Missing or changed frozen inputs abort before model calls."
+  },
+  "metrics": {
+    "polytonic_cer_max": 0.15,
+    "base_letter_cer_max": 0.12,
+    "box_f1_at_0_5_min": 0.85,
+    "box_f1_at_0_75_min": 0.6,
+    "matched_mean_iou_min": 0.7,
+    "reading_order_pairwise_accuracy_min": 0.99,
+    "reading_order_gt_coverage_min": 0.85,
+    "stability_box_f1_at_0_5_min": 0.9,
+    "stability_order_pairwise_accuracy_min": 0.995,
+    "stability_inter_run_text_cer_max": 0.02,
+    "stability_relative_line_count_delta_max": 0.05
+  },
+  "cost": {
+    "tariff_effective_date": "2026-08-30",
+    "input_usd_per_million_tokens": 0.75,
+    "cached_input_usd_per_million_tokens": 0.075,
+    "output_and_thinking_usd_per_million_tokens": 3.75,
+    "conservative_planned_ceiling_usd": "0.6920640",
+    "hard_maximum_usd": "0.70",
+    "actual_billed_cost": null,
+    "interpretation": "The result reports a tariff calculation from provider usage counters. It is not an actual bill without billing-export evidence."
+  },
+  "security": {
+    "credential_source": "The existing translation-project settings are read only in the parent process.",
+    "credential_transfer": "The key is passed only in a scrubbed one-shot child-process environment; it is absent from argv, stdout, evidence, repository files, and raw response files.",
+    "upload_acknowledgement_required": true,
+    "uploaded_content": "Only the frozen JPEG bytes; PAGE XML ground truth is never uploaded.",
+    "raw_outputs": "Private ignored directory mode 0700 with files mode 0600; no raw OCR text is committed."
+  },
+  "harness_binding": {
+    "configuration_sha256": "a81978d64b30bef7a1e85c625284df4327056a8e7a9775e8ce602244ed07bbc2"
+  },
+  "decision": {
+    "contract_control": "azure_document_intelligence",
+    "control_status": "not_run_missing_credentials",
+    "outcome_without_control": "inconclusive_missing_control",
+    "production_eligibility": "not_established_by_primary_only_run",
+    "rule": "This primary-only measurement cannot select Gemini or any other production OCR provider."
+  },
+  "content_policy": {
+    "evidence_is_content_free": true,
+    "forbidden": "Images, OCR text, ground-truth text, coordinates, paths, endpoints, account identifiers, credentials, headers, and raw provider errors are excluded from committed evidence."
+  }
+}
