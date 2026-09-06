@@ -1,0 +1,261 @@
+{
+  "page_id": "ueberweg-kraemer-pdf100",
+  "review_kind": "AI_visual_preannotation_not_human_gold",
+  "full_original_image_viewed": true,
+  "image_sha256": "fad2877c3fee3cc723cbec90504a0a17f3e771235fa4309c2bf75cfdeb2a375f",
+  "baseline_sha256": "00c88f45cdea359d7c730cbd7851eb10a462360b1aa58005204a3febf739ab46",
+  "line_count": 40,
+  "line_ids_visually_compared": [
+    "ueberweg-kraemer-pdf100-visual-page-left",
+    "ueberweg-kraemer-pdf100-visual-head-left",
+    "ueberweg-kraemer-pdf100-candidate-0001",
+    "ueberweg-kraemer-pdf100-candidate-0002",
+    "ueberweg-kraemer-pdf100-candidate-0003",
+    "ueberweg-kraemer-pdf100-candidate-0004",
+    "ueberweg-kraemer-pdf100-candidate-0005",
+    "ueberweg-kraemer-pdf100-candidate-0006",
+    "ueberweg-kraemer-pdf100-candidate-0007",
+    "ueberweg-kraemer-pdf100-candidate-0008",
+    "ueberweg-kraemer-pdf100-candidate-0009",
+    "ueberweg-kraemer-pdf100-candidate-0010",
+    "ueberweg-kraemer-pdf100-candidate-0011",
+    "ueberweg-kraemer-pdf100-candidate-0012",
+    "ueberweg-kraemer-pdf100-candidate-0013",
+    "ueberweg-kraemer-pdf100-candidate-0014",
+    "ueberweg-kraemer-pdf100-candidate-0015",
+    "ueberweg-kraemer-pdf100-candidate-0016",
+    "ueberweg-kraemer-pdf100-candidate-0017",
+    "ueberweg-kraemer-pdf100-candidate-0018",
+    "ueberweg-kraemer-pdf100-candidate-0019",
+    "ueberweg-kraemer-pdf100-candidate-0020",
+    "ueberweg-kraemer-pdf100-candidate-0021",
+    "ueberweg-kraemer-pdf100-candidate-0022",
+    "ueberweg-kraemer-pdf100-candidate-0023",
+    "ueberweg-kraemer-pdf100-candidate-0024",
+    "ueberweg-kraemer-pdf100-candidate-0025",
+    "ueberweg-kraemer-pdf100-candidate-0026",
+    "ueberweg-kraemer-pdf100-candidate-0027",
+    "ueberweg-kraemer-pdf100-candidate-0028",
+    "ueberweg-kraemer-pdf100-candidate-0029",
+    "ueberweg-kraemer-pdf100-candidate-0030",
+    "ueberweg-kraemer-pdf100-candidate-0031",
+    "ueberweg-kraemer-pdf100-candidate-0032",
+    "ueberweg-kraemer-pdf100-candidate-0033",
+    "ueberweg-kraemer-pdf100-candidate-0035",
+    "ueberweg-kraemer-pdf100-candidate-0036",
+    "ueberweg-kraemer-pdf100-candidate-0037",
+    "ueberweg-kraemer-pdf100-candidate-0038",
+    "ueberweg-kraemer-pdf100-visual-missed-final-line"
+  ],
+  "visual_inspection": "All40 lines and three formulas visually reviewed. Fraction retained as linear (1 + √2) / 2, fourthroot∜2; layout captured by original formula bbox. Geometry and coverage checked.",
+  "changes": [
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0003",
+      "old_reading_order": 4,
+      "new_reading_order": 4,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "Lebewesens in der Definition zu berücksichtigen (Kapp 1968 [*1185: 184£.], mit",
+      "new_text": "Lebewesens in der Definition zu berücksichtigen (Kapp 1968 [*1185: 184f.], mit",
+      "old_bbox": [
+        213,
+        341,
+        1644,
+        384
+      ],
+      "new_bbox": [
+        213,
+        341,
+        1644,
+        384
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0008",
+      "old_reading_order": 9,
+      "new_reading_order": 9,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "Der Mathematiker Theaitetos hat sich — Ansátze des Theodoros aus Kyrene",
+      "new_text": "Der Mathematiker Theaitetos hat sich – Ansätze des Theodoros aus Kyrene",
+      "old_bbox": [
+        254,
+        739,
+        1643,
+        780
+      ],
+      "new_bbox": [
+        254,
+        739,
+        1643,
+        780
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0009",
+      "old_reading_order": 10,
+      "new_reading_order": 10,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "fortführend — speziell mit der Irrationalität von Zahlen oder, geometrisch gewen-",
+      "new_text": "fortführend – speziell mit der Irrationalität von Zahlen oder, geometrisch gewen-",
+      "old_bbox": [
+        212,
+        788,
+        1643,
+        829
+      ],
+      "new_bbox": [
+        212,
+        788,
+        1643,
+        829
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0010",
+      "old_reading_order": 11,
+      "new_reading_order": 11,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "det, der Inkommensurabilitát von Strecken befasst und generell nachgewiesen,",
+      "new_text": "det, der Inkommensurabilität von Strecken befasst und generell nachgewiesen,",
+      "old_bbox": [
+        211,
+        837,
+        1643,
+        876
+      ],
+      "new_bbox": [
+        211,
+        837,
+        1643,
+        876
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0013",
+      "old_reading_order": 14,
+      "new_reading_order": 14,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "kann, alle inkommensurabel sind (Platon: Theaetetus 147 D ff; Euclides: Ele-",
+      "new_text": "kann, alle inkommensurabel sind (Platon: Theaetetus 147 D ff.; Euclides: Ele-",
+      "old_bbox": [
+        212,
+        982,
+        1643,
+        1022
+      ],
+      "new_bbox": [
+        212,
+        982,
+        1643,
+        1022
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0023",
+      "old_reading_order": 24,
+      "new_reading_order": 24,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "Theaitetos hat ferner irrationale Gróssen hóherer Ordnung behandelt: die Irra-",
+      "new_text": "Theaitetos hat ferner irrationale Grössen höherer Ordnung behandelt: die Irra-",
+      "old_bbox": [
+        250,
+        1469,
+        1641,
+        1510
+      ],
+      "new_bbox": [
+        250,
+        1469,
+        1641,
+        1510
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0028",
+      "old_reading_order": 29,
+      "new_reading_order": 29,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "(Apotome) zweier inkommensurabler Strecken sind (Pappus Alex. In Eucl.",
+      "new_text": "(Apotome) zweier inkommensurabler Strecken sind (Pappus Alex.: In Eucl.",
+      "old_bbox": [
+        209,
+        1712,
+        1641,
+        1754
+      ],
+      "new_bbox": [
+        209,
+        1712,
+        1641,
+        1754
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0036",
+      "old_reading_order": 36,
+      "new_reading_order": 36,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "dazu Euclides: Elementa X 21. 36. 73 Heiberg/Stamatis [*1110: III 33ff., 60f. 126ff.]:",
+      "new_text": "dazu Euclides: Elementa X 21. 36. 73 Heiberg/Stamatis [*1110: III 33ff., 60f. 126ff.];",
+      "old_bbox": [
+        208,
+        2238,
+        1640,
+        2289
+      ],
+      "new_bbox": [
+        208,
+        2238,
+        1640,
+        2289
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf100-candidate-0038",
+      "old_reading_order": 38,
+      "new_reading_order": 38,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "weiteren Typen irrationaler Gróssen entdeckt, die Euklid im zehnten Buch auf-",
+      "new_text": "weiteren Typen irrationaler Grössen entdeckt, die Euklid im zehnten Buch auf-",
+      "old_bbox": [
+        208,
+        2341,
+        1640,
+        2382
+      ],
+      "new_bbox": [
+        208,
+        2341,
+        1640,
+        2382
+      ]
+    }
+  ],
+  "removed_duplicate_fragment_line_ids": [],
+  "unresolved_human_qa_issues": [
+    "Human must QA exact characters, geometry, reading order and exhaustive coverage.",
+    "AI draft is not human Gold; full semantic/typography D is deferred."
+  ],
+  "validation": {
+    "draft_schema": "pass",
+    "inline_span_slices": "pass"
+  }
+}

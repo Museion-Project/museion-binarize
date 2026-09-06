@@ -1,0 +1,704 @@
+{
+  "checkpoint_keys": 276,
+  "model_keys": 276,
+  "missing": [],
+  "extra": [],
+  "different_tensors": [
+    {
+      "key": "decode_head.classifier.bias",
+      "checkpoint_abs_mean": 0.050262451171875,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.055206298828125
+    },
+    {
+      "key": "decode_head.classifier.weight",
+      "checkpoint_abs_mean": 0.08940451592206955,
+      "loaded_abs_mean": 0.01622757315635681,
+      "max_difference": 0.645717442035675
+    },
+    {
+      "key": "decode_head.linear_c.0.proj.bias",
+      "checkpoint_abs_mean": 0.007642235606908798,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.023284912109375
+    },
+    {
+      "key": "decode_head.linear_c.0.proj.weight",
+      "checkpoint_abs_mean": 0.022841358557343483,
+      "loaded_abs_mean": 0.015929117798805237,
+      "max_difference": 0.15287408232688904
+    },
+    {
+      "key": "decode_head.linear_c.1.proj.bias",
+      "checkpoint_abs_mean": 0.009160483255982399,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.030029296875
+    },
+    {
+      "key": "decode_head.linear_c.1.proj.weight",
+      "checkpoint_abs_mean": 0.023931287229061127,
+      "loaded_abs_mean": 0.015967393293976784,
+      "max_difference": 0.15351003408432007
+    },
+    {
+      "key": "decode_head.linear_c.2.proj.bias",
+      "checkpoint_abs_mean": 0.008947714231908321,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.034759521484375
+    },
+    {
+      "key": "decode_head.linear_c.2.proj.weight",
+      "checkpoint_abs_mean": 0.018514804542064667,
+      "loaded_abs_mean": 0.016001150012016296,
+      "max_difference": 0.13202741742134094
+    },
+    {
+      "key": "decode_head.linear_c.3.proj.bias",
+      "checkpoint_abs_mean": 0.009135468862950802,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.034698486328125
+    },
+    {
+      "key": "decode_head.linear_c.3.proj.weight",
+      "checkpoint_abs_mean": 0.01709340140223503,
+      "loaded_abs_mean": 0.01594284176826477,
+      "max_difference": 0.13386577367782593
+    },
+    {
+      "key": "decode_head.linear_fuse.weight",
+      "checkpoint_abs_mean": 0.019565436989068985,
+      "loaded_abs_mean": 0.015918441116809845,
+      "max_difference": 0.17154870927333832
+    },
+    {
+      "key": "vit.stages.0.blocks.0.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01866994984447956,
+      "loaded_abs_mean": 0.016009453684091568,
+      "max_difference": 0.1367276906967163
+    },
+    {
+      "key": "vit.stages.0.blocks.0.main.spatial_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018533838912844658,
+      "loaded_abs_mean": 0.01591719128191471,
+      "max_difference": 0.14507606625556946
+    },
+    {
+      "key": "vit.stages.0.blocks.1.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01859414204955101,
+      "loaded_abs_mean": 0.01602567732334137,
+      "max_difference": 0.12131334841251373
+    },
+    {
+      "key": "vit.stages.0.blocks.1.main.spatial_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01842368021607399,
+      "loaded_abs_mean": 0.01597999595105648,
+      "max_difference": 0.16476666927337646
+    },
+    {
+      "key": "vit.stages.1.blocks.0.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.0184552613645792,
+      "loaded_abs_mean": 0.015963919460773468,
+      "max_difference": 0.14253124594688416
+    },
+    {
+      "key": "vit.stages.1.blocks.0.main.spatial_conv.conv.weight",
+      "checkpoint_abs_mean": 0.0184469074010849,
+      "loaded_abs_mean": 0.01594940759241581,
+      "max_difference": 0.14236296713352203
+    },
+    {
+      "key": "vit.stages.1.blocks.1.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018393579870462418,
+      "loaded_abs_mean": 0.015998855233192444,
+      "max_difference": 0.1353931725025177
+    },
+    {
+      "key": "vit.stages.1.blocks.1.main.spatial_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018347742035984993,
+      "loaded_abs_mean": 0.015950018540024757,
+      "max_difference": 0.14505362510681152
+    },
+    {
+      "key": "vit.stages.2.blocks.0.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.012388634495437145,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.056793212890625
+    },
+    {
+      "key": "vit.stages.2.blocks.0.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.017478767782449722,
+      "loaded_abs_mean": 0.015971308574080467,
+      "max_difference": 0.10516059398651123
+    },
+    {
+      "key": "vit.stages.2.blocks.0.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.018998688086867332,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.08770751953125
+    },
+    {
+      "key": "vit.stages.2.blocks.0.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.019306473433971405,
+      "loaded_abs_mean": 0.01598190888762474,
+      "max_difference": 0.16325591504573822
+    },
+    {
+      "key": "vit.stages.2.blocks.0.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01815786585211754,
+      "loaded_abs_mean": 0.01597362384200096,
+      "max_difference": 0.140523761510849
+    },
+    {
+      "key": "vit.stages.2.blocks.1.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.011941678822040558,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.0538330078125
+    },
+    {
+      "key": "vit.stages.2.blocks.1.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.017732424661517143,
+      "loaded_abs_mean": 0.015894822776317596,
+      "max_difference": 0.13915106654167175
+    },
+    {
+      "key": "vit.stages.2.blocks.1.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.021576881408691406,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.08209228515625
+    },
+    {
+      "key": "vit.stages.2.blocks.1.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.019329601898789406,
+      "loaded_abs_mean": 0.015925969928503036,
+      "max_difference": 0.1480313241481781
+    },
+    {
+      "key": "vit.stages.2.blocks.1.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018421487882733345,
+      "loaded_abs_mean": 0.015949226915836334,
+      "max_difference": 0.14097543060779572
+    },
+    {
+      "key": "vit.stages.2.blocks.2.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.011385546997189522,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.063720703125
+    },
+    {
+      "key": "vit.stages.2.blocks.2.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.017635999247431755,
+      "loaded_abs_mean": 0.015722347423434258,
+      "max_difference": 0.1273665428161621
+    },
+    {
+      "key": "vit.stages.2.blocks.2.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.029934395104646683,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.09393310546875
+    },
+    {
+      "key": "vit.stages.2.blocks.2.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.020006870850920677,
+      "loaded_abs_mean": 0.01598842814564705,
+      "max_difference": 0.15421177446842194
+    },
+    {
+      "key": "vit.stages.2.blocks.2.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018431998789310455,
+      "loaded_abs_mean": 0.015954092144966125,
+      "max_difference": 0.13722586631774902
+    },
+    {
+      "key": "vit.stages.2.blocks.3.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.011118954978883266,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.078857421875
+    },
+    {
+      "key": "vit.stages.2.blocks.3.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018293598666787148,
+      "loaded_abs_mean": 0.01607079990208149,
+      "max_difference": 0.11925634741783142
+    },
+    {
+      "key": "vit.stages.2.blocks.3.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.032717954367399216,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.0924072265625
+    },
+    {
+      "key": "vit.stages.2.blocks.3.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.02012883685529232,
+      "loaded_abs_mean": 0.015927810221910477,
+      "max_difference": 0.1645926684141159
+    },
+    {
+      "key": "vit.stages.2.blocks.3.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018561474978923798,
+      "loaded_abs_mean": 0.015992844477295876,
+      "max_difference": 0.13874921202659607
+    },
+    {
+      "key": "vit.stages.2.blocks.4.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.010844175703823566,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.06005859375
+    },
+    {
+      "key": "vit.stages.2.blocks.4.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018202828243374825,
+      "loaded_abs_mean": 0.016076140105724335,
+      "max_difference": 0.13250850141048431
+    },
+    {
+      "key": "vit.stages.2.blocks.4.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.03433476760983467,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.0809326171875
+    },
+    {
+      "key": "vit.stages.2.blocks.4.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.019886240363121033,
+      "loaded_abs_mean": 0.015944436192512512,
+      "max_difference": 0.15027204155921936
+    },
+    {
+      "key": "vit.stages.2.blocks.4.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018579259514808655,
+      "loaded_abs_mean": 0.015954911708831787,
+      "max_difference": 0.1534927934408188
+    },
+    {
+      "key": "vit.stages.2.blocks.5.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.011325079947710037,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.08807373046875
+    },
+    {
+      "key": "vit.stages.2.blocks.5.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018124839290976524,
+      "loaded_abs_mean": 0.015847209841012955,
+      "max_difference": 0.12447452545166016
+    },
+    {
+      "key": "vit.stages.2.blocks.5.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.0335947647690773,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.09393310546875
+    },
+    {
+      "key": "vit.stages.2.blocks.5.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.019571594893932343,
+      "loaded_abs_mean": 0.015964871272444725,
+      "max_difference": 0.1523744761943817
+    },
+    {
+      "key": "vit.stages.2.blocks.5.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018614379689097404,
+      "loaded_abs_mean": 0.0159183070063591,
+      "max_difference": 0.1493031084537506
+    },
+    {
+      "key": "vit.stages.2.blocks.6.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.011577451601624489,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.07049560546875
+    },
+    {
+      "key": "vit.stages.2.blocks.6.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018012383952736855,
+      "loaded_abs_mean": 0.01611037738621235,
+      "max_difference": 0.12406400591135025
+    },
+    {
+      "key": "vit.stages.2.blocks.6.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.03205318748950958,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.10089111328125
+    },
+    {
+      "key": "vit.stages.2.blocks.6.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.019182784482836723,
+      "loaded_abs_mean": 0.015956688672304153,
+      "max_difference": 0.14421765506267548
+    },
+    {
+      "key": "vit.stages.2.blocks.6.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01863439381122589,
+      "loaded_abs_mean": 0.015975942835211754,
+      "max_difference": 0.1337079554796219
+    },
+    {
+      "key": "vit.stages.3.blocks.0.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.012200427241623402,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.06427001953125
+    },
+    {
+      "key": "vit.stages.3.blocks.0.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018237197771668434,
+      "loaded_abs_mean": 0.015881286934018135,
+      "max_difference": 0.14895273745059967
+    },
+    {
+      "key": "vit.stages.3.blocks.0.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.027373218908905983,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.081787109375
+    },
+    {
+      "key": "vit.stages.3.blocks.0.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018663063645362854,
+      "loaded_abs_mean": 0.015948457643389702,
+      "max_difference": 0.15651239454746246
+    },
+    {
+      "key": "vit.stages.3.blocks.0.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018251487985253334,
+      "loaded_abs_mean": 0.01594107411801815,
+      "max_difference": 0.16031742095947266
+    },
+    {
+      "key": "vit.stages.3.blocks.1.context_module.main.aggreg.0.0.weight",
+      "checkpoint_abs_mean": 0.020671170204877853,
+      "loaded_abs_mean": 0.01588098518550396,
+      "max_difference": 0.20332153141498566
+    },
+    {
+      "key": "vit.stages.3.blocks.1.context_module.main.aggreg.0.1.weight",
+      "checkpoint_abs_mean": 0.02250942774116993,
+      "loaded_abs_mean": 0.016004210337996483,
+      "max_difference": 0.18482883274555206
+    },
+    {
+      "key": "vit.stages.3.blocks.1.context_module.main.proj.conv.weight",
+      "checkpoint_abs_mean": 0.019366411492228508,
+      "loaded_abs_mean": 0.015963925048708916,
+      "max_difference": 0.1674681007862091
+    },
+    {
+      "key": "vit.stages.3.blocks.1.context_module.main.qkv.conv.weight",
+      "checkpoint_abs_mean": 0.0185112114995718,
+      "loaded_abs_mean": 0.015975944697856903,
+      "max_difference": 0.1481686532497406
+    },
+    {
+      "key": "vit.stages.3.blocks.1.local_module.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.01352741103619337,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.08538818359375
+    },
+    {
+      "key": "vit.stages.3.blocks.1.local_module.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.017773903906345367,
+      "loaded_abs_mean": 0.01582634076476097,
+      "max_difference": 0.128763347864151
+    },
+    {
+      "key": "vit.stages.3.blocks.1.local_module.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.022765787318348885,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.1163330078125
+    },
+    {
+      "key": "vit.stages.3.blocks.1.local_module.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01912332884967327,
+      "loaded_abs_mean": 0.015969635918736458,
+      "max_difference": 0.1597641110420227
+    },
+    {
+      "key": "vit.stages.3.blocks.1.local_module.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018427912145853043,
+      "loaded_abs_mean": 0.015956101939082146,
+      "max_difference": 0.1721390038728714
+    },
+    {
+      "key": "vit.stages.3.blocks.2.context_module.main.aggreg.0.0.weight",
+      "checkpoint_abs_mean": 0.021052218973636627,
+      "loaded_abs_mean": 0.016066383570432663,
+      "max_difference": 0.19028711318969727
+    },
+    {
+      "key": "vit.stages.3.blocks.2.context_module.main.aggreg.0.1.weight",
+      "checkpoint_abs_mean": 0.023191435262560844,
+      "loaded_abs_mean": 0.0160312969237566,
+      "max_difference": 0.18767580389976501
+    },
+    {
+      "key": "vit.stages.3.blocks.2.context_module.main.proj.conv.weight",
+      "checkpoint_abs_mean": 0.01933717355132103,
+      "loaded_abs_mean": 0.01595492474734783,
+      "max_difference": 0.16177891194820404
+    },
+    {
+      "key": "vit.stages.3.blocks.2.context_module.main.qkv.conv.weight",
+      "checkpoint_abs_mean": 0.018579112365841866,
+      "loaded_abs_mean": 0.01595321111381054,
+      "max_difference": 0.16640250384807587
+    },
+    {
+      "key": "vit.stages.3.blocks.2.local_module.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.013060866855084896,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.1343994140625
+    },
+    {
+      "key": "vit.stages.3.blocks.2.local_module.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01814272068440914,
+      "loaded_abs_mean": 0.015952831134200096,
+      "max_difference": 0.1373763382434845
+    },
+    {
+      "key": "vit.stages.3.blocks.2.local_module.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.028518667444586754,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.08575439453125
+    },
+    {
+      "key": "vit.stages.3.blocks.2.local_module.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.0193029772490263,
+      "loaded_abs_mean": 0.015971282497048378,
+      "max_difference": 0.1482965499162674
+    },
+    {
+      "key": "vit.stages.3.blocks.2.local_module.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01854025013744831,
+      "loaded_abs_mean": 0.015959052368998528,
+      "max_difference": 0.1536073088645935
+    },
+    {
+      "key": "vit.stages.3.blocks.3.context_module.main.aggreg.0.0.weight",
+      "checkpoint_abs_mean": 0.02115330658853054,
+      "loaded_abs_mean": 0.015997152775526047,
+      "max_difference": 0.1679675132036209
+    },
+    {
+      "key": "vit.stages.3.blocks.3.context_module.main.aggreg.0.1.weight",
+      "checkpoint_abs_mean": 0.022212497889995575,
+      "loaded_abs_mean": 0.016049206256866455,
+      "max_difference": 0.17932021617889404
+    },
+    {
+      "key": "vit.stages.3.blocks.3.context_module.main.proj.conv.weight",
+      "checkpoint_abs_mean": 0.01913972571492195,
+      "loaded_abs_mean": 0.015935301780700684,
+      "max_difference": 0.14749360084533691
+    },
+    {
+      "key": "vit.stages.3.blocks.3.context_module.main.qkv.conv.weight",
+      "checkpoint_abs_mean": 0.01864115707576275,
+      "loaded_abs_mean": 0.015943637117743492,
+      "max_difference": 0.15964806079864502
+    },
+    {
+      "key": "vit.stages.3.blocks.3.local_module.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.01223400142043829,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.11651611328125
+    },
+    {
+      "key": "vit.stages.3.blocks.3.local_module.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01834767311811447,
+      "loaded_abs_mean": 0.01606898196041584,
+      "max_difference": 0.12832584977149963
+    },
+    {
+      "key": "vit.stages.3.blocks.3.local_module.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.030357489362359047,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.0821533203125
+    },
+    {
+      "key": "vit.stages.3.blocks.3.local_module.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01918906345963478,
+      "loaded_abs_mean": 0.015947889536619186,
+      "max_difference": 0.17081716656684875
+    },
+    {
+      "key": "vit.stages.3.blocks.3.local_module.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018622182309627533,
+      "loaded_abs_mean": 0.01595396362245083,
+      "max_difference": 0.1552426964044571
+    },
+    {
+      "key": "vit.stages.3.blocks.4.context_module.main.aggreg.0.0.weight",
+      "checkpoint_abs_mean": 0.021665487438440323,
+      "loaded_abs_mean": 0.01593725197017193,
+      "max_difference": 0.16364288330078125
+    },
+    {
+      "key": "vit.stages.3.blocks.4.context_module.main.aggreg.0.1.weight",
+      "checkpoint_abs_mean": 0.02301654778420925,
+      "loaded_abs_mean": 0.015968183055520058,
+      "max_difference": 0.21333365142345428
+    },
+    {
+      "key": "vit.stages.3.blocks.4.context_module.main.proj.conv.weight",
+      "checkpoint_abs_mean": 0.01934349536895752,
+      "loaded_abs_mean": 0.015961546450853348,
+      "max_difference": 0.15419262647628784
+    },
+    {
+      "key": "vit.stages.3.blocks.4.context_module.main.qkv.conv.weight",
+      "checkpoint_abs_mean": 0.018613172695040703,
+      "loaded_abs_mean": 0.0159437358379364,
+      "max_difference": 0.14427819848060608
+    },
+    {
+      "key": "vit.stages.3.blocks.4.local_module.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.011687706224620342,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.09747314453125
+    },
+    {
+      "key": "vit.stages.3.blocks.4.local_module.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018530480563640594,
+      "loaded_abs_mean": 0.01590880937874317,
+      "max_difference": 0.12619982659816742
+    },
+    {
+      "key": "vit.stages.3.blocks.4.local_module.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.03238761052489281,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.086181640625
+    },
+    {
+      "key": "vit.stages.3.blocks.4.local_module.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01898631453514099,
+      "loaded_abs_mean": 0.015944404527544975,
+      "max_difference": 0.16653770208358765
+    },
+    {
+      "key": "vit.stages.3.blocks.4.local_module.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018668673932552338,
+      "loaded_abs_mean": 0.015952924266457558,
+      "max_difference": 0.14681994915008545
+    },
+    {
+      "key": "vit.stages.3.blocks.5.context_module.main.aggreg.0.0.weight",
+      "checkpoint_abs_mean": 0.020859375596046448,
+      "loaded_abs_mean": 0.015993716195225716,
+      "max_difference": 0.16956175863742828
+    },
+    {
+      "key": "vit.stages.3.blocks.5.context_module.main.aggreg.0.1.weight",
+      "checkpoint_abs_mean": 0.021802008152008057,
+      "loaded_abs_mean": 0.015887800604104996,
+      "max_difference": 0.1568690687417984
+    },
+    {
+      "key": "vit.stages.3.blocks.5.context_module.main.proj.conv.weight",
+      "checkpoint_abs_mean": 0.019243448972702026,
+      "loaded_abs_mean": 0.01595042273402214,
+      "max_difference": 0.16755667328834534
+    },
+    {
+      "key": "vit.stages.3.blocks.5.context_module.main.qkv.conv.weight",
+      "checkpoint_abs_mean": 0.01859082281589508,
+      "loaded_abs_mean": 0.015968527644872665,
+      "max_difference": 0.14517153799533844
+    },
+    {
+      "key": "vit.stages.3.blocks.5.local_module.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.01252224761992693,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.11956787109375
+    },
+    {
+      "key": "vit.stages.3.blocks.5.local_module.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018561076372861862,
+      "loaded_abs_mean": 0.015883350744843483,
+      "max_difference": 0.125757098197937
+    },
+    {
+      "key": "vit.stages.3.blocks.5.local_module.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.03678731992840767,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.1002197265625
+    },
+    {
+      "key": "vit.stages.3.blocks.5.local_module.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.0188189297914505,
+      "loaded_abs_mean": 0.015960780903697014,
+      "max_difference": 0.16058975458145142
+    },
+    {
+      "key": "vit.stages.3.blocks.5.local_module.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018847240135073662,
+      "loaded_abs_mean": 0.015968138352036476,
+      "max_difference": 0.15655125677585602
+    },
+    {
+      "key": "vit.stages.3.blocks.6.context_module.main.aggreg.0.0.weight",
+      "checkpoint_abs_mean": 0.02007521316409111,
+      "loaded_abs_mean": 0.015895137563347816,
+      "max_difference": 0.1436387300491333
+    },
+    {
+      "key": "vit.stages.3.blocks.6.context_module.main.aggreg.0.1.weight",
+      "checkpoint_abs_mean": 0.020825641229748726,
+      "loaded_abs_mean": 0.0159075278788805,
+      "max_difference": 0.13895060122013092
+    },
+    {
+      "key": "vit.stages.3.blocks.6.context_module.main.proj.conv.weight",
+      "checkpoint_abs_mean": 0.019551552832126617,
+      "loaded_abs_mean": 0.015949977561831474,
+      "max_difference": 0.17079438269138336
+    },
+    {
+      "key": "vit.stages.3.blocks.6.context_module.main.qkv.conv.weight",
+      "checkpoint_abs_mean": 0.018651265650987625,
+      "loaded_abs_mean": 0.015954650938510895,
+      "max_difference": 0.15551167726516724
+    },
+    {
+      "key": "vit.stages.3.blocks.6.local_module.main.depth_conv.conv.bias",
+      "checkpoint_abs_mean": 0.013049299828708172,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.1365966796875
+    },
+    {
+      "key": "vit.stages.3.blocks.6.local_module.main.depth_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018344925716519356,
+      "loaded_abs_mean": 0.016017064452171326,
+      "max_difference": 0.13130158185958862
+    },
+    {
+      "key": "vit.stages.3.blocks.6.local_module.main.inverted_conv.conv.bias",
+      "checkpoint_abs_mean": 0.03959929570555687,
+      "loaded_abs_mean": 0.0,
+      "max_difference": 0.11260986328125
+    },
+    {
+      "key": "vit.stages.3.blocks.6.local_module.main.inverted_conv.conv.weight",
+      "checkpoint_abs_mean": 0.018636606633663177,
+      "loaded_abs_mean": 0.015963146463036537,
+      "max_difference": 0.15641248226165771
+    },
+    {
+      "key": "vit.stages.3.blocks.6.local_module.main.point_conv.conv.weight",
+      "checkpoint_abs_mean": 0.01916804164648056,
+      "loaded_abs_mean": 0.015966204926371574,
+      "max_difference": 0.18515540659427643
+    },
+    {
+      "key": "vit.stem.in_conv.conv.weight",
+      "checkpoint_abs_mean": 0.019292209297418594,
+      "loaded_abs_mean": 0.015798039734363556,
+      "max_difference": 0.10905188322067261
+    },
+    {
+      "key": "vit.stem.res0.main.conv1.conv.weight",
+      "checkpoint_abs_mean": 0.01881289854645729,
+      "loaded_abs_mean": 0.016073077917099,
+      "max_difference": 0.1549353003501892
+    },
+    {
+      "key": "vit.stem.res0.main.conv2.conv.weight",
+      "checkpoint_abs_mean": 0.01864660531282425,
+      "loaded_abs_mean": 0.016050096601247787,
+      "max_difference": 0.1586504876613617
+    }
+  ]
+}

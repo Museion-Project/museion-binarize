@@ -1,0 +1,7 @@
+{
+  "actual_candidate_pages_loaded_without_writes": 25,
+  "synthetic_failed_complete_preserves_draft": "pass",
+  "synthetic_geometry_text_complete_save_reopen": "pass",
+  "synthetic_external_edit_preserved": "pass",
+  "real_page_human_verification_performed": false
+}

@@ -1,0 +1,132 @@
+{
+  "purpose": "visual preannotation for user QA; not human Gold; not frozen evaluation",
+  "created_utc": "2026-09-06T11:13:55.177669+00:00",
+  "frozen_manifest_sha256": "892dfd6055d4d8c72fe7091151611536ee1d3791c5d11df67b838f858cc20183",
+  "pages": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "baseline_sha256": "00987c86dbe1d783c39150f45413158a5efb0731a1e774fdf1393953bfe99121",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/brisson-le-meme-pdf013.png"
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "baseline_sha256": "8aa404f69dfc32bc3a5fd412b8f85e11614f12211b266090778cb3de131055d2",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/brisson-le-meme-pdf030.png"
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "baseline_sha256": "5e14dd80095d0824bf6cdf2eb1eefbf5d6efa1a7a41e2e5d32a862d1b1eede43",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/brisson-le-meme-pdf110.png"
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "baseline_sha256": "a179b83c60eb6a4e29640171335773ad4337c6deeaede55d20a4119ee0f253e3",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/brisson-le-meme-pdf170.png"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "baseline_sha256": "61ddf2e2bc9ac2dc8f7dd59f0facd550195aa29311c7e739a501d4977c2a32a8",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/burnet-platonis-opera-pdf0050.png"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "baseline_sha256": "ffaa3c5c4e9795f649ef9e65d564262351d65f99c9a3087d283e32d7660f4e6d",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/burnet-platonis-opera-pdf0300.png"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "baseline_sha256": "e563a29ab7dbf9e6dc6e42b79a27caf8d6b1ebea03f1e7324fb433ae95fda92c",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/burnet-platonis-opera-pdf1100.png"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "baseline_sha256": "b0e8bee751d43e8c1c5bd41ea73935ae671ebce78a03cef494aa1e3b5c7b8c3d",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/burnet-platonis-opera-pdf1400.png"
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "baseline_sha256": "d563ec24005bcf88fb0b1caca6b030d7ed7bbc17c432f4d0f7068fae0c7f69ef",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/dillon-phronesis29-pdf004.png"
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "baseline_sha256": "6e078c6892ec4dfbc8e52dacd3e080c1f833e336284b7eaee61010b1609f70b1",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/dillon-phronesis29-pdf005.png"
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "baseline_sha256": "17bf612f59c2fd6e039c615ddff10405b254606ea838efe7291e3bd2f9e3242a",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/dillon-phronesis29-pdf006.png"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "baseline_sha256": "84fa14b708bd8cb714c45b43be9e63c9d2423c6ee73ad484a0c2233f1a221041",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf288.png"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "baseline_sha256": "fa8a27c8543a842ea8db9368fd4076ca21f02abf8b84f299edc6d4395d328340",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf414.png"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "baseline_sha256": "67ce6e02479bd72c8d4d32846a672d4123bd94a99137af2e00bcd69fc9fbc6d1",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf577.png"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "baseline_sha256": "1804dd65fe4ae75ba0e2611c416dfbe3e989ae42b9b51908690c28ca53e2e589",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf925.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "baseline_sha256": "cf5142eceb00b8e5d3297f64dcd1c93f15f8619aed9b9833f6e8a921462deb3e",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf011.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "baseline_sha256": "808896e4796ac88cb86f4b0711369ef48400b96977dfcda2bf69ac24501d6f2a",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf012.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "baseline_sha256": "4da361c26b6fe09a3f7f819357edf27f386962030a6f8b8ca396cce62ccf48b9",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf013.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "baseline_sha256": "f178184692852d17a663d400b4b3025980ef2013cc865912f2b42a10c8e4c95a",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf014.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "baseline_sha256": "97a372fac5863b48d90be78573abdf31b407aaea79154b1ec4fd72b56031acd5",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf015.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "baseline_sha256": "a3d62e0b9543e9de8d1dcf104f7913e2792deb55d986a33f8986dbb26b35fd20",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf016.png"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "baseline_sha256": "a95310342c8d82375d0b8c84ffdd9efc7e5c1b6755bee5a6f3d4c51f8e62a033",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/primavesi-zwei-elementen-pdf079.png"
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "baseline_sha256": "00c88f45cdea359d7c730cbd7851eb10a462360b1aa58005204a3febf739ab46",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/ueberweg-kraemer-pdf100.png"
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "baseline_sha256": "3ce85a91bbbb6223c254a191fcbc5c91680d576c1a757e89b8e2295240721f0c",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/ueberweg-kraemer-pdf143.png"
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "baseline_sha256": "e74027ae6b9e0b0a690f80fcded5e62f33b0b803e7b289f299f241968c6b5908",
+      "image_path": "/Users/theo/AI 工作流/museion-binarize/gold-data/mixed-scholarly-v1/images/ueberweg-kraemer-pdf145.png"
+    }
+  ]
+}

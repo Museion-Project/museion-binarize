@@ -1,0 +1,539 @@
+{
+  "brisson-le-meme-pdf013": {
+    "text_replacements": {
+      "16": {
+        "GColonisation": "Colonisation"
+      },
+      "31": {
+        "δημιοργός": "δημιουργός"
+      }
+    },
+    "leader_dot_counts": {
+      "1": 30,
+      "2": 36,
+      "4": 24,
+      "5": 46,
+      "6": 38,
+      "7": 34,
+      "8": 45,
+      "9": 50,
+      "10": 49,
+      "11": 39,
+      "12": 49,
+      "13": 46,
+      "15": 25,
+      "16": 45,
+      "17": 47,
+      "18": 29,
+      "19": 20,
+      "20": 26,
+      "21": 28,
+      "22": 42,
+      "23": 3,
+      "25": 32,
+      "26": 41,
+      "27": 41,
+      "28": 30,
+      "29": 41,
+      "31": 38,
+      "32": 29,
+      "33": 32,
+      "34": 30,
+      "35": 45
+    },
+    "notes": "Full page and upper/lower full-resolution crops viewed. Printed leaders counted by connected components after last full-height glyph; check counts before applying. Several leader strings have OCR e/s/comma garbage. Preserve printed dots, do not normalize them away."
+  },
+  "brisson-le-meme-pdf030": {
+    "text_replacements": {
+      "19": {
+        "πρῶτος": "πρῶθος"
+      },
+      "39": {
+        "(« Albinus'": "(Albinus'"
+      },
+      "41": {
+        "---": "—"
+      }
+    },
+    "notes": "Fullpage + leftbody,leftnotes,rightnotes viewed. Enlarged word at line19 unmistakeably printed πρῶθος (theta), preserve source typo rather than correct Greek. User human statuses reset only changed fields. Remaining 95 lines mostly match."
+  },
+  "brisson-le-meme-pdf110": {
+    "text_replacements": {
+      "2": {
+        "τόπου),": "τόπου)1,"
+      },
+      "5": {
+        "apporte 4": "apporte à"
+      },
+      "8": {
+        "caractére": "caractère"
+      },
+      "10": {
+        "premiére": "première"
+      },
+      "13": {
+        "méme": "même"
+      },
+      "14": {
+        "«en»": "« en »"
+      },
+      "15": {
+        "coincide": "coïncide",
+        "«en»": "« en »"
+      },
+      "17": {
+        "«en»": "« en »"
+      },
+      "24": {
+        "8.2.": "3.2."
+      },
+      "33": {
+        "interprétations En": "interprétations. En"
+      },
+      "35": {
+        "decapage": "décapage",
+        "à l'occasion l'enlèvement": "à l'occasion l'enlèvement"
+      },
+      "38": {
+        "Rep.": "Rép."
+      },
+      "45": {
+        "interpretations": "interprétations"
+      },
+      "53": {
+        "aristotelicienne": "aristotélicienne"
+      },
+      "55": {
+        "Physique!": "Physique1"
+      },
+      "60": {
+        "Aristole": "Aristote"
+      },
+      "62": {
+        "Timee": "Timée"
+      },
+      "66": {
+        "thy": "τὴν"
+      },
+      "67": {
+        "ἕν χαὶ": "ἓν καὶ"
+      },
+      "70": {
+        "»5": "»2"
+      },
+      "73": {
+        "Timee": "Timée"
+      },
+      "77": {
+        "Timee": "Timée"
+      }
+    },
+    "markers": {
+      "2": [
+        "1",
+        "left-note-1"
+      ],
+      "55": [
+        "1",
+        "right-note-1"
+      ],
+      "70": [
+        "2",
+        "right-note-2"
+      ]
+    },
+    "notes": "All82lines fullpage reviewed, lefttop/rightlower enlarged. Need confirm line67 punctuation after Τιμαίῳ (colon visible full image) with crop. Missing three markers explain strict completion error. No fake exceptions."
+  },
+  "brisson-le-meme-pdf170": {
+    "texts": {
+      "1": "L’ÂME DU MONDE",
+      "2": "Et, là-dessus, Platon passe à la fonction motrice de l’âme du",
+      "3": "monde : αὐτή τε ἀνακυκλουμένη πρὸς αὑτήν1. Ce membre de phrase",
+      "4": "pose certaines difficultés. D’une part, on remarque que ἀνακυ-",
+      "7": "par « le mouvement de rétrogradation circulaire » comme A. Diès.",
+      "8": "D’autre part, l’expression πρὸς αὑτὴν explicite ἀνακυκλουμένη.",
+      "9": "Et le membre de phrase en son entier renvoie à ce « mouvement",
+      "17": "monde peut appréhender : ὅταν οὐσίαν σκεδαστὴν ἔχοντός τινος",
+      "18": "ἐφάπτηται καὶ ὅταν ἀμέριστον3. On remarquera, tout d’abord, que",
+      "22": "peut l’être que métaphoriquement à la connaissance intelligible4.",
+      "24": "τινος renvoie à τῆς αὖ περὶ τὰ σώματα γιγνομένης μεριστῆς5, et",
+      "25": "qu’il désigne les choses sensibles. Alors que <οὐσίαν> ἀμερίστον",
+      "26": "<ἔχοντός τινος> renvoie à τῆς ἀμερίστου καὶ ἀεὶ κατὰ ταὐτὰ",
+      "27": "ἐχούσης οὐσίας6 ; et qu’il désigne les formes intelligibles7.",
+      "30": "37 a 5 - b 3, dont la construction et la traduction s’avèrent",
+      "33": "conséquence, trois types d’interprétation8.",
+      "34": "Ou bien tout le passage, depuis ὅταν οὐσίαν σκεδαστὴν jusqu’à",
+      "35": "ἔχοντα ἀεὶ9, doit s’entendre comme une seule phrase où, au sujet",
+      "36": "(1) Tim., 37 a 5.",
+      "37": "(2) Id., 36 c 2-3.",
+      "38": "(3) Id., 37 a 5-6.",
+      "39": "(4) On remarquera que Platon va même jusqu’à affirmer καὶ ἐφαπτόμενοι αὐτοῦ",
+      "40": "(τοῦ θεοῦ) τῇ μνήμῃ (Phèdre, 253 a 2-3). Cf. H. Cherniss, ACPA, p. 407.",
+      "42": "(6) Id., 35 a 1-2.",
+      "43": "(7) Proclus, In Tim., II, 298.20 sq. et 300.5 sq.",
+      "44": "(8) Id., II, 302.16 - 303.13.",
+      "48": "(9) Tim., 37 a 5 - b 3.",
+      "49": "FONCTION COGNITIVE (Timée 37 a 2-c 5)",
+      "64": "καὶ ὅτου ἂν ἕτερον) whatever it may be (say B) that something (A)",
+      "69": "in the sphere, etc. »1 Nous discuterons de la validité de ces construc-",
+      "70": "tions et de ces interprétations en analysant chacun des membres de",
+      "72": "Le membre de phrase λέγει κινουμένη διὰ πάσης ἑαυτῆς2 peut",
+      "74": "commentateurs ont construit διὰ πάσης ἑαυτῆς avec λέγει3, comme",
+      "76": "pourquoi il y a κινουμένη entre λέγει et διὰ πάσης ἑαυτῆς. De plus,",
+      "80": "intelligible de l’âme4, qu’en ce qui concerne la connaissance",
+      "81": "intelligible5.",
+      "87": "cette connaissance dans un λόγος6. Et cela n’a rien de surprenant,",
+      "88": "(1) F. M. Cornford, Pl. cosm., p. 94, n. 4.",
+      "89": "(2) Tim., 37 a 6-7.",
+      "90": "(3) Proclus, In Tim., II, 301.7, 9 sq., 17 sq., 28 sq.",
+      "91": "(4) Tim., 64 b 5-6.",
+      "92": "(5) Soph., 248 d 10 - e 1.",
+      "99": "(6) Proclus, In Tim., II, 298.20 - 299.34."
+    },
+    "delete_orders": [
+      45,
+      46,
+      47,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98
+    ],
+    "notes": "Fullspread+4 full-resolution body/note crops visually reviewed. Deleted rows are separated opening parentheses/note6 duplicate fragments. MUST expand note boxes to x~180 left or1950 right to include merged parenthesis; line99 union with93. Renumber read_order after delete. Correct note IDs/starts based actual9left,6right definitions; preserve source ordinals before edits. line3 accent αὐτή needs extra crop confirmation if desired; damaged leftmargin optional uncertainty report."
+  },
+  "burnet-platonis-opera-pdf0050": {
+    "texts": {
+      "2": "μήτε ἓν μήτε πολλὰ καὶ μετέχον χρόνου, ὅτι μὲν ἔστιν ἕν,",
+      "4": "οὐσίας;—Ἀνάγκη.—Ἆρ’ οὖν, ὅτε μετέχει, οἷόν τε ἔσται",
+      "5": "τότε μὴ μετέχειν, ἢ ὅτε μὴ μετέχει, μετέχειν;—Οὐχ οἷόν",
+      "7": "τε.—Ἐν ἄλλῳ ἄρα χρόνῳ μετέχει καὶ ἐν ἄλλῳ οὐ μετέχει·",
+      "8": "οὕτω γὰρ ἂν μόνως τοῦ αὐτοῦ μετέχοι τε καὶ οὐ μετέχοι.—",
+      "10": "Ὀρθῶς.—Οὐκοῦν ἔστι καὶ οὗτος χρόνος, ὅτε μεταλαμβάνει",
+      "12": "τοτὲ μὲν ἔχειν τὸ αὐτό, τοτὲ δὲ μὴ ἔχειν, ἐὰν μή ποτε καὶ",
+      "13": "λαμβάνῃ αὐτὸ καὶ ἀφίῃ;—Οὐδαμῶς.—Τὸ δὴ οὐσίας μετα-",
+      "15": "λαμβάνειν ἆρά γε οὐ γίγνεσθαι καλεῖς;—Ἔγωγε.—Τὸ δὲ",
+      "16": "ἀπαλλάττεσθαι οὐσίας ἆρα οὐκ ἀπόλλυσθαι;—Καὶ πάνυ γε.",
+      "17": "—Τὸ ἓν δή, ὡς ἔοικε, λαμβάνον τε καὶ ἀφιὲν οὐσίαν γίγνεταί",
+      "19": "τε καὶ ἀπόλλυται.—Ἀνάγκη.—Ἓν δὲ καὶ πολλὰ ὂν καὶ",
+      "20": "γιγνόμενον καὶ ἀπολλύμενον ἆρ’ οὐχ, ὅταν μὲν γίγνηται ἕν,",
+      "21": "τὸ πολλὰ εἶναι ἀπόλλυται, ὅταν δὲ πολλά, τὸ ἓν εἶναι",
+      "22": "ἀπόλλυται;—Πάνυ γε.—Ἓν δὲ γιγνόμενον καὶ πολλὰ ἆρ’",
+      "24": "οὐκ ἀνάγκη διακρίνεσθαί τε καὶ συγκρίνεσθαι;—Πολλή γε.—",
+      "26": "τε καὶ ἀνομοιοῦσθαι;—Ναί.—Καὶ ὅταν μεῖζον καὶ ἔλαττον",
+      "27": "καὶ ἴσον, αὐξάνεσθαί τε καὶ φθίνειν καὶ ἰσοῦσθαι;—Οὕτως.",
+      "29": "—Ὅταν δὲ κινούμενόν τε ἵστηται καὶ ὅταν ἑστὸς ἐπὶ τὸ",
+      "31": "εἶναι.—Πῶς δή;—Ἑστός τε πρότερον ὕστερον κινεῖσθαι καὶ",
+      "34": "βάλλειν οὐχ οἷόν τε ἔσται ταῦτα πάσχειν.—Πῶς γάρ;—",
+      "36": "μήτε ἑστάναι.—Οὐ γὰρ οὖν.—Ἀλλ’ οὐδὲ μὴν μεταβάλλει",
+      "37": "ἄνευ τοῦ μεταβάλλειν.—Οὐκ εἰκός.—Πότ’ οὖν μεταβάλλει;",
+      "38": "οὔτε γὰρ ἑστὸς ὂν οὔτε κινούμενον μεταβάλλει, οὔτε ἐν",
+      "40": "χρόνῳ ὄν.—Οὐ γὰρ οὖν.—Ἆρ’ οὖν ἔστι τὸ ἄτοπον τοῦτο,",
+      "41": "e 11 οὐ μετέχοι B : οὐ μετέχει T a 5 γε T : om. B a 7 γίγνεταί",
+      "42": "τε B : γίγνεται T c 4 μὲν] μὴν Heindorf c 9 ὂν . . . μετα-",
+      "43": "βάλλει B : ἂν . . . μεταβάλλει T : ἂν . . . μεταβάλλοι corr. Par. 1809"
+    },
+    "notes": "Full source visually read including every body/apparatus line. Geometry intact; user-added marginal numerals retained. Replace mixed Latin OCR with visible Greek; em dashes reflect printed dialogue punctuation."
+  },
+  "burnet-platonis-opera-pdf0300": {
+    "texts": {
+      "4": "ΣΩ. Ἔστι γάρ, ὦ φίλε Φαῖδρε, οὕτω· πολὺ δ’ οἶμαι",
+      "5": "καλλίων σπουδὴ περὶ αὐτὰ γίγνεται, ὅταν τις τῇ διαλεκτικῇ",
+      "8": "βοηθεῖν ἱκανοὶ καὶ οὐχὶ ἄκαρποι ἀλλὰ ἔχοντες σπέρμα, ὅθεν",
+      "12": "ΦΑΙ. Πολὺ γὰρ τοῦτ’ ἔτι κάλλιον λέγεις.",
+      "13": "ΣΩ. Νῦν δὴ ἐκεῖνα ἤδη, ὦ Φαῖδρε, δυνάμεθα κρίνειν,",
+      "15": "ΦΑΙ. Τὰ ποῖα;",
+      "16": "ΣΩ. Ὧν δὴ πέρι βουληθέντες ἰδεῖν ἀφικόμεθα εἰς τόδε,",
+      "17": "ὅπως τὸ Λυσίου τε ὄνειδος ἐξετάσαιμεν τῆς τῶν λόγων",
+      "18": "γραφῆς πέρι, καὶ αὐτοὺς τοὺς λόγους οἳ τέχνῃ καὶ ἄνευ",
+      "21": "ΦΑΙ. Ἔδοξέ γε δή· πάλιν δὲ ὑπόμνησόν με πῶς.",
+      "22": "ΣΩ. Πρὶν ἄν τις τό τε ἀληθὲς ἑκάστων εἰδῇ πέρι ὧν",
+      "24": "ὁρισάμενός τε πάλιν κατ’ εἴδη μέχρι τοῦ ἀτμήτου τέμνειν",
+      "26": "προσαρμόττον ἑκάστῃ φύσει εἶδος ἀνευρίσκων, οὕτω τιθῇ",
+      "30": "τὸ λόγων γένος, οὔτε τι πρὸς τὸ διδάξαι οὔτε τι πρὸς τὸ",
+      "31": "πεῖσαι, ὡς ὁ ἔμπροσθεν πᾶς μεμήνυκεν ἡμῖν λόγος.",
+      "33": "a 1 καὶ B : τε καὶ T a 3 καὶ om. Schanz b 5 εἰδῇ corr.",
+      "34": "D : ἰδῇ (sic) T : ἰδῃ B b 6 τε BT : γε vulg. b 7 κατ’ εἴδη",
+      "35": "T : κατίδη B"
+    },
+    "split_margins": {
+      "5": "5",
+      "8": "277",
+      "12": "5",
+      "17": "10",
+      "18": "b",
+      "22": "5",
+      "26": "c",
+      "30": "5"
+    },
+    "notes": "Full page visually read, all lines and apparatus. Split marginal labels from text at x~190; source dimensions1280. Apparatus B reading line34 appears ισῃ, needs enlarged check of accent. Enlarged apparatus confirms B ἰδῃ (no circumflex).",
+    "ink_trim": {
+      "31": [
+        200,
+        null,
+        null,
+        null
+      ],
+      "12": [
+        null,
+        null,
+        990,
+        null
+      ]
+    }
+  },
+  "burnet-platonis-opera-pdf1100": {
+    "texts": {
+      "2": "λήνων καὶ βαρβάρων, οὐκ ἔστιν οἵτινες ἀπέχονται συμποσίων",
+      "3": "καὶ ταύτης τῆς παιδιᾶς, οὗ ἔστιν οἶνος, ἄλλοι ἢ Κρῆτες καὶ",
+      "4": "Λακεδαιμόνιοι δεύτεροι, μαθόντες παρὰ Κρητῶν. ἐν Κρήτῃ",
+      "5": "δὲ εἷς οὗτός ἐστι τῶν ἄλλων νόμων οὓς Μίνως ἔθηκε, μὴ",
+      "6": "συμπίνειν ἀλλήλοις εἰς μέθην. καίτοι δῆλον ὅτι ἃ ἐνόμιζεν",
+      "8": "οὐ γάρ που, ὥσπερ γε φαῦλος ἄνθρωπος, ὁ Μίνως ἐνόμιζεν",
+      "9": "μὲν ἕτερα, ἐποίει δὲ ἄλλα παρ’ ἃ ἐνόμιζεν· ἀλλὰ ἦν αὕτη",
+      "11": "ἀρετήν. ὅθεν δὴ καὶ τοὺς νόμους τούτους ἔθηκε τοῖς αὑτοῦ",
+      "12": "πολίταις, δι’ οὓς ἥ τε Κρήτη τὸν πάντα χρόνον εὐδαιμονεῖ",
+      "14": "οὖσιν.",
+      "15": "Ῥαδάμανθυς δὲ ἀγαθὸς μὲν ἦν ἀνήρ· ἐπεπαίδευτο γὰρ",
+      "16": "ὑπὸ τοῦ Μίνω. ἐπεπαίδευτο μέντοι οὐχ ὅλην τὴν βασιλικὴν",
+      "17": "τέχνην, ἀλλ’ ὑπηρεσίαν τῇ βασιλικῇ, ὅσον ἐπιστατεῖν ἐν",
+      "18": "τοῖς δικαστηρίοις· ὅθεν καὶ δικαστὴς ἀγαθὸς ἐλέχθη εἶναι.",
+      "19": "νομοφύλακι γὰρ αὐτῷ ἐχρῆτο ὁ Μίνως κατὰ τὸ ἄστυ, τὰ δὲ",
+      "20": "κατὰ τὴν ἄλλην Κρήτην τῷ Τάλῳ. ὁ γὰρ Τάλως τρὶς",
+      "21": "περιῄει τοῦ ἐνιαυτοῦ κατὰ τὰς κώμας, φυλάττων τοὺς νόμους",
+      "23": "νόμους, ὅθεν χαλκοῦς ἐκλήθη. εἴρηκε δὲ καὶ Ἡσίοδος ἀδελφὰ",
+      "24": "τούτων εἰς τὸν Μίνων. μνησθεὶς γὰρ αὐτοῦ τοῦ ὀνόματος",
+      "25": "φησίν—",
+      "28": "Ζηνὸς ἔχων σκῆπτρον· τῷ καὶ πολέων βασίλευεν.",
+      "29": "καὶ οὗτος λέγει τὸ τοῦ Διὸς σκῆπτρον οὐδὲν ἄλλο ἢ τὴν",
+      "30": "παιδείαν τὴν τοῦ Διός, ᾗ εὔθυνε τὴν Κρήτην.",
+      "31": "a 3 οὗ A : οὔτ’ F b 3 ἐγὼ A : om. F. παιδείᾳ A : παιδείαις",
+      "32": "F c 1 μίνω A : μίνως F c 5 τάλῳ A (sed λ in ras.) :",
+      "33": "τάλλω F τάλως A : τάλλως F c 7 γραμματείοις A : γραμ-",
+      "34": "ματίοις F d 3 γένετο A : γένοιτο F βασιλήων A : βασι-",
+      "35": "λειῶν F"
+    },
+    "split_margins": {
+      "5": "5",
+      "8": "b",
+      "12": "5",
+      "16": "c",
+      "20": "5",
+      "24": "d",
+      "28": "5"
+    },
+    "margin_side": "right",
+    "notes": "Every source line visually read. Separate right marginal labels (x1120 approx), remove scan specks. Apparatus lower-case Greek source maintained.",
+    "ink_trim": {
+      "14": [
+        null,
+        null,
+        215,
+        null
+      ],
+      "25": [
+        null,
+        null,
+        260,
+        null
+      ],
+      "30": [
+        95,
+        null,
+        null,
+        null
+      ],
+      "35": [
+        null,
+        null,
+        250,
+        null
+      ]
+    }
+  },
+  "burnet-platonis-opera-pdf1400": {
+    "texts": {
+      "1": "ΝΟΜΩΝ Θ",
+      "2": "ἀλλ’ ὑπομείναντα τὰ πάντα πάσχειν πρίν τι δρᾶν τοιοῦτον",
+      "4": "ἂν γίγνοιτο ἐν νόμῳ; κείσθω δὴ τῷ πατέρα ἢ μητέρα ἀπο-",
+      "5": "κτείναντι θυμῷ θάνατος ἡ ζημία. ἀδελφὸς δὲ ἂν ἀδελφὸν",
+      "7": "ἀμυνόμενος ἄρχοντα χειρῶν πρότερον, καθάπερ πολέμιον",
+      "8": "ἀποκτείνας ἔστω καθαρός, καὶ ἐὰν πολίτης πολίτην, ὡσαύ-",
+      "9": "τως, ἢ ξένος ξένον. ἐὰν δὲ ἀστὸς ξένον ἢ ξένος ἀστὸν",
+      "11": "καὶ ἐὰν δοῦλος δοῦλον, ὡσαύτως· ἐὰν δὲ αὖ δοῦλος ἐλεύ-",
+      "12": "θερον ἀμυνόμενος ἀποκτείνῃ, καθάπερ ὁ κτείνας πατέρα,",
+      "13": "τοῖς αὐτοῖς ἔνοχος ἔστω νόμοις. ὃ δὲ περὶ τῆς ἀφέσεως",
+      "15": "τοιούτων ἀφέσεως, ἐὰν ὁστισοῦν ὁτῳοῦν ἀφιῇ τοῦτο ἑκών,",
+      "18": "ἐν νόμῳ. καὶ τὰ μὲν δὴ βίαιά τε καὶ ἀκούσια καὶ κατὰ",
+      "19": "τὸν θυμὸν γιγνόμενα περὶ φόνους μετρίως εἰρήσθω· τὰ δὲ",
+      "21": "πέρι καὶ ἐπιβουλῆς δι’ ἥττας ἡδονῶν τε καὶ ἐπιθυμιῶν καὶ",
+      "23": "ΚΛ. Ὀρθῶς λέγεις.",
+      "24": "ΑΘ. Πάλιν δὴ πρῶτον περὶ τῶν τοιούτων εἰς δύναμιν",
+      "25": "εἴπωμεν ὁπόσα ἂν εἴη. τὸ μὲν δὴ μέγιστον ἐπιθυμία κρα-",
+      "26": "τοῦσα ψυχῆς ἐξηγριωμένης ὑπὸ πόθων· τοῦτο δ’ ἐστὶν",
+      "28": "ὢν τυγχάνει τοῖς πολλοῖς, ἡ τῶν χρημάτων τῆς ἀπλήστου",
+      "29": "καὶ ἀπείρου κτήσεως ἔρωτας μυρίους ἐντίκτουσα δύναμις διὰ",
+      "31": "ἡ τοῦ κακῶς ἐπαινεῖσθαι πλοῦτον αἰτία φήμη πρὸς τῶν",
+      "32": "c 3 γρ. ὑπομένοντα πάντα· ἀπ’ ὀρθώσεως O c 4 ἄλλως A O :",
+      "33": "ἄλλης L O² (η s. v.) c 5 γρ. ἐννόμῳ κείσθω O d 3 ἀστὸν",
+      "34": "ξένος ἢ ξένον ἀστὸς Eus. d 4 ἀμυνόμενος re vera A cum Eus. :",
+      "35": "ἀμυνόμενον vulg. a 4 ἡ A L O : τὸ ἡ ἀλλαχοῦ ὠβέλισται in",
+      "36": "marg. L O"
+    },
+    "split_margins": {
+      "4": "5",
+      "7": "d",
+      "11": "5",
+      "15": "e",
+      "19": "5",
+      "24": "10",
+      "25": "870",
+      "29": "5"
+    },
+    "margin_side": "right",
+    "add_header": {
+      "text": "IX.",
+      "bbox": [
+        1040,
+        85,
+        1100,
+        121
+      ]
+    },
+    "notes": "Full page visually read. Header IX. separate from central Greek title. Separate marginal labels. All original body/apparatus lines reviewed, obvious OCR litter removed.",
+    "ink_trim": {
+      "0": [
+        1118,
+        null,
+        null,
+        null
+      ],
+      "23": [
+        null,
+        null,
+        500,
+        null
+      ],
+      "36": [
+        null,
+        null,
+        260,
+        null
+      ]
+    }
+  },
+  "ueberweg-kraemer-pdf100": {
+    "text_replacements": {
+      "4": {
+        "184£.": "184f."
+      },
+      "9": {
+        "Ansátze": "Ansätze",
+        "—": "–"
+      },
+      "10": {
+        "—": "–"
+      },
+      "11": {
+        "Inkommensurabilitát": "Inkommensurabilität"
+      },
+      "14": {
+        "ff;": "ff.;"
+      },
+      "24": {
+        "Gróssen hóherer": "Grössen höherer"
+      },
+      "29": {
+        "Alex.": "Alex.:"
+      },
+      "36": {
+        "60f. 126ff.]:": "60f. 126ff.];"
+      },
+      "38": {
+        "Gróssen": "Grössen"
+      }
+    },
+    "notes": "All40 lines and three formulas visually reviewed. Fraction retained as linear (1 + √2) / 2, fourthroot∜2; layout captured by original formula bbox. Geometry and coverage checked."
+  },
+  "ueberweg-kraemer-pdf143": {
+    "text_replacements": {
+      "4": {
+        "Ubers.": "Übers."
+      },
+      "7": {
+        "Ubers.": "Übers."
+      },
+      "13": {
+        "[532 :": "[*32 :"
+      },
+      "17": {
+        "$ 24": "§ 24"
+      },
+      "33": {
+        "319£.": "319f."
+      },
+      "39": {
+        "1 117": "I 117"
+      },
+      "58": {
+        "vorgeordneb:": "vorgeordnet›:"
+      },
+      "72": {
+        "ofthe": "of the"
+      },
+      "89": {
+        "Rhei-_": "Rhei-"
+      }
+    },
+    "texts": {
+      "18": "643 Aetii Placita (Ἀετίου περὶ τῶν ἀρεσκόντων συν-",
+      "20": "αγωγή), in: H. Diels (ed.): Doxographi Graeci",
+      "42": "bini Isagoge: Ἀλβίνου εἰσαγωγὴ εἰς τοὺς",
+      "60": "645 A. Badawi: Arisṭū ʿinda’ l-ʿArab [Aristoteles",
+      "62": "bei den Arabern], I (al-Qāhira 1947) [Islamica",
+      "98": "649 Galeni Historia philosopha (Γαληνοῦ περὶ φι-"
+    },
+    "column_order": true,
+    "notes": "Full page all102lines visually read, Greek and Arabic enlarged. Correct interleaved row order to complete left column then right, with Zum Leben placed at its visible position. Source Greek αγωγή (acute) maintained; Arabic transliteration human QA particularly recommended."
+  },
+  "ueberweg-kraemer-pdf145": {
+    "text_replacements": {
+      "6": {
+        "Dórrie": "Dörrie"
+      },
+      "10": {
+        "Krümer": "Krämer"
+      },
+      "17": {
+        "Encyclopá-": "Encyclopä-"
+      },
+      "19": {
+        "152£.-": "152f. –"
+      },
+      "44": {
+        "3\"": "3ᵉ"
+      },
+      "49": {
+        "*Pythagorean'": "‘Pythagorean’"
+      },
+      "86": {
+        "76ff. ND:": "76ff. – ND:"
+      },
+      "98": {
+        "logie. ;": "logie."
+      },
+      "100": {
+        "Dümonenlehre": "Dämonenlehre"
+      },
+      "106": {
+        "311-324].": "311-324],"
+      },
+      "108": {
+        "3°": "3ᵉ"
+      }
+    },
+    "column_order": true,
+    "notes": "Full page every111lines reviewed. Correct interleaved two-column reading order. Superscript edition5 source at51959 retained in text and span. French series3e superscript preserved. Geometry column separation checked."
+  }
+}

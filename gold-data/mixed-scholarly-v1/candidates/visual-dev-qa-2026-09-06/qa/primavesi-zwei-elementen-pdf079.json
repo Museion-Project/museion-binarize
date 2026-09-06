@@ -1,0 +1,106 @@
+{
+  "page_id": "primavesi-zwei-elementen-pdf079",
+  "review_date": "2026-09-06",
+  "review_kind": "AI_visual_preannotation_not_human_gold",
+  "full_original_image_viewed": true,
+  "image_sha256": "5a9d48fe7be93e5c438ac00c7dfe582c04dabecd5061a0397c7d22e92e67d9d9",
+  "baseline_sha256": "a95310342c8d82375d0b8c84ffdd9efc7e5c1b6755bee5a6f3d4c51f8e62a033",
+  "original_pixel_crop_regions_viewed": [
+    [
+      205,
+      1320,
+      1670,
+      1505
+    ],
+    [
+      280,
+      2390,
+      1660,
+      2480
+    ]
+  ],
+  "line_count": 43,
+  "line_ids_visually_compared": [
+    "primavesi-zwei-elementen-pdf079-native-0000",
+    "primavesi-zwei-elementen-pdf079-native-0001",
+    "primavesi-zwei-elementen-pdf079-native-0002",
+    "primavesi-zwei-elementen-pdf079-native-0003",
+    "primavesi-zwei-elementen-pdf079-native-0004",
+    "primavesi-zwei-elementen-pdf079-native-0005",
+    "primavesi-zwei-elementen-pdf079-native-0006",
+    "primavesi-zwei-elementen-pdf079-native-0007",
+    "primavesi-zwei-elementen-pdf079-native-0008",
+    "primavesi-zwei-elementen-pdf079-native-0009",
+    "primavesi-zwei-elementen-pdf079-native-0010",
+    "primavesi-zwei-elementen-pdf079-native-0011",
+    "primavesi-zwei-elementen-pdf079-native-0014",
+    "primavesi-zwei-elementen-pdf079-native-0016",
+    "primavesi-zwei-elementen-pdf079-native-0018",
+    "primavesi-zwei-elementen-pdf079-native-0012",
+    "primavesi-zwei-elementen-pdf079-native-0015",
+    "primavesi-zwei-elementen-pdf079-native-0017",
+    "primavesi-zwei-elementen-pdf079-native-0019",
+    "primavesi-zwei-elementen-pdf079-native-0020",
+    "primavesi-zwei-elementen-pdf079-native-0021",
+    "primavesi-zwei-elementen-pdf079-native-0022",
+    "primavesi-zwei-elementen-pdf079-native-0023",
+    "primavesi-zwei-elementen-pdf079-native-0024",
+    "primavesi-zwei-elementen-pdf079-native-0025",
+    "primavesi-zwei-elementen-pdf079-native-0026",
+    "primavesi-zwei-elementen-pdf079-native-0027",
+    "primavesi-zwei-elementen-pdf079-native-0028",
+    "primavesi-zwei-elementen-pdf079-native-0029",
+    "primavesi-zwei-elementen-pdf079-native-0030",
+    "primavesi-zwei-elementen-pdf079-native-0031",
+    "primavesi-zwei-elementen-pdf079-native-0032",
+    "primavesi-zwei-elementen-pdf079-native-0033",
+    "primavesi-zwei-elementen-pdf079-human-0042",
+    "primavesi-zwei-elementen-pdf079-native-0034",
+    "primavesi-zwei-elementen-pdf079-native-0035",
+    "primavesi-zwei-elementen-pdf079-native-0036",
+    "primavesi-zwei-elementen-pdf079-native-0037",
+    "primavesi-zwei-elementen-pdf079-native-0038",
+    "primavesi-zwei-elementen-pdf079-native-0039",
+    "primavesi-zwei-elementen-pdf079-native-0040",
+    "primavesi-zwei-elementen-pdf079-native-0041",
+    "primavesi-zwei-elementen-pdf079-native-0042"
+  ],
+  "visual_inspection": {
+    "scope": "Compared visible running head/page number, body, Greek quotes, apparatus and footnotes against staged line text and page geometry/order. Full image plus listed enlarged crops. No native text extraction used in this pass.",
+    "omissions": "No additional visible text line omission found in this AI review; requires exhaustive human confirmation.",
+    "geometry": "No image-supported line-box correction identified. Existing separate footnote label boxes preserved.",
+    "reading_order": "Existing order retained; page 079 Greek column then German column matches separate parallel passages.",
+    "semantic_D": "Deferred; no invented note links or semantic exceptions added."
+  },
+  "changes": [
+    {
+      "line_id": "primavesi-zwei-elementen-pdf079-native-0041",
+      "fields_changed": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "unabhängigen Handschrift, zugrunde und konjizieren Εὐδώρου )οὐ*κ ἀναρμόστως. Inhaltlich",
+      "new_text": "unabhängigen Handschrift, zugrunde und konjizieren Εὐδώρου <οὐ>κ ἀναρμόστως. Inhaltlich",
+      "visual_justification": "The image shows paired editorial angle brackets. Replace corrupted parenthesis/asterisk using the same ASCII angle-bracket convention already human-verified in line native-0024.",
+      "human_verification_reset": {
+        "transcription_status": "human_verified",
+        "typography_status": "human_verified"
+      },
+      "preserved_geometry_status": "human_verified",
+      "preserved_structure_status": "human_verified"
+    }
+  ],
+  "unresolved_human_qa_issues": [
+    "Human must confirm all visible lines, box boundaries, reading order and exhaustive page coverage before promoting any draft.",
+    "Check exact typographic tracking representation and Greek accent/breathing distinctions; image appearance does not uniquely identify Unicode tracking/critical-mark conventions.",
+    "Existing typography and semantic note-link annotations are not exhaustively verified by this OCR-focused pass."
+  ],
+  "validation": {
+    "command": "closed_world_gold.validate_record(record, require_complete=False, image_path=original_image)",
+    "result": "pass",
+    "NFC_and_inline_span_slice_check": "pass"
+  },
+  "human_verified_preservation": "On page 079 only native-0041 transcription and dependent typography reset after clear visual text error; geometry and structure retained. All other prior human_verified modules retained."
+}

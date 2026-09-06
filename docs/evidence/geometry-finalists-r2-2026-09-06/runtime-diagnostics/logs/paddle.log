@@ -1,0 +1,56 @@
+No model hoster is available! Please check your network connection to one of the following model hosts: HuggingFace (https://huggingface.co), ModelScope (https://modelscope.cn), AIStudio (https://aistudio.baidu.com), or BOS (https://paddle-model-ecology.bj.bcebos.com). Otherwise, only local models can be used.
+sysctl: sysctl fmt -1 1024 1: Operation not permitted
+/opt/homebrew/lib/python3.11/site-packages/paddle/utils/cpp_extension/extension_utils.py:718: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+  warnings.warn(warning_message)
+WARNING: OMP_NUM_THREADS set to 4, not 1. The computation speed will not be optimized if you use data parallel. It will fail if this PaddlePaddle binary is compiled with OpenBlas since OpenBlas does not support multi-threads.
+PLEASE USE OMP_NUM_THREADS WISELY.
+paddle 1 brisson-le-meme-pdf013 ok 37 0 0 6.61
+paddle 1 brisson-le-meme-pdf030 ok 83 2 0 5.53
+paddle 1 brisson-le-meme-pdf110 ok 80 2 0 5.72
+paddle 1 brisson-le-meme-pdf170 ok 86 2 0 4.56
+paddle 1 burnet-platonis-opera-pdf0050 ok 42 0 2 4.21
+paddle 1 burnet-platonis-opera-pdf0300 ok 44 0 5 4.37
+paddle 1 burnet-platonis-opera-pdf1100 ok 37 0 0 4.11
+paddle 1 burnet-platonis-opera-pdf1400 ok 37 0 0 4.03
+paddle 1 dillon-phronesis29-pdf004 ok 42 0 0 3.98
+paddle 1 dillon-phronesis29-pdf005 ok 42 0 0 4.0
+paddle 1 dillon-phronesis29-pdf006 ok 42 0 0 3.89
+paddle 1 menn-metaphysics-pdf288 ok 45 0 0 5.89
+paddle 1 menn-metaphysics-pdf414 ok 53 0 0 4.98
+paddle 1 menn-metaphysics-pdf577 ok 52 0 0 5.03
+paddle 1 menn-metaphysics-pdf925 ok 52 0 0 4.95
+paddle 1 primavesi-zwei-elementen-pdf011 ok 42 0 0 4.44
+paddle 1 primavesi-zwei-elementen-pdf012 ok 38 0 0 4.48
+paddle 1 primavesi-zwei-elementen-pdf013 ok 35 0 0 4.47
+paddle 1 primavesi-zwei-elementen-pdf014 ok 45 0 0 4.52
+paddle 1 primavesi-zwei-elementen-pdf015 ok 51 0 2 4.49
+paddle 1 primavesi-zwei-elementen-pdf016 ok 48 0 0 4.29
+paddle 1 primavesi-zwei-elementen-pdf079 ok 40 1 0 4.4
+paddle 1 ueberweg-kraemer-pdf100 ok 41 0 0 4.3
+paddle 1 ueberweg-kraemer-pdf143 ok 102 1 0 4.26
+paddle 1 ueberweg-kraemer-pdf145 ok 111 1 0 4.29
+paddle 2 brisson-le-meme-pdf013 ok 37 0 0 5.53
+paddle 2 brisson-le-meme-pdf030 ok 83 2 0 4.75
+paddle 2 brisson-le-meme-pdf110 ok 80 2 0 4.67
+paddle 2 brisson-le-meme-pdf170 ok 86 2 0 4.69
+paddle 2 burnet-platonis-opera-pdf0050 ok 42 0 2 4.02
+paddle 2 burnet-platonis-opera-pdf0300 ok 44 0 5 3.86
+paddle 2 burnet-platonis-opera-pdf1100 ok 37 0 0 3.92
+paddle 2 burnet-platonis-opera-pdf1400 ok 37 0 0 4.43
+paddle 2 dillon-phronesis29-pdf004 ok 42 0 0 3.79
+paddle 2 dillon-phronesis29-pdf005 ok 42 0 0 3.72
+paddle 2 dillon-phronesis29-pdf006 ok 42 0 0 3.81
+paddle 2 menn-metaphysics-pdf288 ok 45 0 0 5.64
+paddle 2 menn-metaphysics-pdf414 ok 53 0 0 5.02
+paddle 2 menn-metaphysics-pdf577 ok 52 0 0 4.9
+paddle 2 menn-metaphysics-pdf925 ok 52 0 0 4.91
+paddle 2 primavesi-zwei-elementen-pdf011 ok 42 0 0 4.66
+paddle 2 primavesi-zwei-elementen-pdf012 ok 38 0 0 6.71
+paddle 2 primavesi-zwei-elementen-pdf013 ok 35 0 0 6.16
+paddle 2 primavesi-zwei-elementen-pdf014 ok 45 0 0 4.66
+paddle 2 primavesi-zwei-elementen-pdf015 ok 51 0 2 4.2
+paddle 2 primavesi-zwei-elementen-pdf016 ok 48 0 0 4.13
+paddle 2 primavesi-zwei-elementen-pdf079 ok 40 1 0 4.07
+paddle 2 ueberweg-kraemer-pdf100 ok 41 0 0 4.54
+paddle 2 ueberweg-kraemer-pdf143 ok 102 1 0 4.12
+paddle 2 ueberweg-kraemer-pdf145 ok 111 1 0 4.16

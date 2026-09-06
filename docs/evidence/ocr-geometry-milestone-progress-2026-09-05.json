@@ -1,0 +1,43 @@
+{
+  "schema": "ocr-geometry-milestone-progress/1",
+  "status": "MILESTONE_BLOCKED",
+  "blocker": "No independently established exhaustive real-page development reference/evaluation for the current path is available in the inspected evidence. Drafts may support diagnosis but do not establish A/B/C dev exit. Existing synthetic/control results do not establish full-path E.",
+  "date": "2026-09-05",
+  "substantive_iterations": 0,
+  "substantive_delegations_total": 3,
+  "provider_calls": 0,
+  "frozen_evaluation_executed": false,
+  "gold_scorer_or_threshold_modified": false,
+  "protected_hashes_unchanged": [
+    "crates/mpdf-core/src/ocr.rs",
+    "crates/mpdf-core/src/ocr_provider/geometry_transcription.rs",
+    "scripts/ocr/gold/metrics.py",
+    "scripts/ocr/gold/closed_world_gold.py",
+    "scripts/ocr/gold/run_cloud_complete_ocr_bakeoff.py",
+    "scripts/ocr/geometry/run_geometry_bakeoff.py",
+    "gold-data/mixed-scholarly-v1/freeze-manifest-2026-09-05.json"
+  ],
+  "new_tests": {
+    "command": "python3 -B -m pytest -p no:cacheprovider scripts/ocr/geometry/test_milestone_preflight.py scripts/ocr/geometry/test_geometry_bakeoff.py -q",
+    "passed": 12
+  },
+  "reference_preflight": {
+    "frozen_integrity": "PASS",
+    "frozen_pages_excluded": 16,
+    "nonholdout_pages": 25,
+    "existing_first_party_reference_ready_pages": 0,
+    "exit_code": 2
+  },
+  "measurement_definition_proposal": "Pending user answer; not adopted or used to score.",
+  "implementation_gaps": [
+    "Current geometry-bound GeminiTransport implementations found are test fakes; old PageTranscriptionTransport does not establish current split-path execution."
+  ],
+  "next_step": "Establish independent non-holdout page reference evidence for text/geometry/reading order and exhaustive coverage. D semantic review is not required. Drafts remain allowed for diagnosis; do not relabel them verified or claim component/synthetic runs establish full domain quality. Then bind measurement definitions and actual split-path runtime for two clean dev regressions.",
+  "sha256": {
+    "scripts/ocr/geometry/milestone_preflight.py": "a2adc83d5afc216a89702051077040fe8c42f4ce60d78f751a28bb3107a5f898",
+    "scripts/ocr/geometry/test_milestone_preflight.py": "00971634d48e0a4a75baa224cb2b582d377589a2730587b03b99ba260dcefc63",
+    "scripts/ocr/geometry/README.md": "fb66c4d85afd226a51849557a3d7404ad6356d3e4e17d4e6a9ceb6e5de7883ba",
+    "docs/evidence/ocr-geometry-dev-reference-preflight-2026-09-05.json": "b754b29c234f51f512ca431e6c3eea4f754c9fabce30b35b9057eb3869126db0",
+    "plan.md": "4b0ff32535844f031e05ed4ecfb5a442c297d90d1aefb5cf68a308008d53dc60"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "status": "GEOMETRY_DEV_BAKEOFF_COMPLETE",
+  "intent_alignment": "aligned",
+  "intent_baseline": "intent.md section 8.3 (2026-09-06 user amendment)",
+  "winner": "paddle",
+  "decision_strength": "narrow primary-metric winner; sensitivity diagnostics favor Surya",
+  "valid_inferences": 150,
+  "verified_dev_pages": 25,
+  "reference_lines": 1378,
+  "input_integrity": "PASS",
+  "model_integrity": "PASS",
+  "raw_output_integrity": "PASS",
+  "runner_protocol_integrity": "PASS",
+  "repeat_identity": "25/25 exact for each candidate",
+  "score_repeat_identity": "all metrics identical in pass2",
+  "geometry_contract_tests": "6 passed",
+  "viewer_browser_check": "Chromium rendered 25 options, SVG rectangles and first-page metrics; screenshot visually checked",
+  "scope": "local geometry-only development",
+  "production_wiring": "not run",
+  "provider_freeze": "not created",
+  "gemini_calls": 0,
+  "holdout_assets_read_or_modified": false,
+  "holdout_metadata": "isolation check used manifest metadata only",
+  "known_gaps": [
+    "narrow-column adapter ordering",
+    "TOC fragments and page numbers",
+    "Burnet margins and apparatus",
+    "line IDs/digest/compositor and production path not exercised",
+    "not independent blind reference or unseen-data certification"
+  ]
+}

@@ -1,0 +1,2597 @@
+{
+  "page_id": "ueberweg-kraemer-pdf145",
+  "review_kind": "AI_visual_preannotation_not_human_gold",
+  "full_original_image_viewed": true,
+  "image_sha256": "10fd9e77bea9a0ce42885b3e006bcccf5697563594d7d1085f6994dbb6827a17",
+  "baseline_sha256": "e74027ae6b9e0b0a690f80fcded5e62f33b0b803e7b289f299f241968c6b5908",
+  "line_count": 111,
+  "line_ids_visually_compared": [
+    "ueberweg-kraemer-pdf145-visual-head",
+    "ueberweg-kraemer-pdf145-visual-page",
+    "ueberweg-kraemer-pdf145-candidate-0001",
+    "ueberweg-kraemer-pdf145-candidate-0002",
+    "ueberweg-kraemer-pdf145-candidate-0003",
+    "ueberweg-kraemer-pdf145-candidate-0004",
+    "ueberweg-kraemer-pdf145-candidate-0005",
+    "ueberweg-kraemer-pdf145-candidate-0006",
+    "ueberweg-kraemer-pdf145-candidate-0007",
+    "ueberweg-kraemer-pdf145-candidate-0008",
+    "ueberweg-kraemer-pdf145-candidate-0009",
+    "ueberweg-kraemer-pdf145-candidate-0010",
+    "ueberweg-kraemer-pdf145-candidate-0011",
+    "ueberweg-kraemer-pdf145-candidate-0012",
+    "ueberweg-kraemer-pdf145-candidate-0013",
+    "ueberweg-kraemer-pdf145-candidate-0014",
+    "ueberweg-kraemer-pdf145-candidate-0015",
+    "ueberweg-kraemer-pdf145-candidate-0016",
+    "ueberweg-kraemer-pdf145-candidate-0017",
+    "ueberweg-kraemer-pdf145-candidate-0018",
+    "ueberweg-kraemer-pdf145-candidate-0019",
+    "ueberweg-kraemer-pdf145-candidate-0020",
+    "ueberweg-kraemer-pdf145-candidate-0021",
+    "ueberweg-kraemer-pdf145-candidate-0022",
+    "ueberweg-kraemer-pdf145-candidate-0023",
+    "ueberweg-kraemer-pdf145-candidate-0024",
+    "ueberweg-kraemer-pdf145-candidate-0025",
+    "ueberweg-kraemer-pdf145-candidate-0026",
+    "ueberweg-kraemer-pdf145-candidate-0027",
+    "ueberweg-kraemer-pdf145-candidate-0028",
+    "ueberweg-kraemer-pdf145-candidate-0029",
+    "ueberweg-kraemer-pdf145-candidate-0030",
+    "ueberweg-kraemer-pdf145-candidate-0031",
+    "ueberweg-kraemer-pdf145-candidate-0032",
+    "ueberweg-kraemer-pdf145-candidate-0033",
+    "ueberweg-kraemer-pdf145-candidate-0034",
+    "ueberweg-kraemer-pdf145-candidate-0035",
+    "ueberweg-kraemer-pdf145-candidate-0036",
+    "ueberweg-kraemer-pdf145-candidate-0037",
+    "ueberweg-kraemer-pdf145-candidate-0038",
+    "ueberweg-kraemer-pdf145-candidate-0039",
+    "ueberweg-kraemer-pdf145-candidate-0040",
+    "ueberweg-kraemer-pdf145-candidate-0041",
+    "ueberweg-kraemer-pdf145-candidate-0042",
+    "ueberweg-kraemer-pdf145-candidate-0043",
+    "ueberweg-kraemer-pdf145-candidate-0044",
+    "ueberweg-kraemer-pdf145-candidate-0045",
+    "ueberweg-kraemer-pdf145-candidate-0046",
+    "ueberweg-kraemer-pdf145-candidate-0047",
+    "ueberweg-kraemer-pdf145-candidate-0048",
+    "ueberweg-kraemer-pdf145-candidate-0049",
+    "ueberweg-kraemer-pdf145-candidate-0050",
+    "ueberweg-kraemer-pdf145-candidate-0051",
+    "ueberweg-kraemer-pdf145-candidate-0052",
+    "ueberweg-kraemer-pdf145-candidate-0053",
+    "ueberweg-kraemer-pdf145-candidate-0054",
+    "ueberweg-kraemer-pdf145-candidate-0055",
+    "ueberweg-kraemer-pdf145-candidate-0056",
+    "ueberweg-kraemer-pdf145-candidate-0057",
+    "ueberweg-kraemer-pdf145-candidate-0058",
+    "ueberweg-kraemer-pdf145-candidate-0059",
+    "ueberweg-kraemer-pdf145-candidate-0060",
+    "ueberweg-kraemer-pdf145-candidate-0061",
+    "ueberweg-kraemer-pdf145-candidate-0062",
+    "ueberweg-kraemer-pdf145-candidate-0063",
+    "ueberweg-kraemer-pdf145-candidate-0064",
+    "ueberweg-kraemer-pdf145-candidate-0065",
+    "ueberweg-kraemer-pdf145-candidate-0066",
+    "ueberweg-kraemer-pdf145-candidate-0067",
+    "ueberweg-kraemer-pdf145-candidate-0068",
+    "ueberweg-kraemer-pdf145-candidate-0069",
+    "ueberweg-kraemer-pdf145-candidate-0070",
+    "ueberweg-kraemer-pdf145-candidate-0071",
+    "ueberweg-kraemer-pdf145-candidate-0072",
+    "ueberweg-kraemer-pdf145-candidate-0073",
+    "ueberweg-kraemer-pdf145-candidate-0074",
+    "ueberweg-kraemer-pdf145-candidate-0075",
+    "ueberweg-kraemer-pdf145-candidate-0076",
+    "ueberweg-kraemer-pdf145-candidate-0077",
+    "ueberweg-kraemer-pdf145-candidate-0078",
+    "ueberweg-kraemer-pdf145-candidate-0079",
+    "ueberweg-kraemer-pdf145-candidate-0080",
+    "ueberweg-kraemer-pdf145-candidate-0081",
+    "ueberweg-kraemer-pdf145-candidate-0082",
+    "ueberweg-kraemer-pdf145-candidate-0083",
+    "ueberweg-kraemer-pdf145-candidate-0084",
+    "ueberweg-kraemer-pdf145-candidate-0085",
+    "ueberweg-kraemer-pdf145-candidate-0086",
+    "ueberweg-kraemer-pdf145-candidate-0087",
+    "ueberweg-kraemer-pdf145-candidate-0088",
+    "ueberweg-kraemer-pdf145-candidate-0089",
+    "ueberweg-kraemer-pdf145-candidate-0090",
+    "ueberweg-kraemer-pdf145-candidate-0091",
+    "ueberweg-kraemer-pdf145-candidate-0092",
+    "ueberweg-kraemer-pdf145-candidate-0093",
+    "ueberweg-kraemer-pdf145-candidate-0094",
+    "ueberweg-kraemer-pdf145-candidate-0095",
+    "ueberweg-kraemer-pdf145-candidate-0096",
+    "ueberweg-kraemer-pdf145-candidate-0097",
+    "ueberweg-kraemer-pdf145-candidate-0098",
+    "ueberweg-kraemer-pdf145-candidate-0099",
+    "ueberweg-kraemer-pdf145-candidate-0100",
+    "ueberweg-kraemer-pdf145-candidate-0101",
+    "ueberweg-kraemer-pdf145-candidate-0102",
+    "ueberweg-kraemer-pdf145-candidate-0103",
+    "ueberweg-kraemer-pdf145-candidate-0104",
+    "ueberweg-kraemer-pdf145-candidate-0105",
+    "ueberweg-kraemer-pdf145-candidate-0106",
+    "ueberweg-kraemer-pdf145-candidate-0107",
+    "ueberweg-kraemer-pdf145-candidate-0108",
+    "ueberweg-kraemer-pdf145-candidate-0109"
+  ],
+  "visual_inspection": "Full page every111lines reviewed. Correct interleaved two-column reading order. Superscript edition5 source at51959 retained in text and span. French series3e superscript preserved. Geometry column separation checked.",
+  "changes": [
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0001",
+      "old_reading_order": 3,
+      "new_reading_order": 2,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "der griechischen Philosophie (Leipzig 1891)",
+      "new_text": "der griechischen Philosophie (Leipzig 1891)",
+      "old_bbox": [
+        190,
+        233,
+        822,
+        266
+      ],
+      "new_bbox": [
+        190,
+        233,
+        822,
+        266
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0002",
+      "old_reading_order": 5,
+      "new_reading_order": 3,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "253-286, bes. 271-286.",
+      "new_text": "253-286, bes. 271-286.",
+      "old_bbox": [
+        191,
+        275,
+        479,
+        302
+      ],
+      "new_bbox": [
+        191,
+        275,
+        479,
+        302
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0003",
+      "old_reading_order": 7,
+      "new_reading_order": 4,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "691 A. E. Taylor: A commentary on Plato’s Ti-",
+      "new_text": "691 A. E. Taylor: A commentary on Plato’s Ti-",
+      "old_bbox": [
+        127,
+        313,
+        822,
+        346
+      ],
+      "new_bbox": [
+        127,
+        313,
+        822,
+        346
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0004",
+      "old_reading_order": 9,
+      "new_reading_order": 5,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "maeus (Oxford 1928, ND 1962). — Zur xenokra-",
+      "new_text": "maeus (Oxford 1928, ND 1962). — Zur xenokra-",
+      "old_bbox": [
+        191,
+        353,
+        822,
+        385
+      ],
+      "new_bbox": [
+        191,
+        353,
+        822,
+        385
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0005",
+      "old_reading_order": 11,
+      "new_reading_order": 6,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "tischen Seelendefinition im Unterschied zu der-",
+      "new_text": "tischen Seelendefinition im Unterschied zu der-",
+      "old_bbox": [
+        191,
+        393,
+        822,
+        420
+      ],
+      "new_bbox": [
+        191,
+        393,
+        822,
+        420
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0006",
+      "old_reading_order": 13,
+      "new_reading_order": 7,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "jenigen von Krantor: 111-115.",
+      "new_text": "jenigen von Krantor: 111-115.",
+      "old_bbox": [
+        187,
+        434,
+        589,
+        466
+      ],
+      "new_bbox": [
+        187,
+        434,
+        589,
+        466
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0007",
+      "old_reading_order": 15,
+      "new_reading_order": 8,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "692 H. Cherniss: Notes on Plutarch's «De facie in",
+      "new_text": "692 H. Cherniss: Notes on Plutarch's «De facie in",
+      "old_bbox": [
+        128,
+        473,
+        821,
+        501
+      ],
+      "new_bbox": [
+        128,
+        473,
+        821,
+        501
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0008",
+      "old_reading_order": 16,
+      "new_reading_order": 9,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "orbe lunae», in: Classical Philology 46 (1951)",
+      "new_text": "orbe lunae», in: Classical Philology 46 (1951)",
+      "old_bbox": [
+        189,
+        512,
+        822,
+        544
+      ],
+      "new_bbox": [
+        189,
+        512,
+        822,
+        544
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0009",
+      "old_reading_order": 19,
+      "new_reading_order": 10,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "137-158, bes. 152£.- ND: H. Ch.: Selected papers",
+      "new_text": "137-158, bes. 152f. – ND: H. Ch.: Selected papers",
+      "old_bbox": [
+        192,
+        553,
+        822,
+        584
+      ],
+      "new_bbox": [
+        192,
+        553,
+        822,
+        584
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0010",
+      "old_reading_order": 21,
+      "new_reading_order": 11,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "(Leiden 1977) 479-500, bes. 494f. — Zu Frg. 161.",
+      "new_text": "(Leiden 1977) 479-500, bes. 494f. — Zu Frg. 161.",
+      "old_bbox": [
+        189,
+        593,
+        814,
+        626
+      ],
+      "new_bbox": [
+        189,
+        593,
+        814,
+        626
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0011",
+      "old_reading_order": 23,
+      "new_reading_order": 12,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "693 W. Hirsch: Der pseudoaristotelische Traktat de",
+      "new_text": "693 W. Hirsch: Der pseudoaristotelische Traktat de",
+      "old_bbox": [
+        127,
+        632,
+        821,
+        665
+      ],
+      "new_bbox": [
+        127,
+        632,
+        821,
+        665
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0012",
+      "old_reading_order": 24,
+      "new_reading_order": 13,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "lineis insecabilibus (Heidelberg 1953). — Diss.",
+      "new_text": "lineis insecabilibus (Heidelberg 1953). — Diss.",
+      "old_bbox": [
+        191,
+        672,
+        821,
+        704
+      ],
+      "new_bbox": [
+        191,
+        672,
+        821,
+        704
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0013",
+      "old_reading_order": 27,
+      "new_reading_order": 14,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Masch. — Zu Frg. 127.",
+      "new_text": "Masch. — Zu Frg. 127.",
+      "old_bbox": [
+        191,
+        714,
+        479,
+        745
+      ],
+      "new_bbox": [
+        191,
+        714,
+        479,
+        745
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0014",
+      "old_reading_order": 29,
+      "new_reading_order": 15,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "694 M. Schramm: Zur Schrift über die unteilbaren",
+      "new_text": "694 M. Schramm: Zur Schrift über die unteilbaren",
+      "old_bbox": [
+        127,
+        753,
+        820,
+        780
+      ],
+      "new_bbox": [
+        127,
+        753,
+        820,
+        780
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0015",
+      "old_reading_order": 31,
+      "new_reading_order": 16,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Linien aus dem Corpus Aristotelicum, in: Clas-",
+      "new_text": "Linien aus dem Corpus Aristotelicum, in: Clas-",
+      "old_bbox": [
+        191,
+        792,
+        821,
+        824
+      ],
+      "new_bbox": [
+        191,
+        792,
+        821,
+        824
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0016",
+      "old_reading_order": 33,
+      "new_reading_order": 17,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "sica et Mediaevalia 18 (1957) 36-58. - Zu Frg.",
+      "new_text": "sica et Mediaevalia 18 (1957) 36-58. - Zu Frg.",
+      "old_bbox": [
+        189,
+        833,
+        821,
+        863
+      ],
+      "new_bbox": [
+        189,
+        833,
+        821,
+        863
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0017",
+      "old_reading_order": 35,
+      "new_reading_order": 18,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "127 vgl. bes. 36ff.",
+      "new_text": "127 vgl. bes. 36ff.",
+      "old_bbox": [
+        192,
+        873,
+        414,
+        905
+      ],
+      "new_bbox": [
+        192,
+        873,
+        414,
+        905
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0018",
+      "old_reading_order": 37,
+      "new_reading_order": 19,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "695 D. A. Rees: Bipartition of the soul in the Early",
+      "new_text": "695 D. A. Rees: Bipartition of the soul in the Early",
+      "old_bbox": [
+        127,
+        913,
+        820,
+        944
+      ],
+      "new_bbox": [
+        127,
+        913,
+        820,
+        944
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0019",
+      "old_reading_order": 39,
+      "new_reading_order": 20,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Academy, in: Journal of Hellenic Studies 77",
+      "new_text": "Academy, in: Journal of Hellenic Studies 77",
+      "old_bbox": [
+        191,
+        952,
+        821,
+        985
+      ],
+      "new_bbox": [
+        191,
+        952,
+        821,
+        985
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0020",
+      "old_reading_order": 41,
+      "new_reading_order": 21,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "(1957) 112-118, bes. 118.",
+      "new_text": "(1957) 112-118, bes. 118.",
+      "old_bbox": [
+        189,
+        993,
+        514,
+        1024
+      ],
+      "new_bbox": [
+        189,
+        993,
+        514,
+        1024
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0021",
+      "old_reading_order": 43,
+      "new_reading_order": 22,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "696 R. Hackforth: Plato's cosmogony (Timaeus 27",
+      "new_text": "696 R. Hackforth: Plato's cosmogony (Timaeus 27",
+      "old_bbox": [
+        127,
+        1032,
+        821,
+        1064
+      ],
+      "new_bbox": [
+        127,
+        1032,
+        821,
+        1064
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0022",
+      "old_reading_order": 45,
+      "new_reading_order": 23,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "D ff.), in: Classical Quarterly 53, N.S. 9 (1959)",
+      "new_text": "D ff.), in: Classical Quarterly 53, N.S. 9 (1959)",
+      "old_bbox": [
+        191,
+        1072,
+        821,
+        1105
+      ],
+      "new_bbox": [
+        191,
+        1072,
+        821,
+        1105
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0023",
+      "old_reading_order": 47,
+      "new_reading_order": 24,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "17-22.",
+      "new_text": "17-22.",
+      "old_bbox": [
+        191,
+        1115,
+        267,
+        1139
+      ],
+      "new_bbox": [
+        191,
+        1115,
+        267,
+        1139
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0024",
+      "old_reading_order": 49,
+      "new_reading_order": 25,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "697 J. A. Philip: The *Pythagorean' theory of the",
+      "new_text": "697 J. A. Philip: The ‘Pythagorean’ theory of the",
+      "old_bbox": [
+        127,
+        1152,
+        820,
+        1185
+      ],
+      "new_bbox": [
+        127,
+        1152,
+        820,
+        1185
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0025",
+      "old_reading_order": 51,
+      "new_reading_order": 26,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "derivation of magnitudes, in: Phoenix 20 (1966)",
+      "new_text": "derivation of magnitudes, in: Phoenix 20 (1966)",
+      "old_bbox": [
+        189,
+        1192,
+        821,
+        1225
+      ],
+      "new_bbox": [
+        189,
+        1192,
+        821,
+        1225
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0026",
+      "old_reading_order": 53,
+      "new_reading_order": 27,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "32-50.",
+      "new_text": "32-50.",
+      "old_bbox": [
+        190,
+        1235,
+        268,
+        1259
+      ],
+      "new_bbox": [
+        190,
+        1235,
+        268,
+        1259
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0027",
+      "old_reading_order": 55,
+      "new_reading_order": 28,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "698 H.-G. Gadamer: Platons ungeschriebene Dia-",
+      "new_text": "698 H.-G. Gadamer: Platons ungeschriebene Dia-",
+      "old_bbox": [
+        127,
+        1272,
+        820,
+        1304
+      ],
+      "new_bbox": [
+        127,
+        1272,
+        820,
+        1304
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0028",
+      "old_reading_order": 56,
+      "new_reading_order": 29,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "lektik, in: Idee und Zahl: Studien zur platoni-",
+      "new_text": "lektik, in: Idee und Zahl: Studien zur platoni-",
+      "old_bbox": [
+        191,
+        1312,
+        820,
+        1346
+      ],
+      "new_bbox": [
+        191,
+        1312,
+        820,
+        1346
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0029",
+      "old_reading_order": 58,
+      "new_reading_order": 30,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "schen Philosophie (Heidelberg 1968) [Abhand-",
+      "new_text": "schen Philosophie (Heidelberg 1968) [Abhand-",
+      "old_bbox": [
+        189,
+        1351,
+        821,
+        1384
+      ],
+      "new_bbox": [
+        189,
+        1351,
+        821,
+        1384
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0030",
+      "old_reading_order": 61,
+      "new_reading_order": 31,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "lungen der Heidelberger Akademie der Wis-",
+      "new_text": "lungen der Heidelberger Akademie der Wis-",
+      "old_bbox": [
+        191,
+        1392,
+        820,
+        1425
+      ],
+      "new_bbox": [
+        191,
+        1392,
+        820,
+        1425
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0031",
+      "old_reading_order": 63,
+      "new_reading_order": 32,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "senschaften, Philosophisch-historische Klasse,",
+      "new_text": "senschaften, Philosophisch-historische Klasse,",
+      "old_bbox": [
+        189,
+        1432,
+        820,
+        1465
+      ],
+      "new_bbox": [
+        189,
+        1432,
+        820,
+        1465
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0032",
+      "old_reading_order": 65,
+      "new_reading_order": 33,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "1968/2] 9-30, bes. 20-24. - ND: H.-G. G.: Kleine",
+      "new_text": "1968/2] 9-30, bes. 20-24. - ND: H.-G. G.: Kleine",
+      "old_bbox": [
+        192,
+        1473,
+        819,
+        1506
+      ],
+      "new_bbox": [
+        192,
+        1473,
+        819,
+        1506
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0033",
+      "old_reading_order": 67,
+      "new_reading_order": 34,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Schriften, III (Tübingen 1972) 27-49, bes. 39-43.",
+      "new_text": "Schriften, III (Tübingen 1972) 27-49, bes. 39-43.",
+      "old_bbox": [
+        189,
+        1513,
+        820,
+        1544
+      ],
+      "new_bbox": [
+        189,
+        1513,
+        820,
+        1544
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0034",
+      "old_reading_order": 69,
+      "new_reading_order": 35,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "699 W. W. Fortenbaugh: On the antecedents of Ar-",
+      "new_text": "699 W. W. Fortenbaugh: On the antecedents of Ar-",
+      "old_bbox": [
+        127,
+        1553,
+        820,
+        1584
+      ],
+      "new_bbox": [
+        127,
+        1553,
+        820,
+        1584
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0035",
+      "old_reading_order": 71,
+      "new_reading_order": 36,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "istotle's bipartite psychology, in: Greek, Roman",
+      "new_text": "istotle's bipartite psychology, in: Greek, Roman",
+      "old_bbox": [
+        190,
+        1593,
+        819,
+        1625
+      ],
+      "new_bbox": [
+        190,
+        1593,
+        819,
+        1625
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0036",
+      "old_reading_order": 73,
+      "new_reading_order": 37,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "and Byzantine Studies 11 (1970) 233-250.",
+      "new_text": "and Byzantine Studies 11 (1970) 233-250.",
+      "old_bbox": [
+        189,
+        1632,
+        741,
+        1665
+      ],
+      "new_bbox": [
+        189,
+        1632,
+        741,
+        1665
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0037",
+      "old_reading_order": 74,
+      "new_reading_order": 38,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "700 D. Harlfinger: Die Textgeschichte der pseudo-",
+      "new_text": "700 D. Harlfinger: Die Textgeschichte der pseudo-",
+      "old_bbox": [
+        128,
+        1672,
+        820,
+        1705
+      ],
+      "new_bbox": [
+        128,
+        1672,
+        820,
+        1705
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0038",
+      "old_reading_order": 77,
+      "new_reading_order": 39,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "aristotelischen Schrift Περὶ ἀτόμων γραμμῶν:",
+      "new_text": "aristotelischen Schrift Περὶ ἀτόμων γραμμῶν:",
+      "old_bbox": [
+        189,
+        1714,
+        820,
+        1745
+      ],
+      "new_bbox": [
+        189,
+        1714,
+        820,
+        1745
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0039",
+      "old_reading_order": 79,
+      "new_reading_order": 40,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "ein kodikologisch-kulturgeschichtlicher Bei-",
+      "new_text": "ein kodikologisch-kulturgeschichtlicher Bei-",
+      "old_bbox": [
+        189,
+        1752,
+        820,
+        1785
+      ],
+      "new_bbox": [
+        189,
+        1752,
+        820,
+        1785
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0040",
+      "old_reading_order": 80,
+      "new_reading_order": 41,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "trag zur Klärung der Überlieferungsverhält-",
+      "new_text": "trag zur Klärung der Überlieferungsverhält-",
+      "old_bbox": [
+        190,
+        1789,
+        820,
+        1825
+      ],
+      "new_bbox": [
+        190,
+        1789,
+        820,
+        1825
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0041",
+      "old_reading_order": 83,
+      "new_reading_order": 42,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "nisse im Corpus Aristotelicum (Amsterdam",
+      "new_text": "nisse im Corpus Aristotelicum (Amsterdam",
+      "old_bbox": [
+        190,
+        1832,
+        819,
+        1865
+      ],
+      "new_bbox": [
+        190,
+        1832,
+        819,
+        1865
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0042",
+      "old_reading_order": 85,
+      "new_reading_order": 43,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "1971). -- Diss. Berlin. — Zu Frg. 127: 321ff. 343f.",
+      "new_text": "1971). -- Diss. Berlin. — Zu Frg. 127: 321ff. 343f.",
+      "old_bbox": [
+        192,
+        1872,
+        820,
+        1905
+      ],
+      "new_bbox": [
+        192,
+        1872,
+        820,
+        1905
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0043",
+      "old_reading_order": 87,
+      "new_reading_order": 44,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "367ff. 398ff.",
+      "new_text": "367ff. 398ff.",
+      "old_bbox": [
+        189,
+        1914,
+        343,
+        1938
+      ],
+      "new_bbox": [
+        189,
+        1914,
+        343,
+        1938
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0044",
+      "old_reading_order": 89,
+      "new_reading_order": 45,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "701 H. Reiche: Myth and magic in cosmological po-",
+      "new_text": "701 H. Reiche: Myth and magic in cosmological po-",
+      "old_bbox": [
+        128,
+        1953,
+        820,
+        1985
+      ],
+      "new_bbox": [
+        128,
+        1953,
+        820,
+        1985
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0045",
+      "old_reading_order": 91,
+      "new_reading_order": 46,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "lemics: Plato, Aristotle, Lucretius, in: Rheini-",
+      "new_text": "lemics: Plato, Aristotle, Lucretius, in: Rheini-",
+      "old_bbox": [
+        190,
+        1992,
+        820,
+        2022
+      ],
+      "new_bbox": [
+        190,
+        1992,
+        820,
+        2022
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0046",
+      "old_reading_order": 93,
+      "new_reading_order": 47,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "sches Museum 114 (1971) 296-329, bes. 299-307.",
+      "new_text": "sches Museum 114 (1971) 296-329, bes. 299-307.",
+      "old_bbox": [
+        189,
+        2033,
+        820,
+        2064
+      ],
+      "new_bbox": [
+        189,
+        2033,
+        820,
+        2064
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0047",
+      "old_reading_order": 95,
+      "new_reading_order": 48,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "— Zu Aristoteles’ Kritik an Xenokrates' Ti-",
+      "new_text": "— Zu Aristoteles’ Kritik an Xenokrates' Ti-",
+      "old_bbox": [
+        189,
+        2072,
+        820,
+        2098
+      ],
+      "new_bbox": [
+        189,
+        2072,
+        820,
+        2098
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0048",
+      "old_reading_order": 97,
+      "new_reading_order": 49,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "maios-Interpretation.",
+      "new_text": "maios-Interpretation.",
+      "old_bbox": [
+        191,
+        2114,
+        478,
+        2145
+      ],
+      "new_bbox": [
+        191,
+        2114,
+        478,
+        2145
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0049",
+      "old_reading_order": 100,
+      "new_reading_order": 50,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "Theologie und Dümonenlehre",
+      "new_text": "Theologie und Dämonenlehre",
+      "old_bbox": [
+        128,
+        2194,
+        524,
+        2224
+      ],
+      "new_bbox": [
+        128,
+        2194,
+        524,
+        2224
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0050",
+      "old_reading_order": 102,
+      "new_reading_order": 51,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Die kosmologische Prinzipienlehre",
+      "new_text": "Die kosmologische Prinzipienlehre",
+      "old_bbox": [
+        129,
+        2234,
+        594,
+        2265
+      ],
+      "new_bbox": [
+        129,
+        2234,
+        594,
+        2265
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0051",
+      "old_reading_order": 104,
+      "new_reading_order": 52,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "und das Problem der Einheit des Systems",
+      "new_text": "und das Problem der Einheit des Systems",
+      "old_bbox": [
+        127,
+        2274,
+        675,
+        2304
+      ],
+      "new_bbox": [
+        127,
+        2274,
+        675,
+        2304
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0052",
+      "old_reading_order": 106,
+      "new_reading_order": 53,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "Vgl. auch Krische 1840 [*350: 311-324]. Heinze",
+      "new_text": "Vgl. auch Krische 1840 [*350: 311-324], Heinze",
+      "old_bbox": [
+        160,
+        2312,
+        819,
+        2345
+      ],
+      "new_bbox": [
+        160,
+        2312,
+        819,
+        2345
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0053",
+      "old_reading_order": 107,
+      "new_reading_order": 54,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "1892 [*630: 14-37. 50-56. 78-156], von Wilamowitz-",
+      "new_text": "1892 [*630: 14-37. 50-56. 78-156], von Wilamowitz-",
+      "old_bbox": [
+        128,
+        2352,
+        821,
+        2385
+      ],
+      "new_bbox": [
+        128,
+        2352,
+        821,
+        2385
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0054",
+      "old_reading_order": 109,
+      "new_reading_order": 55,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Moellendorff 51959 [*191: I 579], Moreau 1939",
+      "new_text": "Moellendorff 51959 [*191: I 579], Moreau 1939",
+      "old_bbox": [
+        128,
+        2392,
+        820,
+        2425
+      ],
+      "new_bbox": [
+        128,
+        2392,
+        820,
+        2425
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0055",
+      "old_reading_order": 2,
+      "new_reading_order": 56,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "[*352: 110ff.], de Vogel 1954 [*442], Theiler 1964",
+      "new_text": "[*352: 110ff.], de Vogel 1954 [*442], Theiler 1964",
+      "old_bbox": [
+        880,
+        231,
+        1575,
+        264
+      ],
+      "new_bbox": [
+        880,
+        231,
+        1575,
+        264
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0056",
+      "old_reading_order": 4,
+      "new_reading_order": 57,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "[*323], Krämer 1964 [*324: 21-126. 390ff.], Wich-",
+      "new_text": "[*323], Krämer 1964 [*324: 21-126. 390ff.], Wich-",
+      "old_bbox": [
+        880,
+        271,
+        1575,
+        304
+      ],
+      "new_bbox": [
+        880,
+        271,
+        1575,
+        304
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0057",
+      "old_reading_order": 6,
+      "new_reading_order": 58,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "mann 1966 [*77: 630-632], Dórrie 1967 [*660], Krä-",
+      "new_text": "mann 1966 [*77: 630-632], Dörrie 1967 [*660], Krä-",
+      "old_bbox": [
+        880,
+        310,
+        1575,
+        343
+      ],
+      "new_bbox": [
+        880,
+        310,
+        1575,
+        343
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0058",
+      "old_reading_order": 8,
+      "new_reading_order": 59,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "mer 1967 [*325: 313-337], Merlan 1967 [*78: 32-37],",
+      "new_text": "mer 1967 [*325: 313-337], Merlan 1967 [*78: 32-37],",
+      "old_bbox": [
+        880,
+        350,
+        1574,
+        383
+      ],
+      "new_bbox": [
+        880,
+        350,
+        1574,
+        383
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0059",
+      "old_reading_order": 10,
+      "new_reading_order": 60,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "Krümer 1969 [*355]. Happ 1971 [*330: 250-256.",
+      "new_text": "Krämer 1969 [*355]. Happ 1971 [*330: 250-256.",
+      "old_bbox": [
+        880,
+        391,
+        1575,
+        423
+      ],
+      "new_bbox": [
+        880,
+        391,
+        1575,
+        423
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0060",
+      "old_reading_order": 12,
+      "new_reading_order": 61,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "259f.], Krämer 1971 [*164: 108-187], Isnardi Parente",
+      "new_text": "259f.], Krämer 1971 [*164: 108-187], Isnardi Parente",
+      "old_bbox": [
+        880,
+        430,
+        1574,
+        463
+      ],
+      "new_bbox": [
+        880,
+        430,
+        1574,
+        463
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0061",
+      "old_reading_order": 14,
+      "new_reading_order": 62,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "1982 [*631: 400ff. ].",
+      "new_text": "1982 [*631: 400ff. ].",
+      "old_bbox": [
+        881,
+        466,
+        1133,
+        508
+      ],
+      "new_bbox": [
+        881,
+        466,
+        1133,
+        508
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0062",
+      "old_reading_order": 17,
+      "new_reading_order": 63,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "705 F. Andres: Daimon, in: Paulys Real-Encyclopá-",
+      "new_text": "705 F. Andres: Daimon, in: Paulys Real-Encyclopä-",
+      "old_bbox": [
+        880,
+        512,
+        1575,
+        542
+      ],
+      "new_bbox": [
+        880,
+        512,
+        1575,
+        542
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0063",
+      "old_reading_order": 18,
+      "new_reading_order": 64,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "die, Suppl. 3 (1918) 267-322, bes. 296f.",
+      "new_text": "die, Suppl. 3 (1918) 267-322, bes. 296f.",
+      "old_bbox": [
+        942,
+        551,
+        1449,
+        583
+      ],
+      "new_bbox": [
+        942,
+        551,
+        1449,
+        583
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0064",
+      "old_reading_order": 20,
+      "new_reading_order": 65,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "706 H. von Arnim: Plutarch über Dämonen und",
+      "new_text": "706 H. von Arnim: Plutarch über Dämonen und",
+      "old_bbox": [
+        880,
+        592,
+        1573,
+        616
+      ],
+      "new_bbox": [
+        880,
+        592,
+        1573,
+        616
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0065",
+      "old_reading_order": 22,
+      "new_reading_order": 66,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "Mantik (Amsterdam 1921) [Verhandelingen",
+      "new_text": "Mantik (Amsterdam 1921) [Verhandelingen",
+      "old_bbox": [
+        943,
+        630,
+        1573,
+        662
+      ],
+      "new_bbox": [
+        943,
+        630,
+        1573,
+        662
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0066",
+      "old_reading_order": 25,
+      "new_reading_order": 67,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "der Koninklijke Akademie van Wetenschappen",
+      "new_text": "der Koninklijke Akademie van Wetenschappen",
+      "old_bbox": [
+        941,
+        672,
+        1573,
+        702
+      ],
+      "new_bbox": [
+        941,
+        672,
+        1573,
+        702
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0067",
+      "old_reading_order": 26,
+      "new_reading_order": 68,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "te Amsterdam, Afdeeling Letterkunde, Nieu-",
+      "new_text": "te Amsterdam, Afdeeling Letterkunde, Nieu-",
+      "old_bbox": [
+        942,
+        711,
+        1574,
+        742
+      ],
+      "new_bbox": [
+        942,
+        711,
+        1574,
+        742
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0068",
+      "old_reading_order": 28,
+      "new_reading_order": 69,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "we reeks, 22/2].",
+      "new_text": "we reeks, 22/2].",
+      "old_bbox": [
+        942,
+        750,
+        1147,
+        782
+      ],
+      "new_bbox": [
+        942,
+        750,
+        1147,
+        782
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0069",
+      "old_reading_order": 30,
+      "new_reading_order": 70,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "707 H. Leisegang: Hellenistische Philosophie von",
+      "new_text": "707 H. Leisegang: Hellenistische Philosophie von",
+      "old_bbox": [
+        880,
+        791,
+        1572,
+        822
+      ],
+      "new_bbox": [
+        880,
+        791,
+        1572,
+        822
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0070",
+      "old_reading_order": 32,
+      "new_reading_order": 71,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "Aristoteles bis Plotin (Breslau 1923). — 22-30.",
+      "new_text": "Aristoteles bis Plotin (Breslau 1923). — 22-30.",
+      "old_bbox": [
+        942,
+        831,
+        1551,
+        861
+      ],
+      "new_bbox": [
+        942,
+        831,
+        1551,
+        861
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0071",
+      "old_reading_order": 34,
+      "new_reading_order": 72,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "708 U. von Wilamowitz-Moellendorff: Der Glaube",
+      "new_text": "708 U. von Wilamowitz-Moellendorff: Der Glaube",
+      "old_bbox": [
+        880,
+        871,
+        1573,
+        896
+      ],
+      "new_bbox": [
+        880,
+        871,
+        1573,
+        896
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0072",
+      "old_reading_order": 36,
+      "new_reading_order": 73,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "der Hellenen, I-II (Berlin 1931-1932, ND",
+      "new_text": "der Hellenen, I-II (Berlin 1931-1932, ND",
+      "old_bbox": [
+        941,
+        911,
+        1574,
+        941
+      ],
+      "new_bbox": [
+        941,
+        911,
+        1574,
+        941
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0073",
+      "old_reading_order": 38,
+      "new_reading_order": 74,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "Darmstadt 1955, 1994). — II 279f.",
+      "new_text": "Darmstadt 1955, 1994). — II 279f.",
+      "old_bbox": [
+        942,
+        951,
+        1380,
+        981
+      ],
+      "new_bbox": [
+        942,
+        951,
+        1380,
+        981
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0074",
+      "old_reading_order": 40,
+      "new_reading_order": 75,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "709 P. Boyancé: Les deux démons personnels dans",
+      "new_text": "709 P. Boyancé: Les deux démons personnels dans",
+      "old_bbox": [
+        880,
+        991,
+        1573,
+        1022
+      ],
+      "new_bbox": [
+        880,
+        991,
+        1573,
+        1022
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0075",
+      "old_reading_order": 42,
+      "new_reading_order": 76,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "l'antiquité grecque et latine, in: Revue de philo-",
+      "new_text": "l'antiquité grecque et latine, in: Revue de philo-",
+      "old_bbox": [
+        942,
+        1031,
+        1574,
+        1063
+      ],
+      "new_bbox": [
+        942,
+        1031,
+        1574,
+        1063
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0076",
+      "old_reading_order": 44,
+      "new_reading_order": 77,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "logie, de littérature et d'histoire ancienne 61, 3\"",
+      "new_text": "logie, de littérature et d'histoire ancienne 61, 3ᵉ",
+      "old_bbox": [
+        942,
+        1071,
+        1573,
+        1102
+      ],
+      "new_bbox": [
+        942,
+        1071,
+        1573,
+        1102
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0077",
+      "old_reading_order": 46,
+      "new_reading_order": 78,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "série 9 (1935) 189-202, bes. 200f.",
+      "new_text": "série 9 (1935) 189-202, bes. 200f.",
+      "old_bbox": [
+        941,
+        1111,
+        1371,
+        1142
+      ],
+      "new_bbox": [
+        941,
+        1111,
+        1371,
+        1142
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0078",
+      "old_reading_order": 48,
+      "new_reading_order": 79,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "710 M. Linforth: The arts of Orpheus (Berkeley",
+      "new_text": "710 M. Linforth: The arts of Orpheus (Berkeley",
+      "old_bbox": [
+        879,
+        1151,
+        1572,
+        1182
+      ],
+      "new_bbox": [
+        879,
+        1151,
+        1572,
+        1182
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0079",
+      "old_reading_order": 50,
+      "new_reading_order": 80,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "1941) bes. 334ff. — Zu Frg. 219.",
+      "new_text": "1941) bes. 334ff. — Zu Frg. 219.",
+      "old_bbox": [
+        942,
+        1191,
+        1347,
+        1222
+      ],
+      "new_bbox": [
+        942,
+        1191,
+        1347,
+        1222
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0080",
+      "old_reading_order": 52,
+      "new_reading_order": 81,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "711 F. Steckerl: On the problem: artefact and idea,",
+      "new_text": "711 F. Steckerl: On the problem: artefact and idea,",
+      "old_bbox": [
+        879,
+        1231,
+        1573,
+        1262
+      ],
+      "new_bbox": [
+        879,
+        1231,
+        1573,
+        1262
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0081",
+      "old_reading_order": 54,
+      "new_reading_order": 82,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "in: Classical Philology 37 (1942) 288-298, bes.",
+      "new_text": "in: Classical Philology 37 (1942) 288-298, bes.",
+      "old_bbox": [
+        941,
+        1270,
+        1573,
+        1302
+      ],
+      "new_bbox": [
+        941,
+        1270,
+        1573,
+        1302
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0082",
+      "old_reading_order": 57,
+      "new_reading_order": 83,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "288ff.",
+      "new_text": "288ff.",
+      "old_bbox": [
+        941,
+        1312,
+        1012,
+        1336
+      ],
+      "new_bbox": [
+        941,
+        1312,
+        1012,
+        1336
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0083",
+      "old_reading_order": 59,
+      "new_reading_order": 84,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "712 P. Boyancé: Xénocrate et les Orphiques, in: Re-",
+      "new_text": "712 P. Boyancé: Xénocrate et les Orphiques, in: Re-",
+      "old_bbox": [
+        879,
+        1351,
+        1573,
+        1383
+      ],
+      "new_bbox": [
+        879,
+        1351,
+        1573,
+        1383
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0084",
+      "old_reading_order": 60,
+      "new_reading_order": 85,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "vue des études anciennes 50 (1948) 218-231. —",
+      "new_text": "vue des études anciennes 50 (1948) 218-231. —",
+      "old_bbox": [
+        941,
+        1391,
+        1573,
+        1422
+      ],
+      "new_bbox": [
+        941,
+        1391,
+        1573,
+        1422
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0085",
+      "old_reading_order": 62,
+      "new_reading_order": 86,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "Zu Frg. 213. 216-219.",
+      "new_text": "Zu Frg. 213. 216-219.",
+      "old_bbox": [
+        941,
+        1431,
+        1221,
+        1463
+      ],
+      "new_bbox": [
+        941,
+        1431,
+        1221,
+        1463
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0086",
+      "old_reading_order": 64,
+      "new_reading_order": 87,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "713 P. Boyancé: La religion astrale de Platon à Cicé-",
+      "new_text": "713 P. Boyancé: La religion astrale de Platon à Cicé-",
+      "old_bbox": [
+        879,
+        1471,
+        1573,
+        1503
+      ],
+      "new_bbox": [
+        879,
+        1471,
+        1573,
+        1503
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0087",
+      "old_reading_order": 66,
+      "new_reading_order": 88,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "ron, in: Revue des études grecques 65 (1952)",
+      "new_text": "ron, in: Revue des études grecques 65 (1952)",
+      "old_bbox": [
+        941,
+        1510,
+        1573,
+        1543
+      ],
+      "new_bbox": [
+        941,
+        1510,
+        1573,
+        1543
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0088",
+      "old_reading_order": 68,
+      "new_reading_order": 89,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "312-350, bes. 330-341.",
+      "new_text": "312-350, bes. 330-341.",
+      "old_bbox": [
+        940,
+        1552,
+        1229,
+        1579
+      ],
+      "new_bbox": [
+        940,
+        1552,
+        1229,
+        1579
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0089",
+      "old_reading_order": 70,
+      "new_reading_order": 90,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "714 K. Reinhardt: Poseidonios [Nr. 3] von Apamea,",
+      "new_text": "714 K. Reinhardt: Poseidonios [Nr. 3] von Apamea,",
+      "old_bbox": [
+        879,
+        1590,
+        1573,
+        1623
+      ],
+      "new_bbox": [
+        879,
+        1590,
+        1573,
+        1623
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0090",
+      "old_reading_order": 72,
+      "new_reading_order": 91,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "in: Paulys Real-Encyclopädie, 43/XXII 1 (1953)",
+      "new_text": "in: Paulys Real-Encyclopädie, 43/XXII 1 (1953)",
+      "old_bbox": [
+        941,
+        1631,
+        1573,
+        1663
+      ],
+      "new_bbox": [
+        941,
+        1631,
+        1573,
+        1663
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0091",
+      "old_reading_order": 75,
+      "new_reading_order": 92,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "558-826. — Zu Xenokrates: 786-788.",
+      "new_text": "558-826. — Zu Xenokrates: 786-788.",
+      "old_bbox": [
+        940,
+        1672,
+        1414,
+        1696
+      ],
+      "new_bbox": [
+        940,
+        1672,
+        1414,
+        1696
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0092",
+      "old_reading_order": 76,
+      "new_reading_order": 93,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "715 A. N. M. Rich: The Platonic ideas as the",
+      "new_text": "715 A. N. M. Rich: The Platonic ideas as the",
+      "old_bbox": [
+        879,
+        1711,
+        1572,
+        1736
+      ],
+      "new_bbox": [
+        879,
+        1711,
+        1572,
+        1736
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0093",
+      "old_reading_order": 78,
+      "new_reading_order": 94,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "thoughts of God, in: Mnemosyne, ser. IV, 7",
+      "new_text": "thoughts of God, in: Mnemosyne, ser. IV, 7",
+      "old_bbox": [
+        941,
+        1751,
+        1573,
+        1783
+      ],
+      "new_bbox": [
+        941,
+        1751,
+        1573,
+        1783
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0094",
+      "old_reading_order": 81,
+      "new_reading_order": 95,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "(1954) 123-133.",
+      "new_text": "(1954) 123-133.",
+      "old_bbox": [
+        940,
+        1792,
+        1143,
+        1822
+      ],
+      "new_bbox": [
+        940,
+        1792,
+        1143,
+        1822
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0095",
+      "old_reading_order": 82,
+      "new_reading_order": 96,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "716 P. Boyancé: Sur la théologie de Varron, in: Re-",
+      "new_text": "716 P. Boyancé: Sur la théologie de Varron, in: Re-",
+      "old_bbox": [
+        879,
+        1831,
+        1573,
+        1863
+      ],
+      "new_bbox": [
+        879,
+        1831,
+        1573,
+        1863
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0096",
+      "old_reading_order": 84,
+      "new_reading_order": 97,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "vue des études anciennes 57 (1955) 57-84, bes.",
+      "new_text": "vue des études anciennes 57 (1955) 57-84, bes.",
+      "old_bbox": [
+        941,
+        1871,
+        1573,
+        1902
+      ],
+      "new_bbox": [
+        941,
+        1871,
+        1573,
+        1902
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0097",
+      "old_reading_order": 86,
+      "new_reading_order": 98,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "76ff. ND: P. B.: Études sur la religion romaine",
+      "new_text": "76ff. – ND: P. B.: Études sur la religion romaine",
+      "old_bbox": [
+        941,
+        1906,
+        1572,
+        1943
+      ],
+      "new_bbox": [
+        941,
+        1906,
+        1572,
+        1943
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0098",
+      "old_reading_order": 88,
+      "new_reading_order": 99,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "(Rome 1972) 253-282.",
+      "new_text": "(Rome 1972) 253-282.",
+      "old_bbox": [
+        940,
+        1952,
+        1234,
+        1982
+      ],
+      "new_bbox": [
+        940,
+        1952,
+        1234,
+        1982
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0099",
+      "old_reading_order": 90,
+      "new_reading_order": 100,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "717 M. Detienne: Xénocrate et la démonologie py-",
+      "new_text": "717 M. Detienne: Xénocrate et la démonologie py-",
+      "old_bbox": [
+        878,
+        1991,
+        1574,
+        2023
+      ],
+      "new_bbox": [
+        878,
+        1991,
+        1574,
+        2023
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0100",
+      "old_reading_order": 92,
+      "new_reading_order": 101,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "thagoricienne, in: Revue des études anciennes",
+      "new_text": "thagoricienne, in: Revue des études anciennes",
+      "old_bbox": [
+        941,
+        2032,
+        1573,
+        2063
+      ],
+      "new_bbox": [
+        941,
+        2032,
+        1573,
+        2063
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0101",
+      "old_reading_order": 94,
+      "new_reading_order": 102,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "60 (1958) 271-279. — Sieht Xenokrates weitge-",
+      "new_text": "60 (1958) 271-279. — Sieht Xenokrates weitge-",
+      "old_bbox": [
+        940,
+        2071,
+        1573,
+        2103
+      ],
+      "new_bbox": [
+        940,
+        2071,
+        1573,
+        2103
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0102",
+      "old_reading_order": 96,
+      "new_reading_order": 103,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "hend als Vermittler pythagoreischer Dämono-",
+      "new_text": "hend als Vermittler pythagoreischer Dämono-",
+      "old_bbox": [
+        941,
+        2112,
+        1573,
+        2143
+      ],
+      "new_bbox": [
+        941,
+        2112,
+        1573,
+        2143
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0103",
+      "old_reading_order": 98,
+      "new_reading_order": 104,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "logie. ;",
+      "new_text": "logie.",
+      "old_bbox": [
+        941,
+        2152,
+        1582,
+        2183
+      ],
+      "new_bbox": [
+        941,
+        2152,
+        1582,
+        2183
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0104",
+      "old_reading_order": 99,
+      "new_reading_order": 105,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "718 P. Boyancé: Etudes philoniennes, in: Revue des",
+      "new_text": "718 P. Boyancé: Etudes philoniennes, in: Revue des",
+      "old_bbox": [
+        878,
+        2192,
+        1573,
+        2223
+      ],
+      "new_bbox": [
+        878,
+        2192,
+        1573,
+        2223
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0105",
+      "old_reading_order": 101,
+      "new_reading_order": 106,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "études grecques 76 (1963) 64-110, bes. 79ff.",
+      "new_text": "études grecques 76 (1963) 64-110, bes. 79ff.",
+      "old_bbox": [
+        940,
+        2231,
+        1518,
+        2263
+      ],
+      "new_bbox": [
+        940,
+        2231,
+        1518,
+        2263
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0106",
+      "old_reading_order": 103,
+      "new_reading_order": 107,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "719 P. Boyancé: Note sur la φρουρά platonicienne,",
+      "new_text": "719 P. Boyancé: Note sur la φρουρά platonicienne,",
+      "old_bbox": [
+        879,
+        2272,
+        1573,
+        2303
+      ],
+      "new_bbox": [
+        879,
+        2272,
+        1573,
+        2303
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0107",
+      "old_reading_order": 105,
+      "new_reading_order": 108,
+      "changed_fields": [
+        "column_id",
+        "reading_order"
+      ],
+      "old_text": "in: Revue de philologie, de littérature et d'his-",
+      "new_text": "in: Revue de philologie, de littérature et d'his-",
+      "old_bbox": [
+        941,
+        2311,
+        1574,
+        2343
+      ],
+      "new_bbox": [
+        941,
+        2311,
+        1574,
+        2343
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0108",
+      "old_reading_order": 108,
+      "new_reading_order": 109,
+      "changed_fields": [
+        "column_id",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "toire ancienne 89, 3° série 37 (1963) 7-11. - Zu",
+      "new_text": "toire ancienne 89, 3ᵉ série 37 (1963) 7-11. - Zu",
+      "old_bbox": [
+        941,
+        2352,
+        1573,
+        2382
+      ],
+      "new_bbox": [
+        941,
+        2352,
+        1573,
+        2382
+      ]
+    },
+    {
+      "line_id": "ueberweg-kraemer-pdf145-candidate-0109",
+      "old_reading_order": 110,
+      "new_reading_order": 110,
+      "changed_fields": [
+        "column_id"
+      ],
+      "old_text": "Frg. 219.",
+      "new_text": "Frg. 219.",
+      "old_bbox": [
+        941,
+        2392,
+        1054,
+        2423
+      ],
+      "new_bbox": [
+        941,
+        2392,
+        1054,
+        2423
+      ]
+    }
+  ],
+  "removed_duplicate_fragment_line_ids": [],
+  "unresolved_human_qa_issues": [
+    "Human must QA exact characters, geometry, reading order and exhaustive coverage.",
+    "AI draft is not human Gold; full semantic/typography D is deferred."
+  ],
+  "validation": {
+    "draft_schema": "pass",
+    "inline_span_slices": "pass"
+  }
+}

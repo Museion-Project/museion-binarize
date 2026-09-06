@@ -1,0 +1,68 @@
+{
+  "page_id": "menn-metaphysics-pdf414",
+  "visual_inspection_performed": true,
+  "image_path": "gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf414.png",
+  "inspection": "Full original page viewed; all visible text rows, footer/page number, completeness and order compared with staged annotations. Focused native crops used for ambiguous source glyphs.",
+  "changes": [
+    {
+      "line_id": "menn-metaphysics-pdf414-native-0002",
+      "changes": {
+        "text": {
+          "before": "N justified,\" indeed with some points in L \"compressed to unintelligibility.\"26 Jaeger concludes",
+          "after": "N justified,\" indeed with some points in Λ \"compressed to unintelligibility.\"26 Jaeger concludes"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "menn-metaphysics-pdf414-native-0011",
+      "changes": {
+        "text": {
+          "before": "N gives justifications, and compresses N to unintelligibility, the best explanation is that L",
+          "after": "N gives justifications, and compresses N to unintelligibility, the best explanation is that Λ"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "menn-metaphysics-pdf414-native-0020",
+      "changes": {
+        "text": {
+          "before": "that L too dates from the Assos period. but the really strange reaction is Annas' (p.212)--she \"defends\" N4-5 by",
+          "after": "that Λ too dates from the Assos period. but the really strange reaction is Annas' (p.212)--she \"defends\" N4-5 by"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "menn-metaphysics-pdf414-native-0021",
+      "changes": {
+        "text": {
+          "before": "separating it from L10, and marks Λ, but not N, as deviant and therefore \"early.\" \"Here Aristotle provisionally",
+          "after": "separating it from Λ10, and marks L, but not N, as deviant and therefore \"early.\" \"Here Aristotle provisionally"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "menn-metaphysics-pdf414-native-0035",
+      "changes": {
+        "text": {
+          "before": "above). Annas thus treats an important common theme of N and Λ, and the most important case where L builds on",
+          "after": "above). Annas thus treats an important common theme of N and Λ, and the most important case where Λ builds on"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "error": null
+  },
+  "unresolved_issues": [
+    "Human QA remains required for fine Greek breathings/accents and exhaustive inline style boundaries; no new human verification asserted.",
+    "D semantic/cross-page footnote relationships remain deferred; this page-only visual pass does not establish cross-page targets.",
+    "Line 0021 visibly prints Latin L in \"marks L, but not N\"; retained literally despite surrounding Greek Λ references."
+  ],
+  "human_qa_required": true
+}

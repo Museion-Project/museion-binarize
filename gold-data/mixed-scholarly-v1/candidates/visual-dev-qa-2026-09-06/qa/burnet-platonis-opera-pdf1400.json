@@ -1,0 +1,1224 @@
+{
+  "page_id": "burnet-platonis-opera-pdf1400",
+  "review_kind": "AI_visual_preannotation_not_human_gold",
+  "full_original_image_viewed": true,
+  "image_sha256": "ed81881da4a88409798011d6e503e52fad8e6b5d7b5300a53a7f5396ddad69dd",
+  "baseline_sha256": "b0e8bee751d43e8c1c5bd41ea73935ae671ebce78a03cef494aa1e3b5c7b8c3d",
+  "line_count": 46,
+  "line_ids_visually_compared": [
+    "burnet-platonis-opera-pdf1400-visual-stephanus",
+    "burnet-platonis-opera-pdf1400-visual-running-head",
+    "burnet-platonis-opera-pdf1400-visual-qa-book-number",
+    "burnet-platonis-opera-pdf1400-candidate-0001",
+    "burnet-platonis-opera-pdf1400-candidate-0002",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-4",
+    "burnet-platonis-opera-pdf1400-candidate-0004",
+    "burnet-platonis-opera-pdf1400-candidate-0005",
+    "burnet-platonis-opera-pdf1400-candidate-0006",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-7",
+    "burnet-platonis-opera-pdf1400-candidate-0007",
+    "burnet-platonis-opera-pdf1400-candidate-0009",
+    "burnet-platonis-opera-pdf1400-candidate-0010",
+    "burnet-platonis-opera-pdf1400-candidate-0011",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-11",
+    "burnet-platonis-opera-pdf1400-candidate-0012",
+    "burnet-platonis-opera-pdf1400-candidate-0013",
+    "burnet-platonis-opera-pdf1400-candidate-0014",
+    "burnet-platonis-opera-pdf1400-candidate-0015",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-15",
+    "burnet-platonis-opera-pdf1400-candidate-0016",
+    "burnet-platonis-opera-pdf1400-candidate-0017",
+    "burnet-platonis-opera-pdf1400-candidate-0018",
+    "burnet-platonis-opera-pdf1400-candidate-0020",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-19",
+    "burnet-platonis-opera-pdf1400-candidate-0022",
+    "burnet-platonis-opera-pdf1400-candidate-0023",
+    "burnet-platonis-opera-pdf1400-candidate-0025",
+    "burnet-platonis-opera-pdf1400-candidate-0026",
+    "burnet-platonis-opera-pdf1400-candidate-0027",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-24",
+    "burnet-platonis-opera-pdf1400-candidate-0028",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-25",
+    "burnet-platonis-opera-pdf1400-candidate-0030",
+    "burnet-platonis-opera-pdf1400-candidate-0031",
+    "burnet-platonis-opera-pdf1400-candidate-0033",
+    "burnet-platonis-opera-pdf1400-candidate-0035",
+    "burnet-platonis-opera-pdf1400-visual-qa-margin-29",
+    "burnet-platonis-opera-pdf1400-candidate-0037",
+    "burnet-platonis-opera-pdf1400-candidate-0039",
+    "burnet-platonis-opera-pdf1400-candidate-0041",
+    "burnet-platonis-opera-pdf1400-candidate-0042",
+    "burnet-platonis-opera-pdf1400-candidate-0043",
+    "burnet-platonis-opera-pdf1400-candidate-0044",
+    "burnet-platonis-opera-pdf1400-candidate-0045",
+    "burnet-platonis-opera-pdf1400-candidate-0046"
+  ],
+  "visual_inspection": "Full page visually read. Header IX. separate from central Greek title. Separate marginal labels. All original body/apparatus lines reviewed, obvious OCR litter removed.",
+  "changes": [
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-stephanus",
+      "old_reading_order": 0,
+      "new_reading_order": 0,
+      "changed_fields": [
+        "bbox"
+      ],
+      "old_text": "869c",
+      "new_text": "869c",
+      "old_bbox": [
+        1090,
+        75,
+        1220,
+        140
+      ],
+      "new_bbox": [
+        1123,
+        88,
+        1216,
+        130
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-running-head",
+      "old_reading_order": 1,
+      "new_reading_order": 1,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "ΝΟΜΩΝ Θ΄ ΙΧ",
+      "new_text": "ΝΟΜΩΝ Θ",
+      "old_bbox": [
+        450,
+        75,
+        1050,
+        135
+      ],
+      "new_bbox": [
+        466,
+        86,
+        718,
+        120
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-book-number",
+      "old_reading_order": null,
+      "new_reading_order": 2,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "IX.",
+      "old_bbox": null,
+      "new_bbox": [
+        1043,
+        88,
+        1098,
+        120
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0001",
+      "old_reading_order": 2,
+      "new_reading_order": 3,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἀλλ᾽ ὑπομείναντα τὰ πάντα πάσχειν πρίν τι δρᾶν -τοιοῦτον",
+      "new_text": "ἀλλ’ ὑπομείναντα τὰ πάντα πάσχειν πρίν τι δρᾶν τοιοῦτον",
+      "old_bbox": [
+        100,
+        164,
+        1096,
+        207
+      ],
+      "new_bbox": [
+        100,
+        164,
+        1096,
+        207
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0002",
+      "old_reading_order": 3,
+      "new_reading_order": 4,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "νομοθετήσει, πῶς τούτῳ δίκης γε ἄλλως προσῆκον τυγχάνειν",
+      "new_text": "νομοθετήσει, πῶς τούτῳ δίκης γε ἄλλως προσῆκον τυγχάνειν",
+      "old_bbox": [
+        98,
+        215,
+        1097,
+        258
+      ],
+      "new_bbox": [
+        98,
+        215,
+        1097,
+        258
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-4",
+      "old_reading_order": null,
+      "new_reading_order": 5,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "5",
+      "old_bbox": null,
+      "new_bbox": [
+        1123,
+        276,
+        1139,
+        302
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0004",
+      "old_reading_order": 4,
+      "new_reading_order": 6,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἂν γίγνοιτο ἐν νόμῳ; κείσθω δὴ τῷ πατέρα ἢ μητέρα àmo- 5",
+      "new_text": "ἂν γίγνοιτο ἐν νόμῳ; κείσθω δὴ τῷ πατέρα ἢ μητέρα ἀπο-",
+      "old_bbox": [
+        99,
+        265,
+        1138,
+        309
+      ],
+      "new_bbox": [
+        97,
+        263,
+        1097,
+        310
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0005",
+      "old_reading_order": 5,
+      "new_reading_order": 7,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "κτείναντι θυμῷ θάνατος ἣ (quía. ἀδελφὸς δὲ ἂν ἀδελφὸν",
+      "new_text": "κτείναντι θυμῷ θάνατος ἡ ζημία. ἀδελφὸς δὲ ἂν ἀδελφὸν",
+      "old_bbox": [
+        100,
+        314,
+        1097,
+        357
+      ],
+      "new_bbox": [
+        100,
+        314,
+        1097,
+        357
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0006",
+      "old_reading_order": 6,
+      "new_reading_order": 8,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "κτείνῃ ἐν στάσεσι μάχης γενομένης ἢ τινι τρόπῳ τοιούτῳ,",
+      "new_text": "κτείνῃ ἐν στάσεσι μάχης γενομένης ἢ τινι τρόπῳ τοιούτῳ,",
+      "old_bbox": [
+        99,
+        365,
+        1093,
+        409
+      ],
+      "new_bbox": [
+        99,
+        365,
+        1093,
+        409
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-7",
+      "old_reading_order": null,
+      "new_reading_order": 9,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "d",
+      "old_bbox": null,
+      "new_bbox": [
+        1121,
+        416,
+        1145,
+        448
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0007",
+      "old_reading_order": 7,
+      "new_reading_order": 10,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἀμυνόμενος ἄρχοντα χειρῶν πρότερον, καθάπερ πολέμιον ἃ",
+      "new_text": "ἀμυνόμενος ἄρχοντα χειρῶν πρότερον, καθάπερ πολέμιον",
+      "old_bbox": [
+        99,
+        414,
+        1143,
+        456
+      ],
+      "new_bbox": [
+        97,
+        412,
+        1097,
+        458
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0009",
+      "old_reading_order": 8,
+      "new_reading_order": 11,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἀποκτείνας ἔστω καθαρός, kai ἐὰν πολίτης πολίτην, ὡσαύ-",
+      "new_text": "ἀποκτείνας ἔστω καθαρός, καὶ ἐὰν πολίτης πολίτην, ὡσαύ-",
+      "old_bbox": [
+        99,
+        469,
+        1094,
+        504
+      ],
+      "new_bbox": [
+        99,
+        469,
+        1094,
+        504
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0010",
+      "old_reading_order": 9,
+      "new_reading_order": 12,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "τως, ἢ ξένος ξένον. ἐὰν δὲ ἀστὸς ξένον 3 ξένος ἀστὸν",
+      "new_text": "τως, ἢ ξένος ξένον. ἐὰν δὲ ἀστὸς ξένον ἢ ξένος ἀστὸν",
+      "old_bbox": [
+        99,
+        512,
+        1096,
+        554
+      ],
+      "new_bbox": [
+        99,
+        512,
+        1096,
+        554
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0011",
+      "old_reading_order": 10,
+      "new_reading_order": 13,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "ἀμυνόμενος κτείνῃ, κατὰ ταὐτὰ ἔστω τοῦ καθαρὸς εἶναι.",
+      "new_text": "ἀμυνόμενος κτείνῃ, κατὰ ταὐτὰ ἔστω τοῦ καθαρὸς εἶναι.",
+      "old_bbox": [
+        99,
+        564,
+        1093,
+        607
+      ],
+      "new_bbox": [
+        99,
+        564,
+        1093,
+        607
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-11",
+      "old_reading_order": null,
+      "new_reading_order": 14,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "5",
+      "old_bbox": null,
+      "new_bbox": [
+        1120,
+        625,
+        1137,
+        651
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0012",
+      "old_reading_order": 11,
+      "new_reading_order": 15,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "καὶ ἐὰν δοῦλος δοῦλον, ὡσαύτως\" ἐὰν δὲ αὖ δοῦλος ἐλεύ- 5",
+      "new_text": "καὶ ἐὰν δοῦλος δοῦλον, ὡσαύτως· ἐὰν δὲ αὖ δοῦλος ἐλεύ-",
+      "old_bbox": [
+        100,
+        613,
+        1135,
+        650
+      ],
+      "new_bbox": [
+        99,
+        612,
+        1094,
+        651
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0013",
+      "old_reading_order": 12,
+      "new_reading_order": 16,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "θερον ἀμυνόμενος ἀποκτείνῃ, καθάπερ ὃ κτείνας πατέρα,",
+      "new_text": "θερον ἀμυνόμενος ἀποκτείνῃ, καθάπερ ὁ κτείνας πατέρα,",
+      "old_bbox": [
+        101,
+        663,
+        1092,
+        707
+      ],
+      "new_bbox": [
+        101,
+        663,
+        1092,
+        707
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0014",
+      "old_reading_order": 13,
+      "new_reading_order": 17,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "τοῖς αὐτοῖς ἔνοχος ἔστω νόμοις. ὃ δὲ περὶ τῆς ἀφέσεως",
+      "new_text": "τοῖς αὐτοῖς ἔνοχος ἔστω νόμοις. ὃ δὲ περὶ τῆς ἀφέσεως",
+      "old_bbox": [
+        100,
+        713,
+        1094,
+        754
+      ],
+      "new_bbox": [
+        100,
+        713,
+        1094,
+        754
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0015",
+      "old_reading_order": 14,
+      "new_reading_order": 18,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "εἴρηται φόνου πατρί, ταὐτὸν τοῦτο ἔστω περὶ ἁπάσης τῶν",
+      "new_text": "εἴρηται φόνου πατρί, ταὐτὸν τοῦτο ἔστω περὶ ἁπάσης τῶν",
+      "old_bbox": [
+        101,
+        763,
+        1093,
+        803
+      ],
+      "new_bbox": [
+        101,
+        763,
+        1093,
+        803
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-15",
+      "old_reading_order": null,
+      "new_reading_order": 19,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "e",
+      "old_bbox": null,
+      "new_bbox": [
+        1119,
+        820,
+        1141,
+        844
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0016",
+      "old_reading_order": 15,
+      "new_reading_order": 20,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "τοιούτων ἀφέσεως, ἐὰν ὁστισοῦν ὁτῳοῦν ἀφιῇ τοῦτο ἑκών, e",
+      "new_text": "τοιούτων ἀφέσεως, ἐὰν ὁστισοῦν ὁτῳοῦν ἀφιῇ τοῦτο ἑκών,",
+      "old_bbox": [
+        99,
+        812,
+        1139,
+        854
+      ],
+      "new_bbox": [
+        97,
+        810,
+        1093,
+        856
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0017",
+      "old_reading_order": 16,
+      "new_reading_order": 21,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "ὡς ἀκουσίου γεγονότος τοῦ φόνου, οἵ τε καθαρμοὶ γιγνέ-",
+      "new_text": "ὡς ἀκουσίου γεγονότος τοῦ φόνου, οἵ τε καθαρμοὶ γιγνέ-",
+      "old_bbox": [
+        100,
+        862,
+        1093,
+        902
+      ],
+      "new_bbox": [
+        100,
+        862,
+        1093,
+        902
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0018",
+      "old_reading_order": 17,
+      "new_reading_order": 22,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "σθωσαν τῷ δράσαντι καὶ ἐνιαυτὸς εἷς ἔστω τῆς ἐκδημίας",
+      "new_text": "σθωσαν τῷ δράσαντι καὶ ἐνιαυτὸς εἷς ἔστω τῆς ἐκδημίας",
+      "old_bbox": [
+        101,
+        911,
+        1094,
+        953
+      ],
+      "new_bbox": [
+        101,
+        911,
+        1094,
+        953
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0020",
+      "old_reading_order": 18,
+      "new_reading_order": 23,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἐν νόμῳ. καὶ τὰ μὲν δὴ βίαιἀά Te καὶ ἀκούσια καὶ κατὰ",
+      "new_text": "ἐν νόμῳ. καὶ τὰ μὲν δὴ βίαιά τε καὶ ἀκούσια καὶ κατὰ",
+      "old_bbox": [
+        100,
+        964,
+        1094,
+        1003
+      ],
+      "new_bbox": [
+        100,
+        964,
+        1094,
+        1003
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-19",
+      "old_reading_order": null,
+      "new_reading_order": 24,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "5",
+      "old_bbox": null,
+      "new_bbox": [
+        1120,
+        1019,
+        1137,
+        1047
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0022",
+      "old_reading_order": 19,
+      "new_reading_order": 25,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "τὸν θυμὸν γιγνόμενα περὶ φόνους μετρίως εἰρήσθω\" τὰ δὲ 5",
+      "new_text": "τὸν θυμὸν γιγνόμενα περὶ φόνους μετρίως εἰρήσθω· τὰ δὲ",
+      "old_bbox": [
+        100,
+        1012,
+        1135,
+        1051
+      ],
+      "new_bbox": [
+        98,
+        1010,
+        1095,
+        1053
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0023",
+      "old_reading_order": 20,
+      "new_reading_order": 26,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "περὶ τὰ ἑκούσια καὶ κατ᾽ ἀδικίαν πᾶσαν γιγνόμενα τούτων",
+      "new_text": "περὶ τὰ ἑκούσια καὶ κατ᾽ ἀδικίαν πᾶσαν γιγνόμενα τούτων",
+      "old_bbox": [
+        101,
+        1059,
+        1094,
+        1100
+      ],
+      "new_bbox": [
+        101,
+        1059,
+        1094,
+        1100
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0025",
+      "old_reading_order": 21,
+      "new_reading_order": 27,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "πέρι καὶ ἐπιβουλῆς Ov ἥττας ἡδονῶν τε kal ἐπιθυμιῶν καὶ",
+      "new_text": "πέρι καὶ ἐπιβουλῆς δι’ ἥττας ἡδονῶν τε καὶ ἐπιθυμιῶν καὶ",
+      "old_bbox": [
+        100,
+        1111,
+        1094,
+        1149
+      ],
+      "new_bbox": [
+        100,
+        1111,
+        1094,
+        1149
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0026",
+      "old_reading_order": 22,
+      "new_reading_order": 28,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "φθόνων, ταῦτα μετ᾽ ἐκεῖνα ἡμῖν λεκτέον.",
+      "new_text": "φθόνων, ταῦτα μετ᾽ ἐκεῖνα ἡμῖν λεκτέον.",
+      "old_bbox": [
+        100,
+        1158,
+        774,
+        1198
+      ],
+      "new_bbox": [
+        100,
+        1158,
+        774,
+        1198
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0027",
+      "old_reading_order": 23,
+      "new_reading_order": 29,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ΚΛ. Ὀρθῶς λέγεις. :",
+      "new_text": "ΚΛ. Ὀρθῶς λέγεις.",
+      "old_bbox": [
+        147,
+        1208,
+        892,
+        1249
+      ],
+      "new_bbox": [
+        145,
+        1206,
+        482,
+        1251
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-24",
+      "old_reading_order": null,
+      "new_reading_order": 30,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "10",
+      "old_bbox": null,
+      "new_bbox": [
+        1121,
+        1268,
+        1154,
+        1288
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0028",
+      "old_reading_order": 24,
+      "new_reading_order": 31,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ΑΘ. Πάλιν δὴ πρῶτον περὶ τῶν τοιούτων εἰς δύναμιν τὸ",
+      "new_text": "ΑΘ. Πάλιν δὴ πρῶτον περὶ τῶν τοιούτων εἰς δύναμιν",
+      "old_bbox": [
+        148,
+        1257,
+        1153,
+        1299
+      ],
+      "new_bbox": [
+        146,
+        1256,
+        1095,
+        1301
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-25",
+      "old_reading_order": null,
+      "new_reading_order": 32,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "870",
+      "old_bbox": null,
+      "new_bbox": [
+        1118,
+        1307,
+        1183,
+        1346
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0030",
+      "old_reading_order": 25,
+      "new_reading_order": 33,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "εἴπωμεν ὁπόσα ἃν etj. τὸ μὲν δὴ μέγιστον ἐπιθυμία κρα- 870",
+      "new_text": "εἴπωμεν ὁπόσα ἂν εἴη. τὸ μὲν δὴ μέγιστον ἐπιθυμία κρα-",
+      "old_bbox": [
+        101,
+        1308,
+        1181,
+        1348
+      ],
+      "new_bbox": [
+        99,
+        1306,
+        1093,
+        1350
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0031",
+      "old_reading_order": 26,
+      "new_reading_order": 34,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "τοῦσα ψυχῆς ἐξηγριωμένης ὑπὸ πόθων' τοῦτο δ᾽ ἐστὶν",
+      "new_text": "τοῦσα ψυχῆς ἐξηγριωμένης ὑπὸ πόθων· τοῦτο δ’ ἐστὶν",
+      "old_bbox": [
+        100,
+        1357,
+        1093,
+        1399
+      ],
+      "new_bbox": [
+        100,
+        1357,
+        1093,
+        1399
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0033",
+      "old_reading_order": 27,
+      "new_reading_order": 35,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "μάλιστα ἐνταῦθα οὗ πλεῖστός τε καὶ ἰσχυρότατος ἵμερος",
+      "new_text": "μάλιστα ἐνταῦθα οὗ πλεῖστός τε καὶ ἰσχυρότατος ἵμερος",
+      "old_bbox": [
+        100,
+        1407,
+        1094,
+        1447
+      ],
+      "new_bbox": [
+        100,
+        1407,
+        1094,
+        1447
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0035",
+      "old_reading_order": 28,
+      "new_reading_order": 36,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ὧν τυγχάνει τοῖς πολλοῖς, ἡ τῶν χρημάτων τῆς ἀπλήστου",
+      "new_text": "ὢν τυγχάνει τοῖς πολλοῖς, ἡ τῶν χρημάτων τῆς ἀπλήστου",
+      "old_bbox": [
+        100,
+        1456,
+        1094,
+        1498
+      ],
+      "new_bbox": [
+        100,
+        1456,
+        1094,
+        1498
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-visual-qa-margin-29",
+      "old_reading_order": null,
+      "new_reading_order": 37,
+      "changed_fields": [
+        "bbox",
+        "canonical_reference",
+        "column_id",
+        "content_class",
+        "geometry_status",
+        "hierarchy_level",
+        "inline_spans",
+        "language",
+        "leaf_id",
+        "line_id",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": null,
+      "new_text": "5",
+      "old_bbox": null,
+      "new_bbox": [
+        1118,
+        1515,
+        1135,
+        1542
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0037",
+      "old_reading_order": 29,
+      "new_reading_order": 38,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "kai ἀπείρου κτήσεως ἔρωτας μυρίους ἐντίκτουσα δύναμις διὰ 5",
+      "new_text": "καὶ ἀπείρου κτήσεως ἔρωτας μυρίους ἐντίκτουσα δύναμις διὰ",
+      "old_bbox": [
+        100,
+        1509,
+        1133,
+        1547
+      ],
+      "new_bbox": [
+        99,
+        1507,
+        1094,
+        1549
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0039",
+      "old_reading_order": 30,
+      "new_reading_order": 39,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "φύσιν τε καὶ ἀπαιδευσίαν τὴν κακήν. τῆς δὲ ἀπαιδευσίας",
+      "new_text": "φύσιν τε καὶ ἀπαιδευσίαν τὴν κακήν. τῆς δὲ ἀπαιδευσίας",
+      "old_bbox": [
+        100,
+        1555,
+        1091,
+        1596
+      ],
+      "new_bbox": [
+        100,
+        1555,
+        1091,
+        1596
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0041",
+      "old_reading_order": 31,
+      "new_reading_order": 40,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἢ τοῦ κακῶς ἐπαινεῖσθαι πλοῦτον αἰτία φήμη πρὸς τῶν",
+      "new_text": "ἡ τοῦ κακῶς ἐπαινεῖσθαι πλοῦτον αἰτία φήμη πρὸς τῶν",
+      "old_bbox": [
+        98,
+        1605,
+        1091,
+        1647
+      ],
+      "new_bbox": [
+        98,
+        1605,
+        1091,
+        1647
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0042",
+      "old_reading_order": 32,
+      "new_reading_order": 41,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "€3 γρ. ὑπομένοντα πάντα' ἀπ᾽ ὀρθώσεως O 64 ἄλλως AO:",
+      "new_text": "c 3 γρ. ὑπομένοντα πάντα· ἀπ’ ὀρθώσεως O c 4 ἄλλως A O :",
+      "old_bbox": [
+        129,
+        1684,
+        1091,
+        1720
+      ],
+      "new_bbox": [
+        129,
+        1684,
+        1091,
+        1720
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0043",
+      "old_reading_order": 33,
+      "new_reading_order": 42,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἄλλης LO? (η s. v.) € 5 yp. ἐννόμῳ κείσθω O d3 ἀστὸν",
+      "new_text": "ἄλλης L O² (η s. v.) c 5 γρ. ἐννόμῳ κείσθω O d 3 ἀστὸν",
+      "old_bbox": [
+        99,
+        1715,
+        1090,
+        1755
+      ],
+      "new_bbox": [
+        99,
+        1715,
+        1090,
+        1755
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0044",
+      "old_reading_order": 34,
+      "new_reading_order": 43,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ξένος ἢ ξένον ἀστὸς Eus. . d4 ἀμυνόμενος re vera A cum Eus.:",
+      "new_text": "ξένος ἢ ξένον ἀστὸς Eus. d 4 ἀμυνόμενος re vera A cum Eus. :",
+      "old_bbox": [
+        99,
+        1748,
+        1088,
+        1791
+      ],
+      "new_bbox": [
+        99,
+        1748,
+        1088,
+        1791
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0045",
+      "old_reading_order": 35,
+      "new_reading_order": 44,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "ἀμυνόμενον vulg. &4 ἡ ALO: cb ἡ ἀλλαχοῦ ὠβέλισται in",
+      "new_text": "ἀμυνόμενον vulg. a 4 ἡ A L O : τὸ ἡ ἀλλαχοῦ ὠβέλισται in",
+      "old_bbox": [
+        99,
+        1784,
+        1089,
+        1816
+      ],
+      "new_bbox": [
+        99,
+        1784,
+        1089,
+        1816
+      ]
+    },
+    {
+      "line_id": "burnet-platonis-opera-pdf1400-candidate-0046",
+      "old_reading_order": 36,
+      "new_reading_order": 45,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "marg. L O .",
+      "new_text": "marg. L O",
+      "old_bbox": [
+        99,
+        1815,
+        985,
+        1843
+      ],
+      "new_bbox": [
+        97,
+        1813,
+        240,
+        1845
+      ]
+    }
+  ],
+  "removed_duplicate_fragment_line_ids": [],
+  "unresolved_human_qa_issues": [
+    "Human must QA exact characters, geometry, reading order and exhaustive coverage.",
+    "AI draft is not human Gold; full semantic/typography D is deferred."
+  ],
+  "validation": {
+    "draft_schema": "pass",
+    "inline_span_slices": "pass"
+  }
+}

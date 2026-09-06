@@ -1,0 +1,113 @@
+{
+  "candidate": "surya",
+  "device": "cpu",
+  "platform": "macOS-27.0-arm64-arm-64bit",
+  "python": "3.11.15",
+  "manifest_sha256": "fb8060ba6fc0f4eaf50627bf763346a3810960163d8cbb87b6d7d9cc0f5e907a",
+  "protocol_sha256": "951a6ab6274c66462b32df834d1300f3a0164888ff1b137e408274005cc6da64",
+  "runner_sha256": "343546c355a40facfee163a799f935830316af809dbd58b7ae0ec2d9b29f39b6",
+  "versions": {
+    "surya-ocr": "0.17.0",
+    "paddleocr": "3.3.2",
+    "paddlepaddle": "3.2.2",
+    "torch": "2.8.0",
+    "transformers": "5.8.0"
+  },
+  "model_sha256": {
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/config.json": "0f99d8176e3fc194966659cf6f1c52ab9ca1d573f47ba57aca55036ff5267d69",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/manifest.json": "f57a95d3da7d182c4ef556171115a6557455c98f847e81e59a30f37898d994c0",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/model.safetensors": "38c3749eeb5f06fc93ed71eeee5cbd86b1945d08f8f74746bda035d41324bd3e",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/preprocessor_config.json": "594344843fcd54db03240194c7677b5c459e78d349e68d4a89d7d91e4fa90587"
+  },
+  "pages": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf013-pass1.json",
+      "sha256": "3c88902cb35616c2ffbb698ad178567ddfebf98f80ed021edfd7eeb8bdc2796c",
+      "latency_seconds": 6.94338799995603
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf030-pass1.json",
+      "sha256": "9d27996be91414bacd415df9367676b92425a76a4ec27afc9f3c67986919f35c",
+      "latency_seconds": 6.431594791007228
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf110-pass1.json",
+      "sha256": "1d666418e6aef6ca48fb7930edea249980f2abbf5075798ddc37e1a7d267db9d",
+      "latency_seconds": 7.0517812090110965
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf170-pass1.json",
+      "sha256": "ddeadf315d5daf7728a144f82ef59c1a9ccf7d5c9a531802833bff8affeda660",
+      "latency_seconds": 6.55718041601358
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf0050-pass1.json",
+      "sha256": "374395f755ca06c0609f58198d1d8f11a56643c05796d61092954ad1866fe5e4",
+      "latency_seconds": 3.696090124954935
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf0300-pass1.json",
+      "sha256": "d91eb2baac241d5a9827a485c4fa74b81e19a757e3b3412b5b47198279ad7166",
+      "latency_seconds": 3.5222807090030983
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf1100-pass1.json",
+      "sha256": "1e0276b2af9a21d6259bcfce4924934573c15ab71f1ac0155a7b37848916f9ff",
+      "latency_seconds": 3.551523374975659
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf1400-pass1.json",
+      "sha256": "e69241e66d75929aff36b553cb88d0b184cbb72526d6b2035933ef7af8be5722",
+      "latency_seconds": 3.4389000830124132
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf004-pass1.json",
+      "sha256": "e4cba34c94509b30a8e6bab5817ec54311da698d145b54d2c587c39cf65569d9",
+      "latency_seconds": 5.991188833955675
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf005-pass1.json",
+      "sha256": "acdced2dcb686f531053bf8bd69de35491809321328eece49c57381ff434c42a",
+      "latency_seconds": 6.612799457972869
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf006-pass1.json",
+      "sha256": "564e9733e31e61d7e355aca4a911a1615be481c0a24f25e3b7579438aecb96a5",
+      "latency_seconds": 6.5165259159985
+    }
+  ],
+  "initialization_seconds": 5.161627708002925
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "target/debug/mpdf",
+    "provider",
+    "list"
+  ],
+  "exit_code": 0,
+  "stdout": "local  (default)\n  Local OCR plugin\n  network: no   credential: no   execution: local\n\nmpdf-credits\n  M PDF Cloud OCR\n  network: yes   credential: no   execution: remote:mpdf-brokered\n  availability: unavailable\n    - no production Credits service is deployed; only the in-process fake backend exists\n    - no payment provider is integrated and no real credits can be purchased\n    - server-side custody of the platform model credential is unimplemented\n    - receipt signing keys are not provisioned, so signatures are verified against a test secret only\n    - the privacy policy, data-retention window and deletion endpoint for uploaded page images are not published\n\n",
+  "stderr": "",
+  "binary_sha256": "1c79fc439c8c994f4fd46c0e0ad383b8573c45a62a1428e0add37471f66a23c0",
+  "scope": "Read-only installed product provider availability. Binary build provenance not asserted; source audit separately pinned.",
+  "provider_requests": []
+}

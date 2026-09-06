@@ -1,0 +1,426 @@
+{
+  "candidate": "surya",
+  "device": "cpu",
+  "platform": "macOS-27.0-arm64-arm-64bit",
+  "python": "3.11.15",
+  "manifest_sha256": "fb8060ba6fc0f4eaf50627bf763346a3810960163d8cbb87b6d7d9cc0f5e907a",
+  "protocol_sha256": "951a6ab6274c66462b32df834d1300f3a0164888ff1b137e408274005cc6da64",
+  "runner_sha256": "343546c355a40facfee163a799f935830316af809dbd58b7ae0ec2d9b29f39b6",
+  "versions": {
+    "surya-ocr": "0.17.0",
+    "paddleocr": "3.3.2",
+    "paddlepaddle": "3.2.2",
+    "torch": "2.8.0",
+    "transformers": "4.56.2"
+  },
+  "model_sha256": {
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/config.json": "0f99d8176e3fc194966659cf6f1c52ab9ca1d573f47ba57aca55036ff5267d69",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/manifest.json": "f57a95d3da7d182c4ef556171115a6557455c98f847e81e59a30f37898d994c0",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/model.safetensors": "38c3749eeb5f06fc93ed71eeee5cbd86b1945d08f8f74746bda035d41324bd3e",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/preprocessor_config.json": "594344843fcd54db03240194c7677b5c459e78d349e68d4a89d7d91e4fa90587"
+  },
+  "pages": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf013-pass1.json",
+      "sha256": "4bf2c1d239296abbaeb69ef27f2e4421303dc73cb7bb28ef777b1b65fb8b928e",
+      "latency_seconds": 6.706248458009213
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf030-pass1.json",
+      "sha256": "3ed5fe1a8fcae1db76879ffa05e376792945b5f03f7e8a571a686b5fe997d309",
+      "latency_seconds": 8.770890125015285
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf110-pass1.json",
+      "sha256": "6908754304bcfa12b62635e8fb7142698693d4f65aa935dd10e8bb7990e91e5b",
+      "latency_seconds": 7.785169249982573
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf170-pass1.json",
+      "sha256": "7a734de6e073c5d5c3d87390e6a16ceb77393ec3c3e238405c7acc09951d44f5",
+      "latency_seconds": 5.2224718750221655
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf0050-pass1.json",
+      "sha256": "e273b434299026186fff8b10d8da32bb38a69afa93105b0c248ac67329184257",
+      "latency_seconds": 5.039455000020098
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf0300-pass1.json",
+      "sha256": "ba7e56a3c050a008533e677ce776cec159e2f614ff5372e8f25b5a0ca93f1c3d",
+      "latency_seconds": 3.8436814169981517
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf1100-pass1.json",
+      "sha256": "56c188ab6f565d3b72e05b093bea713e65a59e1f32881168fdba081d2e6298b1",
+      "latency_seconds": 3.2412203339627013
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf1400-pass1.json",
+      "sha256": "daa4b1993c1fd767233daf21ff75be2273f4b9e6c1bf53c25c9326de731e5d1a",
+      "latency_seconds": 3.109058082976844
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf004-pass1.json",
+      "sha256": "bb16a02ae5403f2517243f4788dd0591b2658e3460f1db0fa36a29ba0499d078",
+      "latency_seconds": 5.208382499986328
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf005-pass1.json",
+      "sha256": "1448c764b0005ab706cc99db2e839df8c686e9a80fa2672a46378308dc4b263f",
+      "latency_seconds": 5.811088624992408
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf006-pass1.json",
+      "sha256": "ce610a7008d4fc5a81a59748e64d4f9e7f42a7b233db9e1029233f698d3ec49d",
+      "latency_seconds": 5.638915290997829
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf288-pass1.json",
+      "sha256": "eb0887c905efe89793f5fdd05187dbfb1920b2dc26d152f4ac70f3564b56bc1c",
+      "latency_seconds": 6.474658666003961
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf414-pass1.json",
+      "sha256": "80c606fa9db0590a829d5d4b70f4d40ca940bde48c2e14371ffd851c62bbb466",
+      "latency_seconds": 5.03811212501023
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf577-pass1.json",
+      "sha256": "bd9cc1a4caece0c60b245734a7a832ac2b0d19066679ef3fd878b49dac93b649",
+      "latency_seconds": 4.527969374961685
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf925-pass1.json",
+      "sha256": "b123bf315e294b2998831f31b1e3d0d5783b5fb5aa740744991bd3c2e321ddd8",
+      "latency_seconds": 4.744693625019863
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf011-pass1.json",
+      "sha256": "fd2e9b3fb34ccc9d0ae8c61ad93baaa1cfd55128e3188f559a1b7ed04270b59b",
+      "latency_seconds": 5.788124457991216
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf012-pass1.json",
+      "sha256": "bf00854e3443e945d12702b3a3dc981fee74e19a16320182e9fc31196c8b3094",
+      "latency_seconds": 5.483682874997612
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf013-pass1.json",
+      "sha256": "ca12e4e3ff6f4654c87507d2344e58bc735569a6085d348fe0c0629e7cf5106e",
+      "latency_seconds": 4.49925087497104
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf014-pass1.json",
+      "sha256": "e7ec543afbda5043e18071780666453380de91eb40d87ea850262cb12c43476e",
+      "latency_seconds": 5.749059915950056
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf015-pass1.json",
+      "sha256": "5af9d5a5b7ba4bdaece5f158ee4661df9594be50c829b49d2c8e58be237cfc77",
+      "latency_seconds": 5.606394416012336
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf016-pass1.json",
+      "sha256": "c6daa64ea27d851fdd282e41f04854540e35dd41d4fad1b7940470c220c6aacc",
+      "latency_seconds": 5.116339042026084
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf079-pass1.json",
+      "sha256": "cded4c0e72f69570f59c90a7e54776be4ffa2086a0c9263e48d63e627082f3ac",
+      "latency_seconds": 5.2585589999798685
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/ueberweg-kraemer-pdf100-pass1.json",
+      "sha256": "b8d64925c327d3ddc5fa8945580764a5a385f05d7b31727826dddded992cf1e4",
+      "latency_seconds": 5.44727879104903
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/ueberweg-kraemer-pdf143-pass1.json",
+      "sha256": "7319a53ca1fb2b0b0b698d489440800a2984b77a6257369b24db1b438c9dfe90",
+      "latency_seconds": 6.084709917020518
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/surya/ueberweg-kraemer-pdf145-pass1.json",
+      "sha256": "26f318db9a847ee6098a352ffd1a9d7fa6b4bd77ed2e405df700dcd8a8278484",
+      "latency_seconds": 5.917684082989581
+    },
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf013-pass2.json",
+      "sha256": "7056e50804fc0c545d975518f5e68e460403014015d1e14c4ff0cdfae15407a4",
+      "latency_seconds": 6.089435458008666
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf030-pass2.json",
+      "sha256": "5584c222b9049b57fcff8a2767c6fc7d6c7b14d1c18a639654485b1a4c1e8b1e",
+      "latency_seconds": 5.7909767079981975
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf110-pass2.json",
+      "sha256": "22f9e66932db5aa5ba584fe80c4c8eef6fccd46c591628817eb169464946b655",
+      "latency_seconds": 5.137386874994263
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/brisson-le-meme-pdf170-pass2.json",
+      "sha256": "64526750d93b3c2bad567d0b6f72f68f63b2f6e67caf4922d28ec277faefde7f",
+      "latency_seconds": 4.889684916008264
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf0050-pass2.json",
+      "sha256": "1de06155c6ceab43eb687208ea2d2a59800be0457be97883c76bf81381225708",
+      "latency_seconds": 3.7216376670403406
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf0300-pass2.json",
+      "sha256": "13c68b89ac6e0a73ff9b71c732f184116b3583e9a9e68d0d0caa9535a463983e",
+      "latency_seconds": 3.158964374975767
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf1100-pass2.json",
+      "sha256": "46baefda70cf377a0372bc0044756e27ed6cacfb444a45aaea801a1717ddc3fb",
+      "latency_seconds": 3.2458220839616843
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/burnet-platonis-opera-pdf1400-pass2.json",
+      "sha256": "4fda1e33571f5f0f64375124973d1fa019462a68106a507e650932228b047ec1",
+      "latency_seconds": 3.215963374997955
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf004-pass2.json",
+      "sha256": "a1f5c1486cbe97b188dc200bbd8d67264ad7a575c132b50e4ae498252c386258",
+      "latency_seconds": 5.429330249957275
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf005-pass2.json",
+      "sha256": "675f2c5d7c85f0ff246c7262d0fe802b695dd63a05f6107f4a72aa35272df3eb",
+      "latency_seconds": 5.444652125006542
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/dillon-phronesis29-pdf006-pass2.json",
+      "sha256": "9d5298bccb8b50575e7e708db2bcb684d5b2ecabe907fbf8d4ab4be0f975b572",
+      "latency_seconds": 4.8197443329845555
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf288-pass2.json",
+      "sha256": "f0daa47133ce8fec064140546112a95b78d558a35e8e936736dc1377e27138b8",
+      "latency_seconds": 4.802194666990545
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf414-pass2.json",
+      "sha256": "6e2f0a69bdd492a0d08ee654b9f5db694bfa655d7b66c4cfaa9818cc2db04f5f",
+      "latency_seconds": 4.815385582973249
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf577-pass2.json",
+      "sha256": "81697d578cd1e7de59e94212d20975c14942bf2089a440f9f28ae9b1e89c1eaf",
+      "latency_seconds": 4.936841082992032
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/menn-metaphysics-pdf925-pass2.json",
+      "sha256": "50196ab732f0322c62cc8a4352da433bd41ea0c53f3ef30427f9df33598c282b",
+      "latency_seconds": 4.722632875025738
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf011-pass2.json",
+      "sha256": "9a1636108309a7bc02a28cbfec7c7c264c23c59b2712299f1f2d402968729b24",
+      "latency_seconds": 5.245589291967917
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf012-pass2.json",
+      "sha256": "95dc817f5e21574eba61bd24f6ed7a39742e88541ab1feea006be012d32728be",
+      "latency_seconds": 5.950733874982689
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf013-pass2.json",
+      "sha256": "19b15cd20a7f61d8ed0374838d7f6af6a3e06beea7f9f425272bdbe9dfd9824e",
+      "latency_seconds": 5.862959291960578
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf014-pass2.json",
+      "sha256": "cafe3dbddbc8640534c5a5e322fa0cce058b3b50bd58a8e631d33f0c58ceb0cd",
+      "latency_seconds": 5.727232000033837
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf015-pass2.json",
+      "sha256": "5a76358b6a569373f591430b9096cb2cd95ed52cd5f91d72f217e34a677fae97",
+      "latency_seconds": 5.3781352910446
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf016-pass2.json",
+      "sha256": "a86ee59114405986e1f9234b129d72d3a68c4293e70fc52d992bdf3338382c6e",
+      "latency_seconds": 6.275690749986097
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/primavesi-zwei-elementen-pdf079-pass2.json",
+      "sha256": "42915e72c7c0a471df2d34b87df670e3c213d9c1b371e2b57737c7ed52f341b8",
+      "latency_seconds": 5.088276499998756
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/ueberweg-kraemer-pdf100-pass2.json",
+      "sha256": "7883944c0c6b46f03d3b14b29d72a4a17638fe2ca04a96fb51b1f08ec9d49a73",
+      "latency_seconds": 5.840950915997382
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/ueberweg-kraemer-pdf143-pass2.json",
+      "sha256": "1a4ceb9e56a5ed692b1130ac5e0dc4cf0cb435fc6a470ff5a3ea1841592f93bf",
+      "latency_seconds": 5.3216914999648
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/surya/ueberweg-kraemer-pdf145-pass2.json",
+      "sha256": "24b17209eb34655e2655e621bdeb1e2ec943652faf013535bb1288f0a09ba106",
+      "latency_seconds": 5.097351707983762
+    }
+  ],
+  "initialization_seconds": 2.5182321660104208,
+  "input_integrity_after": "PASS"
+}

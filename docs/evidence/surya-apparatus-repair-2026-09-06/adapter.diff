@@ -1,0 +1,89 @@
+--- r2.2/finalist_adapters.py
++++ r3.0/finalist_adapters.py
+@@ -11,6 +11,7 @@
+ 
+ SCHEMA = 'museion-geometry-evidence/1'
+ VERSION = 'r2.2'
++SURYA_VERSION = 'r3.0-apparatus-repair'
+ 
+ 
+ def digest(x):
+@@ -235,7 +236,52 @@
+     return None
+ 
+ 
+-def group_rows(fragments,mask,bands,page_id):
++def split_multiline(fragments,mask):
++    """Surya-only: split unusually tall boxes at supported inter-row ink valleys.
++
++    Uses image evidence and page-relative scale only, never reference annotations.
++    Children partition the entire source box, including its whitespace padding.
++    """
++    hs=[height(f['bbox']) for f in fragments if width(f['bbox'])>3*height(f['bbox'])]
++    if not hs:return fragments,[]
++    h=st.median(hs);output=[];events=[]
++    for f in fragments:
++        b=f['bbox']
++        if 'source_fragment_id' in f or height(b)<=2*h or width(b)<=5*h:
++            output.append(f);continue
++        x0,y0,x1,y1=map(int,b)
++        profile=mask[y0:y1,x0:x1].sum(axis=1).astype(float)
++        # Smooth isolated specks; broad, substantial ink runs support each row.
++        radius=max(1,round(.04*h));smooth=np.convolve(profile,np.ones(2*radius+1)/(2*radius+1),'same')
++        active=smooth>=.35*max(smooth,default=0)
++        edges=np.flatnonzero(np.diff(np.r_[False,active,False].astype(int)))
++        runs=[(int(a),int(z)) for a,z in zip(edges[::2],edges[1::2]) if z-a>=.15*h]
++        cuts=[];evidence=[]
++        centers=[(a+z)/2 for a,z in runs]
++        if len(runs)>=2 and all(.55*h<=b-a<=1.5*h for a,b in zip(centers,centers[1:])):
++            for (begin,end),(start,finish) in zip(runs,runs[1:]):
++                valley=end+int(np.argmin(smooth[end:start])) if start>end else end
++                local=min(max(smooth[begin:end]),max(smooth[start:finish]))
++                if smooth[valley]>.20*local:break
++                cuts.append(float(y0+valley));evidence.append({'cut_y':float(y0+valley),'valley_to_peak':float(smooth[valley]/local)})
++        if len(cuts)!=len(runs)-1 or not cuts:
++            output.append(f);continue
++        boundaries=[b[1],*cuts,b[3]];ids=[]
++        for i,(top,bottom) in enumerate(zip(boundaries,boundaries[1:])):
++            box=[b[0],top,b[2],bottom];fid=f['fragment_id']+f'-y{i}'
++            polygon=[[y,x] for x,y in clip_polygon_x([[y,x] for x,y in f['polygon']],top,bottom)]
++            child={**f,'fragment_id':fid,'bbox':box,'polygon':polygon,'source_fragment_id':f['fragment_id'],
++                   'source_polygon':f['polygon'],'source_geometry_features':f['features'],
++                   'features':{'width':width(box),'height':height(box),'aspect':width(box)/height(box)},
++                   'hints':list(f['hints'])+[{'kind':'image_supported_row_split','row_index':i}],
++                   'derivation':{'operation':'ink_valley_row_split','cut_ys':cuts,'row_index':i}}
++            output.append(child);ids.append(fid)
++        events.append({'operation':'ink_valley_row_split','source_fragment_id':f['fragment_id'],
++                       'output_fragment_ids':ids,'cut_ys':cuts,'page_line_height':h,'valley_evidence':evidence})
++    return output,events
++
++
++def group_rows(fragments,mask,bands,page_id,guard_tall=False):
+     if not fragments:return []
+     hs=[height(f['bbox']) for f in fragments if width(f['bbox'])>3*height(f['bbox'])]
+     bodyh=float(np.quantile(hs,.75)) if hs else 1
+@@ -248,6 +294,7 @@
+                 rb=row['bbox']
+                 if yc(b)-yc(rb)>2*bodyh:break
+                 if row['column_id']!=f['column_id'] or row['margin']:continue
++                if guard_tall and max(height(b),height(rb))>2*min(height(b),height(rb)):continue
+                 ov=max(0,min(b[3],rb[3])-max(b[1],rb[1]))/min(height(b),height(rb))
+                 if ov<.5 or abs(yc(b)-yc(rb))>.55*min(height(b),height(rb)):continue
+                 gap=max(0,b[0]-rb[2],rb[0]-b[2])
+@@ -294,12 +341,14 @@
+            'hints':[],'features':{'width':width(b['bbox']),'height':height(b['bbox']),'aspect':width(b['bbox'])/max(1,height(b['bbox']))}})
+     # JSON copy ensures source fragments are immutable when child hints/geometry are added.
+     fragments,lanes,events=margin_split(json.loads(json.dumps(originals)),mask,image.width)
++    if provider=='surya':
++        fragments,split_events=split_multiline(fragments,mask);events+=split_events
+     bands=paddle_bands(fragments,regions) if provider=='paddle' else []
+     method='provider_layout_containment' if bands else 'adaptive_x_y_support'
+     if not bands:bands=adaptive_bands(fragments)
+     assign_columns(fragments,bands)
+-    lines=group_rows(fragments,mask,bands,page_id)
+-    result={'schema':SCHEMA,'adapter_version':VERSION,'page_id':page_id,'width':image.width,'height':image.height,
++    lines=group_rows(fragments,mask,bands,page_id,guard_tall=provider=='surya')
++    result={'schema':SCHEMA,'adapter_version':SURYA_VERSION if provider=='surya' else VERSION,'page_id':page_id,'width':image.width,'height':image.height,
+             'provider':provider,'provider_raw':payload,'provider_raw_sha256':digest(payload),'source_fragments':originals,
+             'fragments':fragments,'layout_regions':regions,'column_bands':bands,'column_method':method,'margin_lanes':lanes,
+             'derivations':events,'logical_lines':lines,'provenance':provenance,

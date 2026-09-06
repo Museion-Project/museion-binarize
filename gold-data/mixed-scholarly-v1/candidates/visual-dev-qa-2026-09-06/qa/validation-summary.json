@@ -1,0 +1,227 @@
+{
+  "scope": "Visual preannotation for human Dev reference QA; not Gold or provider benchmark",
+  "intent_alignment": "aligned",
+  "intent_baseline": "intent.md §8.1 (2026-09-05 approved D-stage amendment)",
+  "user_source": "2026-09-06: 剩余25页你先用视觉来做精确标注，我来人工qa。…有几页在点击完成时出现报错，你也修一下",
+  "totals": {
+    "pages": 25,
+    "lines": 1378,
+    "changed_existing_lines": 605,
+    "added_lines": 24,
+    "removed_fragments": 9,
+    "preserved_human_verified_modules": 1055,
+    "reset_human_verified_modules": 145
+  },
+  "original_files_unchanged": true,
+  "new_human_verified_statuses_created": 0,
+  "candidate_draft_validation": "25/25 PASS",
+  "tests": "46 passed",
+  "gui_smoke": "25 real candidate pages load; completion/save/reopen/external-edit checks on temporary synthetic record PASS",
+  "frozen_integrity": "16/16 byte digests PASS; manifest unchanged",
+  "paid_provider_calls": 0,
+  "frozen_evaluation_executed": false,
+  "dev_reference_ready_pages": 0,
+  "operational_readiness": "Local QA workbench ready; human QA required before dev reference use",
+  "pages": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "lines": 36,
+      "changed_existing_lines": 13,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "2ec3731f3ac7ea1ba6270db00d9dde1334a227b67b2edd4c3263cb0e87977188"
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "lines": 95,
+      "changed_existing_lines": 3,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "e5f6588513d73613ec199a4561e0ff46dc325d6b8878484c25a3b8e85827391a"
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "lines": 82,
+      "changed_existing_lines": 22,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "ea3fa928b46f2c5c753c1a05fbc9c9d80e20d10bc608977de23e218ac77e4c26"
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "lines": 91,
+      "changed_existing_lines": 74,
+      "added_lines": 0,
+      "removed_fragments": 9,
+      "candidate_sha256": "d42620b67e14fbf807f92d596bd66453541b95f1096b0bc6f559185be32cbdc3"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "lines": 44,
+      "changed_existing_lines": 36,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "40a508b48919b1c8ee1785a1bec6adee68e6e638294c8864b152d0cf55a33350"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "lines": 44,
+      "changed_existing_lines": 32,
+      "added_lines": 8,
+      "removed_fragments": 0,
+      "candidate_sha256": "fd654a11a9396c6ea667754c89aeaa9695c92c7803e0e653e076d2308b222f25"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "lines": 43,
+      "changed_existing_lines": 34,
+      "added_lines": 7,
+      "removed_fragments": 0,
+      "candidate_sha256": "5880b488c874912c22145f72401ae2768aa734e0e326a132b880708ed55de5f5"
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "lines": 46,
+      "changed_existing_lines": 37,
+      "added_lines": 9,
+      "removed_fragments": 0,
+      "candidate_sha256": "42bd227a579fef475064a89768fb401c4065d446f336463c1bf0f394152a9057"
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "lines": 42,
+      "changed_existing_lines": 38,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "9e1f2f71fd5b93ef9e1f22a1a0fdd283a94a11700c733116451e4024307c8555"
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "lines": 42,
+      "changed_existing_lines": 41,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "3ae6f0a8cd17792de78de65353ceedf58720867dd4356cacff96299c462198f2"
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "lines": 42,
+      "changed_existing_lines": 40,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "8a1e3d8541b89ce6a4647cd9994282f02f00ecafd3f3d3b78e4502a4bc8f024f"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "lines": 45,
+      "changed_existing_lines": 0,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "84fa14b708bd8cb714c45b43be9e63c9d2423c6ee73ad484a0c2233f1a221041"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "lines": 53,
+      "changed_existing_lines": 5,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "5c599682cf351514195225ccb5a71d67d0cb5080f4dd5666aeff9b9eff45059d"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "lines": 52,
+      "changed_existing_lines": 3,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "e5f0a5470a0e0d38d96136bedd98cd8170125085f4d4423c8127b04fbc78e837"
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "lines": 52,
+      "changed_existing_lines": 0,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "1804dd65fe4ae75ba0e2611c416dfbe3e989ae42b9b51908690c28ca53e2e589"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "lines": 45,
+      "changed_existing_lines": 0,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "d72aed74864ae24bfe0e787434e72b71709a0ccc0e472b761b64f5299fdc5a8d"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "lines": 39,
+      "changed_existing_lines": 0,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "876a10ecad97409d69b13f02dde5e4ff9741dc9e7038066ce7de8e323cddd762"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "lines": 37,
+      "changed_existing_lines": 4,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "8e3acce3358c397175b9a82ec4ac4448a8bff004d1d2354df774f391318fc5a8"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "lines": 49,
+      "changed_existing_lines": 0,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "a2f1aa6d64c730f3b3a2da7e0428ffb2f85ee61eb16be9fda2f7847f5b50b8e3"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "lines": 53,
+      "changed_existing_lines": 0,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "713727b18f764d8b7f7aba300d46dc0af87612e8d58260a9fb9a302abff0b130"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "lines": 50,
+      "changed_existing_lines": 2,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "7f59645519a8e7033f6a4c04a9451230937533d98c76ba4b5410a5abff025a69"
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "lines": 43,
+      "changed_existing_lines": 1,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "cde0fb7c1f31cf4251de87a9c1d74f5a047df6bfcc5ce2eada86ad856865b9b1"
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "lines": 40,
+      "changed_existing_lines": 9,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "669a7c54bdb566fdbbe358633f7d376942455cda1f4c04628049bbd4cb968e66"
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "lines": 102,
+      "changed_existing_lines": 102,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "3492144a4d6459085fcf97d3b7b2b4e7ab97233a9e42d25622e2ef8edad4e335"
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "lines": 111,
+      "changed_existing_lines": 109,
+      "added_lines": 0,
+      "removed_fragments": 0,
+      "candidate_sha256": "ae54f874ed79886b69ff72124455ef4befaabcffce3be1a11cf57575281e89a8"
+    }
+  ]
+}

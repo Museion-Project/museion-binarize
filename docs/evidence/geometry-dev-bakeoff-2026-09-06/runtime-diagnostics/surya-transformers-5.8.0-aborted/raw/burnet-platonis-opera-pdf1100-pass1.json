@@ -1,0 +1,26 @@
+{
+  "page_id": "burnet-platonis-opera-pdf1100",
+  "attempt": 1,
+  "latency_seconds": 3.551523374975659,
+  "lines": [
+    {
+      "bbox": [
+        0.0,
+        0.0,
+        1278.0,
+        2021.0
+      ]
+    }
+  ],
+  "native_lines": [
+    {
+      "bbox": [
+        0.0,
+        0.0,
+        1278.0,
+        2021.0
+      ]
+    }
+  ],
+  "status": "ok"
+}

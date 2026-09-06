@@ -32,7 +32,7 @@ sufficient.
 
 ### Bounded handoff behavior
 
-After delegation, Sol must yield control. Sol must not continuously monitor,
+After delegation, Sol must yield control. Here, yielding means waiting for completion or a blocker through the runtime, not ending the user task at dispatch. The final-review duties below still apply; no new user "continue" is required. A runtime-reported failure, cancellation, or disconnection also permits resuming to handle that blocker. Sol must not continuously monitor,
 poll, inspect, or re-evaluate Luna's intermediate progress, and must not spend
 reasoning tokens duplicating work already assigned to Luna.
 

@@ -1,0 +1,26 @@
+{
+  "page_id": "dillon-phronesis29-pdf004",
+  "attempt": 1,
+  "latency_seconds": 5.991188833955675,
+  "lines": [
+    {
+      "bbox": [
+        0.0,
+        0.0,
+        1948.0,
+        3167.0
+      ]
+    }
+  ],
+  "native_lines": [
+    {
+      "bbox": [
+        0.0,
+        0.0,
+        1948.0,
+        3167.0
+      ]
+    }
+  ],
+  "status": "ok"
+}

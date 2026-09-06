@@ -1,0 +1,26 @@
+{
+  "page_id": "brisson-le-meme-pdf013",
+  "attempt": 1,
+  "latency_seconds": 6.94338799995603,
+  "lines": [
+    {
+      "bbox": [
+        0.0,
+        0.0,
+        3514.0,
+        2564.0
+      ]
+    }
+  ],
+  "native_lines": [
+    {
+      "bbox": [
+        0.0,
+        0.0,
+        3514.0,
+        2564.0
+      ]
+    }
+  ],
+  "status": "ok"
+}

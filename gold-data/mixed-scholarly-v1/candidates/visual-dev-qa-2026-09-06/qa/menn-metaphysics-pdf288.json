@@ -1,0 +1,16 @@
+{
+  "page_id": "menn-metaphysics-pdf288",
+  "visual_inspection_performed": true,
+  "image_path": "gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf288.png",
+  "inspection": "Full original page viewed; all visible text rows, footer/page number, completeness and order compared with staged annotations. Focused native crops used for ambiguous source glyphs.",
+  "changes": [],
+  "validation": {
+    "passed": true,
+    "error": null
+  },
+  "unresolved_issues": [
+    "Human QA remains required for fine Greek breathings/accents and exhaustive inline style boundaries; no new human verification asserted.",
+    "D semantic/cross-page footnote relationships remain deferred; this page-only visual pass does not establish cross-page targets."
+  ],
+  "human_qa_required": true
+}

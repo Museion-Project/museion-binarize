@@ -1,0 +1,8 @@
+{
+  "transformers": "4.56.2",
+  "huggingface_hub": "0.35.3",
+  "tokenizers": "0.22.2",
+  "checkpoint_keys": 276,
+  "model_keys": 276,
+  "different_tensors": []
+}

@@ -1,0 +1,114 @@
+{
+  "status": "MILESTONE_BLOCKED",
+  "intent_baseline": "intent.md §8.2 (2026-09-06)",
+  "intent_alignment": {
+    "task_execution": "aligned",
+    "actual_product_composition": "drifted",
+    "last_evidenced_conforming_state": "Core geometry/transcription composition and test-only transport; no evidenced conforming live product state",
+    "first_observed_divergence": "Current CLI/desktop cloud factories unconditionally unavailable; API client factory builds legacy CloudOcrProvider. Exact historical origin not established."
+  },
+  "reference_validator": {
+    "schema_pass": 25,
+    "verified_ocr_geometry_pages": 24,
+    "required_pages": 25,
+    "pending": "burnet-platonis-opera-pdf0050 display line44 transcription_status=candidate_unverified; user clarification pending",
+    "semantic_or_text_changes": 0
+  },
+  "isolation": {
+    "page_id": "PASS",
+    "image_digest": "PASS",
+    "source_pdf_digest_plus_pdf_page": "PASS",
+    "frozen_holdout_integrity": "PASS"
+  },
+  "measurement_contract_sha256": "4a3af40af67615e759085d5ed54def31aa434c745c692fe1ed1a13755f26c749",
+  "product_path": {
+    "status": "ARCHITECTURE_BLOCKER",
+    "entry_points": [
+      {
+        "file": "crates/mpdf-cli/src/commands/run.rs",
+        "line": 380,
+        "finding": "build_cloud_factory rejects mpdf-credits at line418 before provider creation"
+      },
+      {
+        "file": "apps/desktop/src-tauri/src/worker.rs",
+        "line": 346,
+        "finding": "final_pdf_cloud rejects mpdf-credits at line377"
+      },
+      {
+        "file": "crates/mpdf-core/src/ocr_provider/credits.rs",
+        "line": 46,
+        "finding": "PRODUCTION_BACKEND=None"
+      },
+      {
+        "file": "crates/mpdf-api-client/src/cloud_ocr.rs",
+        "line": 1083,
+        "finding": "MpdfCreditsFactory::build constructs legacy CloudOcrProvider, not GeometryTranscriptionPageProvider"
+      },
+      {
+        "file": "crates/mpdf-core/src/ocr_provider/geometry_transcription.rs",
+        "line": 471,
+        "finding": "GeminiTransport trait has only EchoGeometryGeminiTransport and FakeGeminiTransport implementations in test module"
+      }
+    ],
+    "selected_geometry": "Tesseract 5.5.3 PSM3 / tessdata_best4.1.0 (configured design, no current run)",
+    "selected_transcription": "Gemini 3.7 Flash (configured design, no model contacted)",
+    "runtime_config": "No runnable production geometry-bound provider configuration; installed product provider list reports unavailable",
+    "request_records": [],
+    "output_records": [],
+    "probe": "product-provider-probe.json"
+  },
+  "development": {
+    "full_runs": 0,
+    "clean_runs": 0,
+    "substantive_iterations_used": 0,
+    "maximum_iterations": 3,
+    "aggregate_metrics": null,
+    "per_page_metrics": null,
+    "per_line_evidence": null,
+    "threshold_gaps": "Not measurable: no conforming product outputs. Unavailable is not PASS.",
+    "failure_taxonomy": [
+      {
+        "category": "1. transcription / OCR error",
+        "state": "not_observed_no_product_run"
+      },
+      {
+        "category": "2. Greek/Latin normalization or alignment error",
+        "state": "not_observed_no_product_run"
+      },
+      {
+        "category": "3. line omission / duplication",
+        "state": "not_observed_no_product_run"
+      },
+      {
+        "category": "4. geometry / line segmentation error",
+        "state": "not_observed_no_product_run"
+      },
+      {
+        "category": "5. reading-order error",
+        "state": "not_observed_no_product_run"
+      },
+      {
+        "category": "6. upstream extraction / transport failure",
+        "state": "identified_global_architecture_blocker"
+      },
+      {
+        "category": "7. measurement implementation bug",
+        "state": "not_observed_no_product_run"
+      }
+    ]
+  },
+  "tests": {
+    "reference_workbench_suite": "46 passed",
+    "full_product_regression_suite": "NOT_RUN",
+    "note": "Reference/workbench tests are not product OCR or provider proof"
+  },
+  "next_product_work": [
+    "Implement real broker transport for immutable geometry digest + line-id-bound transcription while preserving existing consent, credential and cost boundaries.",
+    "Connect shared GeometryTranscriptionPageProvider factory to both CLI and desktop; run through identical selected preprocessing, provider binding and compositor.",
+    "Record actual endpoint, provider/model version, requests, outputs and code/config digests; then run all25 pages without changing references."
+  ],
+  "reference_expansion_requested": false,
+  "frozen_evaluation_executed": false,
+  "provider_calls": 0,
+  "operational_authorization": "Local validation/contract audit authorized and completed; no new paid calls, external publication, backend deployment or frozen evaluation performed."
+}

@@ -1,0 +1,429 @@
+{
+  "candidate": "tesseract",
+  "device": "cpu",
+  "platform": "macOS-27.0-arm64-arm-64bit",
+  "python": "3.11.15",
+  "manifest_sha256": "fb8060ba6fc0f4eaf50627bf763346a3810960163d8cbb87b6d7d9cc0f5e907a",
+  "protocol_sha256": "951a6ab6274c66462b32df834d1300f3a0164888ff1b137e408274005cc6da64",
+  "runner_sha256": "343546c355a40facfee163a799f935830316af809dbd58b7ae0ec2d9b29f39b6",
+  "versions": {
+    "surya-ocr": "0.17.0",
+    "paddleocr": "3.3.2",
+    "paddlepaddle": "3.2.2",
+    "torch": "2.8.0",
+    "transformers": "5.8.0"
+  },
+  "model_sha256": {
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/deu.traineddata": "8407331d6aa0229dc927685c01a7938fc5a641d1a9524f74838cdac599f0d06e",
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/ell.traineddata": "288b4ea00bab450cf39893d22f04a2835a8469b673b5b20dcb39b159d1bbc9b8",
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/eng.traineddata": "8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba",
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/grc.traineddata": "dfc9bda286cd9d8755b1832e5731a5425d1cf0803393a5fa6dee078466178cf1",
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/lat.traineddata": "60054dd32ac03ebd9b4f87d0665bd491a7ffe0d3ee99ceb91aefaf348b65e94f",
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/manifest.json": "cb03f55482f323a8ceb478642c90731dfa597dd4dddcafce52a0281953428075",
+    "/Users/theo/AI 工作流/museion-binarize/target/distribution/ocr-build/models/osd.traineddata": "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff"
+  },
+  "pages": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf013-pass1.json",
+      "sha256": "9f758fdd821252b1ae7f9b14c68724dffc5e51dbc36a58ed55172ca418ffd248",
+      "latency_seconds": 7.132994542014785
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf030-pass1.json",
+      "sha256": "18d5df683b4681039f206a22e851f492a627f118ead0d28f84bbdef1b3797793",
+      "latency_seconds": 13.68040762504097
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf110-pass1.json",
+      "sha256": "a2180b29560dd05a375d3c69777ffdf21718a48a17cad20d3030d5dac0446159",
+      "latency_seconds": 10.480590249993838
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf170-pass1.json",
+      "sha256": "1c6c567aaa43dfdf2f3af8e6ed17b95375c61a61e479e51a552fd5003c705819",
+      "latency_seconds": 11.29888870799914
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf0050-pass1.json",
+      "sha256": "888b66b2debf599ba75ccd7ed848860b22d54923bcfcfc1465a30d72abefee5f",
+      "latency_seconds": 3.582327042007819
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf0300-pass1.json",
+      "sha256": "07cfab11afae93acdb49189d75ebc73ac7332a86574427ef269b4481e45398bd",
+      "latency_seconds": 2.57498370797839
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf1100-pass1.json",
+      "sha256": "c469995b3e42d85d2a0d8b22dc99d52a7ec205643c8e230b8f49d0140bd318a4",
+      "latency_seconds": 3.7957136670011096
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf1400-pass1.json",
+      "sha256": "4e65072c1d98494252e051a67bf935ee9f41205d714b09d487e0558897f7a1f2",
+      "latency_seconds": 3.779678749968298
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/dillon-phronesis29-pdf004-pass1.json",
+      "sha256": "4a5645b9677d1e769d04bad437edf0c610b79052476485832e9718d1ef708c0f",
+      "latency_seconds": 4.3948580420110375
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/dillon-phronesis29-pdf005-pass1.json",
+      "sha256": "e8f06f9d8be3c4ee8398040fa57e6dcc2205fa252af9fc63d9bb625c5c205884",
+      "latency_seconds": 4.330658624996431
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/dillon-phronesis29-pdf006-pass1.json",
+      "sha256": "aa5b9db7ff92fe0cf85bf95f4fa3fc59101d89c987bda4a24da0fa881798c0da",
+      "latency_seconds": 4.535519875003956
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf288-pass1.json",
+      "sha256": "4f037e048277c57c2b6ae957e10d01e1a1b9428c0beec0677805bf1ed6055894",
+      "latency_seconds": 7.999274500005413
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf414-pass1.json",
+      "sha256": "66b4db428f01f26de498dd0ee25a9cea191d131bfbec12fa4c94bc2f5a9b1c5d",
+      "latency_seconds": 8.121716791996732
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf577-pass1.json",
+      "sha256": "7f8938dd909911ebf13f02b60fd6c0f7cdba6ea31f0994114a70f9387d979ac4",
+      "latency_seconds": 9.937948249978945
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf925-pass1.json",
+      "sha256": "25a0dd188b8077021fc2a57fbaaf04937906da933ce6e8a01a8279fe38fcdae6",
+      "latency_seconds": 8.938298832974397
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf011-pass1.json",
+      "sha256": "de22de0ed0dd7d006839400d5d599a08249a8b725948e946b7c301237c2a63da",
+      "latency_seconds": 6.594408334000036
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf012-pass1.json",
+      "sha256": "8354a8a87f93b432b3dbf96a575ca95627eb44901fd9a07a31f67ad514bcfef6",
+      "latency_seconds": 5.58801066695014
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf013-pass1.json",
+      "sha256": "242a7f54cb2ceb94695bb48ff148cd4959369ad7d0f63a332321f264a2ed7713",
+      "latency_seconds": 5.288252750004176
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf014-pass1.json",
+      "sha256": "063a3911a78787ac6a50c61f402b72bed07726baf964c095b3b5ee717cf4a9ab",
+      "latency_seconds": 7.150192792003509
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf015-pass1.json",
+      "sha256": "e5bc54c3d4d4da09365ab070fc8977613f91038c8d93d0ef1f2c68530ff9d4b2",
+      "latency_seconds": 8.501141333021224
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf016-pass1.json",
+      "sha256": "14265ab70da0ec7df89f2f2e64a5d0ecb5682f4538d19412c6c9d9ba82fedcf0",
+      "latency_seconds": 7.564042708021589
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf079-pass1.json",
+      "sha256": "7047dd83613eb840af106fb3c262a2d3e3a2c6071c30af1c5e1b7edc4fd94056",
+      "latency_seconds": 6.425370915967505
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/ueberweg-kraemer-pdf100-pass1.json",
+      "sha256": "2ef62ac906dc5bdad6d8239dab461a594e1148d4f6d9d961838b4ce84d1eda51",
+      "latency_seconds": 6.096257500001229
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/ueberweg-kraemer-pdf143-pass1.json",
+      "sha256": "97329d57e873cc42d99f501f9358dd2f667c1ef2ec0b00037145868f35113327",
+      "latency_seconds": 8.143075125000905
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "attempt": 1,
+      "status": "ok",
+      "file": "raw/tesseract/ueberweg-kraemer-pdf145-pass1.json",
+      "sha256": "6db98de0ebf34381c583dd78f855b408414c25be7c17b3ee3c0f5aa7c54e60d2",
+      "latency_seconds": 8.404046332987491
+    },
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf013-pass2.json",
+      "sha256": "d8b4b6474bd70b12c0f31cf44ae07d0b4d4038cf097aa812b3197f1f8d9f7abb",
+      "latency_seconds": 7.125164917029906
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf030-pass2.json",
+      "sha256": "ce50943e7ec1c08bcaeab02e68c65668c10a9d73e5c56a5e33b9824447179083",
+      "latency_seconds": 13.48654691700358
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf110-pass2.json",
+      "sha256": "7a33337638968426278bb65c0ac7fb35d4e006401079fb0442d6ad7a39333c95",
+      "latency_seconds": 10.21863395802211
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/brisson-le-meme-pdf170-pass2.json",
+      "sha256": "5fc6c7a8a81484c0e0977a34221d02c5b43053d27e43e039d0409ffd701a7849",
+      "latency_seconds": 11.316823915985879
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf0050-pass2.json",
+      "sha256": "b3e44033e36adaa3c21c47599f3e8bb617688d744e0b9973d4e28118b0b0205d",
+      "latency_seconds": 3.6069974999991246
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf0300-pass2.json",
+      "sha256": "7248754f584d0c03981461edf301a6d14cd1427a2e651bc22c42c8b484fabb1c",
+      "latency_seconds": 2.599288749974221
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf1100-pass2.json",
+      "sha256": "e536e2209d62837486cfd11089ae7d415731441c347c46570c76c968cd9419fa",
+      "latency_seconds": 3.73474654200254
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/burnet-platonis-opera-pdf1400-pass2.json",
+      "sha256": "50c50bfcfccea0e1487538a9bd471784c43a2e0c1a5abb75b32951d93362fb72",
+      "latency_seconds": 3.8138617500080727
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/dillon-phronesis29-pdf004-pass2.json",
+      "sha256": "ad0bfd38605e299c0456e00582c9a690045c25cd3ee40a51c8ba3896c407f301",
+      "latency_seconds": 4.593033458048012
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/dillon-phronesis29-pdf005-pass2.json",
+      "sha256": "a3a61bb82c3692a302bb479009d9b00d1f0db1e1607ce421a1cc96746bd3bd68",
+      "latency_seconds": 4.456981332972646
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/dillon-phronesis29-pdf006-pass2.json",
+      "sha256": "6ed8d457f4fb7dc82c8ddf941bee1030ce2113644bbbf5e23b99d4dc85b54f3a",
+      "latency_seconds": 4.550007999991067
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf288-pass2.json",
+      "sha256": "c2b4bcb112947c3214065e3597be5c874462ffa05e434e187fd8c28ac2125792",
+      "latency_seconds": 8.148030040960293
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf414-pass2.json",
+      "sha256": "cf2cdffbbf8775c2cda4a7d52af0d7f851370da38566d54477154ede7c49a929",
+      "latency_seconds": 8.65640054200776
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf577-pass2.json",
+      "sha256": "f3cf0ad6d018d2369098fb00f8248ca6c16202828d46adfff94fe9f4dfea9fe9",
+      "latency_seconds": 10.0047292499803
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/menn-metaphysics-pdf925-pass2.json",
+      "sha256": "31b030c46f130d5e4db0d0e1992d74cc165d0f8612b15122ec6f65186ff36bb6",
+      "latency_seconds": 9.074899541039485
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf011-pass2.json",
+      "sha256": "34e44caefb0e0bf8a44c30451d6b677d827cb45ec42c9d0252056e49f98c29fa",
+      "latency_seconds": 6.740348709048703
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf012-pass2.json",
+      "sha256": "5dd21c3269b91613e07b62ade3c2bb0727d5137f4c0001cf5e56cb01e49dd0c2",
+      "latency_seconds": 5.6965003330260515
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf013-pass2.json",
+      "sha256": "4bd0792d00db59e23c0f1d28e9e54ce0ea03a61ae25a57e44121f16cae9de77e",
+      "latency_seconds": 5.3503341670148075
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf014-pass2.json",
+      "sha256": "238bbb7feea15cf40be7c9db20a54131959e92309bffd85fdb6ad05ef23b3d11",
+      "latency_seconds": 7.519427541003097
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf015-pass2.json",
+      "sha256": "fcdbeb57f98a392fef687f5ee307ec3d2446eafef496f91ff03a42473dd8344b",
+      "latency_seconds": 8.482053915970027
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf016-pass2.json",
+      "sha256": "bab7834d5ade3c8358c6894dce5241bffff0a02dea658ea4f672537c4f876bcd",
+      "latency_seconds": 7.808264875027817
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/primavesi-zwei-elementen-pdf079-pass2.json",
+      "sha256": "4781e465c176e4dce22ef7bad66b8ea40dbaaff106f298a0a1e2f65ac59db441",
+      "latency_seconds": 5.53705133398762
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/ueberweg-kraemer-pdf100-pass2.json",
+      "sha256": "7deb484a9d46f7d058f5bb4108e43ddacb3e2a47a8fe4bebcfe02d6b7a87a208",
+      "latency_seconds": 6.154134707991034
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/ueberweg-kraemer-pdf143-pass2.json",
+      "sha256": "1ee3ccc01f926299b65b87da2bc98b818246d0809feae7a2e6dc70ab40c8049c",
+      "latency_seconds": 8.109655666979961
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "attempt": 2,
+      "status": "ok",
+      "file": "raw/tesseract/ueberweg-kraemer-pdf145-pass2.json",
+      "sha256": "c80cd46a33f50f5f52277053251057cdf959516a3eebb62f0f60e0863b0c461f",
+      "latency_seconds": 8.653659625037108
+    }
+  ],
+  "initialization_seconds": 5.542009603232145e-06,
+  "input_integrity_after": "PASS"
+}

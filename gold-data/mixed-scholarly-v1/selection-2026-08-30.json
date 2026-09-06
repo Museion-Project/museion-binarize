@@ -1,0 +1,76 @@
+{
+  "schema": "mpdf-historical-geometry-selection/1",
+  "created_at": "2026-08-30",
+  "status": "candidate_drafts_ready_for_human_review_not_frozen",
+  "render": {
+    "dpi": 300,
+    "format": "png",
+    "renderer": "pdftoppm",
+    "color_policy": "original rendered color"
+  },
+  "selection_policy": {
+    "page_count": 11,
+    "purpose": "historical-scan line geometry holdout and mixed-script closed-world gold",
+    "coverage": [
+      "French scholarly prose with footnotes and Greek citations",
+      "German scholarly prose, Greek notation, and two-column bibliography",
+      "polytonic Greek critical text with compact Latin apparatus",
+      "gutter separation, skew, uneven type, bleed-through, columns, small apparatus, and ornaments or rules"
+    ]
+  },
+  "workbench_review": {
+    "reviewed_in_workbench": true,
+    "candidate_provider": "Tesseract 5.5.3 OEM 1 PSM 3; Burnet single-column pages regenerated with PSM 6",
+    "candidate_line_count": 750,
+    "candidate_status": "schema_1_2_candidate_unverified_not_gold",
+    "page_gold_status": "all_pages_draft_after_visual_model_preannotation",
+    "visual_model_preannotation": {
+      "completed": true,
+      "completed_at": "2026-08-31",
+      "provider": "Codex interactive vision session",
+      "status": "candidate_unverified_not_gold",
+      "scope": ["geometry cleanup", "reading order", "content class", "language", "paragraph role", "leaf and column", "footnote grouping", "apparatus", "contents hierarchy and destination", "obvious inline typography"]
+    },
+    "known_failures": [
+      "burnet-platonis-opera-pdf0300: the lower half of the Greek body and apparatus is missing from the candidate geometry",
+      "burnet-platonis-opera-pdf1400: several middle and lower body lines are missing from the candidate geometry",
+      "brisson-le-meme-pdf013: contents hierarchy, indentation, dot leaders, and page-number association require explicit review",
+      "ueberweg-kraemer-pdf143: both bibliography columns and small multilingual entries require exhaustive line recovery",
+      "all pages: content labels and exact transcription remain unverified; marginal numbers and apparatus require explicit treatment",
+      "brisson-le-meme-pdf030: schema 1.1 review was reopened under 1.2; geometry/text evidence is retained, while structure and typography require explicit confirmation"
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "brisson-le-meme",
+      "path": "/Volumes/Haoran/1. Antike Philosophie/Platon/Luc Brisson. Le même et l'autre dans la structure ontologique du Timée de Platon _ Un commentaire systématique du Timée de Platon.pdf",
+      "sha256": "7298f0bcd0880c1f3f6e4af477538ed97539dc3759556bf531f4a001e755621d",
+      "pages": [13, 30, 110, 170]
+    },
+    {
+      "source_id": "ueberweg-kraemer-aeltere-akademie",
+      "path": "/Volumes/Haoran/speusipp/02_专著_通论_书评/(2004) Hans Krämer - Die Ältere Akademie [Ueberweg].pdf",
+      "sha256": "18efa131e5a89d18cf6e1eec737d4434571b05dcf28ea0a4f4e0426fb05db232",
+      "pages": [100, 143, 145]
+    },
+    {
+      "source_id": "burnet-platonis-opera-2-5",
+      "path": "/Volumes/Haoran/Plato/0 校勘本/OCT/Burnet. Platonis Opera 2-5. OCT.pdf",
+      "sha256": "1fcc2f99ad8a42262f19e5b77e671b8161474fc3c2355843406fbfcfb2623de6",
+      "pages": [50, 300, 1100, 1400]
+    }
+  ],
+  "pages": [
+    {"page_id":"brisson-le-meme-pdf013","source_id":"brisson-le-meme","pdf_page":13,"image_file":"images/brisson-le-meme-pdf013.png","image_sha256":"77cc208bfcfa016323c14a9d8ec60ad4fcdfff1d5f407e76f51bc74f116dbd56","width":3517,"height":2564,"features":["fra","table-of-contents","hierarchy","indentation","dot-leaders","page-number-association","two-page-spread","blank-verso","gutter"]},
+    {"page_id":"brisson-le-meme-pdf030","source_id":"brisson-le-meme","pdf_page":30,"image_file":"images/brisson-le-meme-pdf030.png","image_sha256":"4e88122c010e2896a6561578b5295dcdf3cc0efa9ffc10c67d43b32a819a8365","width":3508,"height":2550,"features":["fra","grc","footnotes","two-page-spread","gutter"]},
+    {"page_id":"brisson-le-meme-pdf110","source_id":"brisson-le-meme","pdf_page":110,"image_file":"images/brisson-le-meme-pdf110.png","image_sha256":"f0221ff2ec78c2d460838de750d3c509598f5b88372b4119d045328430c3462c","width":3508,"height":2550,"features":["fra","grc","long-quotation","footnotes","section-heading","two-page-spread","gutter"]},
+    {"page_id":"brisson-le-meme-pdf170","source_id":"brisson-le-meme","pdf_page":170,"image_file":"images/brisson-le-meme-pdf170.png","image_sha256":"365c0feffbf1609ce9a3e5822cdf8550675d030aed04b95ff0e1160763961e15","width":3512,"height":2557,"features":["fra","grc","dense-mixed-script","footnotes","two-page-spread","gutter"]},
+    {"page_id":"ueberweg-kraemer-pdf100","source_id":"ueberweg-kraemer-aeltere-akademie","pdf_page":100,"image_file":"images/ueberweg-kraemer-pdf100.png","image_sha256":"fad2877c3fee3cc723cbec90504a0a17f3e771235fa4309c2bf75cfdeb2a375f","width":1912,"height":2834,"features":["deu","grc","mathematical-notation","bleed-through","footnotes"]},
+    {"page_id":"ueberweg-kraemer-pdf143","source_id":"ueberweg-kraemer-aeltere-akademie","pdf_page":143,"image_file":"images/ueberweg-kraemer-pdf143.png","image_sha256":"1f55330041e9cac0f47b033738ec8454fe77c5a9349b2f8de098707e9fbbdfc3","width":1912,"height":2834,"features":["deu","fra","eng","grc","lat","two-column","bibliography","small-type","bleed-through"]},
+    {"page_id":"ueberweg-kraemer-pdf145","source_id":"ueberweg-kraemer-aeltere-akademie","pdf_page":145,"image_file":"images/ueberweg-kraemer-pdf145.png","image_sha256":"10fd9e77bea9a0ce42885b3e006bcccf5697563594d7d1085f6994dbb6827a17","width":1912,"height":2834,"features":["deu","grc","lat","two-column","bibliography","small-type"]},
+    {"page_id":"burnet-platonis-opera-pdf0050","source_id":"burnet-platonis-opera-2-5","pdf_page":50,"image_file":"images/burnet-platonis-opera-pdf0050.png","image_sha256":"0e48f07f423b50784a214bed0519a65b1b4c4d1e5ebaff7bcf4e48dcecf658e7","width":1280,"height":2021,"features":["grc","lat","critical-apparatus","small-type","old-scan"]},
+    {"page_id":"burnet-platonis-opera-pdf0300","source_id":"burnet-platonis-opera-2-5","pdf_page":300,"image_file":"images/burnet-platonis-opera-pdf0300.png","image_sha256":"65a95b4f352ea0538ce8cf0d0ead21456994c101d346f26a87632a07a8c29928","width":1280,"height":2021,"features":["grc","lat","critical-apparatus","small-type","old-scan"]},
+    {"page_id":"burnet-platonis-opera-pdf1100","source_id":"burnet-platonis-opera-2-5","pdf_page":1100,"image_file":"images/burnet-platonis-opera-pdf1100.png","image_sha256":"0a3430c180b30072b412484efd5a8f4d351db00b35f9f66c9583fe13bba9106f","width":1280,"height":2021,"features":["grc","lat","verse","critical-apparatus","small-type","old-scan"]},
+    {"page_id":"burnet-platonis-opera-pdf1400","source_id":"burnet-platonis-opera-2-5","pdf_page":1400,"image_file":"images/burnet-platonis-opera-pdf1400.png","image_sha256":"ed81881da4a88409798011d6e503e52fad8e6b5d7b5300a53a7f5396ddad69dd","width":1280,"height":2021,"features":["grc","lat","critical-apparatus","small-type","old-scan"]}
+  ]
+}

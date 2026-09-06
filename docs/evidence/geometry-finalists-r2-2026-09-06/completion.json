@@ -1,0 +1,47 @@
+{
+  "status": "GEOMETRY_FINALISTS_R2_COMPLETE",
+  "intent_alignment": "aligned",
+  "intent_baseline": "intent.md section 8.4",
+  "winner": "surya",
+  "scored_rounds": 1,
+  "reference_pages": 25,
+  "reference_lines": 1378,
+  "actual_model_inferences": 100,
+  "final_normalization_passes_per_provider": 2,
+  "raw_and_normalized_repeat_pages": {
+    "paddle": 25,
+    "surya": 25
+  },
+  "tests": "10 passed",
+  "schema_validation": "100/100 PASS",
+  "raw_fragment_layout_preservation": "100/100 PASS",
+  "counts": {
+    "paddle": {
+      "raw_source_boxes_pass1": 1404,
+      "fragments_pass1": 1413,
+      "layout_regions_pass1": 260,
+      "containment_edges_pass1": 67
+    },
+    "surya": {
+      "raw_source_boxes_pass1": 1407,
+      "fragments_pass1": 1431,
+      "layout_regions_pass1": 0,
+      "containment_edges_pass1": 0
+    }
+  },
+  "development_inputs_unchanged": true,
+  "models_unchanged": true,
+  "holdout_assets_read_or_modified": false,
+  "production_wiring": "not run",
+  "production_e2e": "not run",
+  "provider_freeze": "not created",
+  "semantic_D": "no final semantic fields generated; native labels preserved uninterpreted",
+  "column_reference_limit": "derived from existing dev fields; not independent human D Gold",
+  "known_failures": [
+    "Paddle Brisson split-band hierarchy/grouping regression; one catastrophic logical-line case",
+    "Surya apparatus 21/27 and marginalia 25/35 matched",
+    "Paddle marginalia 13/35 matched",
+    "Paddle TOC fragment-union coverage only45.41% despite36/36 envelope matches"
+  ],
+  "viewer_validation": "Chromium actual rendering, expected controls/SVG/metrics readback and screenshot reviewed; all click paths not automatically tested"
+}

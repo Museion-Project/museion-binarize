@@ -1,0 +1,10 @@
+{
+  "files": {
+    "scripts/ocr/geometry/finalist_adapters.py": "156ff3842ec86c026047071719f28e8245640fe79ab4e042b9dfd0d1b3ac4156",
+    "scripts/ocr/geometry/run_finalist_bakeoff.py": "a6918cb1b0a9439a34bbad479e5f9b0f82d284418a3e0f4aeac31d96057650d2",
+    "scripts/ocr/geometry/test_finalist_adapters.py": "d7ad3984a3b09b762a975cd7aa69df95fdd48f949ab06f869eb61b7835144edb",
+    "schemas/museion-geometry-evidence-1.schema.json": "a59a173a0991ec05d3e42e6778e5d46280cffb301bc297b7d2af02774f7dec06"
+  },
+  "implementation_checks": "5 synthetic tests passed; geometry inspection on four existing dev pages per provider, no scoring; original round-1 envelope replay used only for adapter implementation probes, final run regenerates full raw outputs",
+  "protocol_sha256": "37a129751d6a0e9577735390a216213576203fb539f6b5c7036275d59fe6efcd"
+}

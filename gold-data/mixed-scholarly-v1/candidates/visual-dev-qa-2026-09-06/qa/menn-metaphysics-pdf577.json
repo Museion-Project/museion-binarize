@@ -1,0 +1,47 @@
+{
+  "page_id": "menn-metaphysics-pdf577",
+  "visual_inspection_performed": true,
+  "image_path": "gold-data/mixed-scholarly-v1/images/menn-metaphysics-pdf577.png",
+  "inspection": "Full original page viewed; all visible text rows, footer/page number, completeness and order compared with staged annotations. Focused native crops used for ambiguous source glyphs.",
+  "changes": [
+    {
+      "line_id": "menn-metaphysics-pdf577-native-0017",
+      "changes": {
+        "text": {
+          "before": "ti is that for something to be X (or, for X to be X) is not for it to be ὅπερ τόδε τι. Compare the passage we have",
+          "after": "τι is that for something to be X (or, for X to be X) is not for it to be ὅπερ τόδε τι. Compare the passage we have"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "menn-metaphysics-pdf577-native-0029",
+      "changes": {
+        "text": {
+          "before": "likewise in Z4 with ὁ λευκὸς ἄνθρωπος (or ὁ λευκός, for the issue is much the same), the issue is how leukov\" or",
+          "after": "likewise in Z4 with ὁ λευκὸς ἄνθρωπος (or ὁ λευκός, for the issue is much the same), the issue is how λευκός or"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "menn-metaphysics-pdf577-native-0033",
+      "changes": {
+        "text": {
+          "before": "genitive (cf. B#12 1001b29-32, where it is inferred that if X is not τόδε ti, X cannot be the οὐσία of anything). We",
+          "after": "genitive (cf. B#12 1001b29-32, where it is inferred that if X is not τόδε τι, X cannot be the οὐσία of anything). We"
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "error": null
+  },
+  "unresolved_issues": [
+    "Human QA remains required for fine Greek breathings/accents and exhaustive inline style boundaries; no new human verification asserted.",
+    "D semantic/cross-page footnote relationships remain deferred; this page-only visual pass does not establish cross-page targets."
+  ],
+  "human_qa_required": true
+}

@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Museion geometry evidence: development fragment-preserving schema",
+  "type": "object",
+  "required": [
+    "schema",
+    "adapter_version",
+    "page_id",
+    "width",
+    "height",
+    "provider",
+    "provider_raw",
+    "provider_raw_sha256",
+    "source_fragments",
+    "fragments",
+    "layout_regions",
+    "column_bands",
+    "column_method",
+    "margin_lanes",
+    "derivations",
+    "logical_lines",
+    "provenance",
+    "features",
+    "semantic_status",
+    "geometry_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "museion-geometry-evidence/1"
+    },
+    "adapter_version": {
+      "type": "string"
+    },
+    "page_id": {
+      "type": "string"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "surya",
+        "paddle"
+      ]
+    },
+    "provider_raw": {
+      "type": "object"
+    },
+    "provider_raw_sha256": {
+      "type": "string"
+    },
+    "source_fragments": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "fragments": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "layout_regions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "column_bands": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "column_method": {
+      "type": "string"
+    },
+    "margin_lanes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "derivations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "logical_lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "line_id",
+          "reading_order",
+          "bbox",
+          "fragment_ids",
+          "column_id",
+          "hints"
+        ],
+        "properties": {
+          "line_id": {
+            "type": "string"
+          },
+          "reading_order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "fragment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "column_id": {
+            "type": "string"
+          },
+          "hints": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "features": {
+      "type": "object"
+    },
+    "semantic_status": {
+      "type": "string"
+    },
+    "geometry_sha256": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -316,3 +316,101 @@ IAP 单独购买的点数不得设置有效期。机构通过合同购买账号�
 13. 本地功能与共享核心开源；API 服务端、商业 provider、计费和运营系统不开源；封装
     App 通过订阅额度或额外点数提供 API，但不以订阅锁住本地功能；
 14. 任何古希腊文质量宣传必须晚于真实、可复现的专项基准。
+
+## 8. 已批准修订：2026-09-05 OCR/geometry milestone
+
+来源：产品负责人在本项目任务中以“补充当前 `museion-binarize` OCR/geometry
+milestone 的验收契约”开头，并以“现在恢复此前任务”授权执行的消息。
+
+本 milestone 使用已批准的 `deterministic GeometryProvider + Gemini transcription
++ synthesis` 架构，只判断当前模块是否足以停止优化并进入后续结构迁移与产品 E2E。
+16 页 frozen Gold 是 holdout，不是开发数据，也不是本文件 §6.1 的 ≥200 页产品级
+certification。该长期要求保持不变。当前 milestone 的用户批准验收条件记录在
+[`plan.md` 的“2026-09-05 OCR/geometry 验收契约”](plan.md#2026-09-05-ocrgeometry-验收契约)。
+此修订填补当前 milestone 的门槛缺口；不把旧 CGPG 原生坐标实验的阈值或干净原生
+PDF 的实测成绩提升为当前产品阈值。指标操作定义中的未决问题必须显式保留，不得以
+有利于通过的解释补齐。
+
+### 8.1 D 的阶段归属修订（2026-09-05，用户已批准）
+
+来源：产品负责人先要求“只做宏观结构设计”，随后以“允许做这一修正”批准将完整
+D 语义验收移至后续结构阶段的建议。本次仅修正设计和验收归属，不启动实现或评测。
+
+当前 OCR/geometry 阶段保留文字（包括脚注编号、上标字符、apparatus 符号）、
+位置证据及阅读顺序，供后续结构管线消费；不得删除标记或制造未经验证的链接。
+完整 D（角色分类、marker/definition 配对、跨页续注、外部目标及语义隔离）由后续
+结构阶段验收，不再作为当前 OCR/geometry milestone 的晋级门。D 的 100% 硬不变量
+要求保留，不将延期记为通过。当前 A/B/C/E 数值条件、3 轮上限和 holdout 保护不变。
+
+职责分配：几何层提供空间证据；Gemini 可提出绑定行 ID／字符范围的局部语义候选；
+结构管线解析跨行、跨页关系；确定性验证／合成层检查关系一致性并写出。Gemini 不
+修改几何，也不直接裁定最终跨页链接。具体接口和实现留待相应阶段设计。
+Gold 中的 D 信息保持原样；后续使用仍遵守 holdout 隔离，不转为开发或调参数据。
+
+### 8.2 Dev exit 与测量契约锁定（2026-09-06，用户明确指令）
+
+来源：产品负责人以“25 页非-holdout development reference 已完成人工核验。
+现在继续执行 A–C OCR/geometry milestone。”开头的本任务消息，第 1–7 节。
+
+25 页为主 development set；先核验 reference 和三重 holdout 隔离，不因产品失败
+扩充标注，不补 D。只允许机械性 schema/consistency 修复，涉及人工内容或语义判断
+必须停止该分支。测量采用 NFC＋既有 whitespace normalization；Greek/Latin
+从同一次字符 alignment 计错；一对一行匹配 IoU ≥0.30；顺序准确率为正确比较对数
+除以全部可比较对数。定义与既有阈值锁定于
+`docs/evidence/ocr-geometry-dev-2026-09-06/measurement-contract.json`。
+
+必须执行真实产品入口、provider binding 和前后处理路径。测试 transport、reference
+注入或 benchmark-only 替代路径不算产品证据。若真实路径不存在或无法运行，报告
+architecture/blocker。最多 3 次产品修复迭代，不得改 reference、holdout、指标或阈值。
+
+两次完整 25 页开发回归达标、稳定性和 regression suite 通过、所有版本与摘要冻结后，
+仅报告 `DEV_EXIT_READY` 并停止；须等用户另行确认才可运行 16 页 frozen holdout。
+这取代 §8 原计划中 dev exit 后自动进入 frozen evaluation 的执行顺序。未满足则报告
+`MILESTONE_BLOCKED`，定位产品修复，不要求重做大批 reference。
+
+### 8.3 当前阶段改为 geometry-provider bake-off（2026-09-06）
+
+来源：产品负责人澄清“产品接线留空是故意的”，因为分离架构新颖且实验性；明确要求
+“现在需要的就是用25页 development reference 做 geometry-provider bake-off”。
+本轮仅比较 geometry providers，必测 Tesseract PSM3 geometry、Surya local line
+detection、PaddleOCR local detection/layout。交付 winner 与报告，不冻结 provider，
+不进入 production wiring 或 production E2E，不接触16页 frozen holdout。
+
+此明确指令取代 §8.2 对本轮要求真实生产路径和完整 A–C OCR 回归的执行范围。
+生产路径未接通是当前实验阶段的有意安排，不能继续将其作为本次几何比较的阻塞。
+先前关于历史规划遗漏的归因属于代理解释，已由本次用户澄清纠正。生产质量、OCR
+字符准确率和 production E2E 均不能由此次 geometry bake-off 宣告通过。
+
+### 8.4 Paddle / Surya adapter 决赛修订（2026-09-06）
+
+来源：用户以“Tesseract 已经出局。Paddle和Surya进入决赛圈，调整后再比赛一轮”
+开头的本任务消息，第1–4节。排除Tesseract，仅在现有25页比较两家，经两遍真实本地
+运行报告 micro-F1、stricter IoU、逐页F1、灾难性遗漏、阅读顺序、TOC/apparatus/
+marginalia专项，以及column detection、栏内/跨栏顺序、逆序对和Ueberweg143/145。
+
+用户明确要求：apparatus logical line可对应多个保留的fragments；TOC同一row的
+title/leader/page number归于logical line但保留子框。Paddle优先利用原始layout /
+column hierarchy；Surya从line boxes的持续垂直空白、x分布和重叠自适应推断列。
+边码拆分结合整页重复margin lane与框内whitespace valley / layout边界，不按具体
+文字、页码或字母硬编码。两家输出共同Museion geometry schema。
+
+D-ready信息保留是本轮方法约束：原始boxes、layout regions、空间column hierarchy、
+fragment关系、低层margin/apparatus/TOC-row线索、geometry features和provenance
+不得丢失。可增加低层结构hint，不生成heading level、role、parent或最终TOC membership。
+此修订明确改变上一轮“一个detector box即一条评分行”的粒度；原始参考不改，原始
+框评分作为对照，logical-line评分必须报告子框support，避免大外接框掩盖空白。
+不冻结provider，不进入production wiring / E2E，不接触16页frozen holdout。
+
+### 8.5 Surya-only bounded apparatus adapter repair（2026-09-06）
+
+来源：本任务用户消息“你能针对性地再做一次Surya-only bounded adapter repair吗？
+主要处理apparatus的问题。”本轮仅修Surya适配层，不调整Paddle或评分阈值。
+要求：Burnet1100的0042–0045成为四条独立logical lines；Burnet1400的0043–0045
+正确分行；无新增apparatus over-split；d0034类小框不再误吸入跨行大框；保留原始
+detector boxes、split provenance和全部D-ready信息。随后Surya-only完整25页一次
+或两次确定性regression，确认TOC、双栏、marginalia、普通正文没有退化。
+
+执行决定：采用图像墨迹支持的纵向拆分与大小框合并限制，禁止页码/行ID/参考框硬编码。
+本次adapter regression重放R2两次独立真实检测的完整raw payload，共25页×2；不重新
+运行模型推理。该证据验证适配器路径，不代表新模型推理、语义D或生产验收。沿用§8.4
+其余方法与隔离约束，不接触16页frozen holdout，不冻结provider。

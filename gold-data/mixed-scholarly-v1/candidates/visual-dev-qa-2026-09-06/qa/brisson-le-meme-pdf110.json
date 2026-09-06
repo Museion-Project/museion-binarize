@@ -1,0 +1,663 @@
+{
+  "page_id": "brisson-le-meme-pdf110",
+  "review_kind": "AI_visual_preannotation_not_human_gold",
+  "full_original_image_viewed": true,
+  "image_sha256": "f0221ff2ec78c2d460838de750d3c509598f5b88372b4119d045328430c3462c",
+  "baseline_sha256": "5e14dd80095d0824bf6cdf2eb1eefbf5d6efa1a7a41e2e5d32a862d1b1eede43",
+  "line_count": 82,
+  "line_ids_visually_compared": [
+    "brisson-le-meme-pdf110-visual-page-left",
+    "brisson-le-meme-pdf110-visual-head-left",
+    "brisson-le-meme-pdf110-candidate-0001",
+    "brisson-le-meme-pdf110-candidate-0002",
+    "brisson-le-meme-pdf110-candidate-0003",
+    "brisson-le-meme-pdf110-candidate-0004",
+    "brisson-le-meme-pdf110-candidate-0005",
+    "brisson-le-meme-pdf110-candidate-0006",
+    "brisson-le-meme-pdf110-candidate-0007",
+    "brisson-le-meme-pdf110-candidate-0008",
+    "brisson-le-meme-pdf110-candidate-0009",
+    "brisson-le-meme-pdf110-candidate-0010",
+    "brisson-le-meme-pdf110-candidate-0011",
+    "brisson-le-meme-pdf110-candidate-0012",
+    "brisson-le-meme-pdf110-candidate-0013",
+    "brisson-le-meme-pdf110-candidate-0014",
+    "brisson-le-meme-pdf110-candidate-0015",
+    "brisson-le-meme-pdf110-candidate-0016",
+    "brisson-le-meme-pdf110-candidate-0017",
+    "brisson-le-meme-pdf110-candidate-0018",
+    "brisson-le-meme-pdf110-candidate-0019",
+    "brisson-le-meme-pdf110-candidate-0020",
+    "brisson-le-meme-pdf110-candidate-0021",
+    "brisson-le-meme-pdf110-candidate-0022",
+    "brisson-le-meme-pdf110-candidate-0023",
+    "brisson-le-meme-pdf110-candidate-0024",
+    "brisson-le-meme-pdf110-candidate-0025",
+    "brisson-le-meme-pdf110-candidate-0026",
+    "brisson-le-meme-pdf110-candidate-0027",
+    "brisson-le-meme-pdf110-candidate-0028",
+    "brisson-le-meme-pdf110-candidate-0029",
+    "brisson-le-meme-pdf110-candidate-0030",
+    "brisson-le-meme-pdf110-candidate-0031",
+    "brisson-le-meme-pdf110-candidate-0032",
+    "brisson-le-meme-pdf110-candidate-0033",
+    "brisson-le-meme-pdf110-candidate-0034",
+    "brisson-le-meme-pdf110-candidate-0035",
+    "brisson-le-meme-pdf110-candidate-0036",
+    "brisson-le-meme-pdf110-candidate-0037",
+    "brisson-le-meme-pdf110-visual-head-right",
+    "brisson-le-meme-pdf110-visual-page-right",
+    "brisson-le-meme-pdf110-candidate-0039",
+    "brisson-le-meme-pdf110-candidate-0040",
+    "brisson-le-meme-pdf110-candidate-0041",
+    "brisson-le-meme-pdf110-candidate-0042",
+    "brisson-le-meme-pdf110-candidate-0043",
+    "brisson-le-meme-pdf110-candidate-0044",
+    "brisson-le-meme-pdf110-candidate-0045",
+    "brisson-le-meme-pdf110-candidate-0046",
+    "brisson-le-meme-pdf110-candidate-0047",
+    "brisson-le-meme-pdf110-candidate-0048",
+    "brisson-le-meme-pdf110-candidate-0049",
+    "brisson-le-meme-pdf110-candidate-0050",
+    "brisson-le-meme-pdf110-candidate-0051",
+    "brisson-le-meme-pdf110-candidate-0052",
+    "brisson-le-meme-pdf110-candidate-0053",
+    "brisson-le-meme-pdf110-candidate-0054",
+    "brisson-le-meme-pdf110-candidate-0055",
+    "brisson-le-meme-pdf110-candidate-0056",
+    "brisson-le-meme-pdf110-candidate-0057",
+    "brisson-le-meme-pdf110-candidate-0058",
+    "brisson-le-meme-pdf110-candidate-0059",
+    "brisson-le-meme-pdf110-candidate-0060",
+    "brisson-le-meme-pdf110-candidate-0061",
+    "brisson-le-meme-pdf110-candidate-0062",
+    "brisson-le-meme-pdf110-candidate-0063",
+    "brisson-le-meme-pdf110-candidate-0064",
+    "brisson-le-meme-pdf110-candidate-0065",
+    "brisson-le-meme-pdf110-candidate-0066",
+    "brisson-le-meme-pdf110-candidate-0067",
+    "brisson-le-meme-pdf110-candidate-0068",
+    "brisson-le-meme-pdf110-candidate-0069",
+    "brisson-le-meme-pdf110-candidate-0070",
+    "brisson-le-meme-pdf110-candidate-0071",
+    "brisson-le-meme-pdf110-candidate-0072",
+    "brisson-le-meme-pdf110-candidate-0073",
+    "brisson-le-meme-pdf110-candidate-0074",
+    "brisson-le-meme-pdf110-candidate-0075",
+    "brisson-le-meme-pdf110-candidate-0076",
+    "brisson-le-meme-pdf110-candidate-0077",
+    "brisson-le-meme-pdf110-candidate-0078",
+    "brisson-le-meme-pdf110-candidate-0079"
+  ],
+  "visual_inspection": "All82lines fullpage reviewed, lefttop/rightlower enlarged. Need confirm line67 punctuation after Τιμαίῳ (colon visible full image) with crop. Missing three markers explain strict completion error. No fake exceptions.",
+  "changes": [
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0001",
+      "old_reading_order": 2,
+      "new_reading_order": 2,
+      "changed_fields": [
+        "inline_spans",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "le lieu intelligible (νοητοῦ ... τόπου), ne peut être pris dans le",
+      "new_text": "le lieu intelligible (νοητοῦ ... τόπου)1, ne peut être pris dans le",
+      "old_bbox": [
+        211,
+        220,
+        1553,
+        272
+      ],
+      "new_bbox": [
+        211,
+        220,
+        1553,
+        272
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0004",
+      "old_reading_order": 5,
+      "new_reading_order": 5,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "apporte 4 l’allégorie de la caverne décrite dans la République réside",
+      "new_text": "apporte à l’allégorie de la caverne décrite dans la République réside",
+      "old_bbox": [
+        212,
+        370,
+        1553,
+        414
+      ],
+      "new_bbox": [
+        212,
+        370,
+        1553,
+        414
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0007",
+      "old_reading_order": 8,
+      "new_reading_order": 8,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "les deux cas, un espace impliquant ce caractére constitutif",
+      "new_text": "les deux cas, un espace impliquant ce caractère constitutif",
+      "old_bbox": [
+        211,
+        517,
+        1553,
+        561
+      ],
+      "new_bbox": [
+        211,
+        517,
+        1553,
+        561
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0009",
+      "old_reading_order": 10,
+      "new_reading_order": 10,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "Or, la premiére et la seconde séquences d’images relevées et",
+      "new_text": "Or, la première et la seconde séquences d’images relevées et",
+      "old_bbox": [
+        257,
+        615,
+        1553,
+        659
+      ],
+      "new_bbox": [
+        257,
+        615,
+        1553,
+        659
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0012",
+      "old_reading_order": 13,
+      "new_reading_order": 13,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "sible, méme si une telle description emploie sans cesse la préposition",
+      "new_text": "sible, même si une telle description emploie sans cesse la préposition",
+      "old_bbox": [
+        210,
+        762,
+        1552,
+        806
+      ],
+      "new_bbox": [
+        210,
+        762,
+        1552,
+        806
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0013",
+      "old_reading_order": 14,
+      "new_reading_order": 14,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "«en». Car, puisque cet élément constitutif des phénomènes",
+      "new_text": "« en ». Car, puisque cet élément constitutif des phénomènes",
+      "old_bbox": [
+        210,
+        812,
+        1552,
+        855
+      ],
+      "new_bbox": [
+        210,
+        812,
+        1552,
+        855
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0014",
+      "old_reading_order": 15,
+      "new_reading_order": 15,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "coincide avec son extension spatiale finie, le fait de dire «en»",
+      "new_text": "coïncide avec son extension spatiale finie, le fait de dire « en »",
+      "old_bbox": [
+        210,
+        861,
+        1553,
+        904
+      ],
+      "new_bbox": [
+        210,
+        861,
+        1553,
+        904
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0016",
+      "old_reading_order": 17,
+      "new_reading_order": 17,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "beaucoup plus ambigu que le fait de dire «en», car il se réfère à",
+      "new_text": "beaucoup plus ambigu que le fait de dire « en », car il se réfère à",
+      "old_bbox": [
+        209,
+        958,
+        1551,
+        1001
+      ],
+      "new_bbox": [
+        209,
+        958,
+        1551,
+        1001
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0023",
+      "old_reading_order": 24,
+      "new_reading_order": 24,
+      "changed_fields": [
+        "inline_spans",
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "8.2. ÉVOLUTION DE LA NOTION DE MILIEU SPATIAL",
+      "new_text": "3.2. ÉVOLUTION DE LA NOTION DE MILIEU SPATIAL",
+      "old_bbox": [
+        348,
+        1481,
+        1407,
+        1521
+      ],
+      "new_bbox": [
+        348,
+        1481,
+        1407,
+        1521
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0032",
+      "old_reading_order": 33,
+      "new_reading_order": 33,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "hension que nous croyons déceler dans ces interprétations En",
+      "new_text": "hension que nous croyons déceler dans ces interprétations. En",
+      "old_bbox": [
+        207,
+        2007,
+        1553,
+        2050
+      ],
+      "new_bbox": [
+        207,
+        2007,
+        1553,
+        2050
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0034",
+      "old_reading_order": 35,
+      "new_reading_order": 35,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "un decapage dont nous tentons, à l'occasion l'enlèvement de",
+      "new_text": "un décapage dont nous tentons, à l'occasion l'enlèvement de",
+      "old_bbox": [
+        207,
+        2104,
+        1552,
+        2148
+      ],
+      "new_bbox": [
+        207,
+        2104,
+        1552,
+        2148
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0037",
+      "old_reading_order": 38,
+      "new_reading_order": 38,
+      "changed_fields": [
+        "inline_spans",
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "(1) Rep., 509 d 2.",
+      "new_text": "(1) Rép., 509 d 2.",
+      "old_bbox": [
+        252,
+        2347,
+        523,
+        2377
+      ],
+      "new_bbox": [
+        252,
+        2347,
+        523,
+        2377
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0043",
+      "old_reading_order": 45,
+      "new_reading_order": 45,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "Le courant d’interpretations le plus insidieux et, par conséquent,",
+      "new_text": "Le courant d’interprétations le plus insidieux et, par conséquent,",
+      "old_bbox": [
+        1938,
+        498,
+        3231,
+        541
+      ],
+      "new_bbox": [
+        1938,
+        498,
+        3231,
+        541
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0051",
+      "old_reading_order": 53,
+      "new_reading_order": 53,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "nous étudierons l'interprétation aristotelicienne du milieu",
+      "new_text": "nous étudierons l'interprétation aristotélicienne du milieu",
+      "old_bbox": [
+        1892,
+        890,
+        3232,
+        932
+      ],
+      "new_bbox": [
+        1892,
+        890,
+        3232,
+        932
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0053",
+      "old_reading_order": 55,
+      "new_reading_order": 55,
+      "changed_fields": [
+        "inline_spans",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "valeur du fameux texte de la Physique! où il est parlé des",
+      "new_text": "valeur du fameux texte de la Physique1 où il est parlé des",
+      "old_bbox": [
+        1890,
+        988,
+        3232,
+        1031
+      ],
+      "new_bbox": [
+        1890,
+        988,
+        3232,
+        1031
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0058",
+      "old_reading_order": 60,
+      "new_reading_order": 60,
+      "changed_fields": [
+        "inline_spans",
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "A. Aristole.",
+      "new_text": "A. Aristote.",
+      "old_bbox": [
+        1891,
+        1260,
+        2120,
+        1293
+      ],
+      "new_bbox": [
+        1891,
+        1260,
+        2120,
+        1293
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0060",
+      "old_reading_order": 62,
+      "new_reading_order": 62,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "le Timee l'identité de la matière et de l'étendue. Car le participant",
+      "new_text": "le Timée l'identité de la matière et de l'étendue. Car le participant",
+      "old_bbox": [
+        1893,
+        1371,
+        3235,
+        1414
+      ],
+      "new_bbox": [
+        1893,
+        1371,
+        3235,
+        1414
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0064",
+      "old_reading_order": 66,
+      "new_reading_order": 66,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "le lieu et l'étendue (Διὸ καὶ Πλάτων thy ὕλην καὶ thy χώραν τὸ αὐτό",
+      "new_text": "le lieu et l'étendue (Διὸ καὶ Πλάτων τὴν ὕλην καὶ τὴν χώραν τὸ αὐτό",
+      "old_bbox": [
+        1895,
+        1566,
+        3233,
+        1610
+      ],
+      "new_bbox": [
+        1895,
+        1566,
+        3233,
+        1610
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0065",
+      "old_reading_order": 67,
+      "new_reading_order": 67,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "φησιν εἶναι ἐν τῷ Τιμαίῳ τὸ γὰρ μεταληπτικὸν καὶ τὴν χώραν ἕν χαὶ",
+      "new_text": "φησιν εἶναι ἐν τῷ Τιμαίῳ · τὸ γὰρ μεταληπτικὸν καὶ τὴν χώραν ἓν καὶ",
+      "old_bbox": [
+        1895,
+        1616,
+        3235,
+        1658
+      ],
+      "new_bbox": [
+        1895,
+        1616,
+        3235,
+        1658
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0068",
+      "old_reading_order": 70,
+      "new_reading_order": 70,
+      "changed_fields": [
+        "inline_spans",
+        "source",
+        "structure_status",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "ἀπεφήνατο). »5 Ce texte pose au moins deux grandes difficultés.",
+      "new_text": "ἀπεφήνατο). »2 Ce texte pose au moins deux grandes difficultés.",
+      "old_bbox": [
+        1893,
+        1762,
+        3232,
+        1805
+      ],
+      "new_bbox": [
+        1893,
+        1762,
+        3232,
+        1805
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0071",
+      "old_reading_order": 73,
+      "new_reading_order": 73,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "qu’implique d’un côté le type de relations existant entre le Timee",
+      "new_text": "qu’implique d’un côté le type de relations existant entre le Timée",
+      "old_bbox": [
+        1895,
+        1909,
+        3235,
+        1952
+      ],
+      "new_bbox": [
+        1895,
+        1909,
+        3235,
+        1952
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf110-candidate-0075",
+      "old_reading_order": 77,
+      "new_reading_order": 77,
+      "changed_fields": [
+        "source",
+        "text",
+        "transcription_status",
+        "typography_status"
+      ],
+      "old_text": "fait Aristote : « Platon affirme dans le Timee l'identité de la matière",
+      "new_text": "fait Aristote : « Platon affirme dans le Timée l'identité de la matière",
+      "old_bbox": [
+        1898,
+        2104,
+        3235,
+        2137
+      ],
+      "new_bbox": [
+        1898,
+        2104,
+        3235,
+        2137
+      ]
+    }
+  ],
+  "removed_duplicate_fragment_line_ids": [],
+  "unresolved_human_qa_issues": [
+    "Human must QA exact characters, geometry, reading order and exhaustive coverage.",
+    "AI draft is not human Gold; full semantic/typography D is deferred."
+  ],
+  "validation": {
+    "draft_schema": "pass",
+    "inline_span_slices": "pass"
+  }
+}

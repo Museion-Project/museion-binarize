@@ -1,0 +1,1814 @@
+{
+  "page_id": "brisson-le-meme-pdf170",
+  "review_kind": "AI_visual_preannotation_not_human_gold",
+  "full_original_image_viewed": true,
+  "image_sha256": "365c0feffbf1609ce9a3e5822cdf8550675d030aed04b95ff0e1160763961e15",
+  "baseline_sha256": "a179b83c60eb6a4e29640171335773ad4337c6deeaede55d20a4119ee0f253e3",
+  "line_count": 91,
+  "line_ids_visually_compared": [
+    "brisson-le-meme-pdf170-visual-page-left",
+    "brisson-le-meme-pdf170-visual-head-left",
+    "brisson-le-meme-pdf170-candidate-0001",
+    "brisson-le-meme-pdf170-candidate-0002",
+    "brisson-le-meme-pdf170-candidate-0003",
+    "brisson-le-meme-pdf170-candidate-0004",
+    "brisson-le-meme-pdf170-candidate-0005",
+    "brisson-le-meme-pdf170-candidate-0006",
+    "brisson-le-meme-pdf170-candidate-0007",
+    "brisson-le-meme-pdf170-candidate-0008",
+    "brisson-le-meme-pdf170-candidate-0009",
+    "brisson-le-meme-pdf170-candidate-0010",
+    "brisson-le-meme-pdf170-candidate-0011",
+    "brisson-le-meme-pdf170-candidate-0012",
+    "brisson-le-meme-pdf170-candidate-0013",
+    "brisson-le-meme-pdf170-candidate-0014",
+    "brisson-le-meme-pdf170-candidate-0015",
+    "brisson-le-meme-pdf170-candidate-0016",
+    "brisson-le-meme-pdf170-candidate-0017",
+    "brisson-le-meme-pdf170-candidate-0018",
+    "brisson-le-meme-pdf170-candidate-0019",
+    "brisson-le-meme-pdf170-candidate-0020",
+    "brisson-le-meme-pdf170-candidate-0021",
+    "brisson-le-meme-pdf170-candidate-0022",
+    "brisson-le-meme-pdf170-candidate-0023",
+    "brisson-le-meme-pdf170-candidate-0024",
+    "brisson-le-meme-pdf170-candidate-0025",
+    "brisson-le-meme-pdf170-candidate-0026",
+    "brisson-le-meme-pdf170-candidate-0027",
+    "brisson-le-meme-pdf170-candidate-0028",
+    "brisson-le-meme-pdf170-candidate-0029",
+    "brisson-le-meme-pdf170-candidate-0030",
+    "brisson-le-meme-pdf170-candidate-0031",
+    "brisson-le-meme-pdf170-candidate-0032",
+    "brisson-le-meme-pdf170-candidate-0033",
+    "brisson-le-meme-pdf170-candidate-0034",
+    "brisson-le-meme-pdf170-candidate-0035",
+    "brisson-le-meme-pdf170-candidate-0036",
+    "brisson-le-meme-pdf170-candidate-0037",
+    "brisson-le-meme-pdf170-candidate-0038",
+    "brisson-le-meme-pdf170-candidate-0039",
+    "brisson-le-meme-pdf170-candidate-0040",
+    "brisson-le-meme-pdf170-candidate-0041",
+    "brisson-le-meme-pdf170-candidate-0042",
+    "brisson-le-meme-pdf170-candidate-0043",
+    "brisson-le-meme-pdf170-candidate-0047",
+    "brisson-le-meme-pdf170-visual-head-right",
+    "brisson-le-meme-pdf170-visual-page-right",
+    "brisson-le-meme-pdf170-candidate-0049",
+    "brisson-le-meme-pdf170-candidate-0050",
+    "brisson-le-meme-pdf170-candidate-0051",
+    "brisson-le-meme-pdf170-candidate-0052",
+    "brisson-le-meme-pdf170-candidate-0053",
+    "brisson-le-meme-pdf170-candidate-0054",
+    "brisson-le-meme-pdf170-candidate-0055",
+    "brisson-le-meme-pdf170-candidate-0056",
+    "brisson-le-meme-pdf170-candidate-0057",
+    "brisson-le-meme-pdf170-candidate-0058",
+    "brisson-le-meme-pdf170-candidate-0059",
+    "brisson-le-meme-pdf170-candidate-0060",
+    "brisson-le-meme-pdf170-candidate-0061",
+    "brisson-le-meme-pdf170-candidate-0062",
+    "brisson-le-meme-pdf170-candidate-0063",
+    "brisson-le-meme-pdf170-candidate-0064",
+    "brisson-le-meme-pdf170-candidate-0065",
+    "brisson-le-meme-pdf170-candidate-0066",
+    "brisson-le-meme-pdf170-candidate-0067",
+    "brisson-le-meme-pdf170-candidate-0068",
+    "brisson-le-meme-pdf170-candidate-0069",
+    "brisson-le-meme-pdf170-candidate-0070",
+    "brisson-le-meme-pdf170-candidate-0071",
+    "brisson-le-meme-pdf170-candidate-0072",
+    "brisson-le-meme-pdf170-candidate-0073",
+    "brisson-le-meme-pdf170-candidate-0074",
+    "brisson-le-meme-pdf170-candidate-0075",
+    "brisson-le-meme-pdf170-candidate-0076",
+    "brisson-le-meme-pdf170-candidate-0077",
+    "brisson-le-meme-pdf170-candidate-0078",
+    "brisson-le-meme-pdf170-candidate-0079",
+    "brisson-le-meme-pdf170-candidate-0080",
+    "brisson-le-meme-pdf170-candidate-0081",
+    "brisson-le-meme-pdf170-candidate-0082",
+    "brisson-le-meme-pdf170-candidate-0083",
+    "brisson-le-meme-pdf170-candidate-0084",
+    "brisson-le-meme-pdf170-candidate-0085",
+    "brisson-le-meme-pdf170-candidate-0086",
+    "brisson-le-meme-pdf170-candidate-0087",
+    "brisson-le-meme-pdf170-candidate-0088",
+    "brisson-le-meme-pdf170-candidate-0089",
+    "brisson-le-meme-pdf170-candidate-0090",
+    "brisson-le-meme-pdf170-candidate-0097"
+  ],
+  "visual_inspection": "Fullspread+4 full-resolution body/note crops visually reviewed. Deleted rows are separated opening parentheses/note6 duplicate fragments. MUST expand note boxes to x~180 left or1950 right to include merged parenthesis; line99 union with93. Renumber read_order after delete. Correct note IDs/starts based actual9left,6right definitions; preserve source ordinals before edits. line3 accent αὐτή needs extra crop confirmation if desired; damaged leftmargin optional uncertainty report.",
+  "changes": [
+    {
+      "line_id": "brisson-le-meme-pdf170-visual-head-left",
+      "old_reading_order": 1,
+      "new_reading_order": 1,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "L’ÄME DU MONDE",
+      "new_text": "L’ÂME DU MONDE",
+      "old_bbox": [
+        363,
+        133,
+        968,
+        169
+      ],
+      "new_bbox": [
+        363,
+        133,
+        968,
+        169
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0001",
+      "old_reading_order": 2,
+      "new_reading_order": 2,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "Ist, là-dessus, Platon passe à la fonction motrice de l’äme du",
+      "new_text": "Et, là-dessus, Platon passe à la fonction motrice de l’âme du",
+      "old_bbox": [
+        204,
+        217,
+        1488,
+        261
+      ],
+      "new_bbox": [
+        204,
+        217,
+        1488,
+        261
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0002",
+      "old_reading_order": 3,
+      "new_reading_order": 3,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "monde : αὐτῇ te ἀναχυχλουμένη πρὸς adrhvl. Ce membre de phrase",
+      "new_text": "monde : αὐτή τε ἀνακυκλουμένη πρὸς αὑτήν1. Ce membre de phrase",
+      "old_bbox": [
+        156,
+        267,
+        1487,
+        314
+      ],
+      "new_bbox": [
+        156,
+        267,
+        1487,
+        314
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0003",
+      "old_reading_order": 4,
+      "new_reading_order": 4,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "pose certaines difficultés. D’une part, on remarque que dvaxu-",
+      "new_text": "pose certaines difficultés. D’une part, on remarque que ἀνακυ-",
+      "old_bbox": [
+        156,
+        315,
+        1488,
+        362
+      ],
+      "new_bbox": [
+        156,
+        315,
+        1488,
+        362
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0006",
+      "old_reading_order": 7,
+      "new_reading_order": 7,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "par «le mouvement de rétrogradation circulaire » comme A. Dies.",
+      "new_text": "par « le mouvement de rétrogradation circulaire » comme A. Diès.",
+      "old_bbox": [
+        154,
+        462,
+        1483,
+        504
+      ],
+      "new_bbox": [
+        154,
+        462,
+        1483,
+        504
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0007",
+      "old_reading_order": 8,
+      "new_reading_order": 8,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "D'autre part, l’expression πρὸς αὑτὴν explicite ἀνακυχλουμένη.",
+      "new_text": "D’autre part, l’expression πρὸς αὑτὴν explicite ἀνακυκλουμένη.",
+      "old_bbox": [
+        157,
+        511,
+        1483,
+        558
+      ],
+      "new_bbox": [
+        157,
+        511,
+        1483,
+        558
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0008",
+      "old_reading_order": 9,
+      "new_reading_order": 9,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "Ist. le membre de phrase en son entier renvoie à ce « mouvement",
+      "new_text": "Et le membre de phrase en son entier renvoie à ce « mouvement",
+      "old_bbox": [
+        156,
+        559,
+        1485,
+        601
+      ],
+      "new_bbox": [
+        156,
+        559,
+        1485,
+        601
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0010",
+      "old_reading_order": 11,
+      "new_reading_order": 11,
+      "changed_fields": [
+        "inline_spans"
+      ],
+      "old_text": "ἐν ταὐτῷ περιαγομένῃ κινήσει) »2, dont le démiurge enveloppe les",
+      "new_text": "ἐν ταὐτῷ περιαγομένῃ κινήσει) »2, dont le démiurge enveloppe les",
+      "old_bbox": [
+        150,
+        657,
+        1484,
+        704
+      ],
+      "new_bbox": [
+        150,
+        657,
+        1484,
+        704
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0016",
+      "old_reading_order": 17,
+      "new_reading_order": 17,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "monde peut appréhender : ὅταν οὐσίαν oxedaorhv ἔχοντός τινος",
+      "new_text": "monde peut appréhender : ὅταν οὐσίαν σκεδαστὴν ἔχοντός τινος",
+      "old_bbox": [
+        150,
+        950,
+        1480,
+        1004
+      ],
+      "new_bbox": [
+        150,
+        950,
+        1480,
+        1004
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0017",
+      "old_reading_order": 18,
+      "new_reading_order": 18,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "ἐφάπτηται καὶ ὅταν ἀμέριστονδ. On remarquera, tout d’abord, que",
+      "new_text": "ἐφάπτηται καὶ ὅταν ἀμέριστον3. On remarquera, tout d’abord, que",
+      "old_bbox": [
+        147,
+        1003,
+        1479,
+        1049
+      ],
+      "new_bbox": [
+        147,
+        1003,
+        1479,
+        1049
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0021",
+      "old_reading_order": 22,
+      "new_reading_order": 22,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "peut, l'être que métaphoriquement à la connaissance intelligible‘.",
+      "new_text": "peut l’être que métaphoriquement à la connaissance intelligible4.",
+      "old_bbox": [
+        147,
+        1198,
+        1474,
+        1244
+      ],
+      "new_bbox": [
+        147,
+        1198,
+        1474,
+        1244
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0023",
+      "old_reading_order": 24,
+      "new_reading_order": 24,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "τινος renvoie à τῆς αὖ περὶ τὰ σώματα γιγνομένης μεριστῆςδ, et",
+      "new_text": "τινος renvoie à τῆς αὖ περὶ τὰ σώματα γιγνομένης μεριστῆς5, et",
+      "old_bbox": [
+        145,
+        1295,
+        1475,
+        1341
+      ],
+      "new_bbox": [
+        145,
+        1295,
+        1475,
+        1341
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0024",
+      "old_reading_order": 25,
+      "new_reading_order": 25,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "qu'il désigne les choses sensibles. Alors que - οὐσίαν >= ἀμερίστον",
+      "new_text": "qu’il désigne les choses sensibles. Alors que <οὐσίαν> ἀμερίστον",
+      "old_bbox": [
+        144,
+        1340,
+        1476,
+        1394
+      ],
+      "new_bbox": [
+        144,
+        1340,
+        1476,
+        1394
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0025",
+      "old_reading_order": 26,
+      "new_reading_order": 26,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "Eyovrög τινος renvoic à τῆς ἀμερίστου καὶ del χατὰ ταὐτὰ",
+      "new_text": "<ἔχοντός τινος> renvoie à τῆς ἀμερίστου καὶ ἀεὶ κατὰ ταὐτὰ",
+      "old_bbox": [
+        165,
+        1393,
+        1475,
+        1437
+      ],
+      "new_bbox": [
+        165,
+        1393,
+        1475,
+        1437
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0026",
+      "old_reading_order": 27,
+      "new_reading_order": 27,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "ἐχούσης οὐσίας ; et qu'il désigne les formes intelligibles’.",
+      "new_text": "ἐχούσης οὐσίας6 ; et qu’il désigne les formes intelligibles7.",
+      "old_bbox": [
+        141,
+        1438,
+        1321,
+        1491
+      ],
+      "new_bbox": [
+        141,
+        1438,
+        1321,
+        1491
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0029",
+      "old_reading_order": 30,
+      "new_reading_order": 30,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "37a5-b3, dont la construction et la traduction s'avèrent",
+      "new_text": "37 a 5 - b 3, dont la construction et la traduction s’avèrent",
+      "old_bbox": [
+        139,
+        1593,
+        1473,
+        1632
+      ],
+      "new_bbox": [
+        139,
+        1593,
+        1473,
+        1632
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0032",
+      "old_reading_order": 33,
+      "new_reading_order": 33,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "conséquence, trois types d’interpretation®.",
+      "new_text": "conséquence, trois types d’interprétation8.",
+      "old_bbox": [
+        138,
+        1740,
+        986,
+        1783
+      ],
+      "new_bbox": [
+        138,
+        1740,
+        986,
+        1783
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0033",
+      "old_reading_order": 34,
+      "new_reading_order": 34,
+      "changed_fields": [
+        "text"
+      ],
+      "old_text": "Ou bien tout le passage, depuis ὅταν οὐσίαν σχκεδαστὴν jusqu’à",
+      "new_text": "Ou bien tout le passage, depuis ὅταν οὐσίαν σκεδαστὴν jusqu’à",
+      "old_bbox": [
+        186,
+        1792,
+        1471,
+        1838
+      ],
+      "new_bbox": [
+        186,
+        1792,
+        1471,
+        1838
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0034",
+      "old_reading_order": 35,
+      "new_reading_order": 35,
+      "changed_fields": [
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "ἔχοντα ἀεὶϑ, doit s'entendre comme une seule phrase où, au sujet",
+      "new_text": "ἔχοντα ἀεὶ9, doit s’entendre comme une seule phrase où, au sujet",
+      "old_bbox": [
+        137,
+        1841,
+        1473,
+        1886
+      ],
+      "new_bbox": [
+        137,
+        1841,
+        1473,
+        1886
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0035",
+      "old_reading_order": 36,
+      "new_reading_order": 36,
+      "changed_fields": [
+        "bbox",
+        "note_id",
+        "paragraph_role",
+        "text"
+      ],
+      "old_text": ") Tim., 37 a 5.",
+      "new_text": "(1) Tim., 37 a 5.",
+      "old_bbox": [
+        214,
+        1975,
+        439,
+        2004
+      ],
+      "new_bbox": [
+        180,
+        1975,
+        439,
+        2004
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0036",
+      "old_reading_order": 37,
+      "new_reading_order": 37,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "2) Id., 36 c 2-3.",
+      "new_text": "(2) Id., 36 c 2-3.",
+      "old_bbox": [
+        192,
+        2016,
+        435,
+        2044
+      ],
+      "new_bbox": [
+        180,
+        2016,
+        435,
+        2044
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0037",
+      "old_reading_order": 38,
+      "new_reading_order": 38,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "note_id",
+        "paragraph_role",
+        "text"
+      ],
+      "old_text": ") Id., 37 ἃ 5-6.",
+      "new_text": "(3) Id., 37 a 5-6.",
+      "old_bbox": [
+        214,
+        2055,
+        436,
+        2083
+      ],
+      "new_bbox": [
+        180,
+        2055,
+        436,
+        2083
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0038",
+      "old_reading_order": 39,
+      "new_reading_order": 39,
+      "changed_fields": [
+        "bbox",
+        "note_id",
+        "paragraph_role",
+        "text"
+      ],
+      "old_text": ") On remarquera que Platon va même jusqu’à affirmer καὶ ἐφαπτόμενοι αὐτοῦ",
+      "new_text": "(4) On remarquera que Platon va même jusqu’à affirmer καὶ ἐφαπτόμενοι αὐτοῦ",
+      "old_bbox": [
+        215,
+        2095,
+        1471,
+        2130
+      ],
+      "new_bbox": [
+        180,
+        2095,
+        1471,
+        2130
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0039",
+      "old_reading_order": 40,
+      "new_reading_order": 40,
+      "changed_fields": [
+        "note_id",
+        "text"
+      ],
+      "old_text": "(tod θεοῦ) τῇ μνήμῃ (Phèdre, 253 a 2-3). Cf. H. Cherniss, ACPA, p. 407.",
+      "new_text": "(τοῦ θεοῦ) τῇ μνήμῃ (Phèdre, 253 a 2-3). Cf. H. Cherniss, ACPA, p. 407.",
+      "old_bbox": [
+        140,
+        2133,
+        1314,
+        2168
+      ],
+      "new_bbox": [
+        140,
+        2133,
+        1314,
+        2168
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0040",
+      "old_reading_order": 41,
+      "new_reading_order": 41,
+      "changed_fields": [
+        "bbox"
+      ],
+      "old_text": "(5) Tim., 35 a 2-3.",
+      "new_text": "(5) Tim., 35 a 2-3.",
+      "old_bbox": [
+        183,
+        2175,
+        466,
+        2203
+      ],
+      "new_bbox": [
+        180,
+        2175,
+        466,
+        2203
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0041",
+      "old_reading_order": 42,
+      "new_reading_order": 42,
+      "changed_fields": [
+        "bbox",
+        "text"
+      ],
+      "old_text": "6) /d., 35 a 1-2.",
+      "new_text": "(6) Id., 35 a 1-2.",
+      "old_bbox": [
+        193,
+        2215,
+        442,
+        2244
+      ],
+      "new_bbox": [
+        180,
+        2215,
+        442,
+        2244
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0042",
+      "old_reading_order": 43,
+      "new_reading_order": 43,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "text"
+      ],
+      "old_text": "7) Proclus, In Tim., II, 298.20 sq. et 300.5 sq.",
+      "new_text": "(7) Proclus, In Tim., II, 298.20 sq. et 300.5 sq.",
+      "old_bbox": [
+        195,
+        2255,
+        922,
+        2287
+      ],
+      "new_bbox": [
+        180,
+        2255,
+        922,
+        2287
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0043",
+      "old_reading_order": 44,
+      "new_reading_order": 44,
+      "changed_fields": [
+        "bbox",
+        "text"
+      ],
+      "old_text": "8) /d., 11, 302.16 - 303.13.",
+      "new_text": "(8) Id., II, 302.16 - 303.13.",
+      "old_bbox": [
+        193,
+        2291,
+        602,
+        2328
+      ],
+      "new_bbox": [
+        180,
+        2291,
+        602,
+        2328
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0047",
+      "old_reading_order": 48,
+      "new_reading_order": 45,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "(9) Tim., 37 8 5 - Ὁ 3.",
+      "new_text": "(9) Tim., 37 a 5 - b 3.",
+      "old_bbox": [
+        182,
+        2334,
+        516,
+        2363
+      ],
+      "new_bbox": [
+        180,
+        2334,
+        516,
+        2363
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-visual-head-right",
+      "old_reading_order": 49,
+      "new_reading_order": 46,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "FONCTION COGNITIVE (Timee 37 a 2-c 5)",
+      "new_text": "FONCTION COGNITIVE (Timée 37 a 2-c 5)",
+      "old_bbox": [
+        2210,
+        142,
+        3094,
+        183
+      ],
+      "new_bbox": [
+        2210,
+        142,
+        3094,
+        183
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-visual-page-right",
+      "old_reading_order": 50,
+      "new_reading_order": 47,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "343",
+      "new_text": "343",
+      "old_bbox": [
+        3144,
+        142,
+        3244,
+        183
+      ],
+      "new_bbox": [
+        3144,
+        142,
+        3244,
+        183
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0049",
+      "old_reading_order": 51,
+      "new_reading_order": 48,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "des choses sensibles et des formes intelligibles on discerne",
+      "new_text": "des choses sensibles et des formes intelligibles on discerne",
+      "old_bbox": [
+        1899,
+        225,
+        3242,
+        269
+      ],
+      "new_bbox": [
+        1899,
+        225,
+        3242,
+        269
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0050",
+      "old_reading_order": 52,
+      "new_reading_order": 49,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "(a) l'identité et la différence, et (b) les attributs de la substance.",
+      "new_text": "(a) l'identité et la différence, et (b) les attributs de la substance.",
+      "old_bbox": [
+        1900,
+        273,
+        3241,
+        319
+      ],
+      "new_bbox": [
+        1900,
+        273,
+        3241,
+        319
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0051",
+      "old_reading_order": 53,
+      "new_reading_order": 50,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Sont de cet avis Rivaud et Moreau, ainsi que Th. H. Martin.",
+      "new_text": "Sont de cet avis Rivaud et Moreau, ainsi que Th. H. Martin.",
+      "old_bbox": [
+        1899,
+        324,
+        3125,
+        366
+      ],
+      "new_bbox": [
+        1899,
+        324,
+        3125,
+        366
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0052",
+      "old_reading_order": 54,
+      "new_reading_order": 51,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Ou bien le passage en question doit s'entendre comme deux",
+      "new_text": "Ou bien le passage en question doit s'entendre comme deux",
+      "old_bbox": [
+        1946,
+        372,
+        3242,
+        415
+      ],
+      "new_bbox": [
+        1946,
+        372,
+        3242,
+        415
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0053",
+      "old_reading_order": 55,
+      "new_reading_order": 52,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "phrases : la première finissant à λέγει κινουμένη et concernant",
+      "new_text": "phrases : la première finissant à λέγει κινουμένη et concernant",
+      "old_bbox": [
+        1899,
+        421,
+        3242,
+        464
+      ],
+      "new_bbox": [
+        1899,
+        421,
+        3242,
+        464
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0054",
+      "old_reading_order": 56,
+      "new_reading_order": 53,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "l'essence (en entendant « quand elle touche ce qui a une essence",
+      "new_text": "l'essence (en entendant « quand elle touche ce qui a une essence",
+      "old_bbox": [
+        1898,
+        470,
+        3241,
+        513
+      ],
+      "new_bbox": [
+        1898,
+        470,
+        3241,
+        513
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0055",
+      "old_reading_order": 57,
+      "new_reading_order": 54,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "divisée et ce qui a une essence divisible, elle dit <ce qu’il est >);",
+      "new_text": "divisée et ce qui a une essence divisible, elle dit <ce qu’il est >);",
+      "old_bbox": [
+        1900,
+        519,
+        3240,
+        562
+      ],
+      "new_bbox": [
+        1900,
+        519,
+        3240,
+        562
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0056",
+      "old_reading_order": 58,
+      "new_reading_order": 55,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "la seconde impliquant la suite ὅτῳ τ᾽ ἄν τι (...) ἔχοντα ἀεὶ. Ainsi",
+      "new_text": "la seconde impliquant la suite ὅτῳ τ᾽ ἄν τι (...) ἔχοντα ἀεὶ. Ainsi",
+      "old_bbox": [
+        1900,
+        567,
+        3241,
+        611
+      ],
+      "new_bbox": [
+        1900,
+        567,
+        3241,
+        611
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0057",
+      "old_reading_order": 59,
+      "new_reading_order": 56,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "comprend Proclus.",
+      "new_text": "comprend Proclus.",
+      "old_bbox": [
+        1900,
+        617,
+        2273,
+        660
+      ],
+      "new_bbox": [
+        1900,
+        617,
+        2273,
+        660
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0058",
+      "old_reading_order": 60,
+      "new_reading_order": 57,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Ou bien ce même passage, depuis ὅταν doit se comprendre",
+      "new_text": "Ou bien ce même passage, depuis ὅταν doit se comprendre",
+      "old_bbox": [
+        1948,
+        664,
+        3241,
+        708
+      ],
+      "new_bbox": [
+        1948,
+        664,
+        3241,
+        708
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0059",
+      "old_reading_order": 61,
+      "new_reading_order": 58,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "comme trois phrases. D’abord ὅταν (...) λέγει κινουμένη διὰ πάσης",
+      "new_text": "comme trois phrases. D’abord ὅταν (...) λέγει κινουμένη διὰ πάσης",
+      "old_bbox": [
+        1902,
+        714,
+        3241,
+        757
+      ],
+      "new_bbox": [
+        1902,
+        714,
+        3241,
+        757
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0060",
+      "old_reading_order": 62,
+      "new_reading_order": 59,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "ἑαυτῆς ; puis ὅτῳ (...) ἕτερον ; et enfin πρὸς ὅτι (...) ἔχοντα ἀεί.",
+      "new_text": "ἑαυτῆς ; puis ὅτῳ (...) ἕτερον ; et enfin πρὸς ὅτι (...) ἔχοντα ἀεί.",
+      "old_bbox": [
+        1901,
+        758,
+        3239,
+        809
+      ],
+      "new_bbox": [
+        1901,
+        758,
+        3239,
+        809
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0061",
+      "old_reading_order": 63,
+      "new_reading_order": 60,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Ainsi construit Cornford : « The soul tells — (ὅτῳ τ᾽ ἄν τι ταὐτὸν ἢ",
+      "new_text": "Ainsi construit Cornford : « The soul tells — (ὅτῳ τ᾽ ἄν τι ταὐτὸν ἢ",
+      "old_bbox": [
+        1900,
+        807,
+        3242,
+        858
+      ],
+      "new_bbox": [
+        1900,
+        807,
+        3242,
+        858
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0062",
+      "old_reading_order": 64,
+      "new_reading_order": 61,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "χαὶ ὅτου ἂν ἕτερον) whatever it may be (say B) that something (A)",
+      "new_text": "καὶ ὅτου ἂν ἕτερον) whatever it may be (say B) that something (A)",
+      "old_bbox": [
+        1900,
+        860,
+        3238,
+        904
+      ],
+      "new_bbox": [
+        1900,
+        860,
+        3238,
+        904
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0063",
+      "old_reading_order": 65,
+      "new_reading_order": 62,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "is the same as or different from — in what respect precisely and",
+      "new_text": "is the same as or different from — in what respect precisely and",
+      "old_bbox": [
+        1900,
+        909,
+        3239,
+        952
+      ],
+      "new_bbox": [
+        1900,
+        909,
+        3239,
+        952
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0064",
+      "old_reading_order": 66,
+      "new_reading_order": 63,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "how and in what sense and when it comes about (ἕκαστα εἶναι καὶ",
+      "new_text": "how and in what sense and when it comes about (ἕκαστα εἶναι καὶ",
+      "old_bbox": [
+        1902,
+        957,
+        3240,
+        1000
+      ],
+      "new_bbox": [
+        1902,
+        957,
+        3240,
+        1000
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0065",
+      "old_reading_order": 67,
+      "new_reading_order": 64,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "πάσχειν) that it (A) is, or is qualified by, each of these terms (same",
+      "new_text": "πάσχειν) that it (A) is, or is qualified by, each of these terms (same",
+      "old_bbox": [
+        1898,
+        1006,
+        3238,
+        1051
+      ],
+      "new_bbox": [
+        1898,
+        1006,
+        3238,
+        1051
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0066",
+      "old_reading_order": 68,
+      "new_reading_order": 65,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "and different) (πρὸς ἕκαστον) in respect of any such thing (B), either",
+      "new_text": "and different) (πρὸς ἕκαστον) in respect of any such thing (B), either",
+      "old_bbox": [
+        1901,
+        1055,
+        3239,
+        1099
+      ],
+      "new_bbox": [
+        1901,
+        1055,
+        3239,
+        1099
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0067",
+      "old_reading_order": 69,
+      "new_reading_order": 66,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "in the sphere, etc. »! Nous discuterons de la validité de ces construc-",
+      "new_text": "in the sphere, etc. »1 Nous discuterons de la validité de ces construc-",
+      "old_bbox": [
+        1901,
+        1104,
+        3239,
+        1147
+      ],
+      "new_bbox": [
+        1901,
+        1104,
+        3239,
+        1147
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0068",
+      "old_reading_order": 70,
+      "new_reading_order": 67,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "tions et de ces interpretations en analysant chacun des membres de",
+      "new_text": "tions et de ces interprétations en analysant chacun des membres de",
+      "old_bbox": [
+        1900,
+        1152,
+        3237,
+        1195
+      ],
+      "new_bbox": [
+        1900,
+        1152,
+        3237,
+        1195
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0069",
+      "old_reading_order": 71,
+      "new_reading_order": 68,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "phrase suivants.",
+      "new_text": "phrase suivants.",
+      "old_bbox": [
+        1900,
+        1203,
+        2222,
+        1244
+      ],
+      "new_bbox": [
+        1900,
+        1203,
+        2222,
+        1244
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0070",
+      "old_reading_order": 72,
+      "new_reading_order": 69,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "Le membre de phrase λέγει κινουμένη διὰ πάσης ἑαυτῆς; peut",
+      "new_text": "Le membre de phrase λέγει κινουμένη διὰ πάσης ἑαυτῆς2 peut",
+      "old_bbox": [
+        1948,
+        1250,
+        3238,
+        1293
+      ],
+      "new_bbox": [
+        1948,
+        1250,
+        3238,
+        1293
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0071",
+      "old_reading_order": 73,
+      "new_reading_order": 70,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "être compris au moins de deux manières. Premièrement, certains",
+      "new_text": "être compris au moins de deux manières. Premièrement, certains",
+      "old_bbox": [
+        1901,
+        1298,
+        3236,
+        1342
+      ],
+      "new_bbox": [
+        1901,
+        1298,
+        3236,
+        1342
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0072",
+      "old_reading_order": 74,
+      "new_reading_order": 71,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "commentateurs ont construit διὰ πάσης ἑαυτῆς avec λέγει, comme",
+      "new_text": "commentateurs ont construit διὰ πάσης ἑαυτῆς avec λέγει3, comme",
+      "old_bbox": [
+        1901,
+        1347,
+        3236,
+        1390
+      ],
+      "new_bbox": [
+        1901,
+        1347,
+        3236,
+        1390
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0073",
+      "old_reading_order": 75,
+      "new_reading_order": 72,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Rivaud et Cornford. Mais ils ont beaucoup de difficultés à expliquer",
+      "new_text": "Rivaud et Cornford. Mais ils ont beaucoup de difficultés à expliquer",
+      "old_bbox": [
+        1904,
+        1396,
+        3239,
+        1439
+      ],
+      "new_bbox": [
+        1904,
+        1396,
+        3239,
+        1439
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0074",
+      "old_reading_order": 76,
+      "new_reading_order": 73,
+      "changed_fields": [
+        "reading_order",
+        "text"
+      ],
+      "old_text": "pourquoi il y a xıvouu&vn entre λέγει et διὰ πάσης ἑαυτῆς. De plus,",
+      "new_text": "pourquoi il y a κινουμένη entre λέγει et διὰ πάσης ἑαυτῆς. De plus,",
+      "old_bbox": [
+        1902,
+        1445,
+        3235,
+        1489
+      ],
+      "new_bbox": [
+        1902,
+        1445,
+        3235,
+        1489
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0075",
+      "old_reading_order": 77,
+      "new_reading_order": 74,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "on doit se rappeler que, pour Platon, la connaissance est essentielle-",
+      "new_text": "on doit se rappeler que, pour Platon, la connaissance est essentielle-",
+      "old_bbox": [
+        1901,
+        1494,
+        3237,
+        1537
+      ],
+      "new_bbox": [
+        1901,
+        1494,
+        3237,
+        1537
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0076",
+      "old_reading_order": 78,
+      "new_reading_order": 75,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "ment mouvement. Et cela aussi bien en ce qui concerne la",
+      "new_text": "ment mouvement. Et cela aussi bien en ce qui concerne la",
+      "old_bbox": [
+        1902,
+        1542,
+        3236,
+        1585
+      ],
+      "new_bbox": [
+        1902,
+        1542,
+        3236,
+        1585
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0077",
+      "old_reading_order": 79,
+      "new_reading_order": 76,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "connaissance sensible, dont cependant le terme est la partie",
+      "new_text": "connaissance sensible, dont cependant le terme est la partie",
+      "old_bbox": [
+        1902,
+        1591,
+        3236,
+        1634
+      ],
+      "new_bbox": [
+        1902,
+        1591,
+        3236,
+        1634
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0078",
+      "old_reading_order": 80,
+      "new_reading_order": 77,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "intelligible de l’âme, qu’en ce qui concerne la connaissance",
+      "new_text": "intelligible de l’âme4, qu’en ce qui concerne la connaissance",
+      "old_bbox": [
+        1902,
+        1640,
+        3236,
+        1684
+      ],
+      "new_bbox": [
+        1902,
+        1640,
+        3236,
+        1684
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0079",
+      "old_reading_order": 81,
+      "new_reading_order": 78,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "intelligible°.",
+      "new_text": "intelligible5.",
+      "old_bbox": [
+        1903,
+        1691,
+        2137,
+        1732
+      ],
+      "new_bbox": [
+        1903,
+        1691,
+        2137,
+        1732
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0080",
+      "old_reading_order": 82,
+      "new_reading_order": 79,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Voilà pourquoi la plupart des commentateurs (Stallbaum, Martin,",
+      "new_text": "Voilà pourquoi la plupart des commentateurs (Stallbaum, Martin,",
+      "old_bbox": [
+        1949,
+        1738,
+        3235,
+        1781
+      ],
+      "new_bbox": [
+        1949,
+        1738,
+        3235,
+        1781
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0081",
+      "old_reading_order": 83,
+      "new_reading_order": 80,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "Taylor et Moreau par exemple) construisent διὰ πάσης ἑαυτῆς",
+      "new_text": "Taylor et Moreau par exemple) construisent διὰ πάσης ἑαυτῆς",
+      "old_bbox": [
+        1903,
+        1786,
+        3237,
+        1830
+      ],
+      "new_bbox": [
+        1903,
+        1786,
+        3237,
+        1830
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0082",
+      "old_reading_order": 84,
+      "new_reading_order": 81,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "avec κινουμένη. Ce qui revient à dire que, mise en mouvement",
+      "new_text": "avec κινουμένη. Ce qui revient à dire que, mise en mouvement",
+      "old_bbox": [
+        1903,
+        1835,
+        3238,
+        1878
+      ],
+      "new_bbox": [
+        1903,
+        1835,
+        3238,
+        1878
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0083",
+      "old_reading_order": 85,
+      "new_reading_order": 82,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "par son contact avec une substance, que cette substance soit",
+      "new_text": "par son contact avec une substance, que cette substance soit",
+      "old_bbox": [
+        1903,
+        1884,
+        3238,
+        1927
+      ],
+      "new_bbox": [
+        1903,
+        1884,
+        3238,
+        1927
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0084",
+      "old_reading_order": 86,
+      "new_reading_order": 83,
+      "changed_fields": [
+        "reading_order"
+      ],
+      "old_text": "d’ordre sensible ou d’ordre intelligible, l’âme du monde achève",
+      "new_text": "d’ordre sensible ou d’ordre intelligible, l’âme du monde achève",
+      "old_bbox": [
+        1903,
+        1932,
+        3236,
+        1974
+      ],
+      "new_bbox": [
+        1903,
+        1932,
+        3236,
+        1974
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0085",
+      "old_reading_order": 87,
+      "new_reading_order": 84,
+      "changed_fields": [
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "cette connaissance dans un λόγος δ, Et cela n’a rien de surprenant,",
+      "new_text": "cette connaissance dans un λόγος6. Et cela n’a rien de surprenant,",
+      "old_bbox": [
+        1903,
+        1977,
+        3234,
+        2028
+      ],
+      "new_bbox": [
+        1903,
+        1977,
+        3234,
+        2028
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0086",
+      "old_reading_order": 88,
+      "new_reading_order": 85,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "text"
+      ],
+      "old_text": ") F. M. Cornford, Pl. cosm., Ὁ. 94, n. 4.",
+      "new_text": "(1) F. M. Cornford, Pl. cosm., p. 94, n. 4.",
+      "old_bbox": [
+        1981,
+        2116,
+        2583,
+        2147
+      ],
+      "new_bbox": [
+        1949,
+        2116,
+        2583,
+        2147
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0087",
+      "old_reading_order": 89,
+      "new_reading_order": 86,
+      "changed_fields": [
+        "bbox",
+        "note_id",
+        "paragraph_role",
+        "reading_order",
+        "text"
+      ],
+      "old_text": ") Tim., 37 a 6-7.",
+      "new_text": "(2) Tim., 37 a 6-7.",
+      "old_bbox": [
+        1981,
+        2157,
+        2236,
+        2187
+      ],
+      "new_bbox": [
+        1949,
+        2157,
+        2236,
+        2187
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0088",
+      "old_reading_order": 90,
+      "new_reading_order": 87,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "3) Proclus, In Tim., 11, 301.7, 9 sq., 17 sq., 28 sq.",
+      "new_text": "(3) Proclus, In Tim., II, 301.7, 9 sq., 17 sq., 28 sq.",
+      "old_bbox": [
+        1962,
+        2196,
+        2756,
+        2227
+      ],
+      "new_bbox": [
+        1949,
+        2196,
+        2756,
+        2227
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0089",
+      "old_reading_order": 91,
+      "new_reading_order": 88,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "4) Tim., 64 b 5-6.",
+      "new_text": "(4) Tim., 64 b 5-6.",
+      "old_bbox": [
+        1962,
+        2237,
+        2234,
+        2266
+      ],
+      "new_bbox": [
+        1949,
+        2237,
+        2234,
+        2266
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0090",
+      "old_reading_order": 92,
+      "new_reading_order": 89,
+      "changed_fields": [
+        "bbox",
+        "inline_spans",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "5) Soph., 248 ἃ 10-el.",
+      "new_text": "(5) Soph., 248 d 10 - e 1.",
+      "old_bbox": [
+        1963,
+        2277,
+        2324,
+        2306
+      ],
+      "new_bbox": [
+        1949,
+        2277,
+        2324,
+        2306
+      ]
+    },
+    {
+      "line_id": "brisson-le-meme-pdf170-candidate-0097",
+      "old_reading_order": 99,
+      "new_reading_order": 90,
+      "changed_fields": [
+        "bbox",
+        "reading_order",
+        "text"
+      ],
+      "old_text": "(6) Proclus, In Tim., Il, 298.20 - 299.34.",
+      "new_text": "(6) Proclus, In Tim., II, 298.20 - 299.34.",
+      "old_bbox": [
+        1951,
+        2306,
+        2590,
+        2355
+      ],
+      "new_bbox": [
+        1949,
+        2306,
+        2590,
+        2355
+      ]
+    }
+  ],
+  "removed_duplicate_fragment_line_ids": [
+    "brisson-le-meme-pdf170-candidate-0044",
+    "brisson-le-meme-pdf170-candidate-0045",
+    "brisson-le-meme-pdf170-candidate-0046",
+    "brisson-le-meme-pdf170-candidate-0091",
+    "brisson-le-meme-pdf170-candidate-0092",
+    "brisson-le-meme-pdf170-candidate-0093",
+    "brisson-le-meme-pdf170-candidate-0094",
+    "brisson-le-meme-pdf170-candidate-0095",
+    "brisson-le-meme-pdf170-candidate-0096"
+  ],
+  "unresolved_human_qa_issues": [
+    "Human must QA exact characters, geometry, reading order and exhaustive coverage.",
+    "AI draft is not human Gold; full semantic/typography D is deferred."
+  ],
+  "validation": {
+    "draft_schema": "pass",
+    "inline_span_slices": "pass"
+  }
+}

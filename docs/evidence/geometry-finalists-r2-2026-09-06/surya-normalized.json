@@ -1,0 +1,476 @@
+{
+  "provider": "surya",
+  "provenance": {
+    "model_sha256": {
+      "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/config.json": "0f99d8176e3fc194966659cf6f1c52ab9ca1d573f47ba57aca55036ff5267d69",
+      "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/manifest.json": "f57a95d3da7d182c4ef556171115a6557455c98f847e81e59a30f37898d994c0",
+      "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/model.safetensors": "38c3749eeb5f06fc93ed71eeee5cbd86b1945d08f8f74746bda035d41324bd3e",
+      "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/preprocessor_config.json": "594344843fcd54db03240194c7677b5c459e78d349e68d4a89d7d91e4fa90587"
+    },
+    "adapter_sha256": "2b6c03b8730348b1b2f8c6aeb5bec056138b1a7f6e8dc080e6a2eafa33b63fcd",
+    "adapter_version": "r2.2",
+    "protocol_sha256": "37a129751d6a0e9577735390a216213576203fb539f6b5c7036275d59fe6efcd",
+    "runner_sha256": "a6918cb1b0a9439a34bbad479e5f9b0f82d284418a3e0f4aeac31d96057650d2",
+    "versions": {
+      "surya-ocr": "0.17.0",
+      "paddleocr": "3.3.2",
+      "paddlepaddle": "3.2.2",
+      "torch": "2.8.0",
+      "transformers": "4.56.2"
+    },
+    "normalization_runner_sha256": "f991c7ec301a9f6b5b474be14494bc84cba24f6e56e79e1f24664a647240774a",
+    "inference_manifest_sha256": "ca2202f8ac15d4c029f4140d62637468907fd5472dc04fe7c9a74bbbf7eab353"
+  },
+  "runs": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 1,
+      "file": "normalized/surya/brisson-le-meme-pdf013-pass1.json",
+      "sha256": "fa1b724519f103d9a848809a5dd7ce1305bd6995a5048ef2957dae9ec0ce8886",
+      "raw_file_sha256": "47067d5b9b1daf8d31493ec517326e738f3d17217faa41b7252d1bb42c3cb60b",
+      "geometry_digest": "3310a09bd843c8124044c04d5ccc7ac95ef3969e257e39557fd1ae33d0e6b15a",
+      "seconds": 0.10739320801803842
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 1,
+      "file": "normalized/surya/brisson-le-meme-pdf030-pass1.json",
+      "sha256": "ae10247b55f3ad13764bb8cb9d79dde3cf8b80125eedece8fa44b75632d84f27",
+      "raw_file_sha256": "853a97ec09199a8508fc3ec6c938b52c3618d8aeabfd5013783122ff3601005d",
+      "geometry_digest": "7ab9fc41bc4b471dca65eb7cef9af3ba893eb4c896a9a87c0cec260fd5f86ff1",
+      "seconds": 0.06032275001052767
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 1,
+      "file": "normalized/surya/brisson-le-meme-pdf110-pass1.json",
+      "sha256": "9da1c09ca330f70fdf0287a71f2d9bfcc144a1a78c1c53e734b969acf3b9716d",
+      "raw_file_sha256": "e425a5d745fcc42355a08537e12dd5f24208a9646049ab15b06f79fd73e3d2c5",
+      "geometry_digest": "208442b60b57dc419a85954ae847e6be211812d06a5d6ee27436a575a0f1c21b",
+      "seconds": 0.057731290988158435
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 1,
+      "file": "normalized/surya/brisson-le-meme-pdf170-pass1.json",
+      "sha256": "43fdc7f646f2060ab208613dfa65788760013bfa29455149603f8722658b61a8",
+      "raw_file_sha256": "9b8a9a0a4e5dcc7b52c26f776d7e773e0c64910f4d9040b2763e87a4af043e41",
+      "geometry_digest": "ec1a758fc301c989d768eb7582607c4166bfb1b43120ff0d2621b1438b75983e",
+      "seconds": 0.06082079204497859
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 1,
+      "file": "normalized/surya/burnet-platonis-opera-pdf0050-pass1.json",
+      "sha256": "d5e80ef1389354b15f23c07ceb3f3e145344aeb96fc716ff4e190145c257e801",
+      "raw_file_sha256": "956328c9a44200500efd569f2bfeb8c4d543b185dcfb66eefd05f28640f0c15b",
+      "geometry_digest": "ee1a9687bf7b20fc028a6b46303b5c7f13e4c83cfcd6a898dd63d2b5690f376f",
+      "seconds": 0.055594041012227535
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 1,
+      "file": "normalized/surya/burnet-platonis-opera-pdf0300-pass1.json",
+      "sha256": "774a9372af604c2fc98731309717dad9a2fbfd2c04217007e7447910b957b930",
+      "raw_file_sha256": "90ac13dc78aaea2bd0c5ec02a605f2548db146a2e40e9bbad1e1ff2a2c1901ff",
+      "geometry_digest": "8113cac15118f55a0fc774964e667e3c180a83615c0d07cad9a66f8e47d1b527",
+      "seconds": 0.049315958051010966
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 1,
+      "file": "normalized/surya/burnet-platonis-opera-pdf1100-pass1.json",
+      "sha256": "7918f359d67af8eb7eb259af21e5ae5558da16e0eb3b4e11bc1052e24759d48e",
+      "raw_file_sha256": "b9a0a982bfca2506bdb40c13b308686188f045b115995a546c79c29bddde027d",
+      "geometry_digest": "f613b767a311ff0dda3edd83f3e9aac4b7c8606a82eee8121e86d8dfb7a14dcf",
+      "seconds": 0.05690337502164766
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 1,
+      "file": "normalized/surya/burnet-platonis-opera-pdf1400-pass1.json",
+      "sha256": "0f4676a6aba3aedfbd7500474e0de3b4d12ad97b60f36fbd7a491840976049c7",
+      "raw_file_sha256": "65a5442946c15eba1f043f1b2d2508c9b7687cf026c973da072d4a893e3feb5a",
+      "geometry_digest": "4977abbf3079fb5f644eb9a23c9448a75f0b2681081995f6daec7c240586d8a8",
+      "seconds": 0.05559599999105558
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 1,
+      "file": "normalized/surya/dillon-phronesis29-pdf004-pass1.json",
+      "sha256": "8601de01c82682173a72f2a90d3a5af0193bf9185452b14389a11f3ada9550fa",
+      "raw_file_sha256": "dc64bed70f188066f4e4762f390b4bd81cde1124e839065907bfc9140964a673",
+      "geometry_digest": "38962b390e50ad491a87776e70014b52a9c23e4e13c44e159d58d34976e52e69",
+      "seconds": 0.06526683300035074
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 1,
+      "file": "normalized/surya/dillon-phronesis29-pdf005-pass1.json",
+      "sha256": "c3b0439ee42ee18f3079c8be7963dec204a15035b77f32ffb70fc97dbc012c82",
+      "raw_file_sha256": "d60b716e8592e369a43409fc052c4e34736230ebbd5b5840c201f8f3a107438b",
+      "geometry_digest": "7545b4a708ba0ccd0d73c0a69cc31151f8e11616f9f5192a37083314b126a95a",
+      "seconds": 0.061358458013273776
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 1,
+      "file": "normalized/surya/dillon-phronesis29-pdf006-pass1.json",
+      "sha256": "88ec83335afcba0ab0b04dfd18b21ccbca18b848d7dbd3ee521e2d50a076b053",
+      "raw_file_sha256": "3f161fe0d7366dcd4d0f6942d9adcbb9a710c53299199dc8284a70ed68c984fa",
+      "geometry_digest": "afdbfa79fafdacd5a8b1c62dac5c55a90e029d976ca6087e66bcc487f192e4ba",
+      "seconds": 0.06145412498153746
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "attempt": 1,
+      "file": "normalized/surya/menn-metaphysics-pdf288-pass1.json",
+      "sha256": "4a387f01a123b7f6ccf567acb39d27e9264c6c22729f324ef4fe047071947dd0",
+      "raw_file_sha256": "0467bbb808697b565a7d35fd20759bc8fab6cc71b6d7706e5cc97155d4b8284a",
+      "geometry_digest": "c697a8692efa78b697552d525bfb1f0f7c6c06daec008f9b726fe9897142a454",
+      "seconds": 0.10814212501281872
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "attempt": 1,
+      "file": "normalized/surya/menn-metaphysics-pdf414-pass1.json",
+      "sha256": "97504c8924b683d8031f81f59c5d61ba16d2c20966f70abf7ccead4ae8f1c315",
+      "raw_file_sha256": "05c8e29bd00b9e186846ef6fa525b27b50dd38894ba8f34b2fa3556de4baf5ea",
+      "geometry_digest": "e53f29a03ae8392c9459a57ccf8334d3b7cae3394167e16d263b3f88e235223e",
+      "seconds": 0.10678791697137058
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "attempt": 1,
+      "file": "normalized/surya/menn-metaphysics-pdf577-pass1.json",
+      "sha256": "61363b43a89ede704d11b9cccc9a271a53bfd9708c54068d4609e998197b79ea",
+      "raw_file_sha256": "f11c1898e77f91e014eea9506167c83609e46b2822ed796740c407845c3f7b37",
+      "geometry_digest": "35956e795210437a5301b89d67e26b1e922d42cb5053be477df41736dffcaddf",
+      "seconds": 0.1288515839842148
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "attempt": 1,
+      "file": "normalized/surya/menn-metaphysics-pdf925-pass1.json",
+      "sha256": "7ab598403fad96f640cc839044c73beb51dbfa73f95f308e81b1ef3fd99e6b49",
+      "raw_file_sha256": "543df17c19260040eeb8f683163b318e8aa9c48a2dc6536d62695eefa0b38b8b",
+      "geometry_digest": "f3d0d58dce0097670f3123efb81c02b1ff72ed6ae7726f83a3f75ce1dfa902b2",
+      "seconds": 0.11720833298750222
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf011-pass1.json",
+      "sha256": "3cf42292c48aa7d8c496ab5ebacc265de6ccca8667e92194e6e155bc5dd2344d",
+      "raw_file_sha256": "d9c14de1e88fdd0e1c8495f3b41c5f20bb985bdc0ac7db9f77ea2eb81c18aff3",
+      "geometry_digest": "9e1d30b7b711bfb5b70918e94cb3e498b5adafe237c3fed053aedf29193086ee",
+      "seconds": 0.07918241596780717
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf012-pass1.json",
+      "sha256": "0c74eebb5c686fe2264a2ec39905d1b5b181e99ef4663d81c864e98c91c2e836",
+      "raw_file_sha256": "3899fd728210356b7b5e79820b51e3f8c6fa90bb6100423a356811a594c414dc",
+      "geometry_digest": "1e176a709757181aee1297b9599917cddf3dcaa3075466c8bec966ab4f08c086",
+      "seconds": 0.07359904103213921
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf013-pass1.json",
+      "sha256": "bd5198c195a9ab254e4a532a1143188178595d9b64b672c64e4eef493c6605af",
+      "raw_file_sha256": "ec107ecd47c726083d28af39b461930ea3b9d218a3b292e56bd6890389f63d2f",
+      "geometry_digest": "978e61645c5215bd8ec91f858ffc0053bc582fb2546d4ba9cf5b49cfe501e263",
+      "seconds": 0.06149258301593363
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf014-pass1.json",
+      "sha256": "9600a9814dedd84efc0de6fc4afbf28401a25f58390cb751045c9b38232e390a",
+      "raw_file_sha256": "45029d257addd270f51e5b335f7c4a0a686426c232acf86c0217a0a15ef67c93",
+      "geometry_digest": "c8aec9845359726158a794dcc29449c6d87c663f1f71da5cb00ff352196e95e1",
+      "seconds": 0.08279045799281448
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf015-pass1.json",
+      "sha256": "c0db4e916dd3a4c6cb6555eb7b7797e57d2a5ec27b5c5eba4baf368ab99cf65b",
+      "raw_file_sha256": "cf07289160e8ff262922cfd154ba60664446f2d9345ffaa95c5b2a50aae977f6",
+      "geometry_digest": "afcdff547fb2993447c098be0e8df17b401329106c68830e95c4ad0aa6779b7b",
+      "seconds": 0.09894416603492573
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf016-pass1.json",
+      "sha256": "ef04f2a058e2fb3dfaa52872244dd3c6365c6c5eacb3b3f44d16fe8f874f6e2a",
+      "raw_file_sha256": "baa4ba8b1dd6e6bc4f79e68dc61771eb2ec0ecfdcb638f28a5e251fb4cfbfba6",
+      "geometry_digest": "e96a6743ec0d8659ae81b183b9cfbbbf45984451aefc4d8ebc11ea792fe99028",
+      "seconds": 0.08812608296284452
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "attempt": 1,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf079-pass1.json",
+      "sha256": "8ac3fdad1dbd75c9a5b2349845d45170f96fbe32b2e375ddf80d18faedcc7433",
+      "raw_file_sha256": "49ad091686b491805f1d8153199be39381ea752dcb7c044deee9558c7aff792e",
+      "geometry_digest": "05ed16713aed36b31f86f5b080e15d24a21a697e16f9a6862b9e4fc299e3da94",
+      "seconds": 0.07304091600235552
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "attempt": 1,
+      "file": "normalized/surya/ueberweg-kraemer-pdf100-pass1.json",
+      "sha256": "b540d774ca098dbf350e345b335cbbb4567eaf866049ede7c8858cd3cd65b97e",
+      "raw_file_sha256": "920c3eb301f94bf46853215f7efa5fa94412176b35d6902eaef014033b943459",
+      "geometry_digest": "d4c6727445aa8f3bbe84980543a7f2bcca02a22df32997fe0082001527eaa48f",
+      "seconds": 0.13206233299570158
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "attempt": 1,
+      "file": "normalized/surya/ueberweg-kraemer-pdf143-pass1.json",
+      "sha256": "3a0982059da35565f9abf405623aae3a0a547f318562d6455824e0b85d14ca67",
+      "raw_file_sha256": "7eeeb40a498f5c834b64a25ed52a1a9a28ba2b71db8f62e4ffa36dd763a4f352",
+      "geometry_digest": "65de6c5aec961e0d4afc9bb9a3f2b77f7be54f992e08b92f5a39824d9b3046df",
+      "seconds": 0.10307433397974819
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "attempt": 1,
+      "file": "normalized/surya/ueberweg-kraemer-pdf145-pass1.json",
+      "sha256": "791a33809571005c7abed2f959891669cad1c47a50e553445de7582709a62335",
+      "raw_file_sha256": "39952ba8381d8b3414c55acff905fce2685ac3a52410079245841b88f11cb919",
+      "geometry_digest": "a7a983ff4b514c6434c41a2aa935bfe4453a0355173044f2ee8b5ef1c70d22b2",
+      "seconds": 0.10491704195737839
+    },
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "attempt": 2,
+      "file": "normalized/surya/brisson-le-meme-pdf013-pass2.json",
+      "sha256": "fa1b724519f103d9a848809a5dd7ce1305bd6995a5048ef2957dae9ec0ce8886",
+      "raw_file_sha256": "47067d5b9b1daf8d31493ec517326e738f3d17217faa41b7252d1bb42c3cb60b",
+      "geometry_digest": "3310a09bd843c8124044c04d5ccc7ac95ef3969e257e39557fd1ae33d0e6b15a",
+      "seconds": 0.10741716698976234
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "attempt": 2,
+      "file": "normalized/surya/brisson-le-meme-pdf030-pass2.json",
+      "sha256": "ae10247b55f3ad13764bb8cb9d79dde3cf8b80125eedece8fa44b75632d84f27",
+      "raw_file_sha256": "853a97ec09199a8508fc3ec6c938b52c3618d8aeabfd5013783122ff3601005d",
+      "geometry_digest": "7ab9fc41bc4b471dca65eb7cef9af3ba893eb4c896a9a87c0cec260fd5f86ff1",
+      "seconds": 0.06014012498781085
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "attempt": 2,
+      "file": "normalized/surya/brisson-le-meme-pdf110-pass2.json",
+      "sha256": "9da1c09ca330f70fdf0287a71f2d9bfcc144a1a78c1c53e734b969acf3b9716d",
+      "raw_file_sha256": "e425a5d745fcc42355a08537e12dd5f24208a9646049ab15b06f79fd73e3d2c5",
+      "geometry_digest": "208442b60b57dc419a85954ae847e6be211812d06a5d6ee27436a575a0f1c21b",
+      "seconds": 0.05688649998046458
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "attempt": 2,
+      "file": "normalized/surya/brisson-le-meme-pdf170-pass2.json",
+      "sha256": "43fdc7f646f2060ab208613dfa65788760013bfa29455149603f8722658b61a8",
+      "raw_file_sha256": "9b8a9a0a4e5dcc7b52c26f776d7e773e0c64910f4d9040b2763e87a4af043e41",
+      "geometry_digest": "ec1a758fc301c989d768eb7582607c4166bfb1b43120ff0d2621b1438b75983e",
+      "seconds": 0.06038037495454773
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "attempt": 2,
+      "file": "normalized/surya/burnet-platonis-opera-pdf0050-pass2.json",
+      "sha256": "d5e80ef1389354b15f23c07ceb3f3e145344aeb96fc716ff4e190145c257e801",
+      "raw_file_sha256": "956328c9a44200500efd569f2bfeb8c4d543b185dcfb66eefd05f28640f0c15b",
+      "geometry_digest": "ee1a9687bf7b20fc028a6b46303b5c7f13e4c83cfcd6a898dd63d2b5690f376f",
+      "seconds": 0.05483754200395197
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "attempt": 2,
+      "file": "normalized/surya/burnet-platonis-opera-pdf0300-pass2.json",
+      "sha256": "774a9372af604c2fc98731309717dad9a2fbfd2c04217007e7447910b957b930",
+      "raw_file_sha256": "90ac13dc78aaea2bd0c5ec02a605f2548db146a2e40e9bbad1e1ff2a2c1901ff",
+      "geometry_digest": "8113cac15118f55a0fc774964e667e3c180a83615c0d07cad9a66f8e47d1b527",
+      "seconds": 0.049882167018949986
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "attempt": 2,
+      "file": "normalized/surya/burnet-platonis-opera-pdf1100-pass2.json",
+      "sha256": "7918f359d67af8eb7eb259af21e5ae5558da16e0eb3b4e11bc1052e24759d48e",
+      "raw_file_sha256": "b9a0a982bfca2506bdb40c13b308686188f045b115995a546c79c29bddde027d",
+      "geometry_digest": "f613b767a311ff0dda3edd83f3e9aac4b7c8606a82eee8121e86d8dfb7a14dcf",
+      "seconds": 0.05680433299858123
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "attempt": 2,
+      "file": "normalized/surya/burnet-platonis-opera-pdf1400-pass2.json",
+      "sha256": "0f4676a6aba3aedfbd7500474e0de3b4d12ad97b60f36fbd7a491840976049c7",
+      "raw_file_sha256": "65a5442946c15eba1f043f1b2d2508c9b7687cf026c973da072d4a893e3feb5a",
+      "geometry_digest": "4977abbf3079fb5f644eb9a23c9448a75f0b2681081995f6daec7c240586d8a8",
+      "seconds": 0.0552384170005098
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "attempt": 2,
+      "file": "normalized/surya/dillon-phronesis29-pdf004-pass2.json",
+      "sha256": "8601de01c82682173a72f2a90d3a5af0193bf9185452b14389a11f3ada9550fa",
+      "raw_file_sha256": "dc64bed70f188066f4e4762f390b4bd81cde1124e839065907bfc9140964a673",
+      "geometry_digest": "38962b390e50ad491a87776e70014b52a9c23e4e13c44e159d58d34976e52e69",
+      "seconds": 0.06709916703402996
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "attempt": 2,
+      "file": "normalized/surya/dillon-phronesis29-pdf005-pass2.json",
+      "sha256": "c3b0439ee42ee18f3079c8be7963dec204a15035b77f32ffb70fc97dbc012c82",
+      "raw_file_sha256": "d60b716e8592e369a43409fc052c4e34736230ebbd5b5840c201f8f3a107438b",
+      "geometry_digest": "7545b4a708ba0ccd0d73c0a69cc31151f8e11616f9f5192a37083314b126a95a",
+      "seconds": 0.0628375830128789
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "attempt": 2,
+      "file": "normalized/surya/dillon-phronesis29-pdf006-pass2.json",
+      "sha256": "88ec83335afcba0ab0b04dfd18b21ccbca18b848d7dbd3ee521e2d50a076b053",
+      "raw_file_sha256": "3f161fe0d7366dcd4d0f6942d9adcbb9a710c53299199dc8284a70ed68c984fa",
+      "geometry_digest": "afdbfa79fafdacd5a8b1c62dac5c55a90e029d976ca6087e66bcc487f192e4ba",
+      "seconds": 0.06225791701581329
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "attempt": 2,
+      "file": "normalized/surya/menn-metaphysics-pdf288-pass2.json",
+      "sha256": "4a387f01a123b7f6ccf567acb39d27e9264c6c22729f324ef4fe047071947dd0",
+      "raw_file_sha256": "0467bbb808697b565a7d35fd20759bc8fab6cc71b6d7706e5cc97155d4b8284a",
+      "geometry_digest": "c697a8692efa78b697552d525bfb1f0f7c6c06daec008f9b726fe9897142a454",
+      "seconds": 0.10682804201496765
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "attempt": 2,
+      "file": "normalized/surya/menn-metaphysics-pdf414-pass2.json",
+      "sha256": "97504c8924b683d8031f81f59c5d61ba16d2c20966f70abf7ccead4ae8f1c315",
+      "raw_file_sha256": "05c8e29bd00b9e186846ef6fa525b27b50dd38894ba8f34b2fa3556de4baf5ea",
+      "geometry_digest": "e53f29a03ae8392c9459a57ccf8334d3b7cae3394167e16d263b3f88e235223e",
+      "seconds": 0.10841041704406962
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "attempt": 2,
+      "file": "normalized/surya/menn-metaphysics-pdf577-pass2.json",
+      "sha256": "61363b43a89ede704d11b9cccc9a271a53bfd9708c54068d4609e998197b79ea",
+      "raw_file_sha256": "f11c1898e77f91e014eea9506167c83609e46b2822ed796740c407845c3f7b37",
+      "geometry_digest": "35956e795210437a5301b89d67e26b1e922d42cb5053be477df41736dffcaddf",
+      "seconds": 0.1283948749769479
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "attempt": 2,
+      "file": "normalized/surya/menn-metaphysics-pdf925-pass2.json",
+      "sha256": "7ab598403fad96f640cc839044c73beb51dbfa73f95f308e81b1ef3fd99e6b49",
+      "raw_file_sha256": "543df17c19260040eeb8f683163b318e8aa9c48a2dc6536d62695eefa0b38b8b",
+      "geometry_digest": "f3d0d58dce0097670f3123efb81c02b1ff72ed6ae7726f83a3f75ce1dfa902b2",
+      "seconds": 0.1159683329751715
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf011-pass2.json",
+      "sha256": "3cf42292c48aa7d8c496ab5ebacc265de6ccca8667e92194e6e155bc5dd2344d",
+      "raw_file_sha256": "d9c14de1e88fdd0e1c8495f3b41c5f20bb985bdc0ac7db9f77ea2eb81c18aff3",
+      "geometry_digest": "9e1d30b7b711bfb5b70918e94cb3e498b5adafe237c3fed053aedf29193086ee",
+      "seconds": 0.07990062498720363
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf012-pass2.json",
+      "sha256": "0c74eebb5c686fe2264a2ec39905d1b5b181e99ef4663d81c864e98c91c2e836",
+      "raw_file_sha256": "3899fd728210356b7b5e79820b51e3f8c6fa90bb6100423a356811a594c414dc",
+      "geometry_digest": "1e176a709757181aee1297b9599917cddf3dcaa3075466c8bec966ab4f08c086",
+      "seconds": 0.07355258299503475
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf013-pass2.json",
+      "sha256": "bd5198c195a9ab254e4a532a1143188178595d9b64b672c64e4eef493c6605af",
+      "raw_file_sha256": "ec107ecd47c726083d28af39b461930ea3b9d218a3b292e56bd6890389f63d2f",
+      "geometry_digest": "978e61645c5215bd8ec91f858ffc0053bc582fb2546d4ba9cf5b49cfe501e263",
+      "seconds": 0.061650666990317404
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf014-pass2.json",
+      "sha256": "9600a9814dedd84efc0de6fc4afbf28401a25f58390cb751045c9b38232e390a",
+      "raw_file_sha256": "45029d257addd270f51e5b335f7c4a0a686426c232acf86c0217a0a15ef67c93",
+      "geometry_digest": "c8aec9845359726158a794dcc29449c6d87c663f1f71da5cb00ff352196e95e1",
+      "seconds": 0.1416687499731779
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf015-pass2.json",
+      "sha256": "c0db4e916dd3a4c6cb6555eb7b7797e57d2a5ec27b5c5eba4baf368ab99cf65b",
+      "raw_file_sha256": "cf07289160e8ff262922cfd154ba60664446f2d9345ffaa95c5b2a50aae977f6",
+      "geometry_digest": "afcdff547fb2993447c098be0e8df17b401329106c68830e95c4ad0aa6779b7b",
+      "seconds": 0.09846712497528642
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf016-pass2.json",
+      "sha256": "ef04f2a058e2fb3dfaa52872244dd3c6365c6c5eacb3b3f44d16fe8f874f6e2a",
+      "raw_file_sha256": "baa4ba8b1dd6e6bc4f79e68dc61771eb2ec0ecfdcb638f28a5e251fb4cfbfba6",
+      "geometry_digest": "e96a6743ec0d8659ae81b183b9cfbbbf45984451aefc4d8ebc11ea792fe99028",
+      "seconds": 0.08964508300414309
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "attempt": 2,
+      "file": "normalized/surya/primavesi-zwei-elementen-pdf079-pass2.json",
+      "sha256": "8ac3fdad1dbd75c9a5b2349845d45170f96fbe32b2e375ddf80d18faedcc7433",
+      "raw_file_sha256": "49ad091686b491805f1d8153199be39381ea752dcb7c044deee9558c7aff792e",
+      "geometry_digest": "05ed16713aed36b31f86f5b080e15d24a21a697e16f9a6862b9e4fc299e3da94",
+      "seconds": 0.07391137501690537
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "attempt": 2,
+      "file": "normalized/surya/ueberweg-kraemer-pdf100-pass2.json",
+      "sha256": "b540d774ca098dbf350e345b335cbbb4567eaf866049ede7c8858cd3cd65b97e",
+      "raw_file_sha256": "920c3eb301f94bf46853215f7efa5fa94412176b35d6902eaef014033b943459",
+      "geometry_digest": "d4c6727445aa8f3bbe84980543a7f2bcca02a22df32997fe0082001527eaa48f",
+      "seconds": 0.13096991699421778
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "attempt": 2,
+      "file": "normalized/surya/ueberweg-kraemer-pdf143-pass2.json",
+      "sha256": "3a0982059da35565f9abf405623aae3a0a547f318562d6455824e0b85d14ca67",
+      "raw_file_sha256": "7eeeb40a498f5c834b64a25ed52a1a9a28ba2b71db8f62e4ffa36dd763a4f352",
+      "geometry_digest": "65de6c5aec961e0d4afc9bb9a3f2b77f7be54f992e08b92f5a39824d9b3046df",
+      "seconds": 0.1027877910528332
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "attempt": 2,
+      "file": "normalized/surya/ueberweg-kraemer-pdf145-pass2.json",
+      "sha256": "791a33809571005c7abed2f959891669cad1c47a50e553445de7582709a62335",
+      "raw_file_sha256": "39952ba8381d8b3414c55acff905fce2685ac3a52410079245841b88f11cb919",
+      "geometry_digest": "a7a983ff4b514c6434c41a2aa935bfe4453a0355173044f2ee8b5ef1c70d22b2",
+      "seconds": 0.10358729097060859
+    }
+  ]
+}

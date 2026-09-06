@@ -1,0 +1,57 @@
+{
+  "schema": "ocr-geometry-contract-preflight/1",
+  "status": "MILESTONE_BLOCKED",
+  "date": "2026-09-05",
+  "git_head": "2196af1dfb877585dab46a7a9034e8da305eab73",
+  "working_tree_dirty": true,
+  "threshold_source": "User-approved contract in this task, plus clarification allowing <=1% isolated line omissions; systematic/region omissions fail. Recorded in intent.md section 8 and plan.md.",
+  "thresholds": {
+    "normalized_cer_max": 0.05,
+    "greek_cer_max": 0.08,
+    "latin_script_cer_max": 0.04,
+    "line_recall_min": 0.99,
+    "geometry_coverage_recall_min": 0.98,
+    "reading_order_accuracy_min": 0.99,
+    "semantic_invariants_required_pass_fraction": 1.0,
+    "clean_dev_runs": 2
+  },
+  "substantive_iterations": 0,
+  "frozen_evaluation_executed": false,
+  "provider_calls": 0,
+  "substantive_delegations_total": 2,
+  "blocker": {
+    "id": "D_missing_product_semantic_output",
+    "detail": "OcrPage and TranscribedLine do not represent content class, note identity, marker spans, links or cross-page exception predictions. Gold-only validation cannot prove product semantic correctness. Implementing those outputs is not a measurement-only addition; ownership relative to deferred structure pipeline requires resolution.",
+    "code_references": [
+      "crates/mpdf-core/src/ocr.rs:186",
+      "crates/mpdf-core/src/ocr_provider/geometry_transcription.rs:200",
+      "crates/mpdf-core/src/ocr_provider/geometry_transcription.rs:660",
+      "scripts/ocr/gold/closed_world_gold.py:796"
+    ]
+  },
+  "measurement_audit": {
+    "A": "Existing NFC plus whitespace normalization in metrics.py; subgroup attribution for mixed-script lines still needs explicit operational definition. Do not reuse CGPG normalization removing footnote anchors.",
+    "B": "User clarified isolated omissions allowed up to 1%; existing box matcher is not independently evidence of nonempty correct line transcription.",
+    "C": "Native-control tau differs from existing pairwise accuracy. Pairwise accuracy is available in old harness, but matched-line and region coverage operational definition must be bound before evaluation.",
+    "D": "not_measurable_missing_prediction_fields; never treat absence as vacuous PASS or inject Gold labels into predictions.",
+    "E": "No two fresh dev runs performed; no stability claim."
+  },
+  "holdout_policy": "No frozen page inspection, inference, scoring or failure-directed tuning in this resumed task. Previous integrity-only preflight passed 16 pages/965 lines. No complete historical contamination certification.",
+  "modified_this_task": [
+    "intent.md",
+    "plan.md",
+    "docs/evidence/ocr-geometry-contract-preflight-2026-09-05.json"
+  ],
+  "protected_artifacts_modified_this_task": [],
+  "sha256": {
+    "intent.md": "b7bbe1281af36915ece4134e809ab45bff6512e270ae0c00d2525ce987a0e0ea",
+    "plan.md": "7edd565f12ee460fe785fc12e9027d627403ce8025cb33f8210ab1a68e171b1a",
+    "crates/mpdf-core/src/ocr.rs": "871ca699eed9f188c7372df3ff13816441432151526410c9522dd699df49b834",
+    "crates/mpdf-core/src/ocr_provider/geometry_transcription.rs": "f44bf39144de5e054e48099c26195ea8d95a742f7ad76203128e9c9b951b9720",
+    "scripts/ocr/gold/metrics.py": "6f60219039f478c958ce7b15659ea2be4782c1d65340ff23235c2f42aca16ccf",
+    "scripts/ocr/gold/closed_world_gold.py": "ca7572707557e62328acc28bf04f690521299cb0fde1af71162ba449c74abc02",
+    "scripts/ocr/gold/run_cloud_complete_ocr_bakeoff.py": "9fdab7727b0c5c9a45e348df87cb31be053ae713579e5670a934c045846b6ed2",
+    "scripts/ocr/geometry/run_geometry_bakeoff.py": "76f60f14aaa083edcf6384447ebbff120d60dd5282f83844d0d560301a794028",
+    "gold-data/mixed-scholarly-v1/freeze-manifest-2026-09-05.json": "892dfd6055d4d8c72fe7091151611536ee1d3791c5d11df67b838f858cc20183"
+  }
+}

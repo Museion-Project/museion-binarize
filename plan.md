@@ -4,9 +4,130 @@
 **日期：** 2026-08-30
 **当前分支：** `main`
 
+## 2026-09-06 Surya-only apparatus bounded repair完成
+
+依据 `intent.md` §8.5，Burnet1100四条、1400三条恢复独立分行；apparatus匹配21/27→27/27，无新增over-split。两遍25页adapter replay确定性通过，23个非目标页及目标页非apparatus行未变，14项测试通过。原始框与split provenance完整保留。未新增模型推理，未进入holdout/语义D/生产验收。
+
+[修复报告](docs/evidence/surya-apparatus-repair-2026-09-06/report.md)，状态 `SURYA_APPARATUS_ADAPTER_REPAIR_COMPLETE`，意图 `aligned`。
+
+## 2026-09-06 当前结果：Paddle / Surya adapter 决赛第2轮
+
+最新授权见 `intent.md` §8.4。Tesseract已退出本轮预选；两家各完成25页×2遍真实
+模型推理，并将各遍原始输出分别转成保留fragment/layout/hierarchy/provenance的
+`museion-geometry-evidence/1`。评分前r2.2仅修正split子polygon表示，未改行框、
+分组、列或顺序；原始输出和旧表示均保留。
+
+Winner为Surya：logical micro-F1 96.9455%（Paddle 96.9316%），顺序99.93%
+（95.85%），逆序对27（1620），本轮定义的灾难性遗漏0页（1页）。Paddle在strict
+IoU与apparatus上仍更好，但Brisson发生分段column hierarchy/grouping回归。
+列指标基于现有dev字段整理的空间分区，不等同独立D Gold。
+
+两家raw与最终geometry分别25/25两遍一致，10项测试通过。报告与逐页可视化见
+[`第2轮报告`](docs/evidence/geometry-finalists-r2-2026-09-06/report.md)。
+`GEOMETRY_FINALISTS_R2_COMPLETE`，意图 `aligned`（§8.4）；未冻结provider，
+未生成D层最终语义，未接线生产或运行E2E，未读取/修改16页holdout图像与标注。
+
+## 2026-09-06 第1轮范围：实验性 geometry-provider bake-off
+
+以 `intent.md` §8.3 用户澄清为准，下面的产品接线阻塞记录属于被本次范围修订
+取代的上一轮任务。Burnet已完成，25页reference现已全部通过核验。此次只使用
+这25页比较 Tesseract PSM3、Surya local detection、PaddleOCR local detection/layout，
+报告winner与局限；不冻结provider、不接线生产路径、不运行Gemini，不接触16页holdout。
+证据目录：`docs/evidence/geometry-dev-bakeoff-2026-09-06/`。
+
+已完成：三家各25页×2遍，150次有效本地推理，无运行失败，逐页有序坐标两遍完全
+一致。主指标IoU≥0.30行框F1：Paddle 95.18%、Surya 95.08%、Tesseract 91.20%。
+Paddle为微弱winner；IoU≥0.50与逐页等权F1均由Surya领先，不能宣告全面优势。
+两家神经检测候选的双栏排序适配器仍有明确缺陷。详情见
+[`bake-off报告`](docs/evidence/geometry-dev-bakeoff-2026-09-06/report.md)。
+本轮状态 `GEOMETRY_DEV_BAKEOFF_COMPLETE`，与 `intent.md` §8.3 `aligned`；
+未冻结provider、未进入生产接线/E2E、未读取16页holdout图像或标注。
+
+## 2026-09-06 上一轮执行状态（已由 §8.3 范围修订取代）
+
+以下记录对应当时 `intent.md` §8.2 的授权与停止点，保留为历史；当前授权见 §8.3。
+测量定义已写入并按 SHA-256 锁定于
+`docs/evidence/ocr-geometry-dev-2026-09-06/measurement-contract.json`。
+当前 reference 草稿 schema 25/25 PASS，人工 OCR/geometry 完成状态及有效凭据
+24/25；Burnet PDF0050 第44行仍缺 transcription 核验，已向用户核实是否漏点完成，
+未修改人工文字。三重 holdout 隔离和16页冻结摘要检查 PASS。
+
+真实产品路径 **BLOCKED**：CLI `build_cloud_factory` 与桌面 `final_pdf_cloud`
+拒绝 Cloud OCR；`PRODUCTION_BACKEND=None`。几何绑定 `GeminiTransport` 只有
+测试实现，broker factory 仍连接旧 `CloudOcrProvider`。不以这些测试实现运行评分。
+完整25页 development run **未运行**，产品修复迭代 **0/3**，冻结评测 **未运行**。
+46项 reference/工作台相关测试 PASS，仅证明这些检查，不代表产品 regression suite。
+
+当前终态：**MILESTONE_BLOCKED — PRODUCT_GEOMETRY_TRANSPORT_NOT_CONNECTED**。
+下一步产品修复是实际 broker 的几何绑定请求/响应实现、共享 factory 接线与CLI/桌面
+相同配置路径的真实验证；不得用 BYOK、旧整页接口或 fake backend 替代。
+Dev exit 后必须报告 **DEV_EXIT_READY** 并停止，等用户确认才运行 frozen holdout。
+
 本文把当前 OCR + AI-ready 中间层方案拆成可以独立审查、测试、回退的 milestones。
 每个 milestone 必须先通过本地检查，再提交 GitHub Pull Request；只有远端 CI 全绿并合并后，
 才创建下一个 milestone 分支。
+
+## 2026-09-05 OCR/geometry 验收契约
+
+来源：产品负责人本轮明确批准的验收契约；意图修订见 `intent.md` §8。
+适用于 deterministic GeometryProvider + Gemini transcription + synthesis。
+当前 16 页 frozen Gold 仅判定本模块是否可结束优化，不替代长期 200 页产品验收。
+
+当前用户批准的晋级门槛为 A/B/C/E，必须全部满足。D 按用户后续批准的阶段修订
+保留到结构阶段验收，不计作当前 PASS，也不阻塞当前晋级：
+
+| ID | 条件 |
+|---|---|
+| A | 总体 normalized CER ≤5%；Greek 子集 ≤8%；Latin-script 子集 ≤4%。不得删除困难字符类别或扩大 normalization。 |
+| B | line recall ≥99%；不得系统性漏整行或出现页面整块区域遗漏。产品负责人在同轮澄清：“允许不超过 1% 的孤立整行遗漏；系统性或整区遗漏仍 FAIL”。该澄清取代把任一孤立整行遗漏均解释为硬失败的读法。 |
+| C | 对可匹配 Gold line，line/region coverage recall ≥98%，reading-order accuracy ≥99%；不得出现正文、脚注、apparatus、页眉页脚大范围串序。轻微 box 松紧不阻塞，但不得损害文本归属、顺序或 PDF 合成。 |
+| D（后续结构阶段） | Gold/validator 定义的 semantic isolation 100% PASS：marker/definition 隔离，无 definition-number self-link，continuation/external-target 例外正确，apparatus 非引用 superscript 不误连脚注，无灾难性文本类别错配。延期不等于通过；Gold 及其校验语义不变。 |
+| E | 同一冻结 implementation/prompt/model configuration 连续两次 clean-cache dev regression 核心结构稳定；不重复 frozen evaluation 来证明稳定。 |
+
+Dev exit：主要文字指标达到上述目标；没有已知系统性整行/整区遗漏、严重顺序或
+大规模 merge/split 问题；已知 footnote/apparatus/superscript/mixed-script 的文字、
+几何和顺序问题已处理，语义配对与跨页关系按 D 留到后续结构阶段；同一实现连续两次
+clean dev regression 规范化结果稳定。满足即停止
+development loop，验证冻结集完整性后进入 frozen evaluation。
+
+最多 3 次 substantive development iterations；达到 dev exit 即停止，不能用剩余预算
+继续优化。仅允许补充缺失的测量能力，不修改 frozen Gold、schema、validator、既有
+scorer 语义或阈值，不以 holdout 失败实例制作 heuristic、prompt patch 或训练样例。
+若指标语义冲突、架构修改必需或发现污染，停止升级；未决测量语义不能算作 PASS。
+
+终态仅为 `OCR_GEOMETRY_MILESTONE_PASS`、`MILESTONE_BLOCKED`、
+`FROZEN_GOLD_FAIL` 或 `HOLDOUT_CONTAMINATED`。Frozen FAIL 后停止开发；
+PASS 后剩余字符错误进 backlog，不继续 OCR/geometry 优化或自行启动下一 milestone。
+目录系统优化不在本轮范围；后续按用户计划迁移既有结构管线、独立输入域验证、
+完成扫描 PDF 到 searchable PDF 的 E2E，再进行 release hardening。
+
+修订来源：用户在“只做宏观结构设计”讨论后明确回复“允许做这一修正”，批准上述
+D 阶段归属，见 `intent.md` §8.1。当前 OCR 输出须保留文字、标记、位置与顺序证据，
+不得删除困难符号或制造未经验证的语义链接；这不是要求本轮新增完整语义识别。
+
+后续职责：几何层负责空间证据；Gemini 提出局部语义候选并绑定行 ID／字符范围；
+结构管线解析 marker/definition 和跨页关系；确定性验证／合成检查并写出。
+Gold 中的 D 标注保留，不能为了后续迁移把 holdout 转为调参数据。
+
+历史 preflight 终态 **MILESTONE_BLOCKED** 保存在
+`docs/evidence/ocr-geometry-contract-preflight-2026-09-05.json`，不重写历史证据。
+其中 D 阶段归属阻塞已由本次用户决定解除；这不表示质量通过或其余 preflight 完成。
+A–C 操作定义及 E 的开发稳定性证据仍需核对。D 归属修订本身只修改文档。
+
+随后用户以“开始下一步”授权恢复本 milestone。新增 reference preflight 仅检查隔离
+和开发参考准备度，不运行 OCR：16 页冻结集摘要完整；按 page ID、实际图像摘要及
+来源 PDF 摘要＋页号排除 holdout 后，剩余 25 页均无穷尽可见行核验，24 页存在未核验
+几何／转录行，当前可用整页开发参考为 **0**。结构与 typography 的 D 核验不作为
+该检查的前置条件。12 项新增及相邻测试通过。结果见
+`docs/evidence/ocr-geometry-dev-reference-preflight-2026-09-05.json`。
+
+当前终态：**MILESTONE_BLOCKED — DEV_REFERENCE_EVIDENCE_MISSING**。
+Substantive iterations **0/3**；frozen evaluation **未运行**；模型调用 **0**。
+已有合成文本与干净原生几何控制不能替代真实开发页的整页 A/B/C 证据或当前完整
+管线的两次 E 回归。下一准备项是非 holdout 页的独立文字、行框、顺序与穷尽覆盖核验；
+不要求本轮提前完成 D。当前提议的 CER 子集归属、行匹配和顺序操作定义尚未获用户
+答复，不把提议记为批准，且未用于评分。真实几何绑定 Gemini transport 的运行接入
+仍需验证，旧 whole-page 云端或 fake transport 不构成当前完整管线质量证据。
 
 ## 1. 临时命名约定
 

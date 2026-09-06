@@ -1,0 +1,12 @@
+{
+  "kind": "blocked_milestone_evidence_snapshot_not_dev_exit_freeze",
+  "files": {
+    "README.md": "8f99a2ee607065c659fd4313ab5748427fe6da78fd9e129c7f15b160098804ee",
+    "inspected-code-version.json": "7acba637e83f7b77d188370efd0c856d2ee469634fe9cf3e5f28a2388ce395fa",
+    "measurement-contract.json": "4a3af40af67615e759085d5ed54def31aa434c745c692fe1ed1a13755f26c749",
+    "measurement-contract.sha256": "f4ba901a23eab846be8704bbbf582850b6897c5a31c49daddc99b050d42e0eba",
+    "milestone-status.json": "f3f10f9c31560dd769d6b3248340bc8f5a06fb6484a9aff0268b731045329e29",
+    "product-provider-probe.json": "fa1ef578bea1749cc9dec7819ed8e097522edbed0a95894feba32dc65d59824b",
+    "reference-validator.json": "f81fc75ea80e39fab6a979711f7232a0516c90a22b08df7a401ffafe354395a9"
+  }
+}

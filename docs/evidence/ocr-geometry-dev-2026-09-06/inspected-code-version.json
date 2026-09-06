@@ -1,0 +1,19 @@
+{
+  "git_head": "2196af1dfb877585dab46a7a9034e8da305eab73",
+  "git_branch": "codex/cloud-complete-ocr-bakeoff",
+  "working_tree_dirty": true,
+  "files": {
+    "crates/mpdf-cli/src/commands/run.rs": "43ad26cb51fb72a1679fcc39fa42e134e9d71806119a1acc097b99ca8b816f1d",
+    "apps/desktop/src-tauri/src/worker.rs": "1544492d040df50ab6f6a2e837da1db422ee681b6b0a74a8da5417e3ffab9e0b",
+    "crates/mpdf-api-client/src/cloud_ocr.rs": "f53da7a6d11fc869ef334088af01ce7876dbbb77f288a7b72cf4131b48ff75f5",
+    "crates/mpdf-core/src/ocr_provider/geometry_transcription.rs": "f44bf39144de5e054e48099c26195ea8d95a742f7ad76203128e9c9b951b9720",
+    "crates/mpdf-core/src/ocr_provider/gemini.rs": "b10d1bc88fdd7d5e7d1cf7705e90c02c83c15e14a2658ed8508dbf0b98ddf11d",
+    "scripts/ocr/gold/metrics.py": "6f60219039f478c958ce7b15659ea2be4782c1d65340ff23235c2f42aca16ccf",
+    "scripts/ocr/geometry/milestone_preflight.py": "a2adc83d5afc216a89702051077040fe8c42f4ce60d78f751a28bb3107a5f898",
+    "scripts/ocr/gold/closed_world_gold.py": "ca7572707557e62328acc28bf04f690521299cb0fde1af71162ba449c74abc02",
+    "scripts/ocr/gold/annotator_workflow.py": "7970348f4df0243e5af1377ab80ef77a5477800f83e578624d1d5f99792887a9",
+    "intent.md": "bd9a8157b672d559aee5389a1a893ec74800ff133cf43696c9d55bc5ac16281a",
+    "plan.md": "28715887d9ece39ba2935899229bbba89099e425fa71535588b46fdee0baadc7",
+    "crates/mpdf-core/src/ocr_provider/credits.rs": "503eb01d0c0d54bcce8e921983642eca4b5612c2a7c32507516419ba9147ccb9"
+  }
+}

@@ -1,0 +1,5330 @@
+{
+  "scope": "adapter-only replay; two independently inferred R2 raw passes; no new detector inference",
+  "baseline_intent": "intent.md §8.5",
+  "alignment": "aligned",
+  "implementation": {
+    "/Users/theo/AI 工作流/museion-binarize/scripts/ocr/geometry/run_surya_adapter_repair.py": "b1a44cba3324ef34af606506845b71efb8963279116ab37693682ec84341cd04",
+    "/Users/theo/AI 工作流/museion-binarize/scripts/ocr/geometry/finalist_adapters.py": "be148e58c3599c8687b723f8ec68437d2ae4f82c986b9ef1b2860bc8c2d7fdf0",
+    "/Users/theo/AI 工作流/museion-binarize/scripts/ocr/geometry/score_finalists.py": "1f1c5c29dc5712a2c8e1c1cf67a84b2c495218c1cf471df215e32554c7e91dda"
+  },
+  "baseline": {
+    "gold": 1378,
+    "predicted": 1372,
+    "matched": 1333,
+    "matched_at_50": 1295,
+    "iou_sum": 1111.9946904922017,
+    "coverage_sum": 1192.4056953785002,
+    "pairs": 40588,
+    "correct_pairs": 40561,
+    "gold_pairs": 43059,
+    "precision": 0.9715743440233237,
+    "recall": 0.967343976777939,
+    "f1": 0.9694545454545455,
+    "f1_at_50": 0.9418181818181818,
+    "mean_iou": 0.8342045690114042,
+    "matched_gold_coverage": 0.8945279035097526,
+    "all_gold_coverage": 0.8653161795199567,
+    "order_accuracy": 0.9993347787523406,
+    "pair_coverage": 0.9426136231682111,
+    "inverted_pairs": 27,
+    "macro_page_f1": 0.969142482977802,
+    "union_coverage_all_reference": 0.8633577360484322,
+    "union_iou_matched": 0.8337957365458973,
+    "catastrophic_page_ids": [],
+    "columns": {
+      "eligible_reference_lines": 1292,
+      "matched_reference_lines": 1263,
+      "pairs": 37098,
+      "all_reference_pairs": 38762,
+      "correct_partition_pairs": 37031,
+      "within_pairs": 26277,
+      "within_inverted": 8,
+      "cross_pairs": 10821,
+      "cross_inverted": 0,
+      "pair_accuracy": 0.9981939727209014,
+      "pair_coverage": 0.9570713585470306,
+      "within_accuracy": 0.9996955512425315,
+      "cross_accuracy": 1.0,
+      "count_agreement_pages": 25,
+      "exact_partition_on_matched_pages": 24,
+      "complete_exact_partition_pages": 14
+    },
+    "specials": {
+      "toc": {
+        "reference_lines": 36,
+        "matched": 36,
+        "missed": 0,
+        "recall": 1.0,
+        "union_coverage_all_reference": 0.8979168156693501,
+        "multi_fragment_logical_realizations": 30,
+        "residual_fragmentation": 0,
+        "contaminated_matches": 0
+      },
+      "apparatus": {
+        "reference_lines": 27,
+        "matched": 21,
+        "missed": 6,
+        "recall": 0.7777777777777778,
+        "union_coverage_all_reference": 0.6828185437385942,
+        "multi_fragment_logical_realizations": 2,
+        "residual_fragmentation": 1,
+        "contaminated_matches": 1
+      },
+      "marginalia": {
+        "reference_lines": 35,
+        "matched": 25,
+        "missed": 10,
+        "recall": 0.7142857142857143,
+        "union_coverage_all_reference": 0.5957188619065277,
+        "multi_fragment_logical_realizations": 0,
+        "residual_fragmentation": 0,
+        "contaminated_matches": 1
+      }
+    }
+  },
+  "passes": [
+    {
+      "attempt": 1,
+      "aggregate": {
+        "gold": 1378,
+        "predicted": 1375,
+        "matched": 1339,
+        "matched_at_50": 1302,
+        "iou_sum": 1117.107961983963,
+        "coverage_sum": 1197.6864197054529,
+        "pairs": 40823,
+        "correct_pairs": 40796,
+        "gold_pairs": 43059,
+        "precision": 0.9738181818181818,
+        "recall": 0.9716981132075472,
+        "f1": 0.9727569923719579,
+        "f1_at_50": 0.945877224845623,
+        "mean_iou": 0.8342852591366414,
+        "matched_gold_coverage": 0.8944633455604577,
+        "all_gold_coverage": 0.869148345214407,
+        "order_accuracy": 0.9993386081375695,
+        "pair_coverage": 0.9480712510741076,
+        "inverted_pairs": 27,
+        "macro_page_f1": 0.9735040415550528,
+        "union_coverage_all_reference": 0.8671402614597741,
+        "union_iou_matched": 0.8339408472111491,
+        "catastrophic_page_ids": [],
+        "columns": {
+          "eligible_reference_lines": 1292,
+          "matched_reference_lines": 1269,
+          "pairs": 37291,
+          "all_reference_pairs": 38762,
+          "correct_partition_pairs": 37224,
+          "within_pairs": 26470,
+          "within_inverted": 8,
+          "cross_pairs": 10821,
+          "cross_inverted": 0,
+          "pair_accuracy": 0.9982033198358853,
+          "pair_coverage": 0.9620504617924772,
+          "within_accuracy": 0.9996977710615792,
+          "cross_accuracy": 1.0,
+          "count_agreement_pages": 25,
+          "exact_partition_on_matched_pages": 24,
+          "complete_exact_partition_pages": 16
+        },
+        "specials": {
+          "toc": {
+            "reference_lines": 36,
+            "matched": 36,
+            "missed": 0,
+            "recall": 1.0,
+            "union_coverage_all_reference": 0.8979168156693501,
+            "multi_fragment_logical_realizations": 30,
+            "residual_fragmentation": 0,
+            "contaminated_matches": 0
+          },
+          "apparatus": {
+            "reference_lines": 27,
+            "matched": 27,
+            "missed": 0,
+            "recall": 1.0,
+            "union_coverage_all_reference": 0.8758674332507889,
+            "multi_fragment_logical_realizations": 5,
+            "residual_fragmentation": 1,
+            "contaminated_matches": 0
+          },
+          "marginalia": {
+            "reference_lines": 35,
+            "matched": 25,
+            "missed": 10,
+            "recall": 0.7142857142857143,
+            "union_coverage_all_reference": 0.5957188619065277,
+            "multi_fragment_logical_realizations": 0,
+            "residual_fragmentation": 0,
+            "contaminated_matches": 1
+          }
+        }
+      },
+      "pages": [
+        {
+          "gold": 36,
+          "predicted": 36,
+          "matched": 36,
+          "matched_at_50": 36,
+          "iou_sum": 31.60855254539991,
+          "coverage_sum": 34.59528381351766,
+          "pairs": 630,
+          "correct_pairs": 630,
+          "gold_pairs": 630,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8780153484833308,
+          "matched_gold_coverage": 0.9609801059310461,
+          "all_gold_coverage": 0.9609801059310461,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8979168156693501,
+          "support_union_iou_matched": 0.8441996246579332,
+          "support_union_coverage_matched": 0.8979168156693501,
+          "page_id": "brisson-le-meme-pdf013",
+          "column": {
+            "eligible_reference_lines": 36,
+            "matched_reference_lines": 36,
+            "pairs": 630,
+            "all_reference_pairs": 630,
+            "correct_partition_pairs": 630,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 630,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 36,
+              "matched": 36,
+              "missed": [],
+              "multi_fragment_logical_realizations": [
+                "brisson-le-meme-pdf013-candidate-0001",
+                "brisson-le-meme-pdf013-candidate-0002",
+                "brisson-le-meme-pdf013-candidate-0004",
+                "brisson-le-meme-pdf013-candidate-0005",
+                "brisson-le-meme-pdf013-candidate-0006",
+                "brisson-le-meme-pdf013-candidate-0007",
+                "brisson-le-meme-pdf013-candidate-0008",
+                "brisson-le-meme-pdf013-candidate-0009",
+                "brisson-le-meme-pdf013-candidate-0010",
+                "brisson-le-meme-pdf013-candidate-0012",
+                "brisson-le-meme-pdf013-candidate-0013",
+                "brisson-le-meme-pdf013-candidate-0015",
+                "brisson-le-meme-pdf013-candidate-0016",
+                "brisson-le-meme-pdf013-candidate-0017",
+                "brisson-le-meme-pdf013-candidate-0019",
+                "brisson-le-meme-pdf013-candidate-0020",
+                "brisson-le-meme-pdf013-candidate-0021",
+                "brisson-le-meme-pdf013-candidate-0022",
+                "brisson-le-meme-pdf013-candidate-0023",
+                "brisson-le-meme-pdf013-candidate-0024",
+                "brisson-le-meme-pdf013-candidate-0026",
+                "brisson-le-meme-pdf013-candidate-0027",
+                "brisson-le-meme-pdf013-candidate-0028",
+                "brisson-le-meme-pdf013-candidate-0029",
+                "brisson-le-meme-pdf013-candidate-0030",
+                "brisson-le-meme-pdf013-candidate-0032",
+                "brisson-le-meme-pdf013-candidate-0033",
+                "brisson-le-meme-pdf013-candidate-0034",
+                "brisson-le-meme-pdf013-candidate-0035",
+                "brisson-le-meme-pdf013-human-0035"
+              ],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.8979168156693501
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 66,
+            "fragments": 66,
+            "logical_lines": 36,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 30
+          }
+        },
+        {
+          "gold": 95,
+          "predicted": 94,
+          "matched": 94,
+          "matched_at_50": 93,
+          "iou_sum": 78.61991342278279,
+          "coverage_sum": 87.28024231486032,
+          "pairs": 4371,
+          "correct_pairs": 4371,
+          "gold_pairs": 4465,
+          "precision": 1.0,
+          "recall": 0.9894736842105263,
+          "f1": 0.9947089947089947,
+          "f1_at_50": 0.9841269841269841,
+          "mean_iou": 0.8363820576891786,
+          "matched_gold_coverage": 0.9285132161155353,
+          "all_gold_coverage": 0.9187393927880033,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.9789473684210527,
+          "support_union_coverage_all_reference": 0.9171727930040859,
+          "support_union_iou_matched": 0.8397963417309083,
+          "support_union_coverage_matched": 0.9269299503764699,
+          "page_id": "brisson-le-meme-pdf030",
+          "column": {
+            "eligible_reference_lines": 91,
+            "matched_reference_lines": 91,
+            "pairs": 4095,
+            "all_reference_pairs": 4095,
+            "correct_partition_pairs": 4095,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 2025,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 2070,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "brisson-le-meme-pdf030-human-0096"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 95,
+            "fragments": 95,
+            "logical_lines": 94,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 82,
+          "predicted": 82,
+          "matched": 82,
+          "matched_at_50": 82,
+          "iou_sum": 69.493029742005,
+          "coverage_sum": 74.38209202359758,
+          "pairs": 3321,
+          "correct_pairs": 3320,
+          "gold_pairs": 3321,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8474759724634757,
+          "matched_gold_coverage": 0.9070986832146046,
+          "all_gold_coverage": 0.9070986832146046,
+          "order_accuracy": 0.9996988858777477,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.9070986832146046,
+          "support_union_iou_matched": 0.8474759724634755,
+          "support_union_coverage_matched": 0.9070986832146044,
+          "page_id": "brisson-le-meme-pdf110",
+          "column": {
+            "eligible_reference_lines": 78,
+            "matched_reference_lines": 78,
+            "pairs": 3003,
+            "all_reference_pairs": 3003,
+            "correct_partition_pairs": 3003,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1486,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 1517,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 82,
+            "fragments": 82,
+            "logical_lines": 82,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 91,
+          "predicted": 91,
+          "matched": 91,
+          "matched_at_50": 91,
+          "iou_sum": 76.28886147084307,
+          "coverage_sum": 81.68278589730878,
+          "pairs": 4095,
+          "correct_pairs": 4094,
+          "gold_pairs": 4095,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8383391370422316,
+          "matched_gold_coverage": 0.897613031838558,
+          "all_gold_coverage": 0.897613031838558,
+          "order_accuracy": 0.9997557997557998,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.897613031838558,
+          "support_union_iou_matched": 0.8383391370422317,
+          "support_union_coverage_matched": 0.897613031838558,
+          "page_id": "brisson-le-meme-pdf170",
+          "column": {
+            "eligible_reference_lines": 87,
+            "matched_reference_lines": 87,
+            "pairs": 3741,
+            "all_reference_pairs": 3741,
+            "correct_partition_pairs": 3741,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1849,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 1892,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 91,
+            "fragments": 91,
+            "logical_lines": 91,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 44,
+          "predicted": 40,
+          "matched": 40,
+          "matched_at_50": 36,
+          "iou_sum": 31.615217612560485,
+          "coverage_sum": 32.603082016156485,
+          "pairs": 780,
+          "correct_pairs": 775,
+          "gold_pairs": 946,
+          "precision": 1.0,
+          "recall": 0.9090909090909091,
+          "f1": 0.9523809523809523,
+          "f1_at_50": 0.8571428571428571,
+          "mean_iou": 0.7903804403140121,
+          "matched_gold_coverage": 0.8150770504039121,
+          "all_gold_coverage": 0.7409791367308292,
+          "order_accuracy": 0.9935897435897436,
+          "pair_coverage": 0.8245243128964059,
+          "support_union_coverage_all_reference": 0.7409791367308292,
+          "support_union_iou_matched": 0.7903804403140121,
+          "support_union_coverage_matched": 0.8150770504039123,
+          "page_id": "burnet-platonis-opera-pdf0050",
+          "column": {
+            "eligible_reference_lines": 34,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 561,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 3,
+              "matched": 3,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.9444444444444445
+            },
+            "marginalia": {
+              "reference_lines": 9,
+              "matched": 5,
+              "missed": [
+                "burnet-platonis-opera-pdf0050-human-0037",
+                "burnet-platonis-opera-pdf0050-human-0038",
+                "burnet-platonis-opera-pdf0050-human-0039",
+                "burnet-platonis-opera-pdf0050-human-0041"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.2762645536610315
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf0050-human-0037",
+            "burnet-platonis-opera-pdf0050-human-0038",
+            "burnet-platonis-opera-pdf0050-human-0039",
+            "burnet-platonis-opera-pdf0050-human-0041"
+          ],
+          "inverted_pairs": 5,
+          "normalization": {
+            "source_boxes": 36,
+            "fragments": 40,
+            "logical_lines": 40,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 4,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 44,
+          "predicted": 44,
+          "matched": 42,
+          "matched_at_50": 35,
+          "iou_sum": 32.10808417184424,
+          "coverage_sum": 35.90609425066361,
+          "pairs": 861,
+          "correct_pairs": 854,
+          "gold_pairs": 946,
+          "precision": 0.9545454545454546,
+          "recall": 0.9545454545454546,
+          "f1": 0.9545454545454546,
+          "f1_at_50": 0.7954545454545454,
+          "mean_iou": 0.76447819456772,
+          "matched_gold_coverage": 0.8549070059681811,
+          "all_gold_coverage": 0.816047596605991,
+          "order_accuracy": 0.991869918699187,
+          "pair_coverage": 0.9101479915433404,
+          "support_union_coverage_all_reference": 0.8096923767226336,
+          "support_union_iou_matched": 0.7578615108945761,
+          "support_union_coverage_matched": 0.8482491565665684,
+          "page_id": "burnet-platonis-opera-pdf0300",
+          "column": {
+            "eligible_reference_lines": 34,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 561,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 3,
+              "matched": 3,
+              "missed": [],
+              "multi_fragment_logical_realizations": [
+                "burnet-platonis-opera-pdf0300-candidate-0032",
+                "burnet-platonis-opera-pdf0300-candidate-0033"
+              ],
+              "residual_fragmentation": [
+                {
+                  "reference_line_id": "burnet-platonis-opera-pdf0300-candidate-0033",
+                  "logical_line_ids": [
+                    "burnet-platonis-opera-pdf0300-l-11de052d9ecadacf",
+                    "burnet-platonis-opera-pdf0300-l-40d1c6fdb39fceff"
+                  ]
+                }
+              ],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.6656472511028748
+            },
+            "marginalia": {
+              "reference_lines": 9,
+              "matched": 7,
+              "missed": [
+                "burnet-platonis-opera-pdf0300-visual-qa-margin-8",
+                "burnet-platonis-opera-pdf0300-visual-qa-margin-22"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.7102155457711014
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf0300-visual-qa-margin-8",
+            "burnet-platonis-opera-pdf0300-visual-qa-margin-22"
+          ],
+          "inverted_pairs": 7,
+          "normalization": {
+            "source_boxes": 41,
+            "fragments": 47,
+            "logical_lines": 44,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 6,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 43,
+          "predicted": 40,
+          "matched": 40,
+          "matched_at_50": 37,
+          "iou_sum": 31.413249966395195,
+          "coverage_sum": 34.53042635640583,
+          "pairs": 780,
+          "correct_pairs": 780,
+          "gold_pairs": 903,
+          "precision": 1.0,
+          "recall": 0.9302325581395349,
+          "f1": 0.963855421686747,
+          "f1_at_50": 0.891566265060241,
+          "mean_iou": 0.7853312491598798,
+          "matched_gold_coverage": 0.8632606589101458,
+          "all_gold_coverage": 0.8030331710792055,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.8637873754152824,
+          "support_union_coverage_all_reference": 0.8014423731693661,
+          "support_union_iou_matched": 0.7874264018670346,
+          "support_union_coverage_matched": 0.8615505511570685,
+          "page_id": "burnet-platonis-opera-pdf1100",
+          "column": {
+            "eligible_reference_lines": 34,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 561,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 5,
+              "matched": 5,
+              "missed": [],
+              "multi_fragment_logical_realizations": [
+                "burnet-platonis-opera-pdf1100-candidate-0043",
+                "burnet-platonis-opera-pdf1100-candidate-0044",
+                "burnet-platonis-opera-pdf1100-candidate-0045"
+              ],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.9064839369206679
+            },
+            "marginalia": {
+              "reference_lines": 8,
+              "matched": 5,
+              "missed": [
+                "burnet-platonis-opera-pdf1100-visual-qa-margin-5",
+                "burnet-platonis-opera-pdf1100-visual-qa-margin-16",
+                "burnet-platonis-opera-pdf1100-visual-qa-margin-20"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.525097125097125
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf1100-visual-qa-margin-5",
+            "burnet-platonis-opera-pdf1100-visual-qa-margin-16",
+            "burnet-platonis-opera-pdf1100-visual-qa-margin-20"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 37,
+            "fragments": 43,
+            "logical_lines": 40,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 4,
+            "dotted_row_hints": 1
+          }
+        },
+        {
+          "gold": 46,
+          "predicted": 44,
+          "matched": 44,
+          "matched_at_50": 37,
+          "iou_sum": 34.189722013403724,
+          "coverage_sum": 39.82494089645749,
+          "pairs": 946,
+          "correct_pairs": 946,
+          "gold_pairs": 1035,
+          "precision": 1.0,
+          "recall": 0.9565217391304348,
+          "f1": 0.9777777777777777,
+          "f1_at_50": 0.8222222222222222,
+          "mean_iou": 0.7770391366682664,
+          "matched_gold_coverage": 0.9051122931013066,
+          "all_gold_coverage": 0.8657595847055977,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.9140096618357488,
+          "support_union_coverage_all_reference": 0.8657595847055977,
+          "support_union_iou_matched": 0.7770391366682662,
+          "support_union_coverage_matched": 0.9051122931013068,
+          "page_id": "burnet-platonis-opera-pdf1400",
+          "column": {
+            "eligible_reference_lines": 35,
+            "matched_reference_lines": 35,
+            "pairs": 595,
+            "all_reference_pairs": 595,
+            "correct_partition_pairs": 595,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 595,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 5,
+              "matched": 5,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.880920542635659
+            },
+            "marginalia": {
+              "reference_lines": 9,
+              "matched": 8,
+              "missed": [
+                "burnet-platonis-opera-pdf1400-visual-qa-margin-25"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [
+                {
+                  "reference_line_id": "burnet-platonis-opera-pdf1400-visual-stephanus",
+                  "other_reference_lines": [
+                    "burnet-platonis-opera-pdf1400-visual-qa-book-number"
+                  ]
+                }
+              ],
+              "union_coverage_all_reference": 0.8634513634513634
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf1400-visual-qa-book-number",
+            "burnet-platonis-opera-pdf1400-visual-qa-margin-25"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 35,
+            "fragments": 44,
+            "logical_lines": 44,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 8,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 42,
+          "predicted": 42,
+          "matched": 42,
+          "matched_at_50": 42,
+          "iou_sum": 35.17690884723122,
+          "coverage_sum": 36.72664079003953,
+          "pairs": 861,
+          "correct_pairs": 861,
+          "gold_pairs": 861,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8375454487436004,
+          "matched_gold_coverage": 0.8744438283342746,
+          "all_gold_coverage": 0.8744438283342746,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8744438283342746,
+          "support_union_iou_matched": 0.8375454487436006,
+          "support_union_coverage_matched": 0.8744438283342746,
+          "page_id": "dillon-phronesis29-pdf004",
+          "column": {
+            "eligible_reference_lines": 38,
+            "matched_reference_lines": 38,
+            "pairs": 703,
+            "all_reference_pairs": 703,
+            "correct_partition_pairs": 703,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 703,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 42,
+            "fragments": 42,
+            "logical_lines": 42,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 42,
+          "predicted": 42,
+          "matched": 42,
+          "matched_at_50": 42,
+          "iou_sum": 34.41464010773991,
+          "coverage_sum": 35.838563995726126,
+          "pairs": 861,
+          "correct_pairs": 861,
+          "gold_pairs": 861,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8193961930414265,
+          "matched_gold_coverage": 0.853299142755384,
+          "all_gold_coverage": 0.853299142755384,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.853299142755384,
+          "support_union_iou_matched": 0.8193961930414263,
+          "support_union_coverage_matched": 0.8532991427553841,
+          "page_id": "dillon-phronesis29-pdf005",
+          "column": {
+            "eligible_reference_lines": 38,
+            "matched_reference_lines": 38,
+            "pairs": 703,
+            "all_reference_pairs": 703,
+            "correct_partition_pairs": 703,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 703,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 42,
+            "fragments": 42,
+            "logical_lines": 42,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 42,
+          "predicted": 42,
+          "matched": 42,
+          "matched_at_50": 42,
+          "iou_sum": 34.9901104588441,
+          "coverage_sum": 36.193689972772034,
+          "pairs": 861,
+          "correct_pairs": 861,
+          "gold_pairs": 861,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8330978680677167,
+          "matched_gold_coverage": 0.8617545231612389,
+          "all_gold_coverage": 0.8617545231612389,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8617545231612389,
+          "support_union_iou_matched": 0.8330978680677168,
+          "support_union_coverage_matched": 0.8617545231612392,
+          "page_id": "dillon-phronesis29-pdf006",
+          "column": {
+            "eligible_reference_lines": 38,
+            "matched_reference_lines": 38,
+            "pairs": 703,
+            "all_reference_pairs": 703,
+            "correct_partition_pairs": 703,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 703,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 42,
+            "fragments": 42,
+            "logical_lines": 42,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 45,
+          "predicted": 45,
+          "matched": 45,
+          "matched_at_50": 45,
+          "iou_sum": 36.28679924031768,
+          "coverage_sum": 36.62048439339404,
+          "pairs": 990,
+          "correct_pairs": 990,
+          "gold_pairs": 990,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8063733164515039,
+          "matched_gold_coverage": 0.8137885420754231,
+          "all_gold_coverage": 0.8137885420754231,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8137885420754231,
+          "support_union_iou_matched": 0.8063733164515039,
+          "support_union_coverage_matched": 0.8137885420754231,
+          "page_id": "menn-metaphysics-pdf288",
+          "column": {
+            "eligible_reference_lines": 44,
+            "matched_reference_lines": 44,
+            "pairs": 946,
+            "all_reference_pairs": 946,
+            "correct_partition_pairs": 946,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 946,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 45,
+            "fragments": 45,
+            "logical_lines": 45,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 53,
+          "predicted": 53,
+          "matched": 53,
+          "matched_at_50": 53,
+          "iou_sum": 46.48886050988895,
+          "coverage_sum": 47.65473651264284,
+          "pairs": 1378,
+          "correct_pairs": 1378,
+          "gold_pairs": 1378,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8771483115073387,
+          "matched_gold_coverage": 0.8991459719366574,
+          "all_gold_coverage": 0.8991459719366574,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8991459719366574,
+          "support_union_iou_matched": 0.8771483115073384,
+          "support_union_coverage_matched": 0.8991459719366577,
+          "page_id": "menn-metaphysics-pdf414",
+          "column": {
+            "eligible_reference_lines": 52,
+            "matched_reference_lines": 52,
+            "pairs": 1326,
+            "all_reference_pairs": 1326,
+            "correct_partition_pairs": 1326,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1326,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 53,
+            "fragments": 53,
+            "logical_lines": 53,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 52,
+          "predicted": 52,
+          "matched": 52,
+          "matched_at_50": 52,
+          "iou_sum": 45.23966343163296,
+          "coverage_sum": 46.01644392061961,
+          "pairs": 1326,
+          "correct_pairs": 1326,
+          "gold_pairs": 1326,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8699935275314031,
+          "matched_gold_coverage": 0.8849316138580694,
+          "all_gold_coverage": 0.8849316138580694,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8849316138580694,
+          "support_union_iou_matched": 0.869993527531403,
+          "support_union_coverage_matched": 0.8849316138580694,
+          "page_id": "menn-metaphysics-pdf577",
+          "column": {
+            "eligible_reference_lines": 51,
+            "matched_reference_lines": 51,
+            "pairs": 1275,
+            "all_reference_pairs": 1275,
+            "correct_partition_pairs": 1275,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1275,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 52,
+            "fragments": 52,
+            "logical_lines": 52,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 52,
+          "predicted": 52,
+          "matched": 52,
+          "matched_at_50": 52,
+          "iou_sum": 44.777572787149985,
+          "coverage_sum": 45.46234567797654,
+          "pairs": 1326,
+          "correct_pairs": 1326,
+          "gold_pairs": 1326,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8611071689836536,
+          "matched_gold_coverage": 0.8742758784226259,
+          "all_gold_coverage": 0.8742758784226259,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8742758784226259,
+          "support_union_iou_matched": 0.8611071689836537,
+          "support_union_coverage_matched": 0.874275878422626,
+          "page_id": "menn-metaphysics-pdf925",
+          "column": {
+            "eligible_reference_lines": 51,
+            "matched_reference_lines": 51,
+            "pairs": 1275,
+            "all_reference_pairs": 1275,
+            "correct_partition_pairs": 1275,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1275,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 52,
+            "fragments": 52,
+            "logical_lines": 52,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 45,
+          "predicted": 46,
+          "matched": 44,
+          "matched_at_50": 44,
+          "iou_sum": 37.79342903588286,
+          "coverage_sum": 39.099595977984194,
+          "pairs": 946,
+          "correct_pairs": 944,
+          "gold_pairs": 990,
+          "precision": 0.9565217391304348,
+          "recall": 0.9777777777777777,
+          "f1": 0.967032967032967,
+          "f1_at_50": 0.967032967032967,
+          "mean_iou": 0.8589415689973378,
+          "matched_gold_coverage": 0.8886271813178226,
+          "all_gold_coverage": 0.868879910621871,
+          "order_accuracy": 0.9978858350951374,
+          "pair_coverage": 0.9555555555555556,
+          "support_union_coverage_all_reference": 0.868879910621871,
+          "support_union_iou_matched": 0.8589415689973375,
+          "support_union_coverage_matched": 0.8886271813178227,
+          "page_id": "primavesi-zwei-elementen-pdf011",
+          "column": {
+            "eligible_reference_lines": 43,
+            "matched_reference_lines": 43,
+            "pairs": 903,
+            "all_reference_pairs": 903,
+            "correct_partition_pairs": 903,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 903,
+            "within_inverted": 2,
+            "within_accuracy": 0.9977851605758582,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 7,
+              "matched": 7,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.895988944289922
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf011-native-0001"
+          ],
+          "inverted_pairs": 2,
+          "normalization": {
+            "source_boxes": 44,
+            "fragments": 46,
+            "logical_lines": 46,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 2,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 39,
+          "predicted": 38,
+          "matched": 38,
+          "matched_at_50": 38,
+          "iou_sum": 33.22847403264544,
+          "coverage_sum": 34.329430933383705,
+          "pairs": 703,
+          "correct_pairs": 702,
+          "gold_pairs": 741,
+          "precision": 1.0,
+          "recall": 0.9743589743589743,
+          "f1": 0.987012987012987,
+          "f1_at_50": 0.987012987012987,
+          "mean_iou": 0.8744335271748799,
+          "matched_gold_coverage": 0.903406077194308,
+          "all_gold_coverage": 0.8802418188047104,
+          "order_accuracy": 0.9985775248933144,
+          "pair_coverage": 0.9487179487179487,
+          "support_union_coverage_all_reference": 0.8802418188047104,
+          "support_union_iou_matched": 0.8748360363050833,
+          "support_union_coverage_matched": 0.9034060771943079,
+          "page_id": "primavesi-zwei-elementen-pdf012",
+          "column": {
+            "eligible_reference_lines": 37,
+            "matched_reference_lines": 36,
+            "pairs": 630,
+            "all_reference_pairs": 666,
+            "correct_partition_pairs": 630,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9459459459459459,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 630,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf012-native-0033"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 39,
+            "fragments": 39,
+            "logical_lines": 38,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 37,
+          "predicted": 35,
+          "matched": 35,
+          "matched_at_50": 35,
+          "iou_sum": 30.582327061772872,
+          "coverage_sum": 31.460936897905626,
+          "pairs": 595,
+          "correct_pairs": 595,
+          "gold_pairs": 666,
+          "precision": 1.0,
+          "recall": 0.9459459459459459,
+          "f1": 0.9722222222222222,
+          "f1_at_50": 0.9722222222222222,
+          "mean_iou": 0.8737807731935107,
+          "matched_gold_coverage": 0.8988839113687321,
+          "all_gold_coverage": 0.8502955918352871,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.8933933933933934,
+          "support_union_coverage_all_reference": 0.8502955918352871,
+          "support_union_iou_matched": 0.875042214313042,
+          "support_union_coverage_matched": 0.898883911368732,
+          "page_id": "primavesi-zwei-elementen-pdf013",
+          "column": {
+            "eligible_reference_lines": 35,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 595,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9428571428571428,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf013-native-0001",
+            "primavesi-zwei-elementen-pdf013-native-0035"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 36,
+            "fragments": 36,
+            "logical_lines": 35,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 49,
+          "predicted": 45,
+          "matched": 45,
+          "matched_at_50": 45,
+          "iou_sum": 39.09628414068836,
+          "coverage_sum": 40.44089147694386,
+          "pairs": 990,
+          "correct_pairs": 989,
+          "gold_pairs": 1176,
+          "precision": 1.0,
+          "recall": 0.9183673469387755,
+          "f1": 0.9574468085106383,
+          "f1_at_50": 0.9574468085106383,
+          "mean_iou": 0.8688063142375191,
+          "matched_gold_coverage": 0.8986864772654192,
+          "all_gold_coverage": 0.8253243158559972,
+          "order_accuracy": 0.998989898989899,
+          "pair_coverage": 0.8418367346938775,
+          "support_union_coverage_all_reference": 0.8253243158559972,
+          "support_union_iou_matched": 0.8697414230924252,
+          "support_union_coverage_matched": 0.898686477265419,
+          "page_id": "primavesi-zwei-elementen-pdf014",
+          "column": {
+            "eligible_reference_lines": 47,
+            "matched_reference_lines": 43,
+            "pairs": 903,
+            "all_reference_pairs": 1081,
+            "correct_partition_pairs": 903,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.8353376503237743,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 903,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf014-native-0025",
+            "primavesi-zwei-elementen-pdf014-native-0038",
+            "primavesi-zwei-elementen-pdf014-native-0042",
+            "primavesi-zwei-elementen-pdf014-native-0045"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 48,
+            "fragments": 48,
+            "logical_lines": 45,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 1
+          }
+        },
+        {
+          "gold": 53,
+          "predicted": 51,
+          "matched": 50,
+          "matched_at_50": 50,
+          "iou_sum": 42.90364212144236,
+          "coverage_sum": 45.2116687610593,
+          "pairs": 1225,
+          "correct_pairs": 1222,
+          "gold_pairs": 1378,
+          "precision": 0.9803921568627451,
+          "recall": 0.9433962264150944,
+          "f1": 0.9615384615384616,
+          "f1_at_50": 0.9615384615384616,
+          "mean_iou": 0.8580728424288472,
+          "matched_gold_coverage": 0.904233375221186,
+          "all_gold_coverage": 0.8530503539822509,
+          "order_accuracy": 0.9975510204081632,
+          "pair_coverage": 0.8889695210449927,
+          "support_union_coverage_all_reference": 0.8530503539822509,
+          "support_union_iou_matched": 0.8588075167766737,
+          "support_union_coverage_matched": 0.9042333752211862,
+          "page_id": "primavesi-zwei-elementen-pdf015",
+          "column": {
+            "eligible_reference_lines": 51,
+            "matched_reference_lines": 49,
+            "pairs": 1176,
+            "all_reference_pairs": 1275,
+            "correct_partition_pairs": 1176,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9223529411764706,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 1176,
+            "within_inverted": 3,
+            "within_accuracy": 0.9974489795918368,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf015-native-0001",
+            "primavesi-zwei-elementen-pdf015-native-0019",
+            "primavesi-zwei-elementen-pdf015-native-0040"
+          ],
+          "inverted_pairs": 3,
+          "normalization": {
+            "source_boxes": 51,
+            "fragments": 53,
+            "logical_lines": 51,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 2,
+            "dotted_row_hints": 2
+          }
+        },
+        {
+          "gold": 50,
+          "predicted": 49,
+          "matched": 49,
+          "matched_at_50": 49,
+          "iou_sum": 42.00623279133405,
+          "coverage_sum": 43.8529826118758,
+          "pairs": 1176,
+          "correct_pairs": 1172,
+          "gold_pairs": 1225,
+          "precision": 1.0,
+          "recall": 0.98,
+          "f1": 0.98989898989899,
+          "f1_at_50": 0.98989898989899,
+          "mean_iou": 0.857270056966001,
+          "matched_gold_coverage": 0.8949588288137919,
+          "all_gold_coverage": 0.877059652237516,
+          "order_accuracy": 0.9965986394557823,
+          "pair_coverage": 0.96,
+          "support_union_coverage_all_reference": 0.877059652237516,
+          "support_union_iou_matched": 0.8575783962471837,
+          "support_union_coverage_matched": 0.8949588288137914,
+          "page_id": "primavesi-zwei-elementen-pdf016",
+          "column": {
+            "eligible_reference_lines": 48,
+            "matched_reference_lines": 47,
+            "pairs": 1081,
+            "all_reference_pairs": 1128,
+            "correct_partition_pairs": 1081,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9583333333333334,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 1081,
+            "within_inverted": 3,
+            "within_accuracy": 0.9972247918593895,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf016-native-0021"
+          ],
+          "inverted_pairs": 4,
+          "normalization": {
+            "source_boxes": 50,
+            "fragments": 50,
+            "logical_lines": 49,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 0,
+            "dotted_row_hints": 1
+          }
+        },
+        {
+          "gold": 43,
+          "predicted": 41,
+          "matched": 41,
+          "matched_at_50": 41,
+          "iou_sum": 35.727739767595494,
+          "coverage_sum": 37.174271332103075,
+          "pairs": 820,
+          "correct_pairs": 820,
+          "gold_pairs": 903,
+          "precision": 1.0,
+          "recall": 0.9534883720930233,
+          "f1": 0.9761904761904762,
+          "f1_at_50": 0.9761904761904762,
+          "mean_iou": 0.8714082870145242,
+          "matched_gold_coverage": 0.9066895446854408,
+          "all_gold_coverage": 0.8645179379558855,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.9080841638981174,
+          "support_union_coverage_all_reference": 0.8645179379558855,
+          "support_union_iou_matched": 0.8714082870145242,
+          "support_union_coverage_matched": 0.9066895446854407,
+          "page_id": "primavesi-zwei-elementen-pdf079",
+          "column": {
+            "eligible_reference_lines": 41,
+            "matched_reference_lines": 40,
+            "pairs": 780,
+            "all_reference_pairs": 820,
+            "correct_partition_pairs": 713,
+            "pair_accuracy": 0.9141025641025641,
+            "pair_coverage": 0.9512195121951219,
+            "reference_track_count": 3,
+            "matched_predicted_track_count": 3,
+            "count_agreement": true,
+            "exact_partition_on_matched": false,
+            "complete_exact_partition": false,
+            "within_pairs": 456,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 324,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 4,
+              "matched": 4,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.9023001508295626
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf079-native-0001",
+            "primavesi-zwei-elementen-pdf079-human-0042"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 41,
+            "fragments": 41,
+            "logical_lines": 41,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 40,
+          "predicted": 49,
+          "matched": 36,
+          "matched_at_50": 34,
+          "iou_sum": 29.379059713553524,
+          "coverage_sum": 32.20190839535594,
+          "pairs": 630,
+          "correct_pairs": 630,
+          "gold_pairs": 780,
+          "precision": 0.7346938775510204,
+          "recall": 0.9,
+          "f1": 0.8089887640449438,
+          "f1_at_50": 0.7640449438202247,
+          "mean_iou": 0.8160849920431534,
+          "matched_gold_coverage": 0.894497455426554,
+          "all_gold_coverage": 0.8050477098838986,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.8076923076923077,
+          "support_union_coverage_all_reference": 0.8050477098838986,
+          "support_union_iou_matched": 0.8160849920431533,
+          "support_union_coverage_matched": 0.894497455426554,
+          "page_id": "ueberweg-kraemer-pdf100",
+          "column": {
+            "eligible_reference_lines": 40,
+            "matched_reference_lines": 36,
+            "pairs": 630,
+            "all_reference_pairs": 780,
+            "correct_partition_pairs": 630,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.8076923076923077,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 630,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "ueberweg-kraemer-pdf100-candidate-0006",
+            "ueberweg-kraemer-pdf100-candidate-0007",
+            "ueberweg-kraemer-pdf100-candidate-0032",
+            "ueberweg-kraemer-pdf100-visual-missed-final-line"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 51,
+            "fragments": 51,
+            "logical_lines": 49,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 102,
+          "predicted": 111,
+          "matched": 95,
+          "matched_at_50": 88,
+          "iou_sum": 74.88850836580878,
+          "coverage_sum": 88.6739012775704,
+          "pairs": 4465,
+          "correct_pairs": 4464,
+          "gold_pairs": 5151,
+          "precision": 0.8558558558558559,
+          "recall": 0.9313725490196079,
+          "f1": 0.892018779342723,
+          "f1_at_50": 0.8262910798122066,
+          "mean_iou": 0.788300088061145,
+          "matched_gold_coverage": 0.93340948713232,
+          "all_gold_coverage": 0.8693519733095136,
+          "order_accuracy": 0.9997760358342666,
+          "pair_coverage": 0.8668219763152786,
+          "support_union_coverage_all_reference": 0.8693519733095136,
+          "support_union_iou_matched": 0.7908713658262846,
+          "support_union_coverage_matched": 0.9334094871323197,
+          "page_id": "ueberweg-kraemer-pdf143",
+          "column": {
+            "eligible_reference_lines": 100,
+            "matched_reference_lines": 93,
+            "pairs": 4278,
+            "all_reference_pairs": 4950,
+            "correct_partition_pairs": 4278,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.8642424242424243,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 2122,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 2156,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "ueberweg-kraemer-pdf143-candidate-0027",
+            "ueberweg-kraemer-pdf143-candidate-0049",
+            "ueberweg-kraemer-pdf143-candidate-0061",
+            "ueberweg-kraemer-pdf143-candidate-0062",
+            "ueberweg-kraemer-pdf143-candidate-0064",
+            "ueberweg-kraemer-pdf143-candidate-0074",
+            "ueberweg-kraemer-pdf143-candidate-0083"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 119,
+            "fragments": 119,
+            "logical_lines": 111,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 111,
+          "predicted": 111,
+          "matched": 109,
+          "matched_at_50": 103,
+          "iou_sum": 88.79107862520038,
+          "coverage_sum": 99.92297920913228,
+          "pairs": 5886,
+          "correct_pairs": 5885,
+          "gold_pairs": 6105,
+          "precision": 0.9819819819819819,
+          "recall": 0.9819819819819819,
+          "f1": 0.9819819819819819,
+          "f1_at_50": 0.9279279279279279,
+          "mean_iou": 0.814597051607343,
+          "matched_gold_coverage": 0.9167245799002961,
+          "all_gold_coverage": 0.9002070199020926,
+          "order_accuracy": 0.9998301053346925,
+          "pair_coverage": 0.9641277641277641,
+          "support_union_coverage_all_reference": 0.9002070199020926,
+          "support_union_iou_matched": 0.8167228404246218,
+          "support_union_coverage_matched": 0.9167245799002959,
+          "page_id": "ueberweg-kraemer-pdf145",
+          "column": {
+            "eligible_reference_lines": 109,
+            "matched_reference_lines": 107,
+            "pairs": 5671,
+            "all_reference_pairs": 5886,
+            "correct_partition_pairs": 5671,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9634726469588855,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 2809,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 2862,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "ueberweg-kraemer-pdf145-candidate-0023",
+            "ueberweg-kraemer-pdf145-candidate-0103"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 117,
+            "fragments": 117,
+            "logical_lines": 111,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "aggregate": {
+        "gold": 1378,
+        "predicted": 1375,
+        "matched": 1339,
+        "matched_at_50": 1302,
+        "iou_sum": 1117.107961983963,
+        "coverage_sum": 1197.6864197054529,
+        "pairs": 40823,
+        "correct_pairs": 40796,
+        "gold_pairs": 43059,
+        "precision": 0.9738181818181818,
+        "recall": 0.9716981132075472,
+        "f1": 0.9727569923719579,
+        "f1_at_50": 0.945877224845623,
+        "mean_iou": 0.8342852591366414,
+        "matched_gold_coverage": 0.8944633455604577,
+        "all_gold_coverage": 0.869148345214407,
+        "order_accuracy": 0.9993386081375695,
+        "pair_coverage": 0.9480712510741076,
+        "inverted_pairs": 27,
+        "macro_page_f1": 0.9735040415550528,
+        "union_coverage_all_reference": 0.8671402614597741,
+        "union_iou_matched": 0.8339408472111491,
+        "catastrophic_page_ids": [],
+        "columns": {
+          "eligible_reference_lines": 1292,
+          "matched_reference_lines": 1269,
+          "pairs": 37291,
+          "all_reference_pairs": 38762,
+          "correct_partition_pairs": 37224,
+          "within_pairs": 26470,
+          "within_inverted": 8,
+          "cross_pairs": 10821,
+          "cross_inverted": 0,
+          "pair_accuracy": 0.9982033198358853,
+          "pair_coverage": 0.9620504617924772,
+          "within_accuracy": 0.9996977710615792,
+          "cross_accuracy": 1.0,
+          "count_agreement_pages": 25,
+          "exact_partition_on_matched_pages": 24,
+          "complete_exact_partition_pages": 16
+        },
+        "specials": {
+          "toc": {
+            "reference_lines": 36,
+            "matched": 36,
+            "missed": 0,
+            "recall": 1.0,
+            "union_coverage_all_reference": 0.8979168156693501,
+            "multi_fragment_logical_realizations": 30,
+            "residual_fragmentation": 0,
+            "contaminated_matches": 0
+          },
+          "apparatus": {
+            "reference_lines": 27,
+            "matched": 27,
+            "missed": 0,
+            "recall": 1.0,
+            "union_coverage_all_reference": 0.8758674332507889,
+            "multi_fragment_logical_realizations": 5,
+            "residual_fragmentation": 1,
+            "contaminated_matches": 0
+          },
+          "marginalia": {
+            "reference_lines": 35,
+            "matched": 25,
+            "missed": 10,
+            "recall": 0.7142857142857143,
+            "union_coverage_all_reference": 0.5957188619065277,
+            "multi_fragment_logical_realizations": 0,
+            "residual_fragmentation": 0,
+            "contaminated_matches": 1
+          }
+        }
+      },
+      "pages": [
+        {
+          "gold": 36,
+          "predicted": 36,
+          "matched": 36,
+          "matched_at_50": 36,
+          "iou_sum": 31.60855254539991,
+          "coverage_sum": 34.59528381351766,
+          "pairs": 630,
+          "correct_pairs": 630,
+          "gold_pairs": 630,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8780153484833308,
+          "matched_gold_coverage": 0.9609801059310461,
+          "all_gold_coverage": 0.9609801059310461,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8979168156693501,
+          "support_union_iou_matched": 0.8441996246579332,
+          "support_union_coverage_matched": 0.8979168156693501,
+          "page_id": "brisson-le-meme-pdf013",
+          "column": {
+            "eligible_reference_lines": 36,
+            "matched_reference_lines": 36,
+            "pairs": 630,
+            "all_reference_pairs": 630,
+            "correct_partition_pairs": 630,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 630,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 36,
+              "matched": 36,
+              "missed": [],
+              "multi_fragment_logical_realizations": [
+                "brisson-le-meme-pdf013-candidate-0001",
+                "brisson-le-meme-pdf013-candidate-0002",
+                "brisson-le-meme-pdf013-candidate-0004",
+                "brisson-le-meme-pdf013-candidate-0005",
+                "brisson-le-meme-pdf013-candidate-0006",
+                "brisson-le-meme-pdf013-candidate-0007",
+                "brisson-le-meme-pdf013-candidate-0008",
+                "brisson-le-meme-pdf013-candidate-0009",
+                "brisson-le-meme-pdf013-candidate-0010",
+                "brisson-le-meme-pdf013-candidate-0012",
+                "brisson-le-meme-pdf013-candidate-0013",
+                "brisson-le-meme-pdf013-candidate-0015",
+                "brisson-le-meme-pdf013-candidate-0016",
+                "brisson-le-meme-pdf013-candidate-0017",
+                "brisson-le-meme-pdf013-candidate-0019",
+                "brisson-le-meme-pdf013-candidate-0020",
+                "brisson-le-meme-pdf013-candidate-0021",
+                "brisson-le-meme-pdf013-candidate-0022",
+                "brisson-le-meme-pdf013-candidate-0023",
+                "brisson-le-meme-pdf013-candidate-0024",
+                "brisson-le-meme-pdf013-candidate-0026",
+                "brisson-le-meme-pdf013-candidate-0027",
+                "brisson-le-meme-pdf013-candidate-0028",
+                "brisson-le-meme-pdf013-candidate-0029",
+                "brisson-le-meme-pdf013-candidate-0030",
+                "brisson-le-meme-pdf013-candidate-0032",
+                "brisson-le-meme-pdf013-candidate-0033",
+                "brisson-le-meme-pdf013-candidate-0034",
+                "brisson-le-meme-pdf013-candidate-0035",
+                "brisson-le-meme-pdf013-human-0035"
+              ],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.8979168156693501
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 66,
+            "fragments": 66,
+            "logical_lines": 36,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 30
+          }
+        },
+        {
+          "gold": 95,
+          "predicted": 94,
+          "matched": 94,
+          "matched_at_50": 93,
+          "iou_sum": 78.61991342278279,
+          "coverage_sum": 87.28024231486032,
+          "pairs": 4371,
+          "correct_pairs": 4371,
+          "gold_pairs": 4465,
+          "precision": 1.0,
+          "recall": 0.9894736842105263,
+          "f1": 0.9947089947089947,
+          "f1_at_50": 0.9841269841269841,
+          "mean_iou": 0.8363820576891786,
+          "matched_gold_coverage": 0.9285132161155353,
+          "all_gold_coverage": 0.9187393927880033,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.9789473684210527,
+          "support_union_coverage_all_reference": 0.9171727930040859,
+          "support_union_iou_matched": 0.8397963417309083,
+          "support_union_coverage_matched": 0.9269299503764699,
+          "page_id": "brisson-le-meme-pdf030",
+          "column": {
+            "eligible_reference_lines": 91,
+            "matched_reference_lines": 91,
+            "pairs": 4095,
+            "all_reference_pairs": 4095,
+            "correct_partition_pairs": 4095,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 2025,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 2070,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "brisson-le-meme-pdf030-human-0096"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 95,
+            "fragments": 95,
+            "logical_lines": 94,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 82,
+          "predicted": 82,
+          "matched": 82,
+          "matched_at_50": 82,
+          "iou_sum": 69.493029742005,
+          "coverage_sum": 74.38209202359758,
+          "pairs": 3321,
+          "correct_pairs": 3320,
+          "gold_pairs": 3321,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8474759724634757,
+          "matched_gold_coverage": 0.9070986832146046,
+          "all_gold_coverage": 0.9070986832146046,
+          "order_accuracy": 0.9996988858777477,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.9070986832146046,
+          "support_union_iou_matched": 0.8474759724634755,
+          "support_union_coverage_matched": 0.9070986832146044,
+          "page_id": "brisson-le-meme-pdf110",
+          "column": {
+            "eligible_reference_lines": 78,
+            "matched_reference_lines": 78,
+            "pairs": 3003,
+            "all_reference_pairs": 3003,
+            "correct_partition_pairs": 3003,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1486,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 1517,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 82,
+            "fragments": 82,
+            "logical_lines": 82,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 91,
+          "predicted": 91,
+          "matched": 91,
+          "matched_at_50": 91,
+          "iou_sum": 76.28886147084307,
+          "coverage_sum": 81.68278589730878,
+          "pairs": 4095,
+          "correct_pairs": 4094,
+          "gold_pairs": 4095,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8383391370422316,
+          "matched_gold_coverage": 0.897613031838558,
+          "all_gold_coverage": 0.897613031838558,
+          "order_accuracy": 0.9997557997557998,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.897613031838558,
+          "support_union_iou_matched": 0.8383391370422317,
+          "support_union_coverage_matched": 0.897613031838558,
+          "page_id": "brisson-le-meme-pdf170",
+          "column": {
+            "eligible_reference_lines": 87,
+            "matched_reference_lines": 87,
+            "pairs": 3741,
+            "all_reference_pairs": 3741,
+            "correct_partition_pairs": 3741,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1849,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 1892,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 91,
+            "fragments": 91,
+            "logical_lines": 91,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 44,
+          "predicted": 40,
+          "matched": 40,
+          "matched_at_50": 36,
+          "iou_sum": 31.615217612560485,
+          "coverage_sum": 32.603082016156485,
+          "pairs": 780,
+          "correct_pairs": 775,
+          "gold_pairs": 946,
+          "precision": 1.0,
+          "recall": 0.9090909090909091,
+          "f1": 0.9523809523809523,
+          "f1_at_50": 0.8571428571428571,
+          "mean_iou": 0.7903804403140121,
+          "matched_gold_coverage": 0.8150770504039121,
+          "all_gold_coverage": 0.7409791367308292,
+          "order_accuracy": 0.9935897435897436,
+          "pair_coverage": 0.8245243128964059,
+          "support_union_coverage_all_reference": 0.7409791367308292,
+          "support_union_iou_matched": 0.7903804403140121,
+          "support_union_coverage_matched": 0.8150770504039123,
+          "page_id": "burnet-platonis-opera-pdf0050",
+          "column": {
+            "eligible_reference_lines": 34,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 561,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 3,
+              "matched": 3,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.9444444444444445
+            },
+            "marginalia": {
+              "reference_lines": 9,
+              "matched": 5,
+              "missed": [
+                "burnet-platonis-opera-pdf0050-human-0037",
+                "burnet-platonis-opera-pdf0050-human-0038",
+                "burnet-platonis-opera-pdf0050-human-0039",
+                "burnet-platonis-opera-pdf0050-human-0041"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.2762645536610315
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf0050-human-0037",
+            "burnet-platonis-opera-pdf0050-human-0038",
+            "burnet-platonis-opera-pdf0050-human-0039",
+            "burnet-platonis-opera-pdf0050-human-0041"
+          ],
+          "inverted_pairs": 5,
+          "normalization": {
+            "source_boxes": 36,
+            "fragments": 40,
+            "logical_lines": 40,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 4,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 44,
+          "predicted": 44,
+          "matched": 42,
+          "matched_at_50": 35,
+          "iou_sum": 32.10808417184424,
+          "coverage_sum": 35.90609425066361,
+          "pairs": 861,
+          "correct_pairs": 854,
+          "gold_pairs": 946,
+          "precision": 0.9545454545454546,
+          "recall": 0.9545454545454546,
+          "f1": 0.9545454545454546,
+          "f1_at_50": 0.7954545454545454,
+          "mean_iou": 0.76447819456772,
+          "matched_gold_coverage": 0.8549070059681811,
+          "all_gold_coverage": 0.816047596605991,
+          "order_accuracy": 0.991869918699187,
+          "pair_coverage": 0.9101479915433404,
+          "support_union_coverage_all_reference": 0.8096923767226336,
+          "support_union_iou_matched": 0.7578615108945761,
+          "support_union_coverage_matched": 0.8482491565665684,
+          "page_id": "burnet-platonis-opera-pdf0300",
+          "column": {
+            "eligible_reference_lines": 34,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 561,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 3,
+              "matched": 3,
+              "missed": [],
+              "multi_fragment_logical_realizations": [
+                "burnet-platonis-opera-pdf0300-candidate-0032",
+                "burnet-platonis-opera-pdf0300-candidate-0033"
+              ],
+              "residual_fragmentation": [
+                {
+                  "reference_line_id": "burnet-platonis-opera-pdf0300-candidate-0033",
+                  "logical_line_ids": [
+                    "burnet-platonis-opera-pdf0300-l-11de052d9ecadacf",
+                    "burnet-platonis-opera-pdf0300-l-40d1c6fdb39fceff"
+                  ]
+                }
+              ],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.6656472511028748
+            },
+            "marginalia": {
+              "reference_lines": 9,
+              "matched": 7,
+              "missed": [
+                "burnet-platonis-opera-pdf0300-visual-qa-margin-8",
+                "burnet-platonis-opera-pdf0300-visual-qa-margin-22"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.7102155457711014
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf0300-visual-qa-margin-8",
+            "burnet-platonis-opera-pdf0300-visual-qa-margin-22"
+          ],
+          "inverted_pairs": 7,
+          "normalization": {
+            "source_boxes": 41,
+            "fragments": 47,
+            "logical_lines": 44,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 6,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 43,
+          "predicted": 40,
+          "matched": 40,
+          "matched_at_50": 37,
+          "iou_sum": 31.413249966395195,
+          "coverage_sum": 34.53042635640583,
+          "pairs": 780,
+          "correct_pairs": 780,
+          "gold_pairs": 903,
+          "precision": 1.0,
+          "recall": 0.9302325581395349,
+          "f1": 0.963855421686747,
+          "f1_at_50": 0.891566265060241,
+          "mean_iou": 0.7853312491598798,
+          "matched_gold_coverage": 0.8632606589101458,
+          "all_gold_coverage": 0.8030331710792055,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.8637873754152824,
+          "support_union_coverage_all_reference": 0.8014423731693661,
+          "support_union_iou_matched": 0.7874264018670346,
+          "support_union_coverage_matched": 0.8615505511570685,
+          "page_id": "burnet-platonis-opera-pdf1100",
+          "column": {
+            "eligible_reference_lines": 34,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 561,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 5,
+              "matched": 5,
+              "missed": [],
+              "multi_fragment_logical_realizations": [
+                "burnet-platonis-opera-pdf1100-candidate-0043",
+                "burnet-platonis-opera-pdf1100-candidate-0044",
+                "burnet-platonis-opera-pdf1100-candidate-0045"
+              ],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.9064839369206679
+            },
+            "marginalia": {
+              "reference_lines": 8,
+              "matched": 5,
+              "missed": [
+                "burnet-platonis-opera-pdf1100-visual-qa-margin-5",
+                "burnet-platonis-opera-pdf1100-visual-qa-margin-16",
+                "burnet-platonis-opera-pdf1100-visual-qa-margin-20"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.525097125097125
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf1100-visual-qa-margin-5",
+            "burnet-platonis-opera-pdf1100-visual-qa-margin-16",
+            "burnet-platonis-opera-pdf1100-visual-qa-margin-20"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 37,
+            "fragments": 43,
+            "logical_lines": 40,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 4,
+            "dotted_row_hints": 1
+          }
+        },
+        {
+          "gold": 46,
+          "predicted": 44,
+          "matched": 44,
+          "matched_at_50": 37,
+          "iou_sum": 34.189722013403724,
+          "coverage_sum": 39.82494089645749,
+          "pairs": 946,
+          "correct_pairs": 946,
+          "gold_pairs": 1035,
+          "precision": 1.0,
+          "recall": 0.9565217391304348,
+          "f1": 0.9777777777777777,
+          "f1_at_50": 0.8222222222222222,
+          "mean_iou": 0.7770391366682664,
+          "matched_gold_coverage": 0.9051122931013066,
+          "all_gold_coverage": 0.8657595847055977,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.9140096618357488,
+          "support_union_coverage_all_reference": 0.8657595847055977,
+          "support_union_iou_matched": 0.7770391366682662,
+          "support_union_coverage_matched": 0.9051122931013068,
+          "page_id": "burnet-platonis-opera-pdf1400",
+          "column": {
+            "eligible_reference_lines": 35,
+            "matched_reference_lines": 35,
+            "pairs": 595,
+            "all_reference_pairs": 595,
+            "correct_partition_pairs": 595,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 595,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 5,
+              "matched": 5,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.880920542635659
+            },
+            "marginalia": {
+              "reference_lines": 9,
+              "matched": 8,
+              "missed": [
+                "burnet-platonis-opera-pdf1400-visual-qa-margin-25"
+              ],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [
+                {
+                  "reference_line_id": "burnet-platonis-opera-pdf1400-visual-stephanus",
+                  "other_reference_lines": [
+                    "burnet-platonis-opera-pdf1400-visual-qa-book-number"
+                  ]
+                }
+              ],
+              "union_coverage_all_reference": 0.8634513634513634
+            }
+          },
+          "missing_line_ids": [
+            "burnet-platonis-opera-pdf1400-visual-qa-book-number",
+            "burnet-platonis-opera-pdf1400-visual-qa-margin-25"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 35,
+            "fragments": 44,
+            "logical_lines": 44,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 8,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 42,
+          "predicted": 42,
+          "matched": 42,
+          "matched_at_50": 42,
+          "iou_sum": 35.17690884723122,
+          "coverage_sum": 36.72664079003953,
+          "pairs": 861,
+          "correct_pairs": 861,
+          "gold_pairs": 861,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8375454487436004,
+          "matched_gold_coverage": 0.8744438283342746,
+          "all_gold_coverage": 0.8744438283342746,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8744438283342746,
+          "support_union_iou_matched": 0.8375454487436006,
+          "support_union_coverage_matched": 0.8744438283342746,
+          "page_id": "dillon-phronesis29-pdf004",
+          "column": {
+            "eligible_reference_lines": 38,
+            "matched_reference_lines": 38,
+            "pairs": 703,
+            "all_reference_pairs": 703,
+            "correct_partition_pairs": 703,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 703,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 42,
+            "fragments": 42,
+            "logical_lines": 42,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 42,
+          "predicted": 42,
+          "matched": 42,
+          "matched_at_50": 42,
+          "iou_sum": 34.41464010773991,
+          "coverage_sum": 35.838563995726126,
+          "pairs": 861,
+          "correct_pairs": 861,
+          "gold_pairs": 861,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8193961930414265,
+          "matched_gold_coverage": 0.853299142755384,
+          "all_gold_coverage": 0.853299142755384,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.853299142755384,
+          "support_union_iou_matched": 0.8193961930414263,
+          "support_union_coverage_matched": 0.8532991427553841,
+          "page_id": "dillon-phronesis29-pdf005",
+          "column": {
+            "eligible_reference_lines": 38,
+            "matched_reference_lines": 38,
+            "pairs": 703,
+            "all_reference_pairs": 703,
+            "correct_partition_pairs": 703,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 703,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 42,
+            "fragments": 42,
+            "logical_lines": 42,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 42,
+          "predicted": 42,
+          "matched": 42,
+          "matched_at_50": 42,
+          "iou_sum": 34.9901104588441,
+          "coverage_sum": 36.193689972772034,
+          "pairs": 861,
+          "correct_pairs": 861,
+          "gold_pairs": 861,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8330978680677167,
+          "matched_gold_coverage": 0.8617545231612389,
+          "all_gold_coverage": 0.8617545231612389,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8617545231612389,
+          "support_union_iou_matched": 0.8330978680677168,
+          "support_union_coverage_matched": 0.8617545231612392,
+          "page_id": "dillon-phronesis29-pdf006",
+          "column": {
+            "eligible_reference_lines": 38,
+            "matched_reference_lines": 38,
+            "pairs": 703,
+            "all_reference_pairs": 703,
+            "correct_partition_pairs": 703,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 703,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 42,
+            "fragments": 42,
+            "logical_lines": 42,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 45,
+          "predicted": 45,
+          "matched": 45,
+          "matched_at_50": 45,
+          "iou_sum": 36.28679924031768,
+          "coverage_sum": 36.62048439339404,
+          "pairs": 990,
+          "correct_pairs": 990,
+          "gold_pairs": 990,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8063733164515039,
+          "matched_gold_coverage": 0.8137885420754231,
+          "all_gold_coverage": 0.8137885420754231,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8137885420754231,
+          "support_union_iou_matched": 0.8063733164515039,
+          "support_union_coverage_matched": 0.8137885420754231,
+          "page_id": "menn-metaphysics-pdf288",
+          "column": {
+            "eligible_reference_lines": 44,
+            "matched_reference_lines": 44,
+            "pairs": 946,
+            "all_reference_pairs": 946,
+            "correct_partition_pairs": 946,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 946,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 45,
+            "fragments": 45,
+            "logical_lines": 45,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 53,
+          "predicted": 53,
+          "matched": 53,
+          "matched_at_50": 53,
+          "iou_sum": 46.48886050988895,
+          "coverage_sum": 47.65473651264284,
+          "pairs": 1378,
+          "correct_pairs": 1378,
+          "gold_pairs": 1378,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8771483115073387,
+          "matched_gold_coverage": 0.8991459719366574,
+          "all_gold_coverage": 0.8991459719366574,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8991459719366574,
+          "support_union_iou_matched": 0.8771483115073384,
+          "support_union_coverage_matched": 0.8991459719366577,
+          "page_id": "menn-metaphysics-pdf414",
+          "column": {
+            "eligible_reference_lines": 52,
+            "matched_reference_lines": 52,
+            "pairs": 1326,
+            "all_reference_pairs": 1326,
+            "correct_partition_pairs": 1326,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1326,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 53,
+            "fragments": 53,
+            "logical_lines": 53,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 52,
+          "predicted": 52,
+          "matched": 52,
+          "matched_at_50": 52,
+          "iou_sum": 45.23966343163296,
+          "coverage_sum": 46.01644392061961,
+          "pairs": 1326,
+          "correct_pairs": 1326,
+          "gold_pairs": 1326,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8699935275314031,
+          "matched_gold_coverage": 0.8849316138580694,
+          "all_gold_coverage": 0.8849316138580694,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8849316138580694,
+          "support_union_iou_matched": 0.869993527531403,
+          "support_union_coverage_matched": 0.8849316138580694,
+          "page_id": "menn-metaphysics-pdf577",
+          "column": {
+            "eligible_reference_lines": 51,
+            "matched_reference_lines": 51,
+            "pairs": 1275,
+            "all_reference_pairs": 1275,
+            "correct_partition_pairs": 1275,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1275,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 52,
+            "fragments": 52,
+            "logical_lines": 52,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 52,
+          "predicted": 52,
+          "matched": 52,
+          "matched_at_50": 52,
+          "iou_sum": 44.777572787149985,
+          "coverage_sum": 45.46234567797654,
+          "pairs": 1326,
+          "correct_pairs": 1326,
+          "gold_pairs": 1326,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "f1_at_50": 1.0,
+          "mean_iou": 0.8611071689836536,
+          "matched_gold_coverage": 0.8742758784226259,
+          "all_gold_coverage": 0.8742758784226259,
+          "order_accuracy": 1.0,
+          "pair_coverage": 1.0,
+          "support_union_coverage_all_reference": 0.8742758784226259,
+          "support_union_iou_matched": 0.8611071689836537,
+          "support_union_coverage_matched": 0.874275878422626,
+          "page_id": "menn-metaphysics-pdf925",
+          "column": {
+            "eligible_reference_lines": 51,
+            "matched_reference_lines": 51,
+            "pairs": 1275,
+            "all_reference_pairs": 1275,
+            "correct_partition_pairs": 1275,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 1275,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 52,
+            "fragments": 52,
+            "logical_lines": 52,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 45,
+          "predicted": 46,
+          "matched": 44,
+          "matched_at_50": 44,
+          "iou_sum": 37.79342903588286,
+          "coverage_sum": 39.099595977984194,
+          "pairs": 946,
+          "correct_pairs": 944,
+          "gold_pairs": 990,
+          "precision": 0.9565217391304348,
+          "recall": 0.9777777777777777,
+          "f1": 0.967032967032967,
+          "f1_at_50": 0.967032967032967,
+          "mean_iou": 0.8589415689973378,
+          "matched_gold_coverage": 0.8886271813178226,
+          "all_gold_coverage": 0.868879910621871,
+          "order_accuracy": 0.9978858350951374,
+          "pair_coverage": 0.9555555555555556,
+          "support_union_coverage_all_reference": 0.868879910621871,
+          "support_union_iou_matched": 0.8589415689973375,
+          "support_union_coverage_matched": 0.8886271813178227,
+          "page_id": "primavesi-zwei-elementen-pdf011",
+          "column": {
+            "eligible_reference_lines": 43,
+            "matched_reference_lines": 43,
+            "pairs": 903,
+            "all_reference_pairs": 903,
+            "correct_partition_pairs": 903,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 1.0,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": true,
+            "within_pairs": 903,
+            "within_inverted": 2,
+            "within_accuracy": 0.9977851605758582,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 7,
+              "matched": 7,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.895988944289922
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf011-native-0001"
+          ],
+          "inverted_pairs": 2,
+          "normalization": {
+            "source_boxes": 44,
+            "fragments": 46,
+            "logical_lines": 46,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 2,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 39,
+          "predicted": 38,
+          "matched": 38,
+          "matched_at_50": 38,
+          "iou_sum": 33.22847403264544,
+          "coverage_sum": 34.329430933383705,
+          "pairs": 703,
+          "correct_pairs": 702,
+          "gold_pairs": 741,
+          "precision": 1.0,
+          "recall": 0.9743589743589743,
+          "f1": 0.987012987012987,
+          "f1_at_50": 0.987012987012987,
+          "mean_iou": 0.8744335271748799,
+          "matched_gold_coverage": 0.903406077194308,
+          "all_gold_coverage": 0.8802418188047104,
+          "order_accuracy": 0.9985775248933144,
+          "pair_coverage": 0.9487179487179487,
+          "support_union_coverage_all_reference": 0.8802418188047104,
+          "support_union_iou_matched": 0.8748360363050833,
+          "support_union_coverage_matched": 0.9034060771943079,
+          "page_id": "primavesi-zwei-elementen-pdf012",
+          "column": {
+            "eligible_reference_lines": 37,
+            "matched_reference_lines": 36,
+            "pairs": 630,
+            "all_reference_pairs": 666,
+            "correct_partition_pairs": 630,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9459459459459459,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 630,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf012-native-0033"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 39,
+            "fragments": 39,
+            "logical_lines": 38,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 37,
+          "predicted": 35,
+          "matched": 35,
+          "matched_at_50": 35,
+          "iou_sum": 30.582327061772872,
+          "coverage_sum": 31.460936897905626,
+          "pairs": 595,
+          "correct_pairs": 595,
+          "gold_pairs": 666,
+          "precision": 1.0,
+          "recall": 0.9459459459459459,
+          "f1": 0.9722222222222222,
+          "f1_at_50": 0.9722222222222222,
+          "mean_iou": 0.8737807731935107,
+          "matched_gold_coverage": 0.8988839113687321,
+          "all_gold_coverage": 0.8502955918352871,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.8933933933933934,
+          "support_union_coverage_all_reference": 0.8502955918352871,
+          "support_union_iou_matched": 0.875042214313042,
+          "support_union_coverage_matched": 0.898883911368732,
+          "page_id": "primavesi-zwei-elementen-pdf013",
+          "column": {
+            "eligible_reference_lines": 35,
+            "matched_reference_lines": 34,
+            "pairs": 561,
+            "all_reference_pairs": 595,
+            "correct_partition_pairs": 561,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9428571428571428,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 561,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf013-native-0001",
+            "primavesi-zwei-elementen-pdf013-native-0035"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 36,
+            "fragments": 36,
+            "logical_lines": 35,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 49,
+          "predicted": 45,
+          "matched": 45,
+          "matched_at_50": 45,
+          "iou_sum": 39.09628414068836,
+          "coverage_sum": 40.44089147694386,
+          "pairs": 990,
+          "correct_pairs": 989,
+          "gold_pairs": 1176,
+          "precision": 1.0,
+          "recall": 0.9183673469387755,
+          "f1": 0.9574468085106383,
+          "f1_at_50": 0.9574468085106383,
+          "mean_iou": 0.8688063142375191,
+          "matched_gold_coverage": 0.8986864772654192,
+          "all_gold_coverage": 0.8253243158559972,
+          "order_accuracy": 0.998989898989899,
+          "pair_coverage": 0.8418367346938775,
+          "support_union_coverage_all_reference": 0.8253243158559972,
+          "support_union_iou_matched": 0.8697414230924252,
+          "support_union_coverage_matched": 0.898686477265419,
+          "page_id": "primavesi-zwei-elementen-pdf014",
+          "column": {
+            "eligible_reference_lines": 47,
+            "matched_reference_lines": 43,
+            "pairs": 903,
+            "all_reference_pairs": 1081,
+            "correct_partition_pairs": 903,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.8353376503237743,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 903,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf014-native-0025",
+            "primavesi-zwei-elementen-pdf014-native-0038",
+            "primavesi-zwei-elementen-pdf014-native-0042",
+            "primavesi-zwei-elementen-pdf014-native-0045"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 48,
+            "fragments": 48,
+            "logical_lines": 45,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 1
+          }
+        },
+        {
+          "gold": 53,
+          "predicted": 51,
+          "matched": 50,
+          "matched_at_50": 50,
+          "iou_sum": 42.90364212144236,
+          "coverage_sum": 45.2116687610593,
+          "pairs": 1225,
+          "correct_pairs": 1222,
+          "gold_pairs": 1378,
+          "precision": 0.9803921568627451,
+          "recall": 0.9433962264150944,
+          "f1": 0.9615384615384616,
+          "f1_at_50": 0.9615384615384616,
+          "mean_iou": 0.8580728424288472,
+          "matched_gold_coverage": 0.904233375221186,
+          "all_gold_coverage": 0.8530503539822509,
+          "order_accuracy": 0.9975510204081632,
+          "pair_coverage": 0.8889695210449927,
+          "support_union_coverage_all_reference": 0.8530503539822509,
+          "support_union_iou_matched": 0.8588075167766737,
+          "support_union_coverage_matched": 0.9042333752211862,
+          "page_id": "primavesi-zwei-elementen-pdf015",
+          "column": {
+            "eligible_reference_lines": 51,
+            "matched_reference_lines": 49,
+            "pairs": 1176,
+            "all_reference_pairs": 1275,
+            "correct_partition_pairs": 1176,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9223529411764706,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 1176,
+            "within_inverted": 3,
+            "within_accuracy": 0.9974489795918368,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf015-native-0001",
+            "primavesi-zwei-elementen-pdf015-native-0019",
+            "primavesi-zwei-elementen-pdf015-native-0040"
+          ],
+          "inverted_pairs": 3,
+          "normalization": {
+            "source_boxes": 51,
+            "fragments": 53,
+            "logical_lines": 51,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 2,
+            "dotted_row_hints": 2
+          }
+        },
+        {
+          "gold": 50,
+          "predicted": 49,
+          "matched": 49,
+          "matched_at_50": 49,
+          "iou_sum": 42.00623279133405,
+          "coverage_sum": 43.8529826118758,
+          "pairs": 1176,
+          "correct_pairs": 1172,
+          "gold_pairs": 1225,
+          "precision": 1.0,
+          "recall": 0.98,
+          "f1": 0.98989898989899,
+          "f1_at_50": 0.98989898989899,
+          "mean_iou": 0.857270056966001,
+          "matched_gold_coverage": 0.8949588288137919,
+          "all_gold_coverage": 0.877059652237516,
+          "order_accuracy": 0.9965986394557823,
+          "pair_coverage": 0.96,
+          "support_union_coverage_all_reference": 0.877059652237516,
+          "support_union_iou_matched": 0.8575783962471837,
+          "support_union_coverage_matched": 0.8949588288137914,
+          "page_id": "primavesi-zwei-elementen-pdf016",
+          "column": {
+            "eligible_reference_lines": 48,
+            "matched_reference_lines": 47,
+            "pairs": 1081,
+            "all_reference_pairs": 1128,
+            "correct_partition_pairs": 1081,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9583333333333334,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 1081,
+            "within_inverted": 3,
+            "within_accuracy": 0.9972247918593895,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf016-native-0021"
+          ],
+          "inverted_pairs": 4,
+          "normalization": {
+            "source_boxes": 50,
+            "fragments": 50,
+            "logical_lines": 49,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 1,
+            "margin_splits": 0,
+            "dotted_row_hints": 1
+          }
+        },
+        {
+          "gold": 43,
+          "predicted": 41,
+          "matched": 41,
+          "matched_at_50": 41,
+          "iou_sum": 35.727739767595494,
+          "coverage_sum": 37.174271332103075,
+          "pairs": 820,
+          "correct_pairs": 820,
+          "gold_pairs": 903,
+          "precision": 1.0,
+          "recall": 0.9534883720930233,
+          "f1": 0.9761904761904762,
+          "f1_at_50": 0.9761904761904762,
+          "mean_iou": 0.8714082870145242,
+          "matched_gold_coverage": 0.9066895446854408,
+          "all_gold_coverage": 0.8645179379558855,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.9080841638981174,
+          "support_union_coverage_all_reference": 0.8645179379558855,
+          "support_union_iou_matched": 0.8714082870145242,
+          "support_union_coverage_matched": 0.9066895446854407,
+          "page_id": "primavesi-zwei-elementen-pdf079",
+          "column": {
+            "eligible_reference_lines": 41,
+            "matched_reference_lines": 40,
+            "pairs": 780,
+            "all_reference_pairs": 820,
+            "correct_partition_pairs": 713,
+            "pair_accuracy": 0.9141025641025641,
+            "pair_coverage": 0.9512195121951219,
+            "reference_track_count": 3,
+            "matched_predicted_track_count": 3,
+            "count_agreement": true,
+            "exact_partition_on_matched": false,
+            "complete_exact_partition": false,
+            "within_pairs": 456,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 324,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 4,
+              "matched": 4,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": 0.9023001508295626
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "primavesi-zwei-elementen-pdf079-native-0001",
+            "primavesi-zwei-elementen-pdf079-human-0042"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 41,
+            "fragments": 41,
+            "logical_lines": 41,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 40,
+          "predicted": 49,
+          "matched": 36,
+          "matched_at_50": 34,
+          "iou_sum": 29.379059713553524,
+          "coverage_sum": 32.20190839535594,
+          "pairs": 630,
+          "correct_pairs": 630,
+          "gold_pairs": 780,
+          "precision": 0.7346938775510204,
+          "recall": 0.9,
+          "f1": 0.8089887640449438,
+          "f1_at_50": 0.7640449438202247,
+          "mean_iou": 0.8160849920431534,
+          "matched_gold_coverage": 0.894497455426554,
+          "all_gold_coverage": 0.8050477098838986,
+          "order_accuracy": 1.0,
+          "pair_coverage": 0.8076923076923077,
+          "support_union_coverage_all_reference": 0.8050477098838986,
+          "support_union_iou_matched": 0.8160849920431533,
+          "support_union_coverage_matched": 0.894497455426554,
+          "page_id": "ueberweg-kraemer-pdf100",
+          "column": {
+            "eligible_reference_lines": 40,
+            "matched_reference_lines": 36,
+            "pairs": 630,
+            "all_reference_pairs": 780,
+            "correct_partition_pairs": 630,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.8076923076923077,
+            "reference_track_count": 1,
+            "matched_predicted_track_count": 1,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 630,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 0,
+            "cross_inverted": 0,
+            "cross_accuracy": null
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "ueberweg-kraemer-pdf100-candidate-0006",
+            "ueberweg-kraemer-pdf100-candidate-0007",
+            "ueberweg-kraemer-pdf100-candidate-0032",
+            "ueberweg-kraemer-pdf100-visual-missed-final-line"
+          ],
+          "inverted_pairs": 0,
+          "normalization": {
+            "source_boxes": 51,
+            "fragments": 51,
+            "logical_lines": 49,
+            "column_bands": 0,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 102,
+          "predicted": 111,
+          "matched": 95,
+          "matched_at_50": 88,
+          "iou_sum": 74.88850836580878,
+          "coverage_sum": 88.6739012775704,
+          "pairs": 4465,
+          "correct_pairs": 4464,
+          "gold_pairs": 5151,
+          "precision": 0.8558558558558559,
+          "recall": 0.9313725490196079,
+          "f1": 0.892018779342723,
+          "f1_at_50": 0.8262910798122066,
+          "mean_iou": 0.788300088061145,
+          "matched_gold_coverage": 0.93340948713232,
+          "all_gold_coverage": 0.8693519733095136,
+          "order_accuracy": 0.9997760358342666,
+          "pair_coverage": 0.8668219763152786,
+          "support_union_coverage_all_reference": 0.8693519733095136,
+          "support_union_iou_matched": 0.7908713658262846,
+          "support_union_coverage_matched": 0.9334094871323197,
+          "page_id": "ueberweg-kraemer-pdf143",
+          "column": {
+            "eligible_reference_lines": 100,
+            "matched_reference_lines": 93,
+            "pairs": 4278,
+            "all_reference_pairs": 4950,
+            "correct_partition_pairs": 4278,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.8642424242424243,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 2122,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 2156,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "ueberweg-kraemer-pdf143-candidate-0027",
+            "ueberweg-kraemer-pdf143-candidate-0049",
+            "ueberweg-kraemer-pdf143-candidate-0061",
+            "ueberweg-kraemer-pdf143-candidate-0062",
+            "ueberweg-kraemer-pdf143-candidate-0064",
+            "ueberweg-kraemer-pdf143-candidate-0074",
+            "ueberweg-kraemer-pdf143-candidate-0083"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 119,
+            "fragments": 119,
+            "logical_lines": 111,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        },
+        {
+          "gold": 111,
+          "predicted": 111,
+          "matched": 109,
+          "matched_at_50": 103,
+          "iou_sum": 88.79107862520038,
+          "coverage_sum": 99.92297920913228,
+          "pairs": 5886,
+          "correct_pairs": 5885,
+          "gold_pairs": 6105,
+          "precision": 0.9819819819819819,
+          "recall": 0.9819819819819819,
+          "f1": 0.9819819819819819,
+          "f1_at_50": 0.9279279279279279,
+          "mean_iou": 0.814597051607343,
+          "matched_gold_coverage": 0.9167245799002961,
+          "all_gold_coverage": 0.9002070199020926,
+          "order_accuracy": 0.9998301053346925,
+          "pair_coverage": 0.9641277641277641,
+          "support_union_coverage_all_reference": 0.9002070199020926,
+          "support_union_iou_matched": 0.8167228404246218,
+          "support_union_coverage_matched": 0.9167245799002959,
+          "page_id": "ueberweg-kraemer-pdf145",
+          "column": {
+            "eligible_reference_lines": 109,
+            "matched_reference_lines": 107,
+            "pairs": 5671,
+            "all_reference_pairs": 5886,
+            "correct_partition_pairs": 5671,
+            "pair_accuracy": 1.0,
+            "pair_coverage": 0.9634726469588855,
+            "reference_track_count": 2,
+            "matched_predicted_track_count": 2,
+            "count_agreement": true,
+            "exact_partition_on_matched": true,
+            "complete_exact_partition": false,
+            "within_pairs": 2809,
+            "within_inverted": 0,
+            "within_accuracy": 1.0,
+            "cross_pairs": 2862,
+            "cross_inverted": 0,
+            "cross_accuracy": 1.0
+          },
+          "catastrophic_omissions": [],
+          "specials": {
+            "toc": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "apparatus": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            },
+            "marginalia": {
+              "reference_lines": 0,
+              "matched": 0,
+              "missed": [],
+              "multi_fragment_logical_realizations": [],
+              "residual_fragmentation": [],
+              "contaminated_matches": [],
+              "union_coverage_all_reference": null
+            }
+          },
+          "missing_line_ids": [
+            "ueberweg-kraemer-pdf145-candidate-0023",
+            "ueberweg-kraemer-pdf145-candidate-0103"
+          ],
+          "inverted_pairs": 1,
+          "normalization": {
+            "source_boxes": 117,
+            "fragments": 117,
+            "logical_lines": 111,
+            "column_bands": 1,
+            "column_method": "adaptive_x_y_support",
+            "margin_lanes": 0,
+            "margin_splits": 0,
+            "dotted_row_hints": 0
+          }
+        }
+      ]
+    }
+  ],
+  "target_acceptance": [
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "lines": [
+        {
+          "bbox": [
+            125.0,
+            1679.0,
+            1107.0,
+            1720.0
+          ],
+          "fragment_ids": [
+            "d0032-y0"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "image_supported_row_split",
+              "row_index": 0
+            }
+          ],
+          "reading_order": 35,
+          "line_id": "burnet-platonis-opera-pdf1100-l-b43026e3bb633931"
+        },
+        {
+          "bbox": [
+            102.0,
+            1711.0,
+            1107.0,
+            1753.0
+          ],
+          "fragment_ids": [
+            "d0033",
+            "d0032-y1"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "dotted_row_candidate",
+              "dot_component_boxes": [
+                [
+                  195.0,
+                  1711.0,
+                  201.0,
+                  1714.0
+                ],
+                [
+                  209.0,
+                  1711.0,
+                  217.0,
+                  1714.0
+                ],
+                [
+                  233.0,
+                  1711.0,
+                  241.0,
+                  1713.0
+                ],
+                [
+                  246.0,
+                  1711.0,
+                  257.0,
+                  1713.0
+                ],
+                [
+                  270.0,
+                  1711.0,
+                  275.0,
+                  1714.0
+                ],
+                [
+                  293.0,
+                  1711.0,
+                  303.0,
+                  1715.0
+                ],
+                [
+                  308.0,
+                  1711.0,
+                  316.0,
+                  1714.0
+                ]
+              ],
+              "dot_count": 7,
+              "y_dispersion": 0.31943828249996997,
+              "x_span": 114.0
+            },
+            {
+              "kind": "aligned_fragments",
+              "vertical_overlap": 0.6785714285714286
+            }
+          ],
+          "reading_order": 36,
+          "line_id": "burnet-platonis-opera-pdf1100-l-f36b86c17acf5417"
+        },
+        {
+          "bbox": [
+            100.0,
+            1753.0,
+            1107.0,
+            1786.0
+          ],
+          "fragment_ids": [
+            "d0034",
+            "d0032-y2"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "aligned_fragments",
+              "vertical_overlap": 1.0
+            }
+          ],
+          "reading_order": 37,
+          "line_id": "burnet-platonis-opera-pdf1100-l-df70b1f6f1fb1a4b"
+        },
+        {
+          "bbox": [
+            100.0,
+            1786.0,
+            1107.0,
+            1829.0
+          ],
+          "fragment_ids": [
+            "d0035",
+            "d0032-y3"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "aligned_fragments",
+              "vertical_overlap": 1.0
+            }
+          ],
+          "reading_order": 38,
+          "line_id": "burnet-platonis-opera-pdf1100-l-343dd0208eb9c06a"
+        }
+      ],
+      "before": {
+        "reference_lines": 5,
+        "matched": 1,
+        "missed": [
+          "burnet-platonis-opera-pdf1100-candidate-0042",
+          "burnet-platonis-opera-pdf1100-candidate-0043",
+          "burnet-platonis-opera-pdf1100-candidate-0044",
+          "burnet-platonis-opera-pdf1100-candidate-0045"
+        ],
+        "multi_fragment_logical_realizations": [],
+        "residual_fragmentation": [],
+        "contaminated_matches": [],
+        "union_coverage_all_reference": 0.19285714285714287
+      },
+      "after": {
+        "reference_lines": 5,
+        "matched": 5,
+        "missed": [],
+        "multi_fragment_logical_realizations": [
+          "burnet-platonis-opera-pdf1100-candidate-0043",
+          "burnet-platonis-opera-pdf1100-candidate-0044",
+          "burnet-platonis-opera-pdf1100-candidate-0045"
+        ],
+        "residual_fragmentation": [],
+        "contaminated_matches": [],
+        "union_coverage_all_reference": 0.9064839369206679
+      },
+      "row_splits": [
+        {
+          "operation": "ink_valley_row_split",
+          "source_fragment_id": "d0032",
+          "output_fragment_ids": [
+            "d0032-y0",
+            "d0032-y1",
+            "d0032-y2",
+            "d0032-y3"
+          ],
+          "cut_ys": [
+            1720.0,
+            1753.0,
+            1786.0
+          ],
+          "page_line_height": 37.0,
+          "valley_evidence": [
+            {
+              "cut_y": 1720.0,
+              "valley_to_peak": 0.027685492801771867
+            },
+            {
+              "cut_y": 1753.0,
+              "valley_to_peak": 0.06519337016574586
+            },
+            {
+              "cut_y": 1786.0,
+              "valley_to_peak": 0.07773109243697479
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "lines": [
+        {
+          "bbox": [
+            93.0,
+            1712.0,
+            1097.0,
+            1751.0
+          ],
+          "fragment_ids": [
+            "d0033-y0"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "image_supported_row_split",
+              "row_index": 0
+            }
+          ],
+          "reading_order": 40,
+          "line_id": "burnet-platonis-opera-pdf1400-l-6842a861132e94ae"
+        },
+        {
+          "bbox": [
+            93.0,
+            1751.0,
+            1097.0,
+            1783.0
+          ],
+          "fragment_ids": [
+            "d0033-y1"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "image_supported_row_split",
+              "row_index": 1
+            }
+          ],
+          "reading_order": 41,
+          "line_id": "burnet-platonis-opera-pdf1400-l-baab4ad58417dc4d"
+        },
+        {
+          "bbox": [
+            93.0,
+            1783.0,
+            1097.0,
+            1819.0
+          ],
+          "fragment_ids": [
+            "d0033-y2"
+          ],
+          "column_id": "single-track",
+          "band_id": null,
+          "hints": [
+            {
+              "kind": "image_supported_row_split",
+              "row_index": 2
+            }
+          ],
+          "reading_order": 42,
+          "line_id": "burnet-platonis-opera-pdf1400-l-e7956a345bea0ddd"
+        }
+      ],
+      "before": {
+        "reference_lines": 5,
+        "matched": 3,
+        "missed": [
+          "burnet-platonis-opera-pdf1400-candidate-0043",
+          "burnet-platonis-opera-pdf1400-candidate-0045"
+        ],
+        "multi_fragment_logical_realizations": [],
+        "residual_fragmentation": [],
+        "contaminated_matches": [
+          {
+            "reference_line_id": "burnet-platonis-opera-pdf1400-candidate-0044",
+            "other_reference_lines": [
+              "burnet-platonis-opera-pdf1400-candidate-0043",
+              "burnet-platonis-opera-pdf1400-candidate-0045"
+            ]
+          }
+        ],
+        "union_coverage_all_reference": 0.5520833333333333
+      },
+      "after": {
+        "reference_lines": 5,
+        "matched": 5,
+        "missed": [],
+        "multi_fragment_logical_realizations": [],
+        "residual_fragmentation": [],
+        "contaminated_matches": [],
+        "union_coverage_all_reference": 0.880920542635659
+      },
+      "row_splits": [
+        {
+          "operation": "ink_valley_row_split",
+          "source_fragment_id": "d0033",
+          "output_fragment_ids": [
+            "d0033-y0",
+            "d0033-y1",
+            "d0033-y2"
+          ],
+          "cut_ys": [
+            1751.0,
+            1783.0
+          ],
+          "page_line_height": 37.0,
+          "valley_evidence": [
+            {
+              "cut_y": 1751.0,
+              "valley_to_peak": 0.08888888888888888
+            },
+            {
+              "cut_y": 1783.0,
+              "valley_to_peak": 0.03768115942028985
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "raw_inputs": [
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf013-pass1-raw.json",
+      "sha256": "47067d5b9b1daf8d31493ec517326e738f3d17217faa41b7252d1bb42c3cb60b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf030-pass1-raw.json",
+      "sha256": "853a97ec09199a8508fc3ec6c938b52c3618d8aeabfd5013783122ff3601005d"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf110-pass1-raw.json",
+      "sha256": "e425a5d745fcc42355a08537e12dd5f24208a9646049ab15b06f79fd73e3d2c5"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf170-pass1-raw.json",
+      "sha256": "9b8a9a0a4e5dcc7b52c26f776d7e773e0c64910f4d9040b2763e87a4af043e41"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf0050-pass1-raw.json",
+      "sha256": "956328c9a44200500efd569f2bfeb8c4d543b185dcfb66eefd05f28640f0c15b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf0300-pass1-raw.json",
+      "sha256": "90ac13dc78aaea2bd0c5ec02a605f2548db146a2e40e9bbad1e1ff2a2c1901ff"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf1100-pass1-raw.json",
+      "sha256": "b9a0a982bfca2506bdb40c13b308686188f045b115995a546c79c29bddde027d"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf1400-pass1-raw.json",
+      "sha256": "65a5442946c15eba1f043f1b2d2508c9b7687cf026c973da072d4a893e3feb5a"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/dillon-phronesis29-pdf004-pass1-raw.json",
+      "sha256": "dc64bed70f188066f4e4762f390b4bd81cde1124e839065907bfc9140964a673"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/dillon-phronesis29-pdf005-pass1-raw.json",
+      "sha256": "d60b716e8592e369a43409fc052c4e34736230ebbd5b5840c201f8f3a107438b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/dillon-phronesis29-pdf006-pass1-raw.json",
+      "sha256": "3f161fe0d7366dcd4d0f6942d9adcbb9a710c53299199dc8284a70ed68c984fa"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf288-pass1-raw.json",
+      "sha256": "0467bbb808697b565a7d35fd20759bc8fab6cc71b6d7706e5cc97155d4b8284a"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf414-pass1-raw.json",
+      "sha256": "05c8e29bd00b9e186846ef6fa525b27b50dd38894ba8f34b2fa3556de4baf5ea"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf577-pass1-raw.json",
+      "sha256": "f11c1898e77f91e014eea9506167c83609e46b2822ed796740c407845c3f7b37"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf925-pass1-raw.json",
+      "sha256": "543df17c19260040eeb8f683163b318e8aa9c48a2dc6536d62695eefa0b38b8b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf011-pass1-raw.json",
+      "sha256": "d9c14de1e88fdd0e1c8495f3b41c5f20bb985bdc0ac7db9f77ea2eb81c18aff3"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf012-pass1-raw.json",
+      "sha256": "3899fd728210356b7b5e79820b51e3f8c6fa90bb6100423a356811a594c414dc"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf013-pass1-raw.json",
+      "sha256": "ec107ecd47c726083d28af39b461930ea3b9d218a3b292e56bd6890389f63d2f"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf014-pass1-raw.json",
+      "sha256": "45029d257addd270f51e5b335f7c4a0a686426c232acf86c0217a0a15ef67c93"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf015-pass1-raw.json",
+      "sha256": "cf07289160e8ff262922cfd154ba60664446f2d9345ffaa95c5b2a50aae977f6"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf016-pass1-raw.json",
+      "sha256": "baa4ba8b1dd6e6bc4f79e68dc61771eb2ec0ecfdcb638f28a5e251fb4cfbfba6"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf079-pass1-raw.json",
+      "sha256": "49ad091686b491805f1d8153199be39381ea752dcb7c044deee9558c7aff792e"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/ueberweg-kraemer-pdf100-pass1-raw.json",
+      "sha256": "920c3eb301f94bf46853215f7efa5fa94412176b35d6902eaef014033b943459"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/ueberweg-kraemer-pdf143-pass1-raw.json",
+      "sha256": "7eeeb40a498f5c834b64a25ed52a1a9a28ba2b71db8f62e4ffa36dd763a4f352"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/ueberweg-kraemer-pdf145-pass1-raw.json",
+      "sha256": "39952ba8381d8b3414c55acff905fce2685ac3a52410079245841b88f11cb919"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf013-pass2-raw.json",
+      "sha256": "47067d5b9b1daf8d31493ec517326e738f3d17217faa41b7252d1bb42c3cb60b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf030-pass2-raw.json",
+      "sha256": "853a97ec09199a8508fc3ec6c938b52c3618d8aeabfd5013783122ff3601005d"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf110-pass2-raw.json",
+      "sha256": "e425a5d745fcc42355a08537e12dd5f24208a9646049ab15b06f79fd73e3d2c5"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/brisson-le-meme-pdf170-pass2-raw.json",
+      "sha256": "9b8a9a0a4e5dcc7b52c26f776d7e773e0c64910f4d9040b2763e87a4af043e41"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf0050-pass2-raw.json",
+      "sha256": "956328c9a44200500efd569f2bfeb8c4d543b185dcfb66eefd05f28640f0c15b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf0300-pass2-raw.json",
+      "sha256": "90ac13dc78aaea2bd0c5ec02a605f2548db146a2e40e9bbad1e1ff2a2c1901ff"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf1100-pass2-raw.json",
+      "sha256": "b9a0a982bfca2506bdb40c13b308686188f045b115995a546c79c29bddde027d"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/burnet-platonis-opera-pdf1400-pass2-raw.json",
+      "sha256": "65a5442946c15eba1f043f1b2d2508c9b7687cf026c973da072d4a893e3feb5a"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/dillon-phronesis29-pdf004-pass2-raw.json",
+      "sha256": "dc64bed70f188066f4e4762f390b4bd81cde1124e839065907bfc9140964a673"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/dillon-phronesis29-pdf005-pass2-raw.json",
+      "sha256": "d60b716e8592e369a43409fc052c4e34736230ebbd5b5840c201f8f3a107438b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/dillon-phronesis29-pdf006-pass2-raw.json",
+      "sha256": "3f161fe0d7366dcd4d0f6942d9adcbb9a710c53299199dc8284a70ed68c984fa"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf288-pass2-raw.json",
+      "sha256": "0467bbb808697b565a7d35fd20759bc8fab6cc71b6d7706e5cc97155d4b8284a"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf414-pass2-raw.json",
+      "sha256": "05c8e29bd00b9e186846ef6fa525b27b50dd38894ba8f34b2fa3556de4baf5ea"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf577-pass2-raw.json",
+      "sha256": "f11c1898e77f91e014eea9506167c83609e46b2822ed796740c407845c3f7b37"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/menn-metaphysics-pdf925-pass2-raw.json",
+      "sha256": "543df17c19260040eeb8f683163b318e8aa9c48a2dc6536d62695eefa0b38b8b"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf011-pass2-raw.json",
+      "sha256": "d9c14de1e88fdd0e1c8495f3b41c5f20bb985bdc0ac7db9f77ea2eb81c18aff3"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf012-pass2-raw.json",
+      "sha256": "3899fd728210356b7b5e79820b51e3f8c6fa90bb6100423a356811a594c414dc"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf013-pass2-raw.json",
+      "sha256": "ec107ecd47c726083d28af39b461930ea3b9d218a3b292e56bd6890389f63d2f"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf014-pass2-raw.json",
+      "sha256": "45029d257addd270f51e5b335f7c4a0a686426c232acf86c0217a0a15ef67c93"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf015-pass2-raw.json",
+      "sha256": "cf07289160e8ff262922cfd154ba60664446f2d9345ffaa95c5b2a50aae977f6"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf016-pass2-raw.json",
+      "sha256": "baa4ba8b1dd6e6bc4f79e68dc61771eb2ec0ecfdcb638f28a5e251fb4cfbfba6"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/primavesi-zwei-elementen-pdf079-pass2-raw.json",
+      "sha256": "49ad091686b491805f1d8153199be39381ea752dcb7c044deee9558c7aff792e"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/ueberweg-kraemer-pdf100-pass2-raw.json",
+      "sha256": "920c3eb301f94bf46853215f7efa5fa94412176b35d6902eaef014033b943459"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/ueberweg-kraemer-pdf143-pass2-raw.json",
+      "sha256": "7eeeb40a498f5c834b64a25ed52a1a9a28ba2b71db8f62e4ffa36dd763a4f352"
+    },
+    {
+      "path": "docs/evidence/geometry-finalists-r2-2026-09-06/pages/surya/ueberweg-kraemer-pdf145-pass2-raw.json",
+      "sha256": "39952ba8381d8b3414c55acff905fce2685ac3a52410079245841b88f11cb919"
+    }
+  ],
+  "checks": {
+    "schema_and_lossless_provenance": "50/50 PASS",
+    "deterministic_geometry": "25/25 PASS",
+    "unchanged_other_pages": "23/23 PASS per pass",
+    "non_apparatus_matched_lines_unchanged": "PASS",
+    "no_new_apparatus_residual_fragments": "PASS",
+    "column_regions_margin_lanes_retained": "50/50 PASS"
+  },
+  "limits": [
+    "No new detector inference",
+    "Existing apparatus residual fragmentation remains on one other line",
+    "Development geometry acceptance only; not semantic D or production acceptance"
+  ]
+}

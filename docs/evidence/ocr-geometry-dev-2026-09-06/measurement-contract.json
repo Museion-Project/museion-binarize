@@ -1,0 +1,48 @@
+{
+  "schema": "mpdf-ac-measurement-contract/1",
+  "status": "FROZEN_USER_APPROVED_DEFINITION",
+  "user_source": "2026-09-06 current task: 25 页非-holdout development reference 已完成人工核验。现在继续执行 A–C OCR/geometry milestone。sections 2,4,5,7",
+  "requirements": {
+    "CER": {
+      "normalization": "NFC followed by existing whitespace normalization",
+      "existing_whitespace_implementation": "scripts/ocr/gold/metrics.py::_norm_ws",
+      "equivalent_expression": "\" \".join(unicodedata.normalize(\"NFC\", text).split())",
+      "preserve": [
+        "accents",
+        "punctuation",
+        "footnote numbers",
+        "apparatus symbols"
+      ],
+      "greek_latin_subsets": "Attribute errors from the SAME character alignment; never filter scripts and realign separately"
+    },
+    "geometry": {
+      "matching": "one-to-one line matching",
+      "minimum_iou": 0.3
+    },
+    "reading_order": {
+      "accuracy": "correctly ordered comparable pairs / all comparable pairs"
+    }
+  },
+  "thresholds": {
+    "overall_cer_max": 0.05,
+    "greek_cer_max": 0.08,
+    "latin_script_cer_max": 0.04,
+    "line_recall_min": 0.99,
+    "geometry_coverage_recall_min": 0.98,
+    "reading_order_accuracy_min": 0.99,
+    "isolated_line_omission_fraction_max": 0.01,
+    "systematic_or_region_omissions_allowed": false,
+    "catastrophic_order_or_merge_split_allowed": false,
+    "consecutive_clean_full_dev_runs": 2
+  },
+  "denominator_policy": "All 25 declared pages remain included, including transport/extraction failures; no hard-page exclusion. Undefined measurements are reported as unavailable, never PASS.",
+  "iteration_policy": {
+    "max_substantive_product_iterations": 3,
+    "target": "product code/pipeline only",
+    "new_reference": "No expansion without a demonstrated novel coverage gap and explicit approval; normally minimum 1–3 regression pages"
+  },
+  "D": "Deferred to structure milestone; no semantic annotation expansion",
+  "exit": "Stop at DEV_EXIT_READY after all gates; frozen holdout evaluation requires subsequent user confirmation",
+  "definition_change_policy": "No threshold/definition changes; correct implementation only if inconsistent with approved definitions",
+  "scorer_readiness": "No full A–C scorer or numerical results are certified by freezing this definition; executable implementation must conform and be pinned before any scored run."
+}

@@ -1,0 +1,101 @@
+surya: initialized in 2.52s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.65s/it]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.65s/it]
+surya pass1 brisson-le-meme-pdf013: ok, 66 lines, 6.71s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:08<00:00,  8.72s/it]Detecting bboxes: 100%|██████████| 1/1 [00:08<00:00,  8.73s/it]
+surya pass1 brisson-le-meme-pdf030: ok, 95 lines, 8.77s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:07<00:00,  7.73s/it]Detecting bboxes: 100%|██████████| 1/1 [00:07<00:00,  7.73s/it]
+surya pass1 brisson-le-meme-pdf110: ok, 82 lines, 7.79s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.17s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.17s/it]
+surya pass1 brisson-le-meme-pdf170: ok, 91 lines, 5.22s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.01s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.01s/it]
+surya pass1 burnet-platonis-opera-pdf0050: ok, 36 lines, 5.04s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.83s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.83s/it]
+surya pass1 burnet-platonis-opera-pdf0300: ok, 41 lines, 3.84s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.23s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.23s/it]
+surya pass1 burnet-platonis-opera-pdf1100: ok, 37 lines, 3.24s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.10s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.10s/it]
+surya pass1 burnet-platonis-opera-pdf1400: ok, 35 lines, 3.11s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.19s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.19s/it]
+surya pass1 dillon-phronesis29-pdf004: ok, 42 lines, 5.21s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.79s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.79s/it]
+surya pass1 dillon-phronesis29-pdf005: ok, 42 lines, 5.81s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.62s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.62s/it]
+surya pass1 dillon-phronesis29-pdf006: ok, 42 lines, 5.64s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.45s/it]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.45s/it]
+surya pass1 menn-metaphysics-pdf288: ok, 45 lines, 6.47s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.01s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.01s/it]
+surya pass1 menn-metaphysics-pdf414: ok, 53 lines, 5.04s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.51s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.51s/it]
+surya pass1 menn-metaphysics-pdf577: ok, 52 lines, 4.53s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.72s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.72s/it]
+surya pass1 menn-metaphysics-pdf925: ok, 52 lines, 4.74s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.76s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.76s/it]
+surya pass1 primavesi-zwei-elementen-pdf011: ok, 44 lines, 5.79s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.46s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.46s/it]
+surya pass1 primavesi-zwei-elementen-pdf012: ok, 39 lines, 5.48s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.48s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.48s/it]
+surya pass1 primavesi-zwei-elementen-pdf013: ok, 36 lines, 4.50s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.73s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.73s/it]
+surya pass1 primavesi-zwei-elementen-pdf014: ok, 48 lines, 5.75s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.58s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.58s/it]
+surya pass1 primavesi-zwei-elementen-pdf015: ok, 51 lines, 5.61s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.10s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.10s/it]
+surya pass1 primavesi-zwei-elementen-pdf016: ok, 50 lines, 5.12s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.24s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.24s/it]
+surya pass1 primavesi-zwei-elementen-pdf079: ok, 41 lines, 5.26s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.35s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.35s/it]
+surya pass1 ueberweg-kraemer-pdf100: ok, 51 lines, 5.45s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.00s/it]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.01s/it]
+surya pass1 ueberweg-kraemer-pdf143: ok, 119 lines, 6.08s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.83s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.83s/it]
+surya pass1 ueberweg-kraemer-pdf145: ok, 117 lines, 5.92s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.04s/it]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.04s/it]
+surya pass2 brisson-le-meme-pdf013: ok, 66 lines, 6.09s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.74s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.74s/it]
+surya pass2 brisson-le-meme-pdf030: ok, 95 lines, 5.79s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.09s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.10s/it]
+surya pass2 brisson-le-meme-pdf110: ok, 82 lines, 5.14s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.84s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.84s/it]
+surya pass2 brisson-le-meme-pdf170: ok, 91 lines, 4.89s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.70s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.71s/it]
+surya pass2 burnet-platonis-opera-pdf0050: ok, 36 lines, 3.72s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.15s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.15s/it]
+surya pass2 burnet-platonis-opera-pdf0300: ok, 41 lines, 3.16s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.23s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.23s/it]
+surya pass2 burnet-platonis-opera-pdf1100: ok, 37 lines, 3.25s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.20s/it]Detecting bboxes: 100%|██████████| 1/1 [00:03<00:00,  3.20s/it]
+surya pass2 burnet-platonis-opera-pdf1400: ok, 35 lines, 3.22s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.41s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.42s/it]
+surya pass2 dillon-phronesis29-pdf004: ok, 42 lines, 5.43s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.43s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.43s/it]
+surya pass2 dillon-phronesis29-pdf005: ok, 42 lines, 5.44s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.80s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.80s/it]
+surya pass2 dillon-phronesis29-pdf006: ok, 42 lines, 4.82s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.78s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.78s/it]
+surya pass2 menn-metaphysics-pdf288: ok, 45 lines, 4.80s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.79s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.79s/it]
+surya pass2 menn-metaphysics-pdf414: ok, 53 lines, 4.82s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.91s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.91s/it]
+surya pass2 menn-metaphysics-pdf577: ok, 52 lines, 4.94s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.70s/it]Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.70s/it]
+surya pass2 menn-metaphysics-pdf925: ok, 52 lines, 4.72s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.23s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.23s/it]
+surya pass2 primavesi-zwei-elementen-pdf011: ok, 44 lines, 5.25s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.93s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.93s/it]
+surya pass2 primavesi-zwei-elementen-pdf012: ok, 39 lines, 5.95s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.84s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.85s/it]
+surya pass2 primavesi-zwei-elementen-pdf013: ok, 36 lines, 5.86s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.71s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.71s/it]
+surya pass2 primavesi-zwei-elementen-pdf014: ok, 48 lines, 5.73s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.36s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.36s/it]
+surya pass2 primavesi-zwei-elementen-pdf015: ok, 51 lines, 5.38s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.25s/it]Detecting bboxes: 100%|██████████| 1/1 [00:06<00:00,  6.25s/it]
+surya pass2 primavesi-zwei-elementen-pdf016: ok, 50 lines, 6.28s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.07s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.07s/it]
+surya pass2 primavesi-zwei-elementen-pdf079: ok, 41 lines, 5.09s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.72s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.72s/it]
+surya pass2 ueberweg-kraemer-pdf100: ok, 51 lines, 5.84s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.24s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.24s/it]
+surya pass2 ueberweg-kraemer-pdf143: ok, 119 lines, 5.32s
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.01s/it]Detecting bboxes: 100%|██████████| 1/1 [00:05<00:00,  5.01s/it]
+surya pass2 ueberweg-kraemer-pdf145: ok, 117 lines, 5.10s

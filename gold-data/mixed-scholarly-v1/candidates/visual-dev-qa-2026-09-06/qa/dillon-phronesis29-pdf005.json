@@ -1,0 +1,948 @@
+{
+  "page_id": "dillon-phronesis29-pdf005",
+  "visual_inspection_performed": true,
+  "image_path": "gold-data/mixed-scholarly-v1/images/dillon-phronesis29-pdf005.png",
+  "inspection": "Full original page viewed; all visible text rows, footer/page number, completeness and order compared with staged annotations. Focused native crops used for ambiguous source glyphs.",
+  "changes": [
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0000",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            403,
+            1617,
+            442
+          ],
+          "after": [
+            314,
+            391,
+            1635,
+            442
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0007",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            767,
+            1650,
+            810
+          ],
+          "after": [
+            313,
+            766,
+            1634,
+            814
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0009",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            875,
+            1801,
+            918
+          ],
+          "after": [
+            314,
+            874,
+            1634,
+            921
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0011",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            982,
+            1699,
+            1028
+          ],
+          "after": [
+            313,
+            982,
+            1634,
+            1028
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0012",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1037,
+            1713,
+            1083
+          ],
+          "after": [
+            313,
+            1037,
+            1634,
+            1083
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0014",
+      "changes": {
+        "inline_spans": {
+          "before": [
+            {
+              "bbox": null,
+              "end_char": 43,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0014-qa-span-000",
+              "start_char": 36,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS IV"
+            }
+          ],
+          "after": [
+            {
+              "bbox": null,
+              "end_char": 40,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0014-qa-span-000",
+              "start_char": 36,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS"
+            }
+          ]
+        },
+        "bbox": {
+          "before": [
+            315,
+            1145,
+            1144,
+            1185
+          ],
+          "after": [
+            315,
+            1142,
+            1144,
+            1185
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0015",
+      "changes": {
+        "text": {
+          "before": "A further troublesome point raised by Taran (pp. 95, 105) is whether or",
+          "after": "A further troublesome point raised by Tarán (pp. 95, 105) is whether or"
+        },
+        "bbox": {
+          "before": [
+            358,
+            1197,
+            1634,
+            1238
+          ],
+          "after": [
+            358,
+            1195,
+            1634,
+            1242
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0018",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1354,
+            1731,
+            1400
+          ],
+          "after": [
+            313,
+            1354,
+            1636,
+            1403
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0020",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            1464,
+            1659,
+            1507
+          ],
+          "after": [
+            314,
+            1461,
+            1629,
+            1510
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0021",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            1518,
+            1685,
+            1566
+          ],
+          "after": [
+            315,
+            1518,
+            1635,
+            1566
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0022",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1571,
+            1666,
+            1613
+          ],
+          "after": [
+            313,
+            1569,
+            1635,
+            1616
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0023",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1624,
+            1690,
+            1667
+          ],
+          "after": [
+            313,
+            1624,
+            1635,
+            1671
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0024",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1678,
+            1684,
+            1722
+          ],
+          "after": [
+            313,
+            1678,
+            1636,
+            1722
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0027",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1838,
+            1669,
+            1881
+          ],
+          "after": [
+            313,
+            1835,
+            1636,
+            1881
+          ]
+        },
+        "inline_spans": {
+          "before": [
+            {
+              "bbox": null,
+              "end_char": 59,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0027-qa-span-000",
+              "start_char": 52,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS IV"
+            }
+          ],
+          "after": [
+            {
+              "bbox": null,
+              "end_char": 56,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0027-qa-span-000",
+              "start_char": 52,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS"
+            }
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0028",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1891,
+            1673,
+            1934
+          ],
+          "after": [
+            313,
+            1889,
+            1635,
+            1937
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0033",
+      "changes": {
+        "inline_spans": {
+          "before": [
+            {
+              "bbox": null,
+              "end_char": 25,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0033-qa-span-000",
+              "start_char": 18,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS IV"
+            }
+          ],
+          "after": [
+            {
+              "bbox": null,
+              "end_char": 22,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0033-qa-span-000",
+              "start_char": 18,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS"
+            }
+          ]
+        },
+        "bbox": {
+          "before": [
+            314,
+            2158,
+            1015,
+            2200
+          ],
+          "after": [
+            314,
+            2155,
+            1015,
+            2202
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0036",
+      "changes": {
+        "inline_spans": {
+          "before": [
+            {
+              "bbox": null,
+              "end_char": 25,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0036-qa-span-000",
+              "start_char": 18,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS IV"
+            }
+          ],
+          "after": [
+            {
+              "bbox": null,
+              "end_char": 22,
+              "semantic_role": "citation",
+              "span_id": "dillon-phronesis29-pdf005-native-0036-qa-span-000",
+              "start_char": 18,
+              "styles": [
+                "italic"
+              ],
+              "target_id": null,
+              "text": "DCMS"
+            }
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0037",
+      "changes": {
+        "bbox": {
+          "before": [
+            314,
+            2473,
+            1772,
+            2517
+          ],
+          "after": [
+            312,
+            2473,
+            1634,
+            2517
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0039",
+      "changes": {
+        "bbox": {
+          "before": [
+            770,
+            2924,
+            1188,
+            2969
+          ],
+          "after": [
+            769,
+            2934,
+            1181,
+            2961
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0040",
+      "changes": {
+        "bbox": {
+          "before": [
+            523,
+            2958,
+            1409,
+            3002
+          ],
+          "after": [
+            631,
+            2969,
+            1285,
+            2995
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0041",
+      "changes": {
+        "bbox": {
+          "before": [
+            669,
+            2991,
+            1281,
+            3035
+          ],
+          "after": [
+            668,
+            3002,
+            1281,
+            3035
+          ]
+        }
+      },
+      "evidence": "Original page image inspected visually; glyph changes additionally checked on native-resolution crop where needed. Geometry horizontal extents measured from visible ink within inspected line bands; footer rows measured separately."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0001",
+      "changes": {
+        "bbox": {
+          "before": [
+            313,
+            455,
+            533,
+            490
+          ],
+          "after": [
+            313,
+            445,
+            533,
+            490
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0002",
+      "changes": {
+        "bbox": {
+          "before": [
+            356,
+            500,
+            1632,
+            541
+          ],
+          "after": [
+            356,
+            499,
+            1632,
+            546
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0003",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            554,
+            1633,
+            596
+          ],
+          "after": [
+            315,
+            552,
+            1633,
+            599
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0004",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            611,
+            1633,
+            653
+          ],
+          "after": [
+            315,
+            609,
+            1633,
+            657
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0005",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            661,
+            1633,
+            703
+          ],
+          "after": [
+            315,
+            659,
+            1633,
+            706
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0006",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            714,
+            1628,
+            757
+          ],
+          "after": [
+            316,
+            712,
+            1628,
+            760
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0008",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            822,
+            1634,
+            864
+          ],
+          "after": [
+            316,
+            820,
+            1634,
+            868
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0010",
+      "changes": {
+        "bbox": {
+          "before": [
+            314,
+            929,
+            1638,
+            971
+          ],
+          "after": [
+            314,
+            928,
+            1638,
+            975
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0013",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1090,
+            1631,
+            1132
+          ],
+          "after": [
+            315,
+            1088,
+            1631,
+            1135
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0016",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            1250,
+            1632,
+            1292
+          ],
+          "after": [
+            316,
+            1248,
+            1632,
+            1296
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0017",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            1304,
+            1632,
+            1347
+          ],
+          "after": [
+            316,
+            1301,
+            1632,
+            1348
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0019",
+      "changes": {
+        "bbox": {
+          "before": [
+            316,
+            1410,
+            1633,
+            1453
+          ],
+          "after": [
+            316,
+            1408,
+            1633,
+            1456
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0025",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1731,
+            1632,
+            1774
+          ],
+          "after": [
+            315,
+            1728,
+            1632,
+            1777
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0026",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1785,
+            1634,
+            1827
+          ],
+          "after": [
+            315,
+            1782,
+            1634,
+            1827
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0029",
+      "changes": {
+        "bbox": {
+          "before": [
+            314,
+            1945,
+            1633,
+            1987
+          ],
+          "after": [
+            314,
+            1943,
+            1633,
+            1990
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0030",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            1998,
+            1632,
+            2039
+          ],
+          "after": [
+            315,
+            1995,
+            1632,
+            2041
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0031",
+      "changes": {
+        "bbox": {
+          "before": [
+            320,
+            2051,
+            1633,
+            2092
+          ],
+          "after": [
+            320,
+            2048,
+            1633,
+            2095
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0032",
+      "changes": {
+        "bbox": {
+          "before": [
+            315,
+            2103,
+            1637,
+            2147
+          ],
+          "after": [
+            315,
+            2100,
+            1637,
+            2148
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0035",
+      "changes": {
+        "bbox": {
+          "before": [
+            314,
+            2367,
+            1638,
+            2410
+          ],
+          "after": [
+            314,
+            2365,
+            1638,
+            2413
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    },
+    {
+      "line_id": "dillon-phronesis29-pdf005-native-0038",
+      "changes": {
+        "bbox": {
+          "before": [
+            319,
+            2572,
+            385,
+            2610
+          ],
+          "after": [
+            319,
+            2569,
+            385,
+            2610
+          ]
+        }
+      },
+      "evidence": "Visible ink in inspected line band extends beyond previous vertical box; expanded to include accents/descenders with two-pixel padding."
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "error": null
+  },
+  "unresolved_issues": [
+    "Human QA remains required for fine Greek breathings/accents and exhaustive inline style boundaries; no new human verification asserted.",
+    "D semantic/cross-page footnote relationships remain deferred; this page-only visual pass does not establish cross-page targets.",
+    "Source visibly prints \"external and immutable\" (0020) and \"it can been seen\" (0026); preserved apparent author/print errors."
+  ],
+  "human_qa_required": true
+}

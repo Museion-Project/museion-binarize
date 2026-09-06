@@ -48,6 +48,25 @@ checkpoint is stamped `historical_material_not_validated`. This is a pipeline
 integration choice, not clearance for historical scans. Tesseract's recognized
 text is discarded before Gemini transcription.
 
+The 2026-09-06 geometry-only development comparison subsequently ran Tesseract,
+Surya and Paddle detection/layout on 25 verified development pages twice each.
+Paddle narrowly won the declared IoU>=0.30 line-F1 metric (95.18% vs Surya
+95.08% and Tesseract 91.20%); stricter IoU and page-macro averaging favor Surya.
+The neural candidates' current ordering adapters still fail narrow-column
+pages. This is a development result, not a provider freeze or production
+default change. See the [report](evidence/geometry-dev-bakeoff-2026-09-06/report.md)
+and `intent.md` §8.3 for its explicit scope.
+
+The user then excluded Tesseract from the development shortlist and authorized
+fragment-preserving Paddle/Surya adapter refinement (§8.4). In that second
+round, Surya narrowly won logical-line F1 and had substantially better order
+and fewer catastrophic grouping failures; Paddle retained stricter-IoU and
+apparatus advantages. Both use the same experimental geometry evidence schema
+with raw payload/fragment/layout/column provenance preserved. See the
+[round-2 report](evidence/geometry-finalists-r2-2026-09-06/report.md).
+No provider freeze, production default change or semantic D acceptance follows
+from this development result.
+
 ## Product modes
 
 | Requested mode | What executes | Cost | Availability in this version |
@@ -164,12 +183,15 @@ Historical composite evidence retains its recorded provenance and is never
 relabeled as complete coordinate OCR.
 
 First-party closed-world evaluation uses
-`schemas/mpdf-closed-world-ocr-gold-page-1.1.schema.json` and starts from blank
-human annotation of target German/French/English/polytonic-Greek pages. The
-legacy schema 1.0 remains readable for existing CGPG drafts. CGPG is now a
-Greek-only specialist control, not the mixed-page gold. GT4HistComment and
-BHL-IMPACT are external controls for complementary script/language coverage;
-neither replaces the first-party set. See
+`schemas/mpdf-closed-world-ocr-gold-page-1.2.schema.json` and starts from blank
+human annotation of target German/French/English/polytonic-Greek pages. In
+addition to line geometry and exact characters, 1.2 records paragraph/leaf/
+column structure, marginal reference semantics, inline typography, and linked
+footnote markers. Separate page gates require exhaustive structure and
+typography review before gold status. Schemas 1.0 and 1.1 remain readable for
+legacy records. CGPG is a Greek-only specialist control, not the mixed-page
+gold. GT4HistComment and BHL-IMPACT are external controls for complementary
+script/language coverage; neither replaces the first-party set. See
 [ADR 0013](adr/0013-mixed-script-gold-and-geometry-candidates.md).
 
 See also [`limitations.md`](limitations.md),

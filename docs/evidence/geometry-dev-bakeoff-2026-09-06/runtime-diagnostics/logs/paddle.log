@@ -1,0 +1,57 @@
+No model hoster is available! Please check your network connection to one of the following model hosts: HuggingFace (https://huggingface.co), ModelScope (https://modelscope.cn), AIStudio (https://aistudio.baidu.com), or BOS (https://paddle-model-ecology.bj.bcebos.com). Otherwise, only local models can be used.
+sysctl: sysctl fmt -1 1024 1: Operation not permitted
+/opt/homebrew/lib/python3.11/site-packages/paddle/utils/cpp_extension/extension_utils.py:718: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+  warnings.warn(warning_message)
+WARNING: OMP_NUM_THREADS set to 4, not 1. The computation speed will not be optimized if you use data parallel. It will fail if this PaddlePaddle binary is compiled with OpenBlas since OpenBlas does not support multi-threads.
+PLEASE USE OMP_NUM_THREADS WISELY.
+paddle: initialized in 6.61s
+paddle pass1 brisson-le-meme-pdf013: ok, 71 lines, 7.09s
+paddle pass1 brisson-le-meme-pdf030: ok, 96 lines, 5.09s
+paddle pass1 brisson-le-meme-pdf110: ok, 82 lines, 5.43s
+paddle pass1 brisson-le-meme-pdf170: ok, 91 lines, 5.18s
+paddle pass1 burnet-platonis-opera-pdf0050: ok, 42 lines, 5.52s
+paddle pass1 burnet-platonis-opera-pdf0300: ok, 42 lines, 4.26s
+paddle pass1 burnet-platonis-opera-pdf1100: ok, 46 lines, 3.98s
+paddle pass1 burnet-platonis-opera-pdf1400: ok, 46 lines, 4.18s
+paddle pass1 dillon-phronesis29-pdf004: ok, 42 lines, 6.82s
+paddle pass1 dillon-phronesis29-pdf005: ok, 42 lines, 4.52s
+paddle pass1 dillon-phronesis29-pdf006: ok, 42 lines, 3.86s
+paddle pass1 menn-metaphysics-pdf288: ok, 45 lines, 6.41s
+paddle pass1 menn-metaphysics-pdf414: ok, 53 lines, 6.02s
+paddle pass1 menn-metaphysics-pdf577: ok, 52 lines, 6.95s
+paddle pass1 menn-metaphysics-pdf925: ok, 53 lines, 6.88s
+paddle pass1 primavesi-zwei-elementen-pdf011: ok, 43 lines, 7.23s
+paddle pass1 primavesi-zwei-elementen-pdf012: ok, 38 lines, 5.01s
+paddle pass1 primavesi-zwei-elementen-pdf013: ok, 35 lines, 5.16s
+paddle pass1 primavesi-zwei-elementen-pdf014: ok, 49 lines, 5.37s
+paddle pass1 primavesi-zwei-elementen-pdf015: ok, 50 lines, 6.32s
+paddle pass1 primavesi-zwei-elementen-pdf016: ok, 50 lines, 5.40s
+paddle pass1 primavesi-zwei-elementen-pdf079: ok, 40 lines, 5.37s
+paddle pass1 ueberweg-kraemer-pdf100: ok, 41 lines, 5.79s
+paddle pass1 ueberweg-kraemer-pdf143: ok, 102 lines, 5.02s
+paddle pass1 ueberweg-kraemer-pdf145: ok, 111 lines, 4.48s
+paddle pass2 brisson-le-meme-pdf013: ok, 71 lines, 6.08s
+paddle pass2 brisson-le-meme-pdf030: ok, 96 lines, 5.72s
+paddle pass2 brisson-le-meme-pdf110: ok, 82 lines, 5.51s
+paddle pass2 brisson-le-meme-pdf170: ok, 91 lines, 5.40s
+paddle pass2 burnet-platonis-opera-pdf0050: ok, 42 lines, 5.02s
+paddle pass2 burnet-platonis-opera-pdf0300: ok, 42 lines, 4.86s
+paddle pass2 burnet-platonis-opera-pdf1100: ok, 46 lines, 5.26s
+paddle pass2 burnet-platonis-opera-pdf1400: ok, 46 lines, 4.69s
+paddle pass2 dillon-phronesis29-pdf004: ok, 42 lines, 4.46s
+paddle pass2 dillon-phronesis29-pdf005: ok, 42 lines, 4.60s
+paddle pass2 dillon-phronesis29-pdf006: ok, 42 lines, 5.21s
+paddle pass2 menn-metaphysics-pdf288: ok, 45 lines, 5.86s
+paddle pass2 menn-metaphysics-pdf414: ok, 53 lines, 5.37s
+paddle pass2 menn-metaphysics-pdf577: ok, 52 lines, 6.04s
+paddle pass2 menn-metaphysics-pdf925: ok, 53 lines, 5.67s
+paddle pass2 primavesi-zwei-elementen-pdf011: ok, 43 lines, 5.34s
+paddle pass2 primavesi-zwei-elementen-pdf012: ok, 38 lines, 5.29s
+paddle pass2 primavesi-zwei-elementen-pdf013: ok, 35 lines, 5.21s
+paddle pass2 primavesi-zwei-elementen-pdf014: ok, 49 lines, 5.34s
+paddle pass2 primavesi-zwei-elementen-pdf015: ok, 50 lines, 5.73s
+paddle pass2 primavesi-zwei-elementen-pdf016: ok, 50 lines, 5.41s
+paddle pass2 primavesi-zwei-elementen-pdf079: ok, 40 lines, 5.64s
+paddle pass2 ueberweg-kraemer-pdf100: ok, 41 lines, 5.45s
+paddle pass2 ueberweg-kraemer-pdf143: ok, 102 lines, 5.13s
+paddle pass2 ueberweg-kraemer-pdf145: ok, 111 lines, 5.13s

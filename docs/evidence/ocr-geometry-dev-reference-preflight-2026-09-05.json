@@ -1,0 +1,371 @@
+{
+  "schema": "mpdf-ocr-geometry-dev-preflight/1",
+  "frozen_manifest_sha256": "892dfd6055d4d8c72fe7091151611536ee1d3791c5d11df67b838f858cc20183",
+  "selection_sha256": [
+    "ba21b9f66f403c7f93e8e73eac1581a35eef3380a890d0436a1078a7f265c0f8",
+    "b669ec5973acda62b9011485f99dce1a17c840c792a0ea7c90b0096e9172a10e"
+  ],
+  "frozen_integrity": "PASS",
+  "frozen_pages": 16,
+  "holdout_content_used_for_diagnosis": false,
+  "excluded": {
+    "frozen_page_id": 16
+  },
+  "nonholdout_pages": 25,
+  "reference_ready_pages": 0,
+  "reference_readiness": "DEV_REFERENCE_EVIDENCE_MISSING",
+  "scope": "Reference readiness only; not dev exit, stability, domain coverage or milestone PASS.",
+  "d_semantic_review_required": false,
+  "inference_calls": 0,
+  "frozen_evaluation_executed": false,
+  "records": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "record_sha256": "56cf5396f4cfaba9d3000408fe5aa1430d80a2daa7a378341dc62cd825df7856",
+      "image_sha256": "77cc208bfcfa016323c14a9d8ec60ad4fcdfff1d5f407e76f51bc74f116dbd56",
+      "source_sha256": "7298f0bcd0880c1f3f6e4af477538ed97539dc3759556bf531f4a001e755621d",
+      "pdf_page": 13,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "record_sha256": "d3770af88fbc7434c7849094d9fe15f3d33690aa5242f65309e5e372c62defc3",
+      "image_sha256": "4e88122c010e2896a6561578b5295dcdf3cc0efa9ffc10c67d43b32a819a8365",
+      "source_sha256": "7298f0bcd0880c1f3f6e4af477538ed97539dc3759556bf531f4a001e755621d",
+      "pdf_page": 30,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "record_sha256": "0b35561e7e689c36c45fa337989508cd516b154185354823957363bf13386751",
+      "image_sha256": "f0221ff2ec78c2d460838de750d3c509598f5b88372b4119d045328430c3462c",
+      "source_sha256": "7298f0bcd0880c1f3f6e4af477538ed97539dc3759556bf531f4a001e755621d",
+      "pdf_page": 110,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "record_sha256": "a179b83c60eb6a4e29640171335773ad4337c6deeaede55d20a4119ee0f253e3",
+      "image_sha256": "365c0feffbf1609ce9a3e5822cdf8550675d030aed04b95ff0e1160763961e15",
+      "source_sha256": "7298f0bcd0880c1f3f6e4af477538ed97539dc3759556bf531f4a001e755621d",
+      "pdf_page": 170,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "record_sha256": "821bad99ea014315e3996e6839689c33c5d84420dcf0ef3521fbf71d63ce0b6e",
+      "image_sha256": "0e48f07f423b50784a214bed0519a65b1b4c4d1e5ebaff7bcf4e48dcecf658e7",
+      "source_sha256": "1fcc2f99ad8a42262f19e5b77e671b8161474fc3c2355843406fbfcfb2623de6",
+      "pdf_page": 50,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "record_sha256": "ffaa3c5c4e9795f649ef9e65d564262351d65f99c9a3087d283e32d7660f4e6d",
+      "image_sha256": "65a95b4f352ea0538ce8cf0d0ead21456994c101d346f26a87632a07a8c29928",
+      "source_sha256": "1fcc2f99ad8a42262f19e5b77e671b8161474fc3c2355843406fbfcfb2623de6",
+      "pdf_page": 300,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "record_sha256": "e563a29ab7dbf9e6dc6e42b79a27caf8d6b1ebea03f1e7324fb433ae95fda92c",
+      "image_sha256": "0a3430c180b30072b412484efd5a8f4d351db00b35f9f66c9583fe13bba9106f",
+      "source_sha256": "1fcc2f99ad8a42262f19e5b77e671b8161474fc3c2355843406fbfcfb2623de6",
+      "pdf_page": 1100,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "record_sha256": "b0e8bee751d43e8c1c5bd41ea73935ae671ebce78a03cef494aa1e3b5c7b8c3d",
+      "image_sha256": "ed81881da4a88409798011d6e503e52fad8e6b5d7b5300a53a7f5396ddad69dd",
+      "source_sha256": "1fcc2f99ad8a42262f19e5b77e671b8161474fc3c2355843406fbfcfb2623de6",
+      "pdf_page": 1400,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "record_sha256": "d563ec24005bcf88fb0b1caca6b030d7ed7bbc17c432f4d0f7068fae0c7f69ef",
+      "image_sha256": "a2d627f7a58ca9a1fd314ad983ab582fa9e2be9ccbc3b4cb434936425c320586",
+      "source_sha256": "8921a1332dca1f46cfe0f154691bf10e6eb944f98bc6c6473367d706b0f00eed",
+      "pdf_page": 4,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "record_sha256": "6e078c6892ec4dfbc8e52dacd3e080c1f833e336284b7eaee61010b1609f70b1",
+      "image_sha256": "d2d5d01743a6312f5502403f7250e73744e27bc627a49c0122d29475cf698544",
+      "source_sha256": "8921a1332dca1f46cfe0f154691bf10e6eb944f98bc6c6473367d706b0f00eed",
+      "pdf_page": 5,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "record_sha256": "17bf612f59c2fd6e039c615ddff10405b254606ea838efe7291e3bd2f9e3242a",
+      "image_sha256": "8c4a575752577f6f39bae2eb778844410c7573b900722313500d2c4ca25f4974",
+      "source_sha256": "8921a1332dca1f46cfe0f154691bf10e6eb944f98bc6c6473367d706b0f00eed",
+      "pdf_page": 6,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "record_sha256": "84fa14b708bd8cb714c45b43be9e63c9d2423c6ee73ad484a0c2233f1a221041",
+      "image_sha256": "e74ecb55035a2a2e72a294e3da901c0583c18d14274126f0a0e99755db074544",
+      "source_sha256": "198acf10b0a2a8d803044c874f9db95bbb61038d945cbe4c8783a8186bb1e2f2",
+      "pdf_page": 288,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "record_sha256": "fa8a27c8543a842ea8db9368fd4076ca21f02abf8b84f299edc6d4395d328340",
+      "image_sha256": "85cc2baa65a9de4e2b073d8fc9b1ef58cb460831ebb712956556e87ee16f6cd3",
+      "source_sha256": "198acf10b0a2a8d803044c874f9db95bbb61038d945cbe4c8783a8186bb1e2f2",
+      "pdf_page": 414,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "record_sha256": "67ce6e02479bd72c8d4d32846a672d4123bd94a99137af2e00bcd69fc9fbc6d1",
+      "image_sha256": "0e7f8af36f5a294de0af7e58b2e95a4d68b1e2c139d41d9217544879e5501e22",
+      "source_sha256": "198acf10b0a2a8d803044c874f9db95bbb61038d945cbe4c8783a8186bb1e2f2",
+      "pdf_page": 577,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "record_sha256": "1804dd65fe4ae75ba0e2611c416dfbe3e989ae42b9b51908690c28ca53e2e589",
+      "image_sha256": "3c62929bbf05b873000308a2518641e5b7bcbfe6024cfdbf123a14b6b246deab",
+      "source_sha256": "198acf10b0a2a8d803044c874f9db95bbb61038d945cbe4c8783a8186bb1e2f2",
+      "pdf_page": 925,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "record_sha256": "cf5142eceb00b8e5d3297f64dcd1c93f15f8619aed9b9833f6e8a921462deb3e",
+      "image_sha256": "57fb6d051cfc8a640a9ee22a76edbf80a52abf04d30c485f7aaee87284271b6c",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 11,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "record_sha256": "808896e4796ac88cb86f4b0711369ef48400b96977dfcda2bf69ac24501d6f2a",
+      "image_sha256": "03a214dc95d96a392c1c038b54771ee64b086ab24d50bac527c315838dbc9aaa",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 12,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "record_sha256": "4da361c26b6fe09a3f7f819357edf27f386962030a6f8b8ca396cce62ccf48b9",
+      "image_sha256": "25445554bb0771701d885d320cc5f62acb6b9a343a09264608d8a74b91614e4a",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 13,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "record_sha256": "f178184692852d17a663d400b4b3025980ef2013cc865912f2b42a10c8e4c95a",
+      "image_sha256": "e0ced29f95786597800170d1c9ad6efc4e036a837af29446dd58c78372f11bac",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 14,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "record_sha256": "97a372fac5863b48d90be78573abdf31b407aaea79154b1ec4fd72b56031acd5",
+      "image_sha256": "442706df65cc9623ba75ff1d15063a45783e34a9846f0bacf926bf06b95dd268",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 15,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "record_sha256": "a3d62e0b9543e9de8d1dcf104f7913e2792deb55d986a33f8986dbb26b35fd20",
+      "image_sha256": "1949a63280ec8f34e25a29bca5c8221ac2d18caca5c7d5bbbae4880b5b7d7791",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 16,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "record_sha256": "a95310342c8d82375d0b8c84ffdd9efc7e5c1b6755bee5a6f3d4c51f8e62a033",
+      "image_sha256": "5a9d48fe7be93e5c438ac00c7dfe582c04dabecd5061a0397c7d22e92e67d9d9",
+      "source_sha256": "1a0c129cd9f68ad239ee34b497b941e41de24a1b85d2592eac0449d531b22a5f",
+      "pdf_page": 79,
+      "reference_gaps": [
+        "no_reference_reviewer",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "record_sha256": "00c88f45cdea359d7c730cbd7851eb10a462360b1aa58005204a3febf739ab46",
+      "image_sha256": "fad2877c3fee3cc723cbec90504a0a17f3e771235fa4309c2bf75cfdeb2a375f",
+      "source_sha256": "18efa131e5a89d18cf6e1eec737d4434571b05dcf28ea0a4f4e0426fb05db232",
+      "pdf_page": 100,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "record_sha256": "3ce85a91bbbb6223c254a191fcbc5c91680d576c1a757e89b8e2295240721f0c",
+      "image_sha256": "1f55330041e9cac0f47b033738ec8454fe77c5a9349b2f8de098707e9fbbdfc3",
+      "source_sha256": "18efa131e5a89d18cf6e1eec737d4434571b05dcf28ea0a4f4e0426fb05db232",
+      "pdf_page": 143,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "record_sha256": "e74027ae6b9e0b0a690f80fcded5e62f33b0b803e7b289f299f241968c6b5908",
+      "image_sha256": "10fd9e77bea9a0ce42885b3e006bcccf5697563594d7d1085f6994dbb6827a17",
+      "source_sha256": "18efa131e5a89d18cf6e1eec737d4434571b05dcf28ea0a4f4e0426fb05db232",
+      "pdf_page": 145,
+      "reference_gaps": [
+        "geometry_unreviewed",
+        "no_reference_reviewer",
+        "transcription_unreviewed",
+        "unresolved_reference_notes",
+        "visible_line_coverage_unreviewed"
+      ]
+    }
+  ]
+}
