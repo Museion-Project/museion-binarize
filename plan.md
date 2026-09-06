@@ -4,6 +4,12 @@
 **日期：** 2026-08-30
 **当前分支：** `main`
 
+## 2026-09-06 Surya正式选择与版本冻结
+
+当前状态已先提交为`2f73d03`。随后按`intent.md` §8.6执行0.17.0 vs 0.22.1各25页真实推理，adapter/规则不变；raw和最终geometry全部25/25一致。正式选定Surya，冻结0.17.0 + 2025_05_07 detector + r3.0 adapter。新版默认detector仍是同一checkpoint，无几何升级收益。开发选择/probe为`aligned`；生产接线、打包和独立验收为`unverified`。
+
+[ADR0015](docs/adr/0015-selected-surya-geometry.md) · [probe报告](docs/evidence/surya-upgrade-probe-2026-09-06/report.md) · [精确冻结清单](docs/evidence/surya-upgrade-probe-2026-09-06/provider-freeze.json)
+
 ## 2026-09-06 Surya-only apparatus bounded repair完成
 
 依据 `intent.md` §8.5，Burnet1100四条、1400三条恢复独立分行；apparatus匹配21/27→27/27，无新增over-split。两遍25页adapter replay确定性通过，23个非目标页及目标页非apparatus行未变，14项测试通过。原始框与split provenance完整保留。未新增模型推理，未进入holdout/语义D/生产验收。

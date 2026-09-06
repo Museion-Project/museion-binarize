@@ -1,0 +1,64 @@
+{
+  "schema": "museion-selected-geometry-provider/1",
+  "status": "selected_and_development_configuration_frozen",
+  "authority": "intent.md §8.6; ADR 0015; user message 2026-09-06",
+  "provider": "surya",
+  "surya_ocr_version": "0.17.0",
+  "detector_checkpoint": "s3://text_detection/2025_05_07",
+  "model_sha256": {
+    "config.json": "0f99d8176e3fc194966659cf6f1c52ab9ca1d573f47ba57aca55036ff5267d69",
+    "manifest.json": "f57a95d3da7d182c4ef556171115a6557455c98f847e81e59a30f37898d994c0",
+    "model.safetensors": "38c3749eeb5f06fc93ed71eeee5cbd86b1945d08f8f74746bda035d41324bd3e",
+    "preprocessor_config.json": "594344843fcd54db03240194c7677b5c459e78d349e68d4a89d7d91e4fa90587"
+  },
+  "adapter_version": "r3.0-apparatus-repair",
+  "adapter_path": "scripts/ocr/geometry/finalist_adapters.py",
+  "adapter_sha256": "be148e58c3599c8687b723f8ec68437d2ae4f82c986b9ef1b2860bc8c2d7fdf0",
+  "checkpoint_commit": "2f73d03176037b33aaf80c9cc10009c4b47761f8",
+  "observed_detector_environment": {
+    "surya-ocr": "0.17.0",
+    "transformers": "4.56.2",
+    "huggingface-hub": "0.35.3",
+    "torch": "2.8.0",
+    "tokenizers": "0.22.2",
+    "numpy": "1.26.4",
+    "pillow": "12.2.0",
+    "opencv-python": "4.12.0.88"
+  },
+  "execution": {
+    "device": "cpu",
+    "dtype": "float32",
+    "threads": 4,
+    "batch_size": 1
+  },
+  "upgrade_probe": {
+    "candidate": "0.22.1",
+    "candidate_default_detector": "s3://text_detection/2025_05_07",
+    "equality_counts": {
+      "raw_coordinates_polygons_equal": 25,
+      "full_raw_payload_equal": 25,
+      "final_geometry_fields_equal": 25,
+      "final_geometry_except_confidence_equal": 25,
+      "logical_lines_equal": 25,
+      "old_arm_reproduces_repaired_baseline": 25
+    },
+    "decision": "retain 0.17.0; no evidenced geometry benefit from upgrade"
+  },
+  "evidence": {
+    "results": "results.json",
+    "results_sha256": "845ddc44651305f89cf00ab738f946e9dfdcd1163c1d1567a6a88587f4c62c86",
+    "manifest": "docs/evidence/geometry-dev-bakeoff-2026-09-06/reference-manifest.json"
+  },
+  "alignment": {
+    "development_selection_probe": "aligned",
+    "baseline": "intent.md §8.6",
+    "production_selected_path": "unverified"
+  },
+  "not_established": [
+    "production wiring or packaged runtime closure",
+    "independent holdout quality",
+    "semantic D",
+    "text transcription quality",
+    "full 0.22.1 installation or shared service lifecycle"
+  ]
+}

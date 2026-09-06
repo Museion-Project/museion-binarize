@@ -41,31 +41,26 @@ also qualifies as complete coordinate OCR because every transcript line is
 directly bound to an immutable geometry-owned line id; the historical fuzzy
 page-text alignment experiment does not.
 
-The provisional geometry implementation is Tesseract 5.5.3 PSM 3 with the
-pinned `tessdata_best` 4.1.0 set. It won the clean-native control in
-[ADR 0014](adr/0014-provisional-tesseract-geometry.md), but every page and
-checkpoint is stamped `historical_material_not_validated`. This is a pipeline
-integration choice, not clearance for historical scans. Tesseract's recognized
-text is discarded before Gemini transcription.
+## Selected geometry provider: Surya
 
-The 2026-09-06 geometry-only development comparison subsequently ran Tesseract,
-Surya and Paddle detection/layout on 25 verified development pages twice each.
-Paddle narrowly won the declared IoU>=0.30 line-F1 metric (95.18% vs Surya
-95.08% and Tesseract 91.20%); stricter IoU and page-macro averaging favor Surya.
-The neural candidates' current ordering adapters still fail narrow-column
-pages. This is a development result, not a provider freeze or production
-default change. See the [report](evidence/geometry-dev-bakeoff-2026-09-06/report.md)
-and `intent.md` §8.3 for its explicit scope.
+The user formally selected **Surya** on 2026-09-06 (`intent.md` §8.6).
+[ADR 0015](adr/0015-selected-surya-geometry.md) supersedes ADR 0014's provisional
+Tesseract selection. The bounded apparatus repair is part of the selected
+fragment-preserving geometry adapter; Gemini transcription and deterministic
+composition retain their existing responsibilities.
 
-The user then excluded Tesseract from the development shortlist and authorized
-fragment-preserving Paddle/Surya adapter refinement (§8.4). In that second
-round, Surya narrowly won logical-line F1 and had substantially better order
-and fewer catastrophic grouping failures; Paddle retained stricter-IoU and
-apparatus advantages. Both use the same experimental geometry evidence schema
-with raw payload/fragment/layout/column provenance preserved. See the
-[round-2 report](evidence/geometry-finalists-r2-2026-09-06/report.md).
-No provider freeze, production default change or semantic D acceptance follows
-from this development result.
+The exact detector/runtime freeze and the fixed-adapter 25-page upgrade probe
+are recorded in ADR 0015 and
+[the compatibility report](evidence/surya-upgrade-probe-2026-09-06/report.md).
+This is a provider selection and reproducible development configuration, not
+production wiring, packaged distribution, semantic D or independent holdout
+acceptance. Existing Tesseract integration paths are historical implementation
+that still need replacement; they must not be presented as the selected Surya
+path or used as an implicit fallback.
+
+Development evidence remains available: [first comparison](evidence/geometry-dev-bakeoff-2026-09-06/report.md),
+[Paddle/Surya round 2](evidence/geometry-finalists-r2-2026-09-06/report.md), and
+[bounded apparatus repair](evidence/surya-apparatus-repair-2026-09-06/report.md).
 
 ## Product modes
 

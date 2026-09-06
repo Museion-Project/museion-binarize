@@ -1,6 +1,6 @@
 # ADR 0014: Provisional Tesseract geometry provider
 
-Status: accepted for pipeline integration; historical material not validated
+Status: superseded for provider selection by [ADR 0015](0015-selected-surya-geometry.md); retained as historical integration evidence
 
 ## Context
 

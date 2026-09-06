@@ -1,0 +1,17 @@
+{
+  "wheel": "surya_ocr-0.22.1-py3-none-any.whl",
+  "wheel_sha256": "f84cdba18b99cd8d010d19db8b89d79cdcd3d0cd4e3bdba52a473023ccd69a2d",
+  "source": "PyPI surya-ocr==0.22.1 official release wheel",
+  "files": {
+    "surya/settings.py": "d4c2bcf140c7f424a290fcd68a2f3eae745ab2c476a6781a6c4449977c8d88e4",
+    "surya/detection/__init__.py": "ab06cdea9e43bca051178a91f6123927dd34296b9b06f7f5c6ee5409678dbcbf",
+    "surya/detection/loader.py": "926115fbbba9dc9c3deeead53eb9695de4ca0a6c7922348a6651260f571a5087",
+    "surya_ocr-0.22.1.dist-info/METADATA": "687b8bceaaacd11c1adb7a0c943a8dd0f80983909a9af7a103322b1898b9d488"
+  },
+  "dependency_scope": "Detector-only path. torch, numpy, PIL, cv2 shared with baseline for controlled comparison. Full dependency closure not installed or validated.",
+  "metadata_constraints_not_satisfied_by_shared_environment": [
+    "Pillow 12.2.0 is outside declared >=10.2,<11",
+    "opencv-python 4.12.0.88 used instead of declared opencv-python-headless 4.11.0.86",
+    "torchvision absent; not imported by local detector path"
+  ]
+}

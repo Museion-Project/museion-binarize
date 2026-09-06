@@ -1,0 +1,206 @@
+{
+  "version": "0.17.0",
+  "adapter_sha256": "be148e58c3599c8687b723f8ec68437d2ae4f82c986b9ef1b2860bc8c2d7fdf0",
+  "runner_sha256": "6ed035eba358b2164c120f38b40cbfa4861fd995b32bd1c6ab49cef52ecf00da",
+  "versions": {
+    "surya-ocr": "0.17.0",
+    "transformers": "4.56.2",
+    "huggingface-hub": "0.35.3",
+    "torch": "2.8.0",
+    "tokenizers": "0.22.2",
+    "numpy": "1.26.4",
+    "pillow": "12.2.0",
+    "opencv-python": "4.12.0.88"
+  },
+  "default_detector": "s3://text_detection/2025_05_07",
+  "model_sha256": {
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/config.json": "0f99d8176e3fc194966659cf6f1c52ab9ca1d573f47ba57aca55036ff5267d69",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/manifest.json": "f57a95d3da7d182c4ef556171115a6557455c98f847e81e59a30f37898d994c0",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/model.safetensors": "38c3749eeb5f06fc93ed71eeee5cbd86b1945d08f8f74746bda035d41324bd3e",
+    "/Users/theo/Library/Caches/datalab/models/text_detection/2025_05_07/preprocessor_config.json": "594344843fcd54db03240194c7677b5c459e78d349e68d4a89d7d91e4fa90587"
+  },
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 4,
+  "batch_size": 1,
+  "runs": [
+    {
+      "page_id": "brisson-le-meme-pdf013",
+      "inference_seconds": 4.376325832970906,
+      "raw_digest": "f3502f6f255af1eec59881bf0e77c8afd77f5a329d4561daba8f65127e1145db",
+      "boxes": 66,
+      "logical_lines": 36
+    },
+    {
+      "page_id": "brisson-le-meme-pdf030",
+      "inference_seconds": 4.343641165993176,
+      "raw_digest": "5f5bb199ed982d05ddb49c066d6399984bd3b9c151c6d76438c73ab183ab2f43",
+      "boxes": 95,
+      "logical_lines": 94
+    },
+    {
+      "page_id": "brisson-le-meme-pdf110",
+      "inference_seconds": 4.3195002090069465,
+      "raw_digest": "94b3c50b0828853d21558fef3a716f3e8d0fb2c542daa8f8c5968ed93ebb0628",
+      "boxes": 82,
+      "logical_lines": 82
+    },
+    {
+      "page_id": "brisson-le-meme-pdf170",
+      "inference_seconds": 4.127311583957635,
+      "raw_digest": "bb1edc49006a00148d29837771cdb09916a782abf9c45e53acce331c3fe6f3a6",
+      "boxes": 91,
+      "logical_lines": 91
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0050",
+      "inference_seconds": 3.0926775840343907,
+      "raw_digest": "fb1e54d309c09aa708da83a03556c0255b9fd5af0fcb1c87e247c309e4176520",
+      "boxes": 36,
+      "logical_lines": 40
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf0300",
+      "inference_seconds": 3.02997008303646,
+      "raw_digest": "8d8192a555bdd8a00f5234ac04384fe246070dc92c0b269c71bb537dae1cf450",
+      "boxes": 41,
+      "logical_lines": 44
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1100",
+      "inference_seconds": 3.0306643749936484,
+      "raw_digest": "70fa8d491c0f69e9b4bb2a4129a744c638c483e3c43018aebdfd07d0d5d55a74",
+      "boxes": 37,
+      "logical_lines": 40
+    },
+    {
+      "page_id": "burnet-platonis-opera-pdf1400",
+      "inference_seconds": 3.022072833031416,
+      "raw_digest": "aba4301ecb172609ce5e5d80cfbe83525bf7b3a067b714c4c98635245c0afdc7",
+      "boxes": 35,
+      "logical_lines": 44
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf004",
+      "inference_seconds": 4.1763983750133775,
+      "raw_digest": "88f21a02e11636cb12d2eff7beba129bf8d693d3fe37366ae987887b4dc15232",
+      "boxes": 42,
+      "logical_lines": 42
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf005",
+      "inference_seconds": 4.005189916002564,
+      "raw_digest": "668bc408ee032d616f4f4ff91746482cbb2f78cef1084a3df9bb9ff156122478",
+      "boxes": 42,
+      "logical_lines": 42
+    },
+    {
+      "page_id": "dillon-phronesis29-pdf006",
+      "inference_seconds": 4.017057791992556,
+      "raw_digest": "d5a60eb8073ff83cbf0b6bb0e27c3f30588c28183a18ad0d1d5c0593f2bc2edc",
+      "boxes": 42,
+      "logical_lines": 42
+    },
+    {
+      "page_id": "menn-metaphysics-pdf288",
+      "inference_seconds": 4.041308082989417,
+      "raw_digest": "b18e97519eda7e27c5de8de6bfc4a38505d7483693f9867ed7d6b54a90c17393",
+      "boxes": 45,
+      "logical_lines": 45
+    },
+    {
+      "page_id": "menn-metaphysics-pdf414",
+      "inference_seconds": 4.071776290948037,
+      "raw_digest": "10dfb0b16cb5a502cd0314c01716e48e5cd2c5b36a24d16c5a76953e39054e57",
+      "boxes": 53,
+      "logical_lines": 53
+    },
+    {
+      "page_id": "menn-metaphysics-pdf577",
+      "inference_seconds": 3.9668015419738367,
+      "raw_digest": "e50de0328828c292c3c29aa84af90f8e9f136085a0dbe1665fdd60cd31241585",
+      "boxes": 52,
+      "logical_lines": 52
+    },
+    {
+      "page_id": "menn-metaphysics-pdf925",
+      "inference_seconds": 3.992780375003349,
+      "raw_digest": "4dce2d2f05f89345f5e9c260e945b178a83f0fb5d38be73bde9aef8a30da2a89",
+      "boxes": 52,
+      "logical_lines": 52
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf011",
+      "inference_seconds": 3.902505541977007,
+      "raw_digest": "8320de8fd00df0d066652854820d1c96642174ded6189e7c88d4f99c7f41226d",
+      "boxes": 44,
+      "logical_lines": 46
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf012",
+      "inference_seconds": 3.957779082993511,
+      "raw_digest": "ffce26a4422d455067e32dd10717afbee0d2773cfa3de915ab8c32a7a893df57",
+      "boxes": 39,
+      "logical_lines": 38
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf013",
+      "inference_seconds": 4.164851999958046,
+      "raw_digest": "f1503388b61b063e0a471614086705cdacffa807db15ee1c8098f28c48345fc8",
+      "boxes": 36,
+      "logical_lines": 35
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf014",
+      "inference_seconds": 4.09894862503279,
+      "raw_digest": "771152181b8d742a5d35736fbd9dbd300a15afeb9d653d1438e27232b71d7c2f",
+      "boxes": 48,
+      "logical_lines": 45
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf015",
+      "inference_seconds": 4.24760454200441,
+      "raw_digest": "3b7e4df456eb2fe9b3680f374adaa45a9f279a1dd8453da28503ea7c3dd806b6",
+      "boxes": 51,
+      "logical_lines": 51
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf016",
+      "inference_seconds": 4.100964208017103,
+      "raw_digest": "aa22ae7f8d694d1c702ff1e877dfb75a01082a50c993f4279f28ccc3e102603b",
+      "boxes": 50,
+      "logical_lines": 49
+    },
+    {
+      "page_id": "primavesi-zwei-elementen-pdf079",
+      "inference_seconds": 3.9611617919872515,
+      "raw_digest": "744e33e3868de2f7aa26b1b7b907023f62005eb7dce446f6f734946a2bc72cff",
+      "boxes": 41,
+      "logical_lines": 41
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf100",
+      "inference_seconds": 4.041911375010386,
+      "raw_digest": "b11d545cc0591659631977656a481f1e7afc6864cddba0e847313b008b538e0a",
+      "boxes": 51,
+      "logical_lines": 49
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf143",
+      "inference_seconds": 4.0245890420046635,
+      "raw_digest": "a3d3bd84b53aadcf3530301e16656c6a27375758ff85670db6421d840289a0c5",
+      "boxes": 119,
+      "logical_lines": 111
+    },
+    {
+      "page_id": "ueberweg-kraemer-pdf145",
+      "inference_seconds": 4.030639083997812,
+      "raw_digest": "15df631dadc957e41341e3a07972ac458913e3414d5d512e112e651bd9ecfb88",
+      "boxes": 117,
+      "logical_lines": 111
+    }
+  ],
+  "loaded_tensor_equality": 276,
+  "initialization_seconds": 0.09666350000770763,
+  "complete": true
+}

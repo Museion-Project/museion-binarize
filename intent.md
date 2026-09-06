@@ -414,3 +414,19 @@ detector boxes、split provenance和全部D-ready信息。随后Surya-only完整
 本次adapter regression重放R2两次独立真实检测的完整raw payload，共25页×2；不重新
 运行模型推理。该证据验证适配器路径，不代表新模型推理、语义D或生产验收。沿用§8.4
 其余方法与隔离约束，不接触16页frozen holdout，不冻结provider。
+
+### 8.6 Surya provider decision and bounded upgrade probe（2026-09-06）
+
+来源：用户消息“先 commit 当前状态，然后将provider正式确定为Surya”，并要求freeze前
+只在现有25页比较“Surya 0.17.0 + 2025_05_07 detector”与“Surya 0.22.1 + 当前默认
+detector”，不调adapter、不改规则，比较raw boxes与最终geometry。
+
+Provider选择正式确定为Surya，取代§8.4/8.5的未冻结provider状态和ADR0014的临时
+Tesseract选择；detector/runtime的精确冻结在本次probe后记录。原有geometry绑定
+Gemini转写和确定性合成的方法保持。Provider选择与生产接线、发布、语义D、独立holdout
+验收分别记录，不因选择本身宣告这些路径通过。当前checkpoint为2f73d03。
+
+§8.6执行决定（本轮probe后）：两版本各25页真实推理的完整raw和最终geometry逐页
+完全一致；0.22.1默认detector仍为2025_05_07。正式冻结Surya 0.17.0 + 该detector +
+r3.0-apparatus-repair，精确哈希见ADR0015所引provider-freeze.json。保留原稳定依赖
+路径，无规则调整。该冻结限定开发配置，非生产接线/打包或独立质量验收完成声明。
