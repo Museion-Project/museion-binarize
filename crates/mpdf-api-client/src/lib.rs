@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod cloud_ocr;
+pub mod geometry_broker;
 
 pub const CREDENTIAL_SERVICE: &str = "org.mpdf.api";
 pub const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;

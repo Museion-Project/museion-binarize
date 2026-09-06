@@ -1,0 +1,42 @@
+{
+  "authorization": "User explicitly authorized Burnet1100, one Gemini request, no retry",
+  "page": "burnet-platonis-opera-pdf1100",
+  "upstream_attempts": 1,
+  "status": "completed",
+  "services_closed": true,
+  "prior_ledger_entries": 0,
+  "upstream_http_status": 200,
+  "returned_model_version": "gemini-3.7-flash",
+  "finish_reasons": [
+    "STOP"
+  ],
+  "usage": {
+    "promptTokenCount": 5150,
+    "candidatesTokenCount": 3693,
+    "totalTokenCount": 10431,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4058
+      },
+      {
+        "modality": "IMAGE",
+        "tokenCount": 1092
+      }
+    ],
+    "thoughtsTokenCount": 1588,
+    "serviceTier": "standard"
+  },
+  "elapsed_seconds": 23.8,
+  "client_exit_code": 0,
+  "checks": {
+    "line_count": 40,
+    "geometry_and_order_unchanged": true,
+    "full_raw_evidence_preserved": true,
+    "core_strict_line_id_digest_validation": "passed",
+    "transcription_human_review": "not performed"
+  },
+  "baseline": "intent.md §8.7 plus user one-page live-call authorization",
+  "alignment": "aligned",
+  "remaining_gap": "Text quality not independently reviewed; this one-page result is not production or holdout acceptance"
+}

@@ -430,3 +430,29 @@ Gemini转写和确定性合成的方法保持。Provider选择与生产接线、
 完全一致；0.22.1默认detector仍为2025_05_07。正式冻结Surya 0.17.0 + 该detector +
 r3.0-apparatus-repair，精确哈希见ADR0015所引provider-freeze.json。保留原稳定依赖
 路径，无规则调整。该冻结限定开发配置，非生产接线/打包或独立质量验收完成声明。
+
+### 8.7 本机 broker 接入与 Gemini 凭据保管（2026-09-06）
+
+来源：用户消息“根据此provider，接上broker，并且找一个安全的地方，我来填入gemini api”；
+随后明确选择“先接通本机 broker”。连接§8.6冻结的Surya到按行ID绑定Gemini转写和已有
+Rust确定性合成器；保留原始几何与D-ready溯源。凭据由用户填入项目外私有文件，仅broker
+读取；客户端只持有独立本机token。现有旧整页转写/fuzzy-alignment协议不能替代此路径。
+
+本轮交付本机开发入口和真实本地Surya→HTTP broker→Rust compositor联通验证，Gemini端
+采用模拟返回验证契约。用户填key不自动授权付费请求：本轮不调用付费API。启动后默认禁用
+付费请求，需要用户显式开启并设请求上限；不部署公网、不启用生产Credits支付或改变发布门槛。
+
+### 8.8 Production wiring 至 frozen blind ready（2026-09-06）
+
+来源：用户以“从当前已冻结的 geometry 状态继续推进到 frozen blind ready”开头的
+milestone 0–4 指令。先审计并再次 freeze commit；随后完成真实 CLI/Desktop shared
+factory → 冻结 Surya → real broker/Gemini → strict compositor → searchable PDF，
+以少量 non-holdout 页面证明 PRODUCTION_E2E_PROVEN，再执行既定两次完整25页 A–C。
+只有全部 dev exit 条件成立才准备16页 blind 的冻结、ledger、目录和 provenance，最终
+停在 FROZEN_BLIND_READY — WAITING_FOR_USER_AUTHORIZATION；不执行 blind。
+
+不得重开 provider/version 比较或调整 geometry adapter；不得修改冻结 provider、adapter、
+schema、measurement contract、reference、threshold 或 scorer。产品修复沿用3次 substantive
+iteration 上限。任何前置 gate 不成立，停止在该 milestone；触及冻结 geometry 的修复
+须由用户决定是否重开。本指令授权任务内真实 development 调用，不授权 holdout 消费、
+公网部署、外部发布或把本地模拟计费当生产服务。§8.7 的本机链证据不自动升级为产品 E2E。

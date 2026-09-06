@@ -132,3 +132,6 @@ secrets.toml
 # !test-data/**
 # !docs/**
 # !.github/**
+
+# Local development Surya dependency overlay (never distributed)
+/.runtime/

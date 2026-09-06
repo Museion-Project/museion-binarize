@@ -1,0 +1,32 @@
+{
+  "baseline": "intent.md §8.7",
+  "alignment": "aligned",
+  "scope": "local Surya runtime -> authenticated loopback broker -> existing Rust GeometryTranscriptionPageProvider and OcrPage compositor",
+  "checks": {
+    "python_security_contract_tests": "14 passed",
+    "actual_local_chain": "1 passed (10.00s), real frozen Surya detector; HTTP broker; mocked Gemini; Rust compositor",
+    "logical_lines": 40,
+    "raw_evidence": "original JSON retained verbatim; parsed equality checked",
+    "idempotency": "duplicate replay returns same result with only 1 upstream call",
+    "geometry_tampering": "refused before another upstream call",
+    "secret_modes": "directory 0700, key file 0600; contents not inspected",
+    "rust_api_client_tests": "15 passed; final code including raw JSON retention"
+  },
+  "paid_calls": 0,
+  "real_credentials_read": false,
+  "services_left_running": false,
+  "limits": [
+    "Real Gemini model/account availability and text quality unverified",
+    "Not a production Credits service or payment ledger",
+    "Normal desktop/CLI full-document integration remains separate"
+  ],
+  "files_sha256": {
+    "crates/mpdf-api-client/src/geometry_broker.rs": "32891d49de928e34706aff8280566b3dcb00fde13d2c7b2cc4db5d3c63e1f661",
+    "crates/mpdf-api-client/examples/surya_broker_page.rs": "9ea7cb656300d19e130c9dda75ff5d3c995aa94f8aef9740119abd41b2b0e4c3",
+    "scripts/ocr/broker/server.py": "e35db3412c04cc1a60cf3c2edb39a4ae084027940202d8083ef867b78f674431",
+    "scripts/ocr/broker/surya_geometry.py": "c7b30593b4caf587943c293ce2b558c6f76f93cdd05f03c797b64fd05c37db6c",
+    "scripts/ocr/broker/test_broker.py": "f4d2937a195064de8bdeeb316182cb0458219221fecceea2021105924d7b2000",
+    "scripts/ocr/broker/test_local_chain.py": "5494c90f7301b16746d2b97bb74d81e2e521a86bfeb5238faabca1ae83ffe66f",
+    "scripts/ocr/broker/run_page.py": "aaf424875a29afcd3ed8a31700916d12eb1288e98995e3478df479277957efb7"
+  }
+}

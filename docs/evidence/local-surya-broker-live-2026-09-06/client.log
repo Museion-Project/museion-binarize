@@ -1,0 +1,6 @@
+Surya geometry ready; source and split evidence retained
+Composed OcrPage saved; immutable Surya geometry and raw evidence retained.
+
+Detecting bboxes:   0%|          | 0/1 [00:00<?, ?it/s]
+Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.06s/it]
+Detecting bboxes: 100%|██████████| 1/1 [00:04<00:00,  4.06s/it]

@@ -62,6 +62,17 @@ Development evidence remains available: [first comparison](evidence/geometry-dev
 [Paddle/Surya round 2](evidence/geometry-finalists-r2-2026-09-06/report.md), and
 [bounded apparatus repair](evidence/surya-apparatus-repair-2026-09-06/report.md).
 
+## Local Surya broker integration (development)
+
+The local path is now implemented: frozen Surya detection → geometry-bound
+loopback broker → the existing Rust deterministic compositor. Credentials are
+kept in a private file outside the checkout and read only by the broker;
+clients use a separate token. The entrypoint and safe key location are in
+[the local broker guide](../scripts/ocr/broker/README.md). It defaults to paid
+requests disabled and has a durable request ceiling and idempotency guard.
+The actual local chain is tested with a simulated Gemini response, not a paid
+provider call. Normal desktop/CLI Credits availability remains gated.
+
 ## Product modes
 
 | Requested mode | What executes | Cost | Availability in this version |

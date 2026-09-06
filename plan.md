@@ -4,6 +4,12 @@
 **日期：** 2026-08-30
 **当前分支：** `main`
 
+## 2026-09-06 本机 Surya broker 接通
+
+按`intent.md` §8.7完成冻结Surya→本机HTTP broker→已有Rust确定性合成器路径。实际Surya的Burnet1100 40条logical lines通过模拟Gemini联通测试，完整D-ready原始JSON无损保留，重复请求与错误几何均受校验。用户凭据文件在项目外0700目录/0600文件，仅broker读取；默认禁用付费调用。尚未验证真实Gemini响应、生产Credits或桌面/整本PDF入口。
+
+[使用与密钥位置](scripts/ocr/broker/README.md)。本地接入意图`aligned`；真实provider质量`unverified`。
+
 ## 2026-09-06 Surya正式选择与版本冻结
 
 当前状态已先提交为`2f73d03`。随后按`intent.md` §8.6执行0.17.0 vs 0.22.1各25页真实推理，adapter/规则不变；raw和最终geometry全部25/25一致。正式选定Surya，冻结0.17.0 + 2025_05_07 detector + r3.0 adapter。新版默认detector仍是同一checkpoint，无几何升级收益。开发选择/probe为`aligned`；生产接线、打包和独立验收为`unverified`。
