@@ -23,6 +23,7 @@ pub struct OpenDocumentState {
     pub input_path: PathBuf,
     pub page_count: u32,
     pub password_protected_session: bool,
+    pub source_sha256: String,
 }
 
 /// The one processing job currently running, if any. `cancelled` is
@@ -90,6 +91,8 @@ pub struct CachedEstimate {
 
 pub struct AppState {
     pub worker: WorkerHandle,
+    /// Only the newest main preview may enter expensive work.
+    pub main_preview_cancel: Mutex<Option<Arc<AtomicBool>>>,
     pub document: Mutex<Option<OpenDocumentState>>,
     pub job: Mutex<Option<JobState>>,
     /// A cancellation flag for whichever size estimate is currently
@@ -123,6 +126,7 @@ impl AppState {
     pub fn new(bundled_pdfium_path: Option<PathBuf>) -> Self {
         Self {
             worker: WorkerHandle::spawn(bundled_pdfium_path.clone()),
+            main_preview_cancel: Mutex::new(None),
             document: Mutex::new(None),
             job: Mutex::new(None),
             estimate_job: Mutex::new(None),

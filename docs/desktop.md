@@ -1,3 +1,36 @@
+# Current local desktop workflow (2026-09-10)
+
+The main application now uses one workspace: open a PDF, choose black-and-white
+processing and/or contents bookmarks, preview and edit, then save a new PDF.
+OCR body recognition has a visible disabled entry. The older API, provider and
+OCR panels described below remain compatibility code and are not mounted in
+the current main workspace.
+
+The contents service reads native text or the unchanged Apple Vision fast
+worker, renders full pages through the open PDFium session, performs the normal
+numeric-lane read, calls the shared Rust `compile_local` directly, and writes
+reviewed outlines through the independently validating writer. The desktop
+never shells out to the CLI. Bookmark-only export preserves original page
+content; combined export binarizes first and then adds outlines to the staged
+PDF. Existing output files are refused.
+
+Current evidence: [desktop workflow report](evidence/desktop-workflow-2026-09-10/report.zh-CN.md).
+Three existing books passed service-level generation/review/save/reopening;
+Menn also passed connected native UI editing and full 202-page combined export.
+OS file pickers in that automated UI run were supplied by development fixtures.
+The `desktop-ui-test` Cargo feature is opt-in and debug-only; the delivered
+local app excludes it, and production frontend builds remove dialog fixtures.
+
+The local app bundles frontend, PDFium and scripts. Bookmark generation still
+requires this machine's Python with PyMuPDF/Pillow; image recognition also uses
+macOS Vision and the Swift compiler on its first run. Portable distribution,
+independent human review and new-book generalization are not established.
+
+The sections below document earlier milestones; their main-screen workflows
+and historical verification statuses do not describe the current UI.
+
+---
+
 # Generic API route and cross-device tasks (M6 compatibility surface)
 
 The desktop retains a generic `mpdf-api/0.1` developer/private-service panel
@@ -443,3 +476,43 @@ offset, or a contents page.
   milestones.
 - No Ancient Greek / polytonic typography preservation claim — unchanged
   from prior milestones; no benchmark exists yet (Milestone 6).
+
+## Local practical fixes (2026-09-10)
+
+The local unified workspace now defaults to original-page preview, renders it
+at screen size and caches a bounded 16 MiB of previews. Processed preview still
+uses the requested output DPI, and runs only on selection. Thumbnails are
+serialized and pause behind the main preview.
+
+Binarization accepts physical PDF page ranges and skip-current exclusions.
+Unselected pages remain in place, retaining their original PDF objects/streams;
+selected pages use the shared core image pipeline. Original page IDs remain
+stable for bookmarks. Partial conversion saves a new file only, checks the open
+source hash and independently validates the mixed result. It retains original
+resources, so partial output may grow. Encrypted partial input is rejected.
+
+Finder launches discover an installed Python with both PyMuPDF and Pillow via
+absolute candidates, including versioned Homebrew installations. This is local
+runtime discovery, not a bundled Python distribution. Use optimized release
+builds for delivery. See the performance evidence report for measured timings,
+connected native UI coverage and the boundary between debug test instrumentation
+and the ordinary release bundle.
+
+## Open-time pagination and explicit processing (2026-09-10)
+
+Opening or dropping a PDF starts a document-scoped local text-layer/pagination
+pass. Native folios are read directly; scanned margins receive bounded random
+Apple Vision samples and nearby checks. Observed folios and piecewise inferred
+rules remain separate, including Roman/Arabic numbering, restarts and paired
+folios on spreads. The footer reports progress. Generation reuses this model,
+excludes contents pages as independent witnesses, and retains ambiguous targets
+for review. Sampling cannot guarantee detection of every short numbering reset
+or unobserved inserted page. Encrypted inputs and unavailable runtimes report
+unavailability rather than a successful reconstruction.
+
+The black-and-white heading has a Start action; the contents heading has a
+Generate action. Processing presets live inside Advanced settings. Start caches
+a validated PDF for the current source hash, settings and range. Save reuses
+that result; changed parameters require another Start. Automatic pagination is
+separate from the serialized PDFium preview worker and is cancelled on close
+or document replacement. It is not a persistent background service.

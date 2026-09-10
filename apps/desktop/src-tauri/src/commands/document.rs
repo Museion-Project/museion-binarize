@@ -3,7 +3,9 @@
 
 use std::path::PathBuf;
 
-use tauri::State;
+use tauri::{AppHandle, State};
+use super::document_analysis::PaginationState;
+use super::local_tools::LocalToolsState;
 
 use crate::dto::{DocumentSummaryDto, PdfiumStatusDto, UiErrorDto};
 use crate::errors::{classify_core_error, request_error};
@@ -20,6 +22,9 @@ pub async fn open_document(
     path: String,
     password: Option<String>,
     state: State<'_, AppState>,
+    app: AppHandle,
+    pagination: State<'_, PaginationState>,
+    tools: State<'_, LocalToolsState>,
 ) -> Result<DocumentSummaryDto, UiErrorDto> {
     let _operation = state
         .try_claim_operation(OperationKind::Processing)
@@ -50,13 +55,17 @@ pub async fn open_document(
     let document_id = state.new_id("doc");
     let canonical_path = std::fs::canonicalize(&path_buf).unwrap_or(path_buf);
 
-    *state.document.lock().unwrap() = Some(OpenDocumentState {
+    let doc = OpenDocumentState {
         document_id: document_id.clone(),
         file_name: file_name.clone(),
         input_path: canonical_path,
         page_count: opened.info.page_count,
         password_protected_session,
-    });
+        source_sha256: opened.source_sha256,
+    };
+    *state.document.lock().unwrap()=Some(doc.clone());
+    tools.clear_document();
+    pagination.start(doc,app);
 
     Ok(DocumentSummaryDto::build(
         document_id,
@@ -69,7 +78,7 @@ pub async fn open_document(
 /// Closes the currently open document, if any. Rejected while a
 /// processing job is running, for the same reason as `open_document`.
 #[tauri::command]
-pub fn close_document(state: State<'_, AppState>) -> Result<(), UiErrorDto> {
+pub fn close_document(state: State<'_, AppState>,pagination:State<'_,PaginationState>,tools:State<'_,LocalToolsState>) -> Result<(), UiErrorDto> {
     let _operation = state
         .try_claim_operation(OperationKind::Processing)
         .ok_or_else(|| {
@@ -78,6 +87,8 @@ pub fn close_document(state: State<'_, AppState>) -> Result<(), UiErrorDto> {
                 "a document operation is running; finish or cancel it before closing the document",
             )
         })?;
+    pagination.clear();
+    tools.clear_document();
     state.worker.send(WorkerCommand::Close);
     *state.document.lock().unwrap() = None;
     Ok(())

@@ -20,6 +20,7 @@
 
 use std::path::PathBuf;
 use std::thread;
+use std::sync::{Arc,atomic::{AtomicBool,Ordering}};
 
 use mpdf_core::document::PdfDocumentInfo;
 use mpdf_core::document_session::{PdfDocumentSession, PdfOpenOptions};
@@ -30,6 +31,7 @@ use mpdf_core::pdfium_backend::PdfiumConfig;
 use mpdf_core::pipeline::{self, EstimationOptions, PdfProcessingOptions, ProcessingReport};
 use mpdf_core::progress::ProgressReporter;
 use mpdf_core::settings::ProcessingSettings;
+use mpdf_core::page_selection::PageSelection;
 
 /// A single-use reply channel back to the command handler that issued a
 /// [`WorkerCommand`]. An ordinary `std::sync::mpsc` sender rather than an
@@ -46,6 +48,7 @@ pub struct RenderedPage {
 }
 
 pub struct OpenedDocument {
+    pub source_sha256: String,
     pub info: PdfDocumentInfo,
     pub pdfium_library: String,
 }
@@ -66,6 +69,21 @@ pub enum WorkerCommand {
         /// settings; `None` renders the untouched rasterized page.
         processed: Option<ProcessingSettings>,
         reply: Reply<RenderedPage>,
+    },
+    PreviewPage {
+        page_index: u32,
+        dpi: u16,
+        processed: Option<ProcessingSettings>,
+        expected_source: PathBuf,
+        cancelled: Arc<AtomicBool>,
+        reply: Reply<RenderedPage>,
+    },
+    ProcessSelected {
+        output: PathBuf,
+        settings: ProcessingSettings,
+        selection: PageSelection,
+        progress: Box<dyn ProgressReporter>,
+        reply: Reply<ProcessingReport>,
     },
     Process {
         output: PathBuf,
@@ -247,6 +265,28 @@ fn run(receiver: std::sync::mpsc::Receiver<WorkerCommand>, bundled_pdfium_path: 
             } => {
                 let result = render_page(session.as_ref(), page_index, dpi, processed);
                 let _ = reply.send(result);
+            }
+            WorkerCommand::PreviewPage {page_index,dpi,processed,expected_source,cancelled,reply} => {
+                let result = (|| {
+                    if cancelled.load(Ordering::SeqCst) { return Err(CoreError::Cancelled); }
+                    let current=session.as_ref().ok_or_else(no_open_document)?;
+                    if current.source_identity().canonical_path!=expected_source { return Err(CoreError::InvalidParameter("document_stale".into())); }
+                    let raster=current.render_page(page_index,dpi)?;
+                    if cancelled.load(Ordering::SeqCst) { return Err(CoreError::Cancelled); }
+                    let image=if let Some(settings)=processed {
+                        image::DynamicImage::ImageLuma8(pipeline::bilevel_to_gray(&process_rendered_page(&raster,&settings)?.bilevel))
+                    } else {raster};
+                    Ok(RenderedPage{image})
+                })();
+                let _=reply.send(result);
+            }
+            WorkerCommand::ProcessSelected {output,settings,selection,progress,reply} => {
+                let result=(|| {
+                    let session=session.as_ref().ok_or_else(no_open_document)?;
+                    let options=PdfProcessingOptions{pdfium:pdfium_config(bundled_pdfium_path.as_deref()),..Default::default()};
+                    mpdf_core::selective_pdf::process_selected_with_open_session(session,&selection,&output,&settings,&options,progress.as_ref())
+                })();
+                let _=reply.send(result);
             }
             WorkerCommand::Process {
                 output,
@@ -475,14 +515,16 @@ fn open(
     let options = PdfOpenOptions {
         password,
         pdfium: pdfium_config(bundled_pdfium_path),
-        compute_source_hash: false,
+        compute_source_hash: true,
     };
     let session = PdfDocumentSession::open(path, &options)?;
     let info = session.info().clone();
     let pdfium_library = mpdf_core::pdfium_backend::describe_resolved(session.resolved_library());
+    let source_sha256=session.source_identity().content_sha256.clone().ok_or_else(||CoreError::InvalidDocument("missing open source hash".into()))?;
     Ok((
         session,
         OpenedDocument {
+            source_sha256,
             info,
             pdfium_library,
         },

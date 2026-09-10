@@ -483,3 +483,64 @@ Preview UI 和 iOS 结果；这些结果仍不得伪报通过，但按 2026-08-2
 
 M6 当前没有外部阻塞。GitHub 权限不是阻塞：2026-08-26
 已确认账号 `pei-haoran` 授权有效，并对 `Museion-Project/museion-binarize` 具有管理员权限。
+
+## 2026-09-10 Desktop usable workflow (intent §8.36 DW1–DW5)
+1. Snapshot current UI/backend and preserve OCR/Gold/raw evidence. Define a single tool-selection → preview/review → save workflow.
+2. Add a local bookmark service using the existing Python projection/writer and direct shared Rust compiler, document-scoped sessions, cancellation and atomic new-PDF output; compose binarization before outline write.
+3. Replace scattered main UI panels with the unified workspace, local editable tree and book-level review; expose OCR as disabled only.
+4. Validate frontend and backend contracts, old regressions, real existing-PDF roundtrips and connected UI. Deliver report and inspectable UI; distinguish browser/service tests from native desktop evidence.
+
+
+Completed local desktop workflow: intent §8.36 DW1–DW5 aligned within the local
+scope. Unified tool/preview/edit/save UI, disabled OCR, real document-scoped
+service and no-clobber combined writer delivered. 207 focused tests passed;
+three existing books/834 pages/60 bookmarks reopened and checked. Native UI
+Menn full 202-page combined export completed in 678.16 seconds; 202 one-bit
+CCITT images and all 11 destinations verified. A 300-second UI harness waiter
+expired while the real job continued; final UI screenshot and production
+receipt independently confirm completion. Frozen four-page compiler replay
+and all 728 protected hashes unchanged. Local `.app` built with embedded
+frontend/PDFium/scripts, external Python dependency retained; no publication,
+cloud calls, new Gold or production readiness claim. Evidence:
+`docs/evidence/desktop-workflow-2026-09-10/report.zh-CN.md`.
+
+
+## 2026-09-10 Desktop practical fixes (intent §8.37 DP1–DP4)
+Measure current preview and image-processing stages on the same small set of
+existing Menn pages; compare debug/optimized builds with identical output hashes.
+Fix GUI Python discovery; defer and cache previews without changing output DPI.
+Add explicit binarization page ranges and skip-current, preserving all other
+source pages and bookmark indices. Validate mixed output, UI state and minimal
+GUI environment, then deliver a separate optimized local app without replacing
+unrelated user work or historical evidence.
+
+Completed §8.37 DP1–DP4, aligned within this local desktop scope. Original
+preview is on-demand, screen-sized and cached; selective binarization preserves
+all unselected page objects/order and composes with bookmark output. Finder-like
+minimal PATH generated Menn 11 and Horn 18 entries via the actual desktop UI.
+Menn selective combined output retained 202 pages, changed only page 16 and
+preserved 201 page renders, with 11 valid bookmark targets. Release four-page
+400-DPI processing/encoding measured 0.534 seconds versus debug 19.629 seconds,
+with all four CCITT hashes identical; no whole-book extrapolation. 106 focused
+tests passed, build/lint passed, 1354 protected hashes unchanged. Optimized local
+app packaged and opened; temporary Vite/test processes closed. Evidence and
+explicit limits: `docs/evidence/desktop-performance-2026-09-10/report.zh-CN.md`.
+
+## 2026-09-10 Explicit tool actions and document-open pagination (§8.38)
+1. Add document-bound native/Apple Vision margin observations and independently
+   supported piecewise printed-to-physical rules, preserving ambiguity/restarts.
+2. Start analysis on open without blocking previews; cache the result, cancel on
+   document replacement, expose footer state and reuse in contents generation.
+3. Stage real binarization on the tool's Start button, bind cached output to
+   source/settings/range and reuse it on final save. Align controls/actions.
+4. Validate fixed existing books, synthetic rule cases and connected desktop
+   behavior; optimized package, scoped review and local commit, no push.
+
+Completed §8.38 PG1–PG4 within the verified local scope: aligned actions and
+fields, prepared binarization reused on save, document-open native/Vision margin
+pagination and cached TOC association. Native Horn 18/Menn 11 targets matched;
+image-only Horn 17/18 targets matched, one unread TOC numeral stays unresolved.
+Real desktop open-to-analysis was 5.73/4.18 seconds; 201 unselected Menn pages
+retained text/render equality. Frontend 59, Python 34, desktop Rust 45 passed;
+1466 protected hashes unchanged. Optimized R2 app built; scoped local commit,
+no publication. Detailed limits and evidence: desktop-pagination report.

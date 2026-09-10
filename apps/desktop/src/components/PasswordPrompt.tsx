@@ -26,12 +26,12 @@ export function PasswordPrompt({
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Password required">
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="输入 PDF 密码">
       <form className="password-prompt" onSubmit={submit}>
         <p>
-          <strong>{fileName}</strong> is password-protected.
+          <strong>{fileName}</strong> 需要密码才能打开。
         </p>
-        <label htmlFor="password-input">Password</label>
+        <label htmlFor="password-input">密码</label>
         <input
           id="password-input"
           type="password"
@@ -46,10 +46,10 @@ export function PasswordPrompt({
         )}
         <div className="password-prompt-actions">
           <button type="button" onClick={onCancel}>
-            Cancel
+            取消
           </button>
           <button type="submit" className="primary" disabled={password.length === 0}>
-            Open
+            打开
           </button>
         </div>
       </form>

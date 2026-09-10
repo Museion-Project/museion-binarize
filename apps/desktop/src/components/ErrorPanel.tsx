@@ -21,11 +21,11 @@ export function ErrorPanel({ error, onDismiss }: ErrorPanelProps) {
       <div className="error-panel-actions">
         {error.detail && (
           <button type="button" onClick={() => setShowDetail((v) => !v)}>
-            {showDetail ? "Hide technical detail" : "Show technical detail"}
+            {showDetail ? "收起详细信息" : "查看详细信息"}
           </button>
         )}
         <button type="button" onClick={onDismiss}>
-          Dismiss
+          返回
         </button>
       </div>
       {showDetail && error.detail && <pre className="error-panel-detail">{error.detail}</pre>}

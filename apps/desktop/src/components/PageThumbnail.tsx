@@ -48,7 +48,7 @@ export function PageThumbnail({
       type="button"
       className={`page-thumbnail${selected ? " selected" : ""}`}
       aria-current={selected ? "true" : undefined}
-      aria-label={`Page ${pageNumber}`}
+      aria-label={`PDF 第${pageNumber}页`}
       onClick={() => onSelect(pageNumber)}
     >
       <span className="page-thumbnail-image">

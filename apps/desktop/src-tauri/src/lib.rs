@@ -6,9 +6,13 @@
 //! the CLI, and never sends the source PDF's bytes to the frontend — see
 //! `docs/desktop.md` for the full architecture.
 
+#[cfg(all(feature = "desktop-ui-test", debug_assertions))]
+mod ui_test;
+
 mod commands;
 mod dto;
 mod errors;
+mod local_tools;
 mod settings;
 mod state;
 mod worker;
@@ -62,16 +66,27 @@ fn project_info() -> ProjectInfoPayload {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(all(feature = "desktop-ui-test", debug_assertions))]
+    let builder = ui_test::attach(builder);
+    builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let bundled_pdfium_path = resolve_bundled_pdfium_path(&app.handle().clone());
             app.manage(AppState::new(bundled_pdfium_path));
+            app.manage(commands::local_tools::LocalToolsState::default());
+            app.manage(commands::document_analysis::PaginationState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             project_info,
+            commands::document_analysis::document_analysis_status,
+            commands::local_tools::local_bookmark_readiness,
+            commands::local_tools::generate_local_contents,
+            commands::local_tools::save_local_pdf,
+            commands::local_tools::prepare_local_binarization,
+            commands::local_tools::cancel_local_tools,
             commands::document::open_document,
             commands::document::close_document,
             commands::document::pdfium_status,

@@ -9,6 +9,10 @@
 //! extra base64/JSON overhead is not worth avoiding for this milestone.
 
 use base64::Engine;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use tauri::State;
 
 use crate::dto::{PreviewRequestDto, PreviewResultDto, UiErrorDto};
@@ -22,10 +26,10 @@ pub async fn render_preview(
     request: PreviewRequestDto,
     state: State<'_, AppState>,
 ) -> Result<PreviewResultDto, UiErrorDto> {
-    {
+    let source = {
         let document = state.document.lock().unwrap();
         match document.as_ref() {
-            Some(doc) if doc.document_id == request.document_id => {}
+            Some(doc) if doc.document_id == request.document_id => doc.input_path.clone(),
             Some(_) => {
                 return Err(request_error(
                     "document_stale",
@@ -39,7 +43,7 @@ pub async fn render_preview(
                 ))
             }
         }
-    }
+    };
 
     if request.page_number == 0 {
         return Err(request_error(
@@ -70,36 +74,58 @@ pub async fn render_preview(
         }
     };
 
+    let cancelled = Arc::new(AtomicBool::new(false));
+    if request.max_dimension.is_none_or(|d| d > 200) {
+        if let Some(old) = state
+            .main_preview_cancel
+            .lock()
+            .unwrap()
+            .replace(cancelled.clone())
+        {
+            old.store(true, Ordering::SeqCst);
+        }
+    }
+    let worker_cancel = cancelled.clone();
     let dpi = request.dpi;
     let rendered = state
         .worker
-        .call(move |reply| WorkerCommand::RenderPage {
+        .call(move |reply| WorkerCommand::PreviewPage {
             page_index,
             dpi,
             processed,
+            expected_source: source,
+            cancelled: worker_cancel,
             reply,
         })
         .await
         .map_err(|e| classify_core_error(&e))?;
 
-    let (final_image, is_reduced) = match request.max_dimension {
-        Some(max_dimension) => downscale(rendered.image, max_dimension),
-        None => (rendered.image, false),
-    };
+    if cancelled.load(Ordering::SeqCst) {
+        return Err(request_error("preview_superseded", "preview superseded"));
+    }
+    // Resizing/PNG encoding is CPU work, so keep it off Tauri's async loop.
+    tauri::async_runtime::spawn_blocking(move || {
+        let (final_image, is_reduced) = match request.max_dimension {
+            Some(max_dimension) => downscale(rendered.image, max_dimension),
+            None => (rendered.image, false),
+        };
 
-    let png_bytes = encode_png(&final_image)
-        .map_err(|e| request_error("image_error", format!("could not encode preview: {e}")))?;
+        let png_bytes = encode_png(&final_image)
+            .map_err(|e| request_error("image_error", format!("could not encode preview: {e}")))?;
 
-    Ok(PreviewResultDto {
-        request_id: request.request_id,
-        page_number: request.page_number,
-        kind: request.kind,
-        width: final_image.width(),
-        height: final_image.height(),
-        png_base64: base64::engine::general_purpose::STANDARD.encode(png_bytes),
-        render_dpi: dpi,
-        is_reduced_resolution: is_reduced,
+        Ok(PreviewResultDto {
+            request_id: request.request_id,
+            page_number: request.page_number,
+            kind: request.kind,
+            width: final_image.width(),
+            height: final_image.height(),
+            png_base64: base64::engine::general_purpose::STANDARD.encode(png_bytes),
+            render_dpi: dpi,
+            is_reduced_resolution: is_reduced,
+        })
     })
+    .await
+    .map_err(|e| request_error("image_error", e.to_string()))?
 }
 
 /// Downscales `image` so its longest side is at most `max_dimension`,

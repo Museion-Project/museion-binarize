@@ -410,6 +410,7 @@ mod tests {
         let source = root.path().join("source.pdf");
         std::fs::write(&source, b"desktop fixture").unwrap();
         let document = OpenDocumentState {
+            source_sha256: String::new(),
             document_id: "doc-1".into(),
             file_name: "source.pdf".into(),
             input_path: source.clone(),
@@ -445,6 +446,7 @@ mod tests {
             std::fs::write(&source, b"fixture").unwrap();
             symlink(source, &alias).unwrap();
             let document = OpenDocumentState {
+            source_sha256: String::new(),
                 document_id: "doc-1".into(),
                 file_name: "alias.pdf".into(),
                 input_path: alias,

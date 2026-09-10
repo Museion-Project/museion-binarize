@@ -1,0 +1,16 @@
+{
+  "productName": "Museion Binarize Local R2",
+  "build": {
+    "beforeBuildCommand": ""
+  },
+  "bundle": {
+    "resources": {
+      "resources/pdfium/libpdfium.dylib": "libpdfium.dylib",
+      "resources/pdfium/LICENSE-DISTRIBUTION": "pdfium-licenses/LICENSE-DISTRIBUTION",
+      "resources/pdfium/LICENSE-APACHE": "pdfium-licenses/LICENSE-APACHE",
+      "resources/pdfium/LICENSE-PDFIUM": "pdfium-licenses/LICENSE-PDFIUM",
+      "resources/pdfium/THIRD_PARTY_LICENSES.md": "pdfium-licenses/THIRD_PARTY_LICENSES.md",
+      "resources/pdfium/LICENSE-MIT": "pdfium-licenses/LICENSE-MIT"
+    }
+  }
+}

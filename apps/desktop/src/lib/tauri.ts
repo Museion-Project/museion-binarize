@@ -325,8 +325,14 @@ export function startEstimate(request: EstimateRequest): Promise<EstimateResult>
   return call("start_estimate", { request });
 }
 
+// Development-only integration fixture. Vite removes these branches from builds.
+declare global {
+  interface Window { __MPDF_UI_TEST__?: { open: string; save: string } }
+}
+
 /** Opens the native "choose a PDF" dialog. Returns `null` if the user cancelled. */
 export async function pickPdfToOpen(): Promise<string | null> {
+  if (import.meta.env.DEV && window.__MPDF_UI_TEST__) return window.__MPDF_UI_TEST__.open;
   const selection = await openDialog({
     multiple: false,
     directory: false,
@@ -337,6 +343,7 @@ export async function pickPdfToOpen(): Promise<string | null> {
 
 /** Opens the native "save output as" dialog with a suggested filename. */
 export async function pickOutputDestination(defaultFileName: string): Promise<string | null> {
+  if (import.meta.env.DEV && window.__MPDF_UI_TEST__) return window.__MPDF_UI_TEST__.save;
   const selection = await saveDialog({
     defaultPath: defaultFileName,
     filters: [{ name: "PDF files", extensions: ["pdf"] }],
@@ -391,4 +398,27 @@ export function onProcessingFailed(
   return listen<ProcessingFailed>("mpdf://processing-failed", (event) =>
     handler(event.payload),
   );
+}
+
+// Unified local tools. OCR remains a disabled UI entry; these commands never
+// invoke the legacy OCR/remote pipeline.
+export function localBookmarkReadiness():Promise<import("../app/localTools").LocalReadiness>{
+  return call("local_bookmark_readiness",{});
+}
+export function generateLocalContents(request:{documentId:string;operationId:string;pages:number[];mode:"auto"|"image"}):Promise<import("../app/localTools").ContentsResult>{
+  return call("generate_local_contents",{request});
+}
+export function saveLocalPdf(request:{documentId:string;operationId:string;outputPath:string;binarize:boolean;binarizePages?:number[];preparedId?:string;settings:ProcessingSettings;bookmarkSessionId:string|null;entries:{id:string;title:string;parent:string|null;target_pdf_page:number|null}[];projection:"navigation"|"source";reviewAccepted:boolean}):Promise<import("../app/localTools").LocalSaveResult>{
+  return call("save_local_pdf",{request});
+}
+export function cancelLocalTools(operationId:string):Promise<void>{return call("cancel_local_tools",{operationId});}
+export function onLocalToolsProgress(handler:(payload:import("../app/localTools").LocalToolsProgress)=>void):Promise<UnlistenFn>{
+  return listen<import("../app/localTools").LocalToolsProgress>("mpdf://local-tools-progress",event=>handler(event.payload));
+}
+
+export function documentAnalysisStatus(documentId:string):Promise<import("../app/localTools").DocumentAnalysisStatus>{
+  return call("document_analysis_status",{documentId});
+}
+export function prepareLocalBinarization(request:{documentId:string;operationId:string;settings:ProcessingSettings;binarizePages:number[]}):Promise<import("../app/localTools").PreparedBinarizationResult>{
+  return call("prepare_local_binarization",{request});
 }

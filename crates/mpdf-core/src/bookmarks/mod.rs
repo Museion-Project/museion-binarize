@@ -13,6 +13,7 @@ mod assembly;
 mod config;
 mod engine;
 mod hierarchy;
+pub mod local;
 mod model;
 mod persistence;
 mod report;
