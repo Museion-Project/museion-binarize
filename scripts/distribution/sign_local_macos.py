@@ -66,9 +66,12 @@ def notarize(dmg, profile, receipt, runner=run):
         raise ValueError('Notarization not accepted: '+str(result.get('status')))
     runner(['xcrun', 'stapler', 'staple', str(dmg)])
     runner(['xcrun', 'stapler', 'validate', str(dmg)])
-    runner(['spctl', '-a', '-vv', '--type', 'open', '--context', 'context:primary-signature', str(dmg)])
+    assessment = runner(['spctl', '-a', '-vv', '--type', 'open', '--context', 'context:primary-signature', str(dmg)], capture_output=True, text=True)
+    assessment_text = (assessment.stdout or '') + (assessment.stderr or '')
+    gatekeeper = 'accepted' if 'source=Notarized Developer ID' in assessment_text and 'override=' not in assessment_text else 'unverified'
     value = dict(schema='mpdf-local-notarization/1', notarization_state='accepted_stapled',
-                 submission_id=result.get('id'), submitted_sha256=before, dmg_sha256=digest(dmg))
+                 submission_id=result.get('id'), submitted_sha256=before, dmg_sha256=digest(dmg),
+                 gatekeeper_assessment=gatekeeper, assessment_details=assessment_text)
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(json.dumps(value, indent=2)+'\n')
     return value

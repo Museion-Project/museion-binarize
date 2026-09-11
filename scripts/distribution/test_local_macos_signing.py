@@ -24,6 +24,15 @@ class SigningTests(unittest.TestCase):
                 commands.append(command);return subprocess.CompletedProcess(command,0,stdout=json.dumps({'status':'Invalid'}))
             with self.assertRaises(ValueError):signing.notarize(dmg,'profile',receipt,runner=fake)
             self.assertEqual(len(commands),1);self.assertFalse(receipt.exists())
+    def test_disabled_gatekeeper_acceptance_is_not_policy_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dmg=Path(tmp)/'fixture.dmg';dmg.write_bytes(b'fixture')
+            def fake(command,**kwargs):
+                if command[1]=='notarytool':return subprocess.CompletedProcess(command,0,stdout=json.dumps({'status':'Accepted','id':'test'}))
+                return subprocess.CompletedProcess(command,0,stdout='',stderr='accepted\nsource=no usable signature\noverride=security disabled')
+            result=signing.notarize(dmg,'profile',Path(tmp)/'receipt.json',runner=fake)
+            self.assertEqual(result['notarization_state'],'accepted_stapled')
+            self.assertEqual(result['gatekeeper_assessment'],'unverified')
     def test_stapling_failure_never_claims_ready(self):
         with tempfile.TemporaryDirectory() as tmp:
             dmg=Path(tmp)/'fixture.dmg';dmg.write_bytes(b'fixture');receipt=Path(tmp)/'receipt.json'

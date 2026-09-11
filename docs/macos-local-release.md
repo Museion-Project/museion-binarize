@@ -87,6 +87,27 @@ python3.11 scripts/distribution/sign_local_macos.py notarize \
   --profile museion-release --receipt /absolute/path/evidence/notarization.json
 ```
 
+For a final offline-verifiable package, first notarize the app inside a DMG,
+then staple its accepted ticket to the standalone app, run the independent
+Apple distribution check, and package that app into a fresh output directory.
+Sign the final DMG with the same Developer ID identity and notarize/staple it.
+Do not overwrite or relabel the first submission as the final package.
+
+```sh
+xcrun stapler staple '/absolute/path/M PDF Processor.app'
+xcrun stapler validate '/absolute/path/M PDF Processor.app'
+syspolicy_check distribution --verbose --json '/absolute/path/M PDF Processor.app'
+# Repackage into a fresh directory, then sign the final DMG before submitting it.
+codesign --timestamp --sign 'Developer ID Application: Your Name (TEAMID)' /absolute/path/final.dmg
+```
+
+A `spctl` result with `override=security disabled` does not prove Gatekeeper
+acceptance. The notarization receipt records that assessment as `unverified`.
+The independent `syspolicy_check distribution` result must be retained separately;
+it performs Gatekeeper, XProtect and other distribution checks without changing
+system settings. Record the host's disabled policy as an environmental limitation,
+not as a successful clean-machine Gatekeeper launch.
+
 Signing success is not notarization. Missing credentials leave the notarization
 gate pending. A rejected submission or failed staple/assessment cannot produce
 a success receipt.

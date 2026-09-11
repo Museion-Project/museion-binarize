@@ -15,7 +15,7 @@ CHECKS={
  'reader_matrix':{'pdfium_pixels_text_destinations','pypdf_outline_destinations','pdfkit_outline_destinations','qpdf_strict'},
  'upgrade_install':{'bundle_identity_preserved','candidate_replacement','locale_preference_preserved','document_open_after_replacement'},
  'privacy_accessibility_performance':{'no_cloud_or_body_ocr_command','local_processing_no_network_observed','native_controls_accessible','keyboard_open_navigation_save','processing_timings_recorded'},
- 'developer_id_notary':{'apple_accepted','dmg_stapled','stapler_validated','gatekeeper_accepted'},
+ 'developer_id_notary':{'apple_accepted','dmg_stapled','stapler_validated','apple_distribution_policy'},
 }
 REQUIRED=set(CHECKS)|{'macos_release_artifacts'}
 
@@ -47,6 +47,7 @@ def evaluate(path):
             if data.get('status')!='pass' or not required.issubset(checks) or any(checks[key]!='pass' for key in required):continue
             if gate=='developer_id_notary':
                 if data['dmg_sha256']!=dmg_hash or data.get('notarization_state')!='accepted_stapled' or not data.get('submission_id'):continue
+                if data.get('policy_method')!='syspolicy_check distribution' or data.get('policy_exit_code')!=0:continue
             if not data.get('evidence_files'):continue
             for attachment in data['evidence_files']:
                 file=path.parent/attachment['path']

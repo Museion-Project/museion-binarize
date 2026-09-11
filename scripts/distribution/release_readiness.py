@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Network-free rc.3 release-readiness static gates.
+"""Network-free rc.3 release-readiness gates.
 
-External evidence is reported as pending/not_run and can never become a pass
-from this script.  Use ``--json`` for CI and owner review records.
+Missing external evidence stays pending/not_run. The macOS-local profile
+validates supplied artifact-bound evidence without launching external services.
+Use ``--json`` for CI and owner review records.
 """
 from __future__ import annotations
 
