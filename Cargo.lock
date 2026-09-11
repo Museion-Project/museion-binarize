@@ -2621,7 +2621,7 @@ dependencies = [
 
 [[package]]
 name = "mpdf-api-client"
-version = "0.1.0-rc.3"
+version = "0.2.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "image",
@@ -2638,7 +2638,7 @@ dependencies = [
 
 [[package]]
 name = "mpdf-cli"
-version = "0.1.0-rc.3"
+version = "0.2.0-beta.1"
 dependencies = [
  "clap",
  "mpdf-api-client",
@@ -2651,7 +2651,7 @@ dependencies = [
 
 [[package]]
 name = "mpdf-core"
-version = "0.1.0-rc.3"
+version = "0.2.0-beta.1"
 dependencies = [
  "fax",
  "image",
@@ -2672,7 +2672,7 @@ dependencies = [
 
 [[package]]
 name = "mpdf-desktop"
-version = "0.1.0-rc.3"
+version = "0.2.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "image",

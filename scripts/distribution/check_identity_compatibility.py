@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CANONICAL = {
-    "product": "M PDF Processor",
+    "product": "Museion PDF",
     "bundle_identifier": "me.mpdf.processor",
     "cli": "mpdf",
     "repo": "museion-binarize",

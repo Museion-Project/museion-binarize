@@ -1,7 +1,8 @@
 # macOS local release candidate
 
-This procedure implements intent §8.45, MR1–MR6. It prepares local artifacts;
-it does not publish a release, push source, or authorize cloud inference.
+This procedure implements intent §8.45 MR1–MR6 and §8.46 BP1–BP4.
+The owner explicitly authorized the Museion PDF 0.2.0-beta.1 rename, rebuild,
+notarization and GitHub prerelease publication. Cloud inference remains outside scope.
 The existing `base`, `source`, and `optional-local-ocr-plugin` readiness profiles
 retain their earlier gates. Use `macos-local` for this candidate.
 
@@ -60,11 +61,11 @@ Do not export a private key or put passwords in source, logs or command argument
 
 ```sh
 python3.11 scripts/distribution/sign_local_macos.py sign \
-  --app '/absolute/path/M PDF Processor.app' \
+  --app '/absolute/path/Museion PDF.app' \
   --identity 'Developer ID Application: Your Name (TEAMID)' \
   --receipt /absolute/path/evidence/signing.json
 python3.11 scripts/distribution/package_macos_dmg.py \
-  --app-path '/absolute/path/M PDF Processor.app' --version 0.1.0-rc.3 \
+  --app-path '/absolute/path/Museion PDF.app' --version 0.2.0-beta.1 \
   --target-triple aarch64-apple-darwin --out-dir /absolute/path/artifacts
 ```
 
@@ -83,7 +84,7 @@ ticket, and verify Gatekeeper:
 
 ```sh
 python3.11 scripts/distribution/sign_local_macos.py notarize \
-  --dmg /absolute/path/artifacts/mpdf-0.1.0-rc.3-macos-arm64.dmg \
+  --dmg /absolute/path/artifacts/Museion-PDF-0.2.0-beta.1-macos-arm64.dmg \
   --profile museion-release --receipt /absolute/path/evidence/notarization.json
 ```
 
@@ -94,9 +95,9 @@ Sign the final DMG with the same Developer ID identity and notarize/staple it.
 Do not overwrite or relabel the first submission as the final package.
 
 ```sh
-xcrun stapler staple '/absolute/path/M PDF Processor.app'
-xcrun stapler validate '/absolute/path/M PDF Processor.app'
-syspolicy_check distribution --verbose --json '/absolute/path/M PDF Processor.app'
+xcrun stapler staple '/absolute/path/Museion PDF.app'
+xcrun stapler validate '/absolute/path/Museion PDF.app'
+syspolicy_check distribution --verbose --json '/absolute/path/Museion PDF.app'
 # Repackage into a fresh directory, then sign the final DMG before submitting it.
 codesign --timestamp --sign 'Developer ID Application: Your Name (TEAMID)' /absolute/path/final.dmg
 ```
@@ -123,7 +124,7 @@ privacy/accessibility/performance checks remain distinct.
 
 ```sh
 python3.11 scripts/distribution/generate_sbom.py --target aarch64-apple-darwin \
-  --version 0.1.0-rc.3 --local-runtime-manifest distribution/local-runtime/sbom-components.json \
+  --version 0.2.0-beta.1 --local-runtime-manifest distribution/local-runtime/sbom-components.json \
   --out /absolute/path/evidence/sbom.spdx.json
 python3.11 scripts/distribution/release_readiness.py --profile macos-local \
   --macos-local-evidence /absolute/path/evidence/macos-local.json --json

@@ -6,7 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project intends to adhere to [Semantic Versioning](https://semver.org/)
 once a first tagged release is published.
 
-## [Unreleased]
+## [0.2.0-beta.1] - 2026-09-11
+
+- Rename the desktop app to Museion PDF (中文：Museion PDF 处理器).
+- Ship the Apple Silicon local desktop: black-and-white processing, editable
+  contents bookmarks, and Chinese/English interface.
+- Bundle the pinned local runtime; disable body OCR and remote OCR commands.
+- Require bookmark review; retain basic hierarchy when Apple models are unavailable.
+- Preserve the bundle identifier and existing language preference.
+
+## [Unreleased] — historical rc.3 development notes (not the Beta feature list)
 
 This section prepares `0.1.0-rc.3`; it is not a published release and has
 no release date or download link.

@@ -23,7 +23,7 @@ function message(error:unknown){return error instanceof BackendError?error.error
 
 function App(){
   const locale=useLocale();
-  useEffect(()=>{document.documentElement.lang=locale==="zh"?"zh-CN":"en";},[locale]);
+  useEffect(()=>{document.documentElement.lang=locale==="zh"?"zh-CN":"en";document.title=t("Museion PDF 处理器");},[locale]);
   const [state,dispatch]=useReducer(reducer,initialState);
   const ready=state.kind==="ready"?state:null;
   const [binarize,setBinarize]=useState(true),[bookmarks,setBookmarks]=useState(false);
@@ -201,7 +201,7 @@ function App(){
   const contentsStale=!!draft&&(mode!==draft.result.intake.mode||!!chosenPages?.error||chosenPages?.pages.join(",")!==draft.result.intake.selected_pages.join(","));
   const canSave=!!ready&&!busy&&(binarize||bookmarks)&&(!binarize||!range.error&&preparedMatches)&&(!bookmarks||!!draft?.reviewed&&!contentsStale);
   return <ErrorBoundary><main className="app-shell">
-    <header className="app-header"><div className="brand"><span className="brand-mark">M</span><div>Museion <strong>Binarize</strong></div></div><label className="language-switch"><span className="sr-only">Language / 语言</span><select aria-label="Language / 语言" value={locale} onChange={e=>setLocale(e.target.value as "zh"|"en")}><option value="zh">中文</option><option value="en">English</option></select></label><span className="header-divider"/><div className="document-name">{ready?<><strong title={ready.document.fileName}>{ready.document.fileName}</strong><span>{t("{0} 页 · {1}",ready.document.pageCount,formatBytes(ready.document.sourceBytes))}</span></>:<span>{t("本地 PDF 工具")}</span>}</div><button onClick={()=>void handleOpen()} disabled={busy} title="⌘O / Ctrl+O">{t("打开 PDF")}</button></header>
+    <header className="app-header"><div className="brand"><span className="brand-mark">M</span><div>{t("Museion PDF 处理器")}</div></div><label className="language-switch"><span className="sr-only">Language / 语言</span><select aria-label="Language / 语言" value={locale} onChange={e=>setLocale(e.target.value as "zh"|"en")}><option value="zh">中文</option><option value="en">English</option></select></label><span className="header-divider"/><div className="document-name">{ready?<><strong title={ready.document.fileName}>{ready.document.fileName}</strong><span>{t("{0} 页 · {1}",ready.document.pageCount,formatBytes(ready.document.sourceBytes))}</span></>:<span>{t("本地 PDF 工具")}</span>}</div><button onClick={()=>void handleOpen()} disabled={busy} title="⌘O / Ctrl+O">{t("打开 PDF")}</button></header>
     <div className="workflow-line" aria-label={t("使用步骤")}><span className={ready?"complete":"current"}>{t("1 打开文档")}</span><i>›</i><span className={ready&&!result?"current":""}>{t("2 开始处理 · 预览与修改")}</span><i>›</i><span className={result?"complete":""}>{t("3 保存新 PDF")}</span></div>
     {error&&<div className="inline-error" role="alert"><span>{localizeMessage(error)}</span><button aria-label={t("关闭错误提示")} onClick={()=>setError(null)}>×</button></div>}
     <div className={`workspace ${bookmarks&&ready?"has-contents":""}`}>

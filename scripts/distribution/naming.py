@@ -30,7 +30,9 @@ def os_arch_label(target_triple: str) -> tuple[str, str]:
 
 def desktop_artifact_name(version: str, target_triple: str, ext: str) -> str:
     os_label, arch_label = os_arch_label(target_triple)
-    return f"mpdf-{version}-{os_label}-{arch_label}.{ext}"
+    # Intent 8.46 BP1: rename from 0.2; retain historical release filenames.
+    prefix = "mpdf" if tuple(map(int, version.split("-")[0].split(".")[:2])) < (0, 2) else "Museion-PDF"
+    return f"{prefix}-{version}-{os_label}-{arch_label}.{ext}"
 
 
 def cli_archive_name(version: str, target_triple: str, ext: str) -> str:

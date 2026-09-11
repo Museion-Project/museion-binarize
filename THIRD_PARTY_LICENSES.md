@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-M PDF Processor is dual-licensed under MIT OR Apache-2.0 (see
+Museion PDF is dual-licensed under MIT OR Apache-2.0 (see
 [`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE)). This
 project also uses third-party open-source software. This file records
 attributions for all bundled or statically linked dependencies. The complete
@@ -94,7 +94,7 @@ Open Font License 1.1; the full text is committed beside it as
 
 ## PDFium
 
-M PDF Processor uses [PDFium](https://pdfium.googlesource.com/pdfium/) to
+Museion PDF uses [PDFium](https://pdfium.googlesource.com/pdfium/) to
 rasterize source PDFs. PDFium is licensed BSD-3-Clause with Apache-2.0
 components; prebuilt binaries commonly come from the
 [`pdfium-binaries`](https://github.com/bblanchon/pdfium-binaries) project,
@@ -114,7 +114,7 @@ Full license texts are committed under
 [`third_party/pdfium/manifest.toml`](third_party/pdfium/manifest.toml)
 records the provenance and locally-verified SHA-256 of every PDFium asset
 this project has actually used. **Anyone redistributing a PDFium binary
-alongside M PDF Processor must ship these notices.**
+alongside Museion PDF must ship these notices.**
 
 **Official packaged builds** (Milestone 7A) bundle a PDFium library
 fetched and checksum-verified at build/package time from a pinned

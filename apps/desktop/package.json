@@ -1,8 +1,8 @@
 {
   "name": "mpdf-desktop",
   "private": true,
-  "version": "0.1.0-rc.3",
-  "description": "M PDF Processor desktop application (Tauri 2 + React + TypeScript)",
+  "version": "0.2.0-beta.1",
+  "description": "Museion PDF desktop application (Tauri 2 + React + TypeScript)",
   "license": "MIT OR Apache-2.0",
   "author": "Pei Haoran",
   "type": "module",

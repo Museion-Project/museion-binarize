@@ -1,5 +1,6 @@
 // UI messages only. Document text and bookmark titles are never translated.
 export const english: Record<string, string> = {
+  "Museion PDF 处理器": "Museion PDF",
   "当前目录有未保存的内容。打开其他 PDF 将丢弃这些修改。": "The current contents have unsaved changes. Opening another PDF will discard them.",
   "请一次打开一个 PDF 文件。": "Open one PDF file at a time.",
   "已完成 {0} 页黑白处理，可保存或继续生成目录。": "Converted {0} pages to black and white. You can save or generate bookmarks next.",

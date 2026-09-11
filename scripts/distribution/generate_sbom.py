@@ -535,7 +535,7 @@ def build_sbom(*, project_version: str, target: str, cargo_metadata: dict[str, A
     components.append(
         {
             "SPDXID": "SPDXRef-MPDF-Processor",
-            "name": "M PDF Processor",
+            "name": "Museion PDF",
             "versionInfo": project_version,
             "downloadLocation": "https://github.com/Museion-Project/museion-binarize",
             "licenseConcluded": "MIT OR Apache-2.0",

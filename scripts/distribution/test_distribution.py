@@ -52,6 +52,10 @@ class NamingTests(unittest.TestCase):
             "mpdf-0.1.0-windows-x64.msi",
         )
 
+    def test_beta_display_rename_preserves_legacy_artifact_names(self):
+        self.assertEqual(naming.desktop_artifact_name("0.2.0-beta.1", "aarch64-apple-darwin", "dmg"), "Museion-PDF-0.2.0-beta.1-macos-arm64.dmg")
+        self.assertEqual(naming.desktop_artifact_name("0.1.0-rc.2", "aarch64-apple-darwin", "dmg"), "mpdf-0.1.0-rc.2-macos-arm64.dmg")
+
     def test_cli_archive_name_matches_the_documented_convention(self):
         self.assertEqual(
             naming.cli_archive_name("0.1.0", "x86_64-unknown-linux-gnu", "tar.gz"),

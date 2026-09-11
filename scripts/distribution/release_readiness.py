@@ -288,7 +288,7 @@ def main() -> int:
         result = {key: result[key] for key in ("version_wix", "identity_freeze")} | local
     missing_required = required_failures(result, args.profile)
     if args.json:
-        print(json.dumps({"release": "0.1.0-rc.3", "status": ("ready" if not missing_required else "not_ready") if args.profile == "macos-local" else "pre-release-source",
+        print(json.dumps({"release": versions.workspace_version(), "status": ("ready" if not missing_required else "not_ready") if args.profile == "macos-local" else "pre-release-source",
                           "profile": args.profile, "gates": result,
                           "required_failures": missing_required,
                           "cloud_blockers": cloud_blockers(result)},

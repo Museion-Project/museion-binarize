@@ -1,3 +1,14 @@
+# Beta naming amendment
+
+Intent §8.46 BP1 explicitly supersedes the earlier display-name freeze: from
+0.2.0-beta.1 the English product name is **Museion PDF**, and the Chinese UI
+name is **Museion PDF 处理器**. App and disk volume: `Museion PDF`; desktop
+artifact prefix: `Museion-PDF`. Bundle identifier `me.mpdf.processor`, CLI
+`mpdf`, repository name and persisted schema/preference identifiers remain
+unchanged. Earlier release filenames remain unchanged.
+
+## Historical compatibility record
+
 # Naming and upgrade compatibility
 
 This is the rc.3 source identity freeze. The product is **M PDF Processor**;
