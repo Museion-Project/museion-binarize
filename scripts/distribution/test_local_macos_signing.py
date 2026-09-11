@@ -7,6 +7,11 @@ import sign_local_macos as signing
 
 
 class SigningTests(unittest.TestCase):
+    def test_real_runner_accepts_shared_signer_check_argument(self):
+        import sys
+        result=signing.run([sys.executable,'-c','print("runner-ok")'],check=True,capture_output=True,text=True)
+        self.assertEqual(result.stdout.strip(),'runner-ok')
+
     def test_no_adhoc_or_wrong_certificate_fallback(self):
         with tempfile.TemporaryDirectory() as tmp:
             app=Path(tmp)/'Fixture.app';app.mkdir()

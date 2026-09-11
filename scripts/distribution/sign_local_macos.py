@@ -27,7 +27,8 @@ def bundle_digest(app):
 
 
 def run(command, **kwargs):
-    return subprocess.run(command, check=True, **kwargs)
+    kwargs["check"] = True
+    return subprocess.run(command, **kwargs)
 
 
 def sign(app, identity, receipt, runner=run):
