@@ -1,0 +1,43 @@
+{
+  "schema": "mpdf-release-final/1",
+  "status": "ready",
+  "profile": "macos-local",
+  "intent_alignment": "aligned",
+  "intent_baseline": "8.45 MR1-MR6",
+  "application_source_commit": "4cbc8d308d273c45ebcc51e3bd60cdb4ee8b1bfc",
+  "tooling_commit": "5d1d3458039dadabed095086e5c22705845f47ad",
+  "branch": "codex/macos-release-ready",
+  "app_bundle_sha256": "deb9994bd57d7a2be39aad44e79df816e90dad9b891cf8b641df1901dfeae7f4",
+  "dmg_sha256": "20ac7c512938040d97537b0e06b3da75137c8eff880487782087c2f0c169d3ae",
+  "notary_submission_id": "f6fde0ec-7dbf-4170-95bf-ef2530da31a6",
+  "apple_status": "Accepted",
+  "syspolicy_check": "exit 0; no issues",
+  "evidence_directory": "/Users/theo/AI \u5de5\u4f5c\u6d41/museion-binarize/target/releases/macos-local-4cbc8d30/evidence",
+  "delivery_directory": "/Users/theo/AI \u5de5\u4f5c\u6d41/museion-binarize/target/releases/macos-local-4cbc8d30",
+  "verification": {
+    "cloud_blockers": [],
+    "gates": {
+      "developer_id_notary": "pass_local",
+      "functional_tests": "pass_local",
+      "identity_freeze": "pass_static",
+      "macos_release_artifacts": "pass_local",
+      "portable_runtime": "pass_local",
+      "privacy_accessibility_performance": "pass_local",
+      "reader_matrix": "pass_local",
+      "signed_install_workflow": "pass_local",
+      "traceable_build": "pass_local",
+      "upgrade_install": "pass_local",
+      "version_wix": "pass_static"
+    },
+    "profile": "macos-local",
+    "release": "0.1.0-rc.3",
+    "required_failures": [],
+    "status": "ready"
+  },
+  "limits": [
+    "Apple Silicon only; actual OS testing on macOS 27; minimum macOS 13 is a binary deployment audit, not older-OS machine testing.",
+    "Host Gatekeeper enforcement was already disabled; independent Apple distribution checker passed. No separate clean-machine downloaded-app Gatekeeper prompt test.",
+    "Apple hierarchy modelNotReady on this host; safe basic hierarchy and manual review validated, not model quality.",
+    "No remote CI, public publication, Intel/Windows/Linux or independent human Gold claim."
+  ]
+}
