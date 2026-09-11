@@ -1,5 +1,5 @@
 """Apple-only directory hierarchy runtime. No downloads or cloud inference."""
-import argparse, json, os, subprocess, time
+import argparse, json, os, platform, subprocess, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -28,6 +28,8 @@ def check_cancel(cancel):
 
 
 def apple_paths(root):
+    if getattr(sys, 'frozen', False):
+        return HERE/'apple/check-model', HERE/'apple/hierarchy-worker'
     local = Path(root)/'apple'
     folder = local if (local/'check-model').is_file() else HERE/'apple'
     return folder/'check-model', folder/'hierarchy-worker'
@@ -36,6 +38,11 @@ def apple_paths(root):
 def status(root, model):
     if model not in IDS: raise ValueError('Unknown model')
     root = Path(root)
+    if platform.system() == 'Darwin':
+        version = platform.mac_ver()[0]
+        if not version or int(version.split('.')[0]) < 27:
+            return dict(provider='apple', label='Apple', state='unavailable', available=False,
+                        message='Apple image hierarchy suggestions require macOS 27 or later. Basic bookmarks remain available.')
     if model == 'apple':
         check, worker = apple_paths(root)
         value = dict(provider=model, label='Apple', state='unavailable', available=False)

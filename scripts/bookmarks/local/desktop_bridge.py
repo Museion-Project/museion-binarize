@@ -5,7 +5,7 @@ calls a CLI/compiler, installs a model, or uses a network provider.
 """
 import copy, hashlib, json, os, subprocess, sys, time
 from pathlib import Path
-import fitz
+import pdf_backend as pdf
 from bookmarks import native, load, save, project, paginate, native_anchors, native_header_anchors, validate_table, export, sha
 from numeric_lane import run as read_numeric_lanes
 
@@ -21,6 +21,9 @@ def stage(root,name,**extra):
 
 
 def vision_worker(root,runtime):
+    bundled=Path(__file__).with_name('vision-fast')
+    if bundled.is_file():return str(bundled)
+    if getattr(sys,'frozen',False):raise RuntimeError('Bundled Apple Vision helper is missing')
     source=Path(__file__).with_name('vision_fast.swift')
     if sys.platform!='darwin':raise RuntimeError('图像目录识别目前需要 macOS；含可用文字的 PDF 可直接读取。')
     digest=hashlib.sha256(source.read_bytes()).hexdigest()[:16]
@@ -38,7 +41,7 @@ def vision_worker(root,runtime):
 def prepare(request,root):
     root=Path(root);source=str(Path(request['source']).resolve());mode=request.get('mode','auto')
     if mode not in ('auto','image'):raise ValueError('invalid extraction mode')
-    with fitz.open(source) as doc:
+    with pdf.Document(source) as doc:
         if doc.is_encrypted:raise ValueError('目录生成暂不支持加密 PDF，请先保存不加密副本。')
         pages=request['pages']
         if not pages or len(pages)>40 or any(type(p)!=int or not 1<=p<=len(doc) for p in pages):raise ValueError('目录页必须是 PDF 中有效的页码，最多40页。')
@@ -51,7 +54,7 @@ def prepare(request,root):
         native(source,indices,root/'native-raw.json');raw=load(root/'native-raw.json')
     native_by_page={r['page_index']:r for r in raw}
     evidence=[];requests=[];routes=[]
-    with fitz.open(source) as doc:
+    with pdf.Document(source) as doc:
         for index in indices:
             check_cancel(root);r=native_by_page.get(index)
             # A few running-header glyphs are not a usable contents page.
@@ -156,8 +159,8 @@ def save_review(request,root):
     if processed:
         # The original table is retained above. The writer verifies its own
         # input, which is the independently validated binarization result.
-        with fitz.open(processed) as pdf:
-            if len(pdf)!=base['page_count']:raise ValueError('processed page count changed')
+        with pdf.Document(processed) as processed_pdf:
+            if len(processed_pdf)!=base['page_count']:raise ValueError('processed page count changed')
         t['source']=processed;t['source_sha256']=sha(processed)
         t['original_source_sha256']=base['source_sha256']
     stage(root,'writing_bookmarks')

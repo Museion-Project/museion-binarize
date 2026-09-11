@@ -5,6 +5,19 @@ import manager
 import desktop_bridge as bridge
 
 class ModelTests(unittest.TestCase):
+    def test_packaged_app_never_executes_a_cached_apple_helper(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'apple').mkdir();(root/'apple/check-model').write_text('stale cached executable')
+            with patch.object(manager.sys,'frozen',True,create=True):
+                checker,worker=manager.apple_paths(root)
+                self.assertEqual(checker,manager.HERE/'apple/check-model')
+                self.assertEqual(worker,manager.HERE/'apple/hierarchy-worker')
+
+    def test_unsupported_os_never_launches_newer_apple_binary(self):
+        with patch.object(manager.platform,'system',return_value='Darwin'),patch.object(manager.platform,'mac_ver',return_value=('26.5',('', '', ''),'')),patch.object(manager.subprocess,'run',side_effect=AssertionError('launch')):
+            status=manager.status('/tmp','apple')
+            self.assertFalse(status['available'])
+            self.assertIn('Basic bookmarks remain available',status['message'])
     def test_apple_status_has_no_side_effects(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertFalse(manager.status(tmp,'apple')['available'])

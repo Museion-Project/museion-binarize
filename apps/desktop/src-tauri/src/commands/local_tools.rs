@@ -39,7 +39,10 @@ impl Drop for JobGuard {
     }
 }
 impl LocalToolsState {
-    pub fn clear_document(&self) {self.session.lock().unwrap().take();self.prepared.lock().unwrap().take();}
+    pub fn clear_document(&self) {
+        self.session.lock().unwrap().take();
+        self.prepared.lock().unwrap().take();
+    }
 
     fn begin(&self, id: &str) -> Result<(Arc<AtomicBool>, JobGuard), UiErrorDto> {
         if id.is_empty()
@@ -125,7 +128,11 @@ pub async fn generate_local_contents(
     tools: State<'_, LocalToolsState>,
     pagination: State<'_, super::document_analysis::PaginationState>,
 ) -> Result<Value, UiErrorDto> {
-    if request.hierarchy_provider.as_deref().is_some_and(|p| p != "apple") {
+    if request
+        .hierarchy_provider
+        .as_deref()
+        .is_some_and(|p| p != "apple")
+    {
         return Err(request_error("invalid_request", "目录层级仅支持 Apple。"));
     }
     let operation = state
@@ -133,21 +140,18 @@ pub async fn generate_local_contents(
         .ok_or_else(|| request_error("operation_active", "请等待当前文档操作完成。"))?;
     let doc = current(&state, &request.document_id)?;
     let (cancel, guard) = tools.begin(&request.operation_id)?;
-    if let Some(c) = state.estimate_job.lock().unwrap().take() {
-        c.store(true, Ordering::SeqCst);
-    }
     let session_id = state.new_id("local-contents");
     let (resources, cache) = locations(&app)?;
     let progress = notify(app, doc.document_id.clone(), request.operation_id);
     let store = tools.inner().clone();
     let worker = state.worker.clone();
-    let pagination=pagination.inner().clone();
+    let pagination = pagination.inner().clone();
     tauri::async_runtime::spawn_blocking(move ||{
         let _operation=operation;let _guard=guard;
         let runtime=Runtime::resolve(resources.as_deref(),cache)?;
         progress("mapping_pages",None,None);
         let map=pagination.wait_result(&doc.document_id,&cancel);
-        let mut session=local_tools::generate_with_pagination(&runtime,&worker,&doc,&request.pages,&request.mode,session_id,cancel.clone(),progress.clone(),map.as_ref().map(|m|m.path.as_path()))?;
+        let mut session=local_tools::generate_with_pagination(&runtime,&worker,&doc,&request.pages,&request.mode,local_tools::LocalJob { id: session_id, cancel: cancel.clone(), notify: progress.clone() },map.as_ref().map(|m|m.path.as_path()))?;
         if let Some(provider) = request.hierarchy_provider {
             let result = runtime.hierarchy_runtime().run("hierarchy",session.work.path(),json!({"provider":provider,"model_root":runtime.model_root()}),&cancel,&progress)?;
             session.table=result["table"].clone();session.intake=result["intake"].clone();
@@ -158,21 +162,35 @@ pub async fn generate_local_contents(
     }).await.map_err(|e|request_error("internal_error",e.to_string()))?.map_err(map_error)
 }
 #[derive(Deserialize)]
-#[serde(rename_all="camelCase",deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PrepareRequest {
-    document_id:String,operation_id:String,settings:ProcessingSettingsDto,binarize_pages:Option<Vec<u32>>,
+    document_id: String,
+    operation_id: String,
+    settings: ProcessingSettingsDto,
+    binarize_pages: Option<Vec<u32>>,
 }
 #[tauri::command]
-pub async fn prepare_local_binarization(request:PrepareRequest,app:AppHandle,state:State<'_,AppState>,tools:State<'_,LocalToolsState>)->Result<Value,UiErrorDto>{
-    let operation=state.try_claim_operation(OperationKind::Processing).ok_or_else(||request_error("operation_active","请等待当前操作完成。"))?;
-    let doc=current(&state,&request.document_id)?;
-    let settings=to_processing_settings(&request.settings).map_err(|e|request_error("invalid_settings",e))?;
-    let (cancel,guard)=tools.begin(&request.operation_id)?;
-    let progress=notify(app.clone(),doc.document_id.clone(),request.operation_id);
-    let (_,cache)=locations(&app)?;let worker=state.worker.clone();let store=tools.inner().clone();let id=state.new_id("binarized");
+pub async fn prepare_local_binarization(
+    request: PrepareRequest,
+    app: AppHandle,
+    state: State<'_, AppState>,
+    tools: State<'_, LocalToolsState>,
+) -> Result<Value, UiErrorDto> {
+    let operation = state
+        .try_claim_operation(OperationKind::Processing)
+        .ok_or_else(|| request_error("operation_active", "请等待当前操作完成。"))?;
+    let doc = current(&state, &request.document_id)?;
+    let settings = to_processing_settings(&request.settings)
+        .map_err(|e| request_error("invalid_settings", e))?;
+    let (cancel, guard) = tools.begin(&request.operation_id)?;
+    let progress = notify(app.clone(), doc.document_id.clone(), request.operation_id);
+    let (_, cache) = locations(&app)?;
+    let worker = state.worker.clone();
+    let store = tools.inner().clone();
+    let id = state.new_id("binarized");
     tauri::async_runtime::spawn_blocking(move ||{
         let _operation=operation;let _guard=guard;
-        let prepared=Arc::new(local_tools::prepare_binarization(&worker,&doc,&cache,settings,request.binarize_pages.as_deref(),id,cancel,progress)?);
+        let prepared=Arc::new(local_tools::prepare_binarization(&worker,&doc,&cache,settings,request.binarize_pages.as_deref(),local_tools::LocalJob { id, cancel, notify: progress })?);
         let value=json!({"documentId":doc.document_id,"preparedId":prepared.id,"pagesProcessed":prepared.report.pages_processed,"elapsedSeconds":prepared.report.elapsed_us as f64/1_000_000.0});
         *store.prepared.lock().unwrap()=Some(prepared);Ok(value)
     }).await.map_err(|e|request_error("internal_error",e.to_string()))?.map_err(map_error)
@@ -226,13 +244,26 @@ pub async fn save_local_pdf(
     } else {
         None
     };
-    let prepared=if request.binarize {
-        Some(tools.prepared.lock().unwrap().as_ref().filter(|p|Some(p.id.as_str())==request.prepared_id.as_deref() && p.document_id==doc.document_id).cloned().ok_or_else(||request_error("binarization_required","请先点击黑白处理的开始。"))?)
-    } else {None};
+    let prepared = if request.binarize {
+        Some(
+            tools
+                .prepared
+                .lock()
+                .unwrap()
+                .as_ref()
+                .filter(|p| {
+                    Some(p.id.as_str()) == request.prepared_id.as_deref()
+                        && p.document_id == doc.document_id
+                })
+                .cloned()
+                .ok_or_else(|| {
+                    request_error("binarization_required", "请先点击黑白处理的开始。")
+                })?,
+        )
+    } else {
+        None
+    };
     let (cancel, guard) = tools.begin(&request.operation_id)?;
-    if let Some(c) = state.estimate_job.lock().unwrap().take() {
-        c.store(true, Ordering::SeqCst);
-    }
     let progress = notify(app.clone(), doc.document_id.clone(), request.operation_id);
     let (resources, cache) = locations(&app)?;
     let worker = state.worker.clone();
@@ -282,10 +313,22 @@ pub fn cancel_local_tools(
 
 #[tauri::command]
 pub async fn local_hierarchy_models(app: AppHandle) -> Result<Value, UiErrorDto> {
-    let (resources, cache)=locations(&app)?;
+    let (resources, cache) = locations(&app)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let rt=Runtime::resolve(resources.as_deref(),cache)?;
-        let work=tempfile::Builder::new().prefix("models-status-").tempdir_in(&rt.cache).map_err(|e|e.to_string())?;
-        rt.hierarchy_runtime().run("models_status",work.path(),json!({"model_root":rt.model_root()}),&AtomicBool::new(false),&(Arc::new(|_: &str, _: Option<u32>, _: Option<u32>|{}) as Notify))
-    }).await.map_err(|e|request_error("internal_error",e.to_string()))?.map_err(map_error)
+        let rt = Runtime::resolve(resources.as_deref(), cache)?;
+        let work = tempfile::Builder::new()
+            .prefix("models-status-")
+            .tempdir_in(&rt.cache)
+            .map_err(|e| e.to_string())?;
+        rt.hierarchy_runtime().run(
+            "models_status",
+            work.path(),
+            json!({"model_root":rt.model_root()}),
+            &AtomicBool::new(false),
+            &(Arc::new(|_: &str, _: Option<u32>, _: Option<u32>| {}) as Notify),
+        )
+    })
+    .await
+    .map_err(|e| request_error("internal_error", e.to_string()))?
+    .map_err(map_error)
 }

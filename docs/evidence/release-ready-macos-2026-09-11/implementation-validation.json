@@ -1,0 +1,92 @@
+{
+  "schema": "mpdf-release-implementation/1",
+  "intent": "8.45 MR1-MR6",
+  "scope": "macOS arm64 local tools; body OCR disabled; no public release",
+  "checks": {
+    "clippy_workspace_all_targets": "pass -D warnings",
+    "frontend": "65 passed; lint passed",
+    "local_pdf": "38 passed",
+    "distribution": "127 passed",
+    "portable_runtime": {
+      "python": "3.11.16",
+      "pypdf": "6.18.1",
+      "pdfium": "153.0.7999.0",
+      "pillow": "11.3.0",
+      "frozen": true
+    }
+  },
+  "functional_scope": "source bytes, objects, text, pixels and outline destinations verified; no human Gold or hierarchy quality claim",
+  "real_pdf_smoke": [
+    {
+      "source_name": "Lloyd P. Gerson. Aristotle and Other Platonists.pdf",
+      "source_sha256": "0eaa6eb9a3fe17c504cb43c734206e6b833d627aecd235c769735ab28a897206",
+      "pages": 348,
+      "exit_code": 0,
+      "stderr": "",
+      "seconds": 12.24429279099786,
+      "scope": "synthetic outline on old development source; preservation and navigation only, no quality or human Gold approval",
+      "receipt": {
+        "schema": "mpdf-bookmark-only-validation/2",
+        "writer": "pypdf-incremental",
+        "renderer": "pdfium-153.0.7999.0",
+        "source_sha256": "0eaa6eb9a3fe17c504cb43c734206e6b833d627aecd235c769735ab28a897206",
+        "output_sha256": "70c80f73d12a75271fe45e58ff6e08408d2c38199fe4818c562e2afacb42c656",
+        "pages_checked": 348,
+        "original_objects_checked": 3894,
+        "original_bytes_preserved": true,
+        "render_dpi": 72,
+        "native_glyphs_unchanged": true,
+        "streams_unchanged": true,
+        "outline_entries": 1,
+        "actual_destinations_checked": 1,
+        "seconds": 12.021011790999182
+      },
+      "qpdf": {
+        "exit_code": 0,
+        "output": "checking /private/tmp/museion-real-pdf-smoke-final/0/out.pdf\nPDF Version: 1.3\nFile is not encrypted\nFile is not linearized\nNo syntax or stream encoding errors found; the file may still contain\nerrors that qpdf cannot detect\n"
+      },
+      "source_unchanged": true
+    },
+    {
+      "source_name": "Spinoza_ A Guide for the Perplexed (Guides for the Perplexed) - Charles Jarrett.pdf",
+      "source_sha256": "753b4ec16d0660ac63a3e3cd95cd8e51283801a360177c15baef826be330adaf",
+      "pages": 239,
+      "exit_code": 0,
+      "stderr": "",
+      "seconds": 5.802755791999516,
+      "scope": "synthetic outline on old development source; preservation and navigation only, no quality or human Gold approval",
+      "receipt": {
+        "schema": "mpdf-bookmark-only-validation/2",
+        "writer": "pypdf-incremental",
+        "renderer": "pdfium-153.0.7999.0",
+        "source_sha256": "753b4ec16d0660ac63a3e3cd95cd8e51283801a360177c15baef826be330adaf",
+        "output_sha256": "eb56767aecfbe7865c2b7021f62105ee5382cc89559af411dc79c6620b5cfbb6",
+        "pages_checked": 239,
+        "original_objects_checked": 3552,
+        "original_bytes_preserved": true,
+        "render_dpi": 72,
+        "native_glyphs_unchanged": true,
+        "streams_unchanged": true,
+        "outline_entries": 1,
+        "actual_destinations_checked": 1,
+        "seconds": 5.618870500002231
+      },
+      "qpdf": {
+        "exit_code": 0,
+        "output": "checking /private/tmp/museion-real-pdf-smoke-final/1/out.pdf\nPDF Version: 1.4\nFile is not encrypted\nFile is not linearized\nNo syntax or stream encoding errors found; the file may still contain\nerrors that qpdf cannot detect\n"
+      },
+      "source_unchanged": true
+    },
+    {
+      "source_name": "(2007) Raffaele Peluso - Heidegger interprete del Sofista [FedOA thesis].pdf",
+      "source_sha256": "59f94f410be1d1ac756b48cb991f89411ad4b163ca41787f210b586f2f576d6d",
+      "pages": 253,
+      "exit_code": 1,
+      "stderr": "\u76ee\u5f55\u5904\u7406\u6682\u4e0d\u652f\u6301\u52a0\u5bc6 PDF\uff0c\u8bf7\u5148\u4fdd\u5b58\u4e0d\u52a0\u5bc6\u526f\u672c\u3002\n",
+      "seconds": 0.13076933400225244,
+      "scope": "synthetic outline on old development source; preservation and navigation only, no quality or human Gold approval",
+      "source_unchanged": true
+    }
+  ],
+  "pending": "final committed app build, signing, installed GUI workflow and notarization"
+}

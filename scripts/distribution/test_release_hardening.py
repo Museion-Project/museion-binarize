@@ -332,7 +332,7 @@ class CredentialLeakScan(unittest.TestCase):
         gates = release_readiness.run()
         self.assertEqual(
             set(release_readiness.PROFILE_REQUIRED),
-            {"source", "base", "optional-local-ocr-plugin"},
+            {"source", "base", "optional-local-ocr-plugin", "macos-local"},
         )
         self.assertEqual(release_readiness.required_failures(gates, "source"), [])
         base = release_readiness.required_failures(gates, "base")

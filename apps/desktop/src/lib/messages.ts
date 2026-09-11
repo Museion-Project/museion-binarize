@@ -296,5 +296,8 @@ export const english: Record<string, string> = {
   "模型未给出可用层级，本次保留基础层级。": "The model did not provide a usable hierarchy. Keeping the basic hierarchy.",
   "已生成模型层级建议，请逐项核对后保存。": "Hierarchy suggestions are ready. Review each entry before saving.",
   "模型未返回有效的目录层级，本次保留基础层级，请人工核对。": "The model did not return a valid hierarchy. Keeping the basic hierarchy; please review it.",
-  "密码错误": "Incorrect password"
+  "密码错误": "Incorrect password",
+  "所选页面会转为图像，原有文字层和交互注释不会保留；文件不一定更小。": "Selected pages become images. Their text layers and interactive annotations are not preserved; the file may not be smaller.",
+  "目录处理暂不支持加密 PDF，请先保存不加密副本。": "Encrypted PDFs are not supported for bookmarks. Save an unencrypted copy first.",
+  "Apple 图像层级建议需要 macOS 27 或更新版本，基础书签仍可使用。": "Apple image hierarchy suggestions require macOS 27 or later. Basic bookmarks remain available."
 };

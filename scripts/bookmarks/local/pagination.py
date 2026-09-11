@@ -12,7 +12,7 @@ import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
-import fitz
+import pdf_backend as pdf
 from bookmarks import number, save, sha
 
 SCHEMA = 'mpdf-printed-pagination/1'
@@ -201,12 +201,12 @@ def scan_margins(doc, indices, root, batch, worker, digest, check_cancel):
     output=root/f'sample-{batch}';output.mkdir();requests=[]
     for index in indices:
         check_cancel(root);page=doc[index];w,h=page.rect.width,page.rect.height
-        for band,rect in [(f'{edge}-{tile}',fitz.Rect(w*tile/3,y0,w*(tile+1)/3,y1)) for edge,y0,y1 in [('top',0,h*MARGIN),('bottom',h*(1-MARGIN),h)] for tile in range(3)]:
+        for band,rect in [(f'{edge}-{tile}',pdf.Rect(w*tile/3,y0,w*(tile+1)/3,y1)) for edge,y0,y1 in [('top',0,h*MARGIN),('bottom',h*(1-MARGIN),h)] for tile in range(3)]:
             image=output/f'p{index}-{band}.png';began=time.perf_counter()
-            page.get_pixmap(matrix=fitz.Matrix(220/72,220/72),clip=rect,alpha=False).save(image)
+            page.render(dpi=220,clip=rect).save(image)
             requests.append(dict(id=f'p{index}-{band}',image_path=str(image),source=str(Path(doc.name).resolve()),source_sha256=digest,
                                  page_index=index,page_count=len(doc),width=rect.width,height=rect.height,source_roi=list(rect),
-                                 page_width=w,page_height=h,band=band,render_seconds=time.perf_counter()-began,stage='pagination_margin',renderer='pymupdf',dpi=220))
+                                 page_width=w,page_height=h,band=band,render_seconds=time.perf_counter()-began,stage='pagination_margin',renderer=pdf.RENDERER,dpi=220))
     save(output/'requests.json',requests)
     child=subprocess.Popen([worker,str(output/'requests.json'),str(output/'vision')],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
     started=time.perf_counter()
@@ -241,15 +241,12 @@ def analyze(request,root,stage,check_cancel,vision_worker):
     stage(root,'checking_text_layer',text_layer='checking',pagination_status='running')
     if request.get('source_sha256') and request['source_sha256']!=digest:raise ValueError('原 PDF 已改变，请重新打开。')
     observations=[];text_pages=0;native_folio_pages=[]
-    with fitz.open(source) as doc:
+    with pdf.Document(source) as doc:
         if doc.is_encrypted:raise ValueError('加密 PDF 暂不支持自动重建页码，请先保存不加密副本。')
         for index,page in enumerate(doc):
-            check_cancel(root);words=page.get_text('words')
+            check_cancel(root);words=page.words()
             if sum(sum(c.isalnum() for c in w[4]) for w in words)>=30:text_pages+=1
-            visible=[]
-            for word in words:
-                b=fitz.Rect(word[:4])*page.rotation_matrix
-                visible.append((*b,word[4],*word[5:]))
+            visible=words
             found=candidates_from_words(visible,page.rect.width,page.rect.height,index,'native_margin',f'{root}/native-folios.json#page={index+1}')
             observations.extend(found)
             if found:native_folio_pages.append(index)

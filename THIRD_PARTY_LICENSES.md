@@ -135,3 +135,30 @@ not a claim that every platform-specific or optional lockfile entry is
 installed in every build. Packaged CLI and desktop artifacts carry the root
 MIT/Apache notices,
 the PDFium license texts, and this notice file.
+
+
+## macOS local bookmark runtime (2026-09-11)
+
+This release bundles a fixed Python 3.11.16 build from Astral's
+python-build-standalone 20260901 distribution, pypdf 6.18.1 (BSD-3-Clause),
+pypdfium2 5.13.0 (Apache-2.0 OR BSD-3-Clause), and Pillow 11.3.0 (MIT-CMU).
+The executable is built with PyInstaller 6.16.0, whose GPL license includes
+an exception for distributing bundled applications. Its complete license
+and exception are included with the application.
+
+PyMuPDF is excluded from the shipped runtime. Older research/development
+scripts that import it are not packaged. This does not change their own
+licensing or the historical evidence they produced.
+
+The main application's pinned PDFium remains build 7920 from
+`distribution/pdfium/manifest.toml`. The isolated pypdfium2 process carries
+its matched PDFium 7999 build; its raw API bindings must stay matched to
+that library. The two libraries run in separate processes and are recorded
+separately in provenance and validation receipts. Both sets of native
+library notices accompany the application.
+
+Exact Python archive hashes, build provenance, dependency wheel hashes and
+Python native-library notices are in `distribution/local-runtime/`.
+The app includes these dependency notices under
+`Contents/Resources/local-runtime/_internal/licenses/`, and the main
+PDFium notices under `Contents/Resources/licenses/`.

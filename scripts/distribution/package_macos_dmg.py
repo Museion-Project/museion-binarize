@@ -47,11 +47,11 @@ def build_dmg(app_path: Path, version: str, target_triple: str, out_dir: Path) -
     out_dir.mkdir(parents=True, exist_ok=True)
     dmg_path = out_dir / naming.desktop_artifact_name(version, target_triple, "dmg")
     if dmg_path.exists():
-        dmg_path.unlink()
+        raise FileExistsError(f'DMG already exists: {dmg_path}')
 
     with tempfile.TemporaryDirectory() as staging:
         staging_path = Path(staging)
-        shutil.copytree(app_path, staging_path / app_path.name)
+        shutil.copytree(app_path, staging_path / app_path.name, symlinks=True)
         (staging_path / "Applications").symlink_to("/Applications")
         subprocess.run(
             [

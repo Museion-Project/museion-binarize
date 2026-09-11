@@ -3,9 +3,9 @@
 
 use std::path::PathBuf;
 
-use tauri::{AppHandle, State};
 use super::document_analysis::PaginationState;
 use super::local_tools::LocalToolsState;
+use tauri::{AppHandle, State};
 
 use crate::dto::{DocumentSummaryDto, PdfiumStatusDto, UiErrorDto};
 use crate::errors::{classify_core_error, request_error};
@@ -57,15 +57,14 @@ pub async fn open_document(
 
     let doc = OpenDocumentState {
         document_id: document_id.clone(),
-        file_name: file_name.clone(),
         input_path: canonical_path,
         page_count: opened.info.page_count,
         password_protected_session,
         source_sha256: opened.source_sha256,
     };
-    *state.document.lock().unwrap()=Some(doc.clone());
+    *state.document.lock().unwrap() = Some(doc.clone());
     tools.clear_document();
-    pagination.start(doc,app);
+    pagination.start(doc, app);
 
     Ok(DocumentSummaryDto::build(
         document_id,
@@ -78,7 +77,11 @@ pub async fn open_document(
 /// Closes the currently open document, if any. Rejected while a
 /// processing job is running, for the same reason as `open_document`.
 #[tauri::command]
-pub fn close_document(state: State<'_, AppState>,pagination:State<'_,PaginationState>,tools:State<'_,LocalToolsState>) -> Result<(), UiErrorDto> {
+pub fn close_document(
+    state: State<'_, AppState>,
+    pagination: State<'_, PaginationState>,
+    tools: State<'_, LocalToolsState>,
+) -> Result<(), UiErrorDto> {
     let _operation = state
         .try_claim_operation(OperationKind::Processing)
         .ok_or_else(|| {

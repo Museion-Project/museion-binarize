@@ -5,7 +5,7 @@ Numbers are never inferred from the hierarchy grammar or assessment data.
 """
 import argparse,subprocess,time
 from pathlib import Path
-import fitz
+import pdf_backend as pdf
 from PIL import Image
 from bookmarks import load,save,project,number,sha
 
@@ -24,8 +24,9 @@ def prepare(raw_paths,directory,max_crops=160):
             if b[1]<p['height']*.13 and row['text'].lower().startswith('page '):continue
             if row['text'].strip().lower() in {'contents','table of contents','inhalt','inhaltsverzeichnis','sommaire','table des matières','目录','目次'}:continue
             selected.append(row)
-        start=time.perf_counter();doc=fitz.open(raw['source']);pix=doc[raw['page_index']].get_pixmap(matrix=fitz.Matrix(300/72,300/72));render=time.perf_counter()-start
-        im=Image.frombytes('RGB',(pix.width,pix.height),pix.samples)
+        start=time.perf_counter()
+        with pdf.Document(raw['source']) as doc:im=doc[raw['page_index']].render(dpi=300)
+        render=time.perf_counter()-start
         for row in selected:
             b=row['bbox'];edge=lanes[row['lane']]
             # Uniform fixed lane window, generous white context for short tokens;

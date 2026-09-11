@@ -35,16 +35,30 @@ pub struct Runtime {
 
 impl Runtime {
     pub fn resolve(resources: Option<&Path>, cache: PathBuf) -> Result<Self, String> {
-        let bundled = resources.map(|p| p.join("bookmarks/desktop_bridge.py"));
-        let script = bundled.filter(|p| p.is_file()).unwrap_or_else(|| {
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../../scripts/bookmarks/local/desktop_bridge.py")
-        });
+        if let Some(resources) = resources {
+            let python = resources.join("local-runtime/museion-local");
+            if python.is_file() {
+                fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
+                return Ok(Self {
+                    python,
+                    script: PathBuf::from("bookmarks/desktop_bridge.py"),
+                    cache,
+                });
+            }
+        }
+        if !cfg!(debug_assertions) {
+            return Err(
+                "The bundled local PDF runtime is missing. Please reinstall the application."
+                    .into(),
+            );
+        }
+        let script = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../scripts/bookmarks/local/desktop_bridge.py");
         if !script.is_file() {
-            return Err("目录组件未安装完整。请使用包含本地目录组件的版本。".into());
+            return Err("Local bookmark adapter is missing.".into());
         }
         let python = python_candidates().into_iter().find_map(|p| probe_python(&p))
-            .ok_or("本地目录组件暂不可用：未找到带 PyMuPDF 和 Pillow 的 Python 运行环境。黑白处理仍可使用。")?;
+            .ok_or("Local PDF runtime unavailable: Python with pypdf, pypdfium2 and Pillow is required for development.")?;
         fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
         Ok(Self {
             python,
@@ -53,11 +67,29 @@ impl Runtime {
         })
     }
     pub fn hierarchy_runtime(&self) -> Self {
-        Self { python: self.python.clone(), script: self.script.parent().unwrap().join("../hierarchy_models/desktop_bridge.py"), cache: self.cache.clone() }
+        Self {
+            python: self.python.clone(),
+            script: if self.script.is_relative() {
+                PathBuf::from("hierarchy_models/desktop_bridge.py")
+            } else {
+                self.script
+                    .parent()
+                    .unwrap()
+                    .join("../hierarchy_models/desktop_bridge.py")
+            },
+            cache: self.cache.clone(),
+        }
     }
     pub fn model_root(&self) -> PathBuf {
+        if self.script.is_relative() {
+            return self.cache.join("toc-models");
+        }
         let local = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../.runtime/toc-models");
-        if local.is_dir() { local } else { self.cache.join("toc-models") }
+        if local.is_dir() {
+            local
+        } else {
+            self.cache.join("toc-models")
+        }
     }
     pub fn run(
         &self,
@@ -70,8 +102,13 @@ impl Runtime {
         self.run_observed(verb, root, request, cancel, notify, &|_| {})
     }
     pub fn run_observed(
-        &self, verb: &str, root: &Path, mut request: Value, cancel: &AtomicBool,
-        notify: &Notify, observer: &dyn Fn(&Value),
+        &self,
+        verb: &str,
+        root: &Path,
+        mut request: Value,
+        cancel: &AtomicBool,
+        notify: &Notify,
+        observer: &dyn Fn(&Value),
     ) -> Result<Value, String> {
         check_cancel(cancel)?;
         request["work_dir"] = json!(root);
@@ -132,25 +169,52 @@ impl Runtime {
 /// Probe only Python executables; never install packages or run a shell.
 fn python_candidates() -> Vec<PathBuf> {
     let mut candidates = vec![];
-    if let Some(p) = std::env::var_os("MPDF_LOCAL_BOOKMARK_PYTHON") { candidates.push(PathBuf::from(p)); }
-    candidates.extend([PathBuf::from("/opt/homebrew/bin/python3"), PathBuf::from("/usr/local/bin/python3")]);
+    if let Some(p) = std::env::var_os("MPDF_LOCAL_BOOKMARK_PYTHON") {
+        candidates.push(PathBuf::from(p));
+    }
+    candidates.extend([
+        PathBuf::from("/opt/homebrew/bin/python3"),
+        PathBuf::from("/usr/local/bin/python3"),
+    ]);
     for prefix in ["/opt/homebrew/opt", "/usr/local/opt"] {
         if let Ok(entries) = fs::read_dir(prefix) {
-            let mut versions: Vec<_> = entries.flatten().filter(|e| e.file_name().to_string_lossy().starts_with("python@3.")).map(|e| e.path()).collect();
-            versions.sort(); versions.reverse();
-            for version in versions { candidates.push(version.join("libexec/bin/python3")); }
+            let mut versions: Vec<_> = entries
+                .flatten()
+                .filter(|e| e.file_name().to_string_lossy().starts_with("python@3."))
+                .map(|e| e.path())
+                .collect();
+            versions.sort();
+            versions.reverse();
+            for version in versions {
+                candidates.push(version.join("libexec/bin/python3"));
+            }
         }
     }
     if let Ok(entries) = fs::read_dir("/Library/Frameworks/Python.framework/Versions") {
-        let mut versions: Vec<_> = entries.flatten().filter(|e| e.file_name().to_string_lossy().starts_with("3.")).map(|e|e.path().join("bin/python3")).collect();
-        versions.sort();versions.reverse();candidates.extend(versions);
+        let mut versions: Vec<_> = entries
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with("3."))
+            .map(|e| e.path().join("bin/python3"))
+            .collect();
+        versions.sort();
+        versions.reverse();
+        candidates.extend(versions);
     }
     candidates.push(PathBuf::from("python3"));
     candidates
 }
 fn probe_python(path: &Path) -> Option<PathBuf> {
-    let result = Command::new(path).args(["-c", "import sys, fitz, PIL; print(sys.executable)"]).stderr(Stdio::null()).output().ok()?;
-    if !result.status.success() { return None; }
+    let result = Command::new(path)
+        .args([
+            "-c",
+            "import sys, pypdf, pypdfium2, PIL; print(sys.executable)",
+        ])
+        .stderr(Stdio::null())
+        .output()
+        .ok()?;
+    if !result.status.success() {
+        return None;
+    }
     let executable = PathBuf::from(String::from_utf8(result.stdout).ok()?.trim());
     executable.is_absolute().then_some(executable)
 }
@@ -172,24 +236,26 @@ pub struct EntryEdit {
     pub target_pdf_page: Option<u32>,
 }
 
-#[cfg(test)]
-pub fn generate(
+pub struct LocalJob {
+    pub id: String,
+    pub cancel: Arc<AtomicBool>,
+    pub notify: Notify,
+}
+
+pub fn generate_with_pagination(
     runtime: &Runtime,
     worker: &WorkerHandle,
     doc: &OpenDocumentState,
     pages: &[u32],
     mode: &str,
-    session_id: String,
-    cancel: Arc<AtomicBool>,
-    notify: Notify,
+    job: LocalJob,
+    pagination_path: Option<&Path>,
 ) -> Result<BookmarkSession, String> {
-    generate_with_pagination(runtime,worker,doc,pages,mode,session_id,cancel,notify,None)
-}
-
-pub fn generate_with_pagination(
-    runtime:&Runtime,worker:&WorkerHandle,doc:&OpenDocumentState,pages:&[u32],mode:&str,
-    session_id:String,cancel:Arc<AtomicBool>,notify:Notify,pagination_path:Option<&Path>,
-)->Result<BookmarkSession,String>{
+    let LocalJob {
+        id: session_id,
+        cancel,
+        notify,
+    } = job;
     if doc.password_protected_session {
         return Err("目录生成暂不支持加密 PDF，请先保存不加密副本。".into());
     }
@@ -246,42 +312,93 @@ pub fn generate_with_pagination(
 }
 
 pub struct PreparedBinarization {
-    pub id:String,
-    pub document_id:String,
-    pub source_sha256:String,
-    pub settings:ProcessingSettings,
-    pub selection:mpdf_core::page_selection::PageSelection,
-    pub path:PathBuf,
-    pub output_sha256:String,
-    pub report:mpdf_core::pipeline::ProcessingReport,
-    _work:TempDir,
+    pub id: String,
+    pub document_id: String,
+    pub source_sha256: String,
+    pub settings: ProcessingSettings,
+    pub selection: mpdf_core::page_selection::PageSelection,
+    pub path: PathBuf,
+    pub output_sha256: String,
+    pub report: mpdf_core::pipeline::ProcessingReport,
+    _work: TempDir,
 }
-fn selected_pages(pages:Option<&[u32]>,count:u32)->Result<mpdf_core::page_selection::PageSelection,String>{
+fn selected_pages(
+    pages: Option<&[u32]>,
+    count: u32,
+) -> Result<mpdf_core::page_selection::PageSelection, String> {
     match pages {
-        None=>Ok(mpdf_core::page_selection::PageSelection::all(count)),
-        Some(pages)=>{
-            if pages.is_empty()||pages.len()>count as usize {return Err("请选择至少一个有效的黑白处理页。".into());}
-            mpdf_core::page_selection::PageSelection::parse(&pages.iter().map(u32::to_string).collect::<Vec<_>>().join(","),count).map_err(|e|e.to_string())
+        None => Ok(mpdf_core::page_selection::PageSelection::all(count)),
+        Some(pages) => {
+            if pages.is_empty() || pages.len() > count as usize {
+                return Err("请选择至少一个有效的黑白处理页。".into());
+            }
+            mpdf_core::page_selection::PageSelection::parse(
+                &pages
+                    .iter()
+                    .map(u32::to_string)
+                    .collect::<Vec<_>>()
+                    .join(","),
+                count,
+            )
+            .map_err(|e| e.to_string())
         }
     }
 }
 pub fn prepare_binarization(
-    worker:&WorkerHandle,doc:&OpenDocumentState,cache:&Path,settings:ProcessingSettings,
-    pages:Option<&[u32]>,id:String,cancel:Arc<AtomicBool>,notify:Notify,
-)->Result<PreparedBinarization,String>{
+    worker: &WorkerHandle,
+    doc: &OpenDocumentState,
+    cache: &Path,
+    settings: ProcessingSettings,
+    pages: Option<&[u32]>,
+    job: LocalJob,
+) -> Result<PreparedBinarization, String> {
+    let LocalJob { id, cancel, notify } = job;
     check_cancel(&cancel)?;
-    if file_sha(&doc.input_path)?!=doc.source_sha256{return Err("原 PDF 已改变，请重新打开。".into());}
-    let selection=selected_pages(pages,doc.page_count)?;
-    fs::create_dir_all(cache).map_err(|e|e.to_string())?;
-    let work=tempfile::Builder::new().prefix("binarized-").tempdir_in(cache).map_err(|e|e.to_string())?;
-    let path=work.path().join("prepared.pdf");
-    let (tx,rx)=std::sync::mpsc::channel();
-    worker.send(WorkerCommand::ProcessSelected{output:path.clone(),settings,selection:selection.clone(),progress:Box::new(LocalProgress{cancel:cancel.clone(),notify,page_count:doc.page_count}),reply:tx});
-    let report=rx.recv().map_err(|_|"处理线程已停止。")?.map_err(|e|if matches!(e,mpdf_core::error::CoreError::Cancelled){"operation_cancelled".into()}else{e.to_string()})?;
+    if file_sha(&doc.input_path)? != doc.source_sha256 {
+        return Err("原 PDF 已改变，请重新打开。".into());
+    }
+    let selection = selected_pages(pages, doc.page_count)?;
+    fs::create_dir_all(cache).map_err(|e| e.to_string())?;
+    let work = tempfile::Builder::new()
+        .prefix("binarized-")
+        .tempdir_in(cache)
+        .map_err(|e| e.to_string())?;
+    let path = work.path().join("prepared.pdf");
+    let (tx, rx) = std::sync::mpsc::channel();
+    worker.send(WorkerCommand::ProcessSelected {
+        output: path.clone(),
+        settings,
+        selection: selection.clone(),
+        progress: Box::new(LocalProgress {
+            cancel: cancel.clone(),
+            notify,
+            page_count: doc.page_count,
+        }),
+        reply: tx,
+    });
+    let report = rx.recv().map_err(|_| "处理线程已停止。")?.map_err(|e| {
+        if matches!(e, mpdf_core::error::CoreError::Cancelled) {
+            "operation_cancelled".into()
+        } else {
+            e.to_string()
+        }
+    })?;
     check_cancel(&cancel)?;
-    if file_sha(&doc.input_path)?!=doc.source_sha256{return Err("处理期间原 PDF 已改变。".into());}
-    let output_sha256=file_sha(&path)?;
-    Ok(PreparedBinarization{id,document_id:doc.document_id.clone(),source_sha256:doc.source_sha256.clone(),settings,selection,path,output_sha256,report,_work:work})
+    if file_sha(&doc.input_path)? != doc.source_sha256 {
+        return Err("处理期间原 PDF 已改变。".into());
+    }
+    let output_sha256 = file_sha(&path)?;
+    Ok(PreparedBinarization {
+        id,
+        document_id: doc.document_id.clone(),
+        source_sha256: doc.source_sha256.clone(),
+        settings,
+        selection,
+        path,
+        output_sha256,
+        report,
+        _work: work,
+    })
 }
 
 pub struct SavePlan {
@@ -321,7 +438,9 @@ pub fn save_pdf(
     }
     let parent = plan.output.parent().ok_or("无效的保存位置。")?;
     let source_hash = file_sha(&doc.input_path)?;
-    if source_hash!=doc.source_sha256 {return Err("原 PDF 已改变，请重新打开。".into());}
+    if source_hash != doc.source_sha256 {
+        return Err("原 PDF 已改变，请重新打开。".into());
+    }
     if let Some(session) = &plan.session {
         if session.document_id != doc.document_id
             || session.table["source_sha256"].as_str() != Some(&source_hash)
@@ -340,47 +459,53 @@ pub fn save_pdf(
         .map_err(|e| e.to_string())?;
     let mut result = json!({"outputPath":plan.output,"pages":doc.page_count,"bookmarksWritten":0,"binarized":plan.settings.is_some()});
     let processed = if let Some(settings) = plan.settings {
-        let selection = selected_pages(plan.binarize_pages.as_deref(),doc.page_count)?;
+        let selection = selected_pages(plan.binarize_pages.as_deref(), doc.page_count)?;
         result["pagesProcessed"] = json!(selection.len());
-        result["pagesPreserved"] = json!(doc.page_count as usize-selection.len());
-        if let Some(prepared)=&plan.prepared {
-            if prepared.document_id!=doc.document_id || prepared.source_sha256!=source_hash || prepared.settings!=settings || prepared.selection!=selection {
+        result["pagesPreserved"] = json!(doc.page_count as usize - selection.len());
+        if let Some(prepared) = &plan.prepared {
+            if prepared.document_id != doc.document_id
+                || prepared.source_sha256 != source_hash
+                || prepared.settings != settings
+                || prepared.selection != selection
+            {
                 return Err("范围、参数或原 PDF 已改变，请重新点击开始。".into());
             }
             check_cancel(&cancel)?;
             // Cache and chosen destination can live on different volumes.
             // Copy validated bytes into destination-local staging; never re-run
             // rasterization/encoding and never hard-link across filesystems.
-            let staged=work.path().join("binarized.pdf");
-            fs::copy(&prepared.path,&staged).map_err(|e|e.to_string())?;
-            if file_sha(&staged)?!=prepared.output_sha256{return Err("暂存的黑白结果已改变，请重新开始。".into());}
-            result["binarizationElapsedUs"]=json!(prepared.report.elapsed_us);
-            result["binarizationReused"]=json!(true);
+            let staged = work.path().join("binarized.pdf");
+            fs::copy(&prepared.path, &staged).map_err(|e| e.to_string())?;
+            if file_sha(&staged)? != prepared.output_sha256 {
+                return Err("暂存的黑白结果已改变，请重新开始。".into());
+            }
+            result["binarizationElapsedUs"] = json!(prepared.report.elapsed_us);
+            result["binarizationReused"] = json!(true);
             Some(staged)
         } else {
-        notify("binarizing", None, Some(doc.page_count));
-        let output = work.path().join("binarized.pdf");
-        let (tx, rx) = std::sync::mpsc::channel();
-        worker.send(WorkerCommand::ProcessSelected {
-            output: output.clone(),
-            settings,
-            selection,
-            progress: Box::new(LocalProgress {
-                cancel: cancel.clone(),
-                notify: notify.clone(),
-                page_count: doc.page_count,
-            }),
-            reply: tx,
-        });
-        let report = rx.recv().map_err(|_| "处理线程已停止。")?.map_err(|e| {
-            if matches!(e, mpdf_core::error::CoreError::Cancelled) {
-                "operation_cancelled".into()
-            } else {
-                e.to_string()
-            }
-        })?;
-        result["binarizationElapsedUs"] = json!(report.elapsed_us);
-        Some(output)
+            notify("binarizing", None, Some(doc.page_count));
+            let output = work.path().join("binarized.pdf");
+            let (tx, rx) = std::sync::mpsc::channel();
+            worker.send(WorkerCommand::ProcessSelected {
+                output: output.clone(),
+                settings,
+                selection,
+                progress: Box::new(LocalProgress {
+                    cancel: cancel.clone(),
+                    notify: notify.clone(),
+                    page_count: doc.page_count,
+                }),
+                reply: tx,
+            });
+            let report = rx.recv().map_err(|_| "处理线程已停止。")?.map_err(|e| {
+                if matches!(e, mpdf_core::error::CoreError::Cancelled) {
+                    "operation_cancelled".into()
+                } else {
+                    e.to_string()
+                }
+            })?;
+            result["binarizationElapsedUs"] = json!(report.elapsed_us);
+            Some(output)
         }
     } else {
         None
@@ -568,7 +693,6 @@ mod tests {
             let doc = OpenDocumentState {
                 source_sha256: opened.source_sha256,
                 document_id: format!("test-{name}"),
-                file_name: source.file_name().unwrap().to_string_lossy().into(),
                 input_path: source,
                 page_count: opened.info.page_count,
                 password_protected_session: false,
@@ -577,15 +701,18 @@ mod tests {
             let cancel = Arc::new(AtomicBool::new(false));
             if phase == "generate" {
                 let pages: Vec<u32> = serde_json::from_value(case["pages"].clone()).unwrap();
-                let session = generate(
+                let session = generate_with_pagination(
                     &rt,
                     &worker,
                     &doc,
                     &pages,
                     case["mode"].as_str().unwrap(),
-                    format!("session-{name}"),
-                    cancel,
-                    notify,
+                    LocalJob {
+                        id: format!("session-{name}"),
+                        cancel,
+                        notify,
+                    },
+                    None,
                 )
                 .unwrap();
                 write_new(&root.join(format!("{name}-generated.json")),&json!({"documentId":doc.document_id,"sessionId":session.id,"table":session.table,"intake":session.intake})).unwrap();

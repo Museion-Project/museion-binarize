@@ -496,14 +496,35 @@ def _ocr_runtime_components(runtime_manifest: dict[str, Any], target: str) -> li
     return components
 
 
+def _local_runtime_components(manifest: dict[str, Any], target: str) -> list[dict[str, Any]]:
+    if manifest.get("schema") != "mpdf-local-runtime-components/1" or manifest.get("target") != target:
+        raise ValueError("local runtime manifest target/schema mismatch")
+    result = []
+    for item in manifest.get("components", []):
+        if not re.fullmatch(r"[0-9a-f]{64}", item.get("sha256", "")):
+            raise ValueError("local runtime component checksum missing")
+        result.append({"SPDXID": "SPDXRef-LocalRuntime-" + _checksum(item["name"])[:16],
+                       "name": item["name"], "versionInfo": item["version"],
+                       "downloadLocation": item["url"], "licenseDeclared": item["license"],
+                       "licenseConcluded": item["license"], "filesAnalyzed": False,
+                       "checksums": [{"algorithm": "SHA256", "checksumValue": item["sha256"]}],
+                       "comment": item.get("comment", "")})
+    if len(result) < 6 or len({item["SPDXID"] for item in result}) != len(result):
+        raise ValueError("local runtime component set is incomplete or duplicated")
+    return result
+
+
 def build_sbom(*, project_version: str, target: str, cargo_metadata: dict[str, Any], pnpm_lock: str | None,
                pdfium_manifest: dict[str, Any], node_modules: Path | None = None,
                node_graph: list[dict[str, Any]] | None = None, created: str | None = None,
-               ocr_runtime_manifest: dict[str, Any] | Path | None = None) -> dict[str, Any]:
+               ocr_runtime_manifest: dict[str, Any] | Path | None = None,
+               local_runtime_manifest: dict[str, Any] | None = None) -> dict[str, Any]:
     node_components, node_relationships = _node_components(pnpm_lock, node_modules, node_graph)
     rust_components = _rust_components(cargo_metadata)
     components = rust_components + node_components
     components.append(_pdfium_component(pdfium_manifest, target))
+    local_components = _local_runtime_components(local_runtime_manifest, target) if local_runtime_manifest else []
+    components.extend(local_components)
     if ocr_runtime_manifest is not None:
         if isinstance(ocr_runtime_manifest, Path):
             try:
@@ -528,6 +549,7 @@ def build_sbom(*, project_version: str, target: str, cargo_metadata: dict[str, A
         {"spdxElementId": "SPDXRef-DOCUMENT", "relationshipType": "DESCRIBES", "relatedSpdxElement": "SPDXRef-MPDF-Processor"},
         *_rust_relationships(cargo_metadata), *node_relationships,
     ]
+    relationships.extend({"spdxElementId": "SPDXRef-MPDF-Processor", "relationshipType": "DEPENDS_ON", "relatedSpdxElement": item["SPDXID"]} for item in local_components)
     created = created or stable_created()
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", created):
         raise ValueError("created must be an RFC3339 UTC second, e.g. 2026-01-01T00:00:00Z")
@@ -597,6 +619,7 @@ def main() -> int:
     parser.add_argument("--created", help="reproducible RFC3339 UTC creation time")
     parser.add_argument("--ocr-runtime-manifest", type=Path,
                         help="verified staged OCR runtime-manifest.json to include")
+    parser.add_argument("--local-runtime-manifest", type=Path, help="hash-pinned local bookmark runtime components")
     args = parser.parse_args()
     with (REPO_ROOT / "distribution/pdfium/manifest.toml").open("rb") as f:
         pdfium = tomllib.load(f)
@@ -607,7 +630,8 @@ def main() -> int:
                       # pnpm's actual package metadata lives in the workspace
                       # store; reachability remains restricted by node_graph.
                       node_modules=REPO_ROOT / "node_modules", node_graph=node_graph,
-                      created=args.created, ocr_runtime_manifest=args.ocr_runtime_manifest)
+                      created=args.created, ocr_runtime_manifest=args.ocr_runtime_manifest,
+                      local_runtime_manifest=json.loads(args.local_runtime_manifest.read_text()) if args.local_runtime_manifest else None)
     validate_installed_node_graph(node_graph, sbom["packages"], sbom["relationships"])
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n")

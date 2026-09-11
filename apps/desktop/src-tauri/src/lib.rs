@@ -10,11 +10,14 @@
 mod ui_test;
 
 mod commands;
+#[path = "local_dto.rs"]
 mod dto;
 mod errors;
 mod local_tools;
 mod settings;
+#[path = "local_state.rs"]
 mod state;
+#[path = "local_worker.rs"]
 mod worker;
 
 use mpdf_core::pdfium_backend::pdfium_library_file_name;
@@ -79,6 +82,8 @@ pub fn run() {
             app.manage(commands::document_analysis::PaginationState::default());
             Ok(())
         })
+        // macOS local-tool release: body OCR, cloud/API and legacy workbench
+        // commands are not registered, rather than merely hidden by the UI.
         .invoke_handler(tauri::generate_handler![
             project_info,
             commands::document_analysis::document_analysis_status,
@@ -91,35 +96,7 @@ pub fn run() {
             commands::document::open_document,
             commands::document::close_document,
             commands::document::pdfium_status,
-            commands::api::api_route_options,
-            commands::api::api_credential_presence,
-            commands::api::api_prepare_plan,
-            commands::api::api_run_task,
-            commands::api::api_cancel_current,
             commands::preview::render_preview,
-            commands::estimate::start_estimate,
-            commands::processing::start_processing,
-            commands::processing::cancel_processing,
-            commands::local_pipeline::local_ocr_readiness,
-            commands::local_pipeline::start_local_pipeline,
-            commands::local_pipeline::cancel_local_pipeline,
-            commands::local_pipeline::cancel_local_pipeline_job,
-            commands::ocr_providers::ocr_provider_status,
-            commands::ocr_providers::store_model_provider_credential,
-            commands::ocr_providers::model_provider_credential_status,
-            commands::ocr_providers::delete_model_provider_credential,
-            commands::ocr_providers::test_ocr_provider,
-            commands::ocr::local_ocr_status,
-            commands::ocr::local_ocr_cancel,
-            commands::derived::load_review_queue,
-            commands::derived::add_review_revision,
-            commands::auto_bookmarks::start_auto_bookmark,
-            commands::auto_bookmarks::cancel_auto_bookmark,
-            commands::auto_bookmarks::load_bookmark_tree,
-            commands::bookmarks::confirm_bookmark,
-            commands::bookmarks::reject_bookmark,
-            commands::bookmarks::edit_bookmark,
-            commands::bookmarks::reparent_bookmark,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,0 +1,54 @@
+{
+  "schema": "mpdf-local-runtime-components/1",
+  "target": "aarch64-apple-darwin",
+  "components": [
+    {
+      "name": "CPython standalone",
+      "version": "3.11.16",
+      "license": "Python-2.0 AND CNRI-Python",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.11.16%2B20260901-aarch64-apple-darwin-install_only_stripped.tar.gz",
+      "sha256": "768f05cf200273bbdda9a5955a5a6892a4b22f2a0b1e4b0a9160f5c7fce86816",
+      "comment": "Astral build 20260901; static native dependency licenses are included with the app and recorded in python-build-provenance.json."
+    },
+    {
+      "name": "pypdf",
+      "version": "6.18.1",
+      "license": "BSD-3-Clause",
+      "url": "https://pypi.org/project/pypdf/6.18.1/",
+      "sha256": "ee93a2665670ecf57ee81d197a4ca548f3dc15f9cefc56e59b8140866aaa3de5",
+      "comment": "Checksum identifies the pinned source wheel; only the runtime/bootloader portion is included."
+    },
+    {
+      "name": "pypdfium2",
+      "version": "5.13.0",
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "url": "https://pypi.org/project/pypdfium2/5.13.0/",
+      "sha256": "da5c7b74eebf40b5c1fbe1de01aa1edc8827a79fb1efd999616bc20dcaf77ba4",
+      "comment": "Checksum identifies the pinned source wheel; only the runtime/bootloader portion is included."
+    },
+    {
+      "name": "Pillow",
+      "version": "11.3.0",
+      "license": "MIT-CMU",
+      "url": "https://pypi.org/project/pillow/11.3.0/",
+      "sha256": "9c412fddd1b77a75aa904615ebaa6001f169b26fd467b4be93aded278266b288",
+      "comment": "Checksum identifies the pinned source wheel; only the runtime/bootloader portion is included."
+    },
+    {
+      "name": "PyInstaller bootloader",
+      "version": "6.16.0",
+      "license": "GPL-2.0-or-later WITH Bootloader-exception",
+      "url": "https://pypi.org/project/pyinstaller/6.16.0/",
+      "sha256": "7fd1c785219a87ca747c21fa92f561b0d2926a7edc06d0a0fe37f3736e00bd7a",
+      "comment": "Checksum identifies the pinned source wheel; only the runtime/bootloader portion is included."
+    },
+    {
+      "name": "PDFium local bookmark runtime",
+      "version": "153.0.7999.0",
+      "license": "BSD-3-Clause AND Apache-2.0",
+      "url": "https://pypi.org/project/pypdfium2/5.13.0/",
+      "sha256": "33c98063af28c0b7cbf8227f4422bf5c15942df2455cf7f0a5dce3dc601d52b0",
+      "comment": "Matched pypdfium2 library before packaging/signing. Complete native dependency notices are bundled."
+    }
+  ]
+}

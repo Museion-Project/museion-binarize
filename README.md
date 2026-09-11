@@ -2,6 +2,13 @@ English | [简体中文](README.zh-CN.md)
 
 # M PDF Processor
 
+> **Current macOS candidate:** the `macos-local` profile prepares version
+> `0.1.0-rc.3` for Apple Silicon. It provides local black-and-white processing,
+> editable contents bookmarks, and Chinese/English UI. Body OCR and cloud
+> commands are disabled. Use the [macOS release procedure](docs/macos-local-release.md)
+> and its artifact-bound readiness report; the older CLI, cross-platform and
+> OCR research capabilities described below are separate from this candidate.
+
 **M PDF Processor** is an open-source, cross-platform application for
 converting scanned scholarly books into clean and compact bilevel PDFs.
 

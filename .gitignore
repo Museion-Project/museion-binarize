@@ -135,3 +135,7 @@ secrets.toml
 
 # Local development Surya dependency overlay (never distributed)
 /.runtime/
+
+# Isolated macOS release runtime build products
+.release-runtime/
+.release-runtime-build/

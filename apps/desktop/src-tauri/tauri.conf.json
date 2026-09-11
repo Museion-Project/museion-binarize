@@ -26,7 +26,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "app"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -34,12 +36,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": {
-      "../../../scripts/bookmarks/local/*.py": "bookmarks/",
-      "../../../scripts/bookmarks/local/vision_fast.swift": "bookmarks/vision_fast.swift",
-      "../../../scripts/bookmarks/hierarchy_foundation_models/hierarchy.py": "hierarchy_foundation_models/hierarchy.py",
-      "../../../scripts/bookmarks/hierarchy_models/manager.py": "hierarchy_models/manager.py",
-      "../../../scripts/bookmarks/hierarchy_models/desktop_bridge.py": "hierarchy_models/desktop_bridge.py"
+    "macOS": {
+      "minimumSystemVersion": "13.0"
     }
   }
 }

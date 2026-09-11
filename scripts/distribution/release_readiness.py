@@ -23,6 +23,7 @@ import generate_sbom  # noqa: E402
 import release_manifest  # noqa: E402
 import verify_ocr_runtime  # noqa: E402
 import ocr_runtime_smoke  # noqa: E402
+import macos_local_readiness  # noqa: E402
 
 
 PDFIUM_SMOKE_GATES = {
@@ -60,6 +61,7 @@ BASE_REQUIRED = STATIC_REQUIRED | {
     "upgrade_install", "privacy_accessibility_performance",
 }
 PROFILE_REQUIRED = {
+    "macos-local": macos_local_readiness.REQUIRED | {"version_wix", "identity_freeze"},
     "source": STATIC_REQUIRED,
     "base": BASE_REQUIRED,
     "optional-local-ocr-plugin": BASE_REQUIRED | {
@@ -275,13 +277,17 @@ def main() -> int:
                         help="explicit rc.3 arm64 install/runtime evidence JSON")
     parser.add_argument("--ocr-runtime-evidence", type=Path,
                         help="explicit installed four-page OCR smoke evidence JSON")
+    parser.add_argument("--macos-local-evidence", type=Path, help="artifact-bound macOS-only release evidence")
     args = parser.parse_args()
     result = run(pdfium_evidence=args.pdfium_evidence,
                  macos_install_evidence=args.macos_install_evidence,
                  ocr_runtime_evidence=args.ocr_runtime_evidence)
+    if args.profile == "macos-local":
+        local = macos_local_readiness.evaluate(args.macos_local_evidence)
+        result = {key: result[key] for key in ("version_wix", "identity_freeze")} | local
     missing_required = required_failures(result, args.profile)
     if args.json:
-        print(json.dumps({"release": "0.1.0-rc.3", "status": "pre-release-source",
+        print(json.dumps({"release": "0.1.0-rc.3", "status": ("ready" if not missing_required else "not_ready") if args.profile == "macos-local" else "pre-release-source",
                           "profile": args.profile, "gates": result,
                           "required_failures": missing_required,
                           "cloud_blockers": cloud_blockers(result)},

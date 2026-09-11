@@ -16,7 +16,7 @@ Contract: `intent.md §8.34 TG1–TG4` amends §8.33: editable book-level review
 
 ## Run
 
-Development prerequisites already present on this machine: Rust offline dependencies, Python with PyMuPDF/Pillow, and macOS Swift/Vision. This is not a self-contained distribution bundle.
+Development uses Python with the pinned pypdf, pypdfium2 and Pillow dependencies. The macOS release carries a frozen local runtime and precompiled Apple Vision helpers; it does not discover Python installations or invoke a compiler at runtime. See `distribution/local-runtime/` and `scripts/distribution/build_local_runtime.py`.
 
 ```sh
 CARGO_INCREMENTAL=0 cargo build -p mpdf-core --offline --bin mpdf-bookmarks
@@ -103,3 +103,5 @@ This is the development CLI evaluated under
 selection feature. Discovery can miss unrecognized headings or admit unrelated
 navigation-like pages. Results require review, and a completed process is not an
 exact-document pass. No body-heading style model or body-derived TOC is used.
+
+The PDFium native extraction path has schema `mpdf-native-glyph-raw/2`; historical MuPDF measurements are not rewritten or relabelled. Bookmark output uses pypdf object serialization with a classic incremental xref table and validates original byte-prefix/object/stream preservation plus complete PDFium glyphs, pixels and actual destinations.

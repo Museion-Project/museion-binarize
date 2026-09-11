@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Local bookmark MVP. PyMuPDF is an installed development dependency.
+"""Local bookmark workflow using PDFium and pypdf.
 No OCR engine/model installation, network, or source PDF mutation.
 All page numbers in JSON are zero-based PDF indices; printed labels are separate.
 """
 import argparse, copy, hashlib, json, math, os, re, statistics, subprocess, tempfile, time
 from pathlib import Path
-import fitz
+import pdf_backend as pdf
 
 SCHEMA='mpdf-bookmark-evidence/1'
 def sha(path):
@@ -36,19 +36,10 @@ def number(s):
     return ('roman',n) if 0<n<=5000 and roman(n)==s.lower() else None
 
 def native(source, indices, output):
-    """Save every native glyph, then reconstruct visual lines from real positions.
-    Rotated pages use PyMuPDF's rotation matrix into visible page coordinates.
-    """
-    start=time.perf_counter();digest=sha(source);doc=fitz.open(source);raw=[]
+    """Save PDFium native glyph measurements in visible page coordinates."""
+    start=time.perf_counter();digest=sha(source);doc=pdf.Document(source);raw=[]
     for index in indices:
-        page=doc[index];glyphs=[]
-        for block in page.get_text('rawdict')['blocks']:
-            for line in block.get('lines',[]):
-                for span in line['spans']:
-                    for char in span['chars']:
-                        r=fitz.Rect(char['bbox'])*page.rotation_matrix
-                        if r.is_empty or not char['c'].strip():continue
-                        glyphs.append({'id':f'g{len(glyphs)}','text':char['c'],'bbox':[r.x0,r.y0,r.width,r.height],'size':span['size'],'origin':char['origin']})
+        page=doc[index];glyphs=page.glyphs()
         # Cluster baseline bands using measured center/height, then split large gaps.
         bands=[]
         for g in sorted(glyphs,key=lambda g:(g['bbox'][1]+g['bbox'][3]/2,g['bbox'][0])):
@@ -71,8 +62,8 @@ def native(source, indices, output):
                 if current:words.append(current)
                 tokens=[{'text':''.join(g['text'] for g in ws),'bbox':union([g['bbox'] for g in ws])} for ws in words]
                 observations.append({'id':f'obs-{len(observations)}','text':' '.join(t['text'] for t in tokens),'bbox':union([g['bbox'] for g in part]),'tokens':tokens,'glyph_ids':[g['id'] for g in part],'size':statistics.median(g['size'] for g in part),'confidence':None})
-        raw.append({'schema':'mpdf-native-glyph-raw/1','source':str(Path(source).resolve()),'source_sha256':digest,'page_index':index,'page_count':len(doc),'width':page.rect.width,'height':page.rect.height,'source_kind':'native_text','bbox_convention':'visible_top_left_points_xywh','glyphs':glyphs,'observations':observations,'state':'inspected','rotation':page.rotation,'cropbox':list(page.cropbox)})
-    save(output,raw);return time.perf_counter()-start
+        raw.append({'schema':'mpdf-native-glyph-raw/2','extractor':pdf.RENDERER,'source':str(Path(source).resolve()),'source_sha256':digest,'page_index':index,'page_count':len(doc),'width':page.rect.width,'height':page.rect.height,'source_kind':'native_text','bbox_convention':'visible_top_left_points_xywh','glyphs':glyphs,'observations':observations,'state':'inspected','rotation':page.rotation,'cropbox':list(page.cropbox)})
+    doc.close();save(output,raw);return time.perf_counter()-start
 
 def title_geometry(observation):
     """Use retained token boxes, never estimate glyph widths from string length."""
@@ -246,7 +237,7 @@ def paginate(table, anchors):
     return t
 
 def native_anchors(source):
-    doc=fitz.open(source);anchors=[]
+    doc=pdf.Document(source);anchors=[]
     for p in doc:
         # Explicit PDF PageLabels are evidence; absent labels return empty.
         label=p.get_label();n=number(label)
@@ -258,10 +249,10 @@ def native_header_anchors(source, excluded_pages=()):
     Repeated top-margin number lanes or literal 'Page N'; never OCR a body page.
     These candidates require inspection and are NOT equivalent to PDF PageLabels.
     """
-    doc=fitz.open(source);candidates=[]
+    doc=pdf.Document(source);candidates=[]
     for p in doc:
         if p.number in excluded_pages:continue
-        words=p.get_text('words')
+        words=p.words()
         for w in words:
             n=number(w[4])
             if not n:continue
@@ -321,77 +312,100 @@ def edit(t,patch):
     if len(ordered)!=len(allentries):raise ValueError('cyclic/dangling parent')
     out['entries']=ordered;out.setdefault('edit_history',[]).append(patch);validate_table(out);return out
 
-def same_original_object(before,after,xref):
-    if before.xref_object(xref)==after.xref_object(xref):return True
-    # PDF dictionaries are unordered. MuPDF may move /Type to the front
-    # during serialization; compare every original key/value, never ignore
-    # a changed value, resource, array, or stream.
-    try:
-        keys=before.xref_get_keys(xref)
-        return bool(keys) and set(keys)==set(after.xref_get_keys(xref)) and all(before.xref_get_key(xref,k)==after.xref_get_key(xref,k) for k in keys)
-    except RuntimeError:return False
+def original_objects(reader):
+    from pypdf.generic import IndirectObject
+    refs={(generation,number) for generation,items in reader.xref.items() for number in items if number and generation!=65535}
+    refs.update((0,number) for number in reader.xref_objStm)
+    return [(generation,number,reader.get_object(IndirectObject(number,generation,reader))) for generation,number in sorted(refs)]
+
+
+def object_fingerprint(obj, omit=()):
+    from pypdf.generic import IndirectObject, DictionaryObject, ArrayObject, StreamObject
+    if isinstance(obj,IndirectObject):return ('ref',obj.idnum,obj.generation)
+    if isinstance(obj,DictionaryObject):
+        return ('dict',tuple(sorted((str(k),object_fingerprint(v)) for k,v in obj.items() if k not in omit)),getattr(obj,'_data',None) if isinstance(obj,StreamObject) else None)
+    if isinstance(obj,ArrayObject):return ('array',tuple(object_fingerprint(v) for v in obj))
+    import io
+    out=io.BytesIO();obj.write_to_stream(out);return out.getvalue()
+
+
+def contains_signature(obj):
+    from pypdf.generic import DictionaryObject, ArrayObject
+    if isinstance(obj,DictionaryObject):
+        return '/ByteRange' in obj or any(contains_signature(value) for value in obj.values())
+    if isinstance(obj,ArrayObject):return any(contains_signature(value) for value in obj)
+    return False  # Indirect objects are checked separately by original_objects().
 
 
 def export(t,output,cancelled=None):
-    """Only add a new outline tree and change Catalog/Outlines. Preserve old objects.
-    Verify all original xrefs (except the whitelisted catalog key), all page
-    text/glyphs, page geometry, complete rendering, and reopened destinations.
-    """
+    """Append only outlines; verify original objects and independent PDFium output."""
+    from pypdf import PdfReader
+    from outline_writer import OutlineWriter
+    from pypdf.generic import Fit, IndirectObject
     if cancelled:cancelled()
     began=time.perf_counter();validate_table(t,True);source=t['source']
     if sha(source)!=t['source_sha256']:raise ValueError('source PDF changed')
     output=Path(output).resolve()
     if output.exists() or output==Path(source).resolve():raise ValueError('output exists/source collision')
-    src=fitz.open(source)
-    if len(src)!=t['page_count']:raise ValueError('page count changed')
-    if src.is_encrypted:raise ValueError('encrypted source unsupported')
-    if '/ByteRange' in ''.join(src.xref_object(i) for i in range(1,src.xref_length())):raise ValueError('signed PDF requires an explicit signature policy')
-    doc=fitz.open(source);catalog=doc.pdf_catalog();original_count=doc.xref_length()
-    root=doc.get_new_xref();refs={e['id']:doc.get_new_xref() for e in t['entries']}
-    def children(parent):return [e for e in t['entries'] if e['parent']==parent]
-    def descend(parent):return sum(1+descend(e['id']) for e in children(parent))
-    def ref(i):return f'{i} 0 R'
-    roots=children(None)
-    doc.update_object(root,f'<< /Type /Outlines /First {ref(refs[roots[0]["id"]])} /Last {ref(refs[roots[-1]["id"]])} /Count {len(t["entries"])} >>')
+    reader=PdfReader(source)
+    if reader.is_encrypted:raise ValueError('目录处理暂不支持加密 PDF，请先保存不加密副本。')
+    objects=original_objects(reader)
+    if any(contains_signature(obj) for _,_,obj in objects):raise ValueError('signed PDF requires an explicit signature policy')
+    original_page_keys={(g,n):set(obj) for g,n,obj in objects if isinstance(obj,dict) and obj.get('/Type')=='/Page'}
+    catalog=reader.trailer.raw_get('/Root')
+    # Snapshot before PdfReader.pages resolves inherited page attributes in memory.
+    objects=[(g,n,object_fingerprint(obj,('/Outlines',) if (n,g)==(catalog.idnum,catalog.generation) else ())) for g,n,obj in objects]
+    if len(reader.pages)!=t['page_count']:raise ValueError('page count changed')
+    writer=OutlineWriter(source,incremental=True)
+    if '/Outlines' in writer.root_object:del writer.root_object['/Outlines']
+    refs={}
     for e in t['entries']:
-        siblings=children(e['parent']);pos=siblings.index(e);kids=children(e['id'])
-        target_page=doc[e['target_pdf_page']]
-        fields=f'/Title <feff{e["title"].encode("utf-16-be").hex()}> /Parent {ref(refs[e["parent"]] if e["parent"] else root)} /Dest [{ref(doc.page_xref(e["target_pdf_page"]))} /XYZ 0 {target_page.mediabox.y1} 0]'
-        if pos:fields+=f' /Prev {ref(refs[siblings[pos-1]["id"]])}'
-        if pos+1<len(siblings):fields+=f' /Next {ref(refs[siblings[pos+1]["id"]])}'
-        if kids:fields+=f' /First {ref(refs[kids[0]["id"]])} /Last {ref(refs[kids[-1]["id"]])} /Count {descend(e["id"])}'
-        doc.update_object(refs[e['id']],f'<< {fields} >>')
-    doc.xref_set_key(catalog,'Outlines',ref(root))
+        refs[e['id']]=writer.add_outline_item(e['title'],e['target_pdf_page'],parent=refs[e['parent']] if e['parent'] else None,fit=Fit.xyz(left=0,top=float(reader.pages[e['target_pdf_page']].mediabox.top),zoom=0))
+    # pypdf materializes inherited page attributes when cloning. Restore absent
+    # local keys so the incremental revision never rewrites a source page.
+    for (generation,number),keys in original_page_keys.items():
+        page=writer.get_object(IndirectObject(number,generation,writer))
+        for key in ('/Resources','/MediaBox','/CropBox','/Rotate'):
+            if key not in keys and key in page:del page[key]
     fd,tmp=tempfile.mkstemp(prefix='.bookmark-',suffix='.pdf',dir=output.parent);os.close(fd)
     try:
-        doc.save(tmp,garbage=0,deflate=False,no_new_id=True);doc.close();reopened=fitz.open(tmp)
-        if len(reopened)!=len(src):raise ValueError('reopened page count differs')
-        # Catalog dictionaries compared by key; old Outlines object remains intact.
-        for i in range(1,original_count):
-            if i==catalog:
-                if set(src.xref_get_keys(i))-{'Outlines'}!=set(reopened.xref_get_keys(i))-{'Outlines'}:raise ValueError('catalog keys changed')
-                for key in src.xref_get_keys(i):
-                    if key!='Outlines' and src.xref_get_key(i,key)!=reopened.xref_get_key(i,key):raise ValueError('catalog modified beyond outlines')
-            elif not same_original_object(src,reopened,i):raise ValueError(f'original object changed: {i}')
-            if src.xref_is_stream(i) and src.xref_stream_raw(i)!=reopened.xref_stream_raw(i):raise ValueError(f'original stream changed: {i}')
-        expected=[[e['level']+1,e['title'],e['target_pdf_page']+1] for e in t['entries']]
-        if reopened.get_toc()!=expected:raise ValueError('reopened outline mismatch')
-        for e,actual in zip(t['entries'],reopened.get_toc(simple=False)):
-            if actual[3].get('page')!=e['target_pdf_page'] or actual[3].get('kind')!=fitz.LINK_GOTO:raise ValueError('destination not an actual page jump')
-        for a,b in zip(src,reopened):
+        writer.write(tmp);writer.close()
+        with open(source,'rb') as original,open(tmp,'rb') as changed:
+            while True:
+                block=original.read(1024*1024)
+                if not block:break
+                if changed.read(len(block))!=block:raise ValueError('original PDF bytes changed')
+        reopened=PdfReader(tmp)
+        for generation,number,obj in objects:
             if cancelled:cancelled()
-            if a.rect!=b.rect or a.cropbox!=b.cropbox or a.rotation!=b.rotation:raise ValueError('page geometry changed')
-            if a.get_text('rawdict')!=b.get_text('rawdict'):raise ValueError('native glyph/text changed')
-            # Full document, identical renderer, 72dpi RGBA; object identity also
-            # protects content/resources independently of this pixel comparison.
-            if a.get_pixmap(alpha=True).samples!=b.get_pixmap(alpha=True).samples:raise ValueError('render changed')
+            omit=('/Outlines',) if (number,generation)==(catalog.idnum,catalog.generation) else ()
+            other=reopened.get_object(IndirectObject(number,generation,reopened))
+            if obj!=object_fingerprint(other,omit):raise ValueError(f'original object changed: {number}')
+        actual=[]
+        def walk(items,level=0):
+            for item in items:
+                if isinstance(item,list):walk(item,level+1)
+                else:actual.append((level,item.title,reopened.get_destination_page_number(item)))
+        walk(reopened.outline)
+        expected=[(e['level'],e['title'],e['target_pdf_page']) for e in t['entries']]
+        if actual!=expected:raise ValueError('reopened outline mismatch')
+        with pdf.Document(source) as before,pdf.Document(tmp) as after:
+            if len(before)!=len(after):raise ValueError('reopened page count differs')
+            # PDFium independently resolves destinations from the written outlines.
+            independent=[(item.level,item.get_title(),item.get_dest().get_index() if item.get_dest() else None) for item in after.pdf.get_toc()]
+            if independent!=expected:raise ValueError('PDFium destination mismatch')
+            for a,b in zip(before,after):
+                if cancelled:cancelled()
+                if (a.rect,a.cropbox,a.rotation)!=(b.rect,b.cropbox,b.rotation):raise ValueError('page geometry changed')
+                if a.glyphs()!=b.glyphs():raise ValueError('native glyph/text changed')
+                if a.render(alpha=True).tobytes()!=b.render(alpha=True).tobytes():raise ValueError('render changed')
         reopened.close()
         if sha(source)!=t['source_sha256']:raise ValueError('source changed during export')
         if cancelled:cancelled()
-        os.link(tmp,output) # Atomic no-clobber installation, same filesystem.
-        return dict(schema='mpdf-bookmark-only-validation/1',source_sha256=t['source_sha256'],output_sha256=sha(output),pages_checked=len(src),original_objects_checked=original_count-1,render_dpi=72,native_glyphs_unchanged=True,streams_unchanged=True,outline_entries=len(expected),actual_destinations_checked=len(expected),seconds=time.perf_counter()-began)
+        os.link(tmp,output)
+        return dict(schema='mpdf-bookmark-only-validation/2',writer='pypdf-incremental',renderer=pdf.RENDERER,source_sha256=t['source_sha256'],output_sha256=sha(output),pages_checked=len(reader.pages),original_objects_checked=len(objects),original_bytes_preserved=True,render_dpi=72,native_glyphs_unchanged=True,streams_unchanged=True,outline_entries=len(expected),actual_destinations_checked=len(expected),seconds=time.perf_counter()-began)
     finally:
-        os.unlink(tmp);src.close()
+        os.unlink(tmp);reader.close()
 
 
 def main():

@@ -1,20 +1,18 @@
 import copy,json,tempfile,unittest
 from pathlib import Path
-import fitz
+from pdf_test_fixture import make_pdf
+from pypdf import PdfReader
 from bookmarks import *
 
 class Contracts(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name);self.source=self.root/'source.pdf'
-  d=fitz.open()
-  for i in range(3):
-   p=d.new_page();p.insert_text((72,72),f'Original page {i+1}');p.insert_text((72,120),'Native text and font resources remain')
-  d.set_toc([[1,'Old',2]]);d.save(self.source);d.close()
+  make_pdf(self.source,[f'Original page {i+1} Native text and font resources remain' for i in range(3)],old_outline=True)
   self.table=dict(schema='mpdf-bookmark-table/1',source=str(self.source),source_sha256=sha(self.source),page_count=3,entries=[dict(id='a',title='Root',parent=None,level=0,target_pdf_page=0,state='manually_confirmed',review_reasons=[]),dict(id='b',title='Child',parent='a',level=1,target_pdf_page=2,state='manually_confirmed',review_reasons=[])])
  def tearDown(self):self.tmp.cleanup()
  def test_writer_preserves_objects_pixels_text_and_real_destinations(self):
   receipt=export(self.table,self.root/'out.pdf');self.assertEqual(receipt['pages_checked'],3);self.assertEqual(receipt['actual_destinations_checked'],2)
-  self.assertEqual(fitz.open(self.source).get_toc(),[[1,'Old',2]])
+  self.assertEqual(PdfReader(self.source).outline[0].title,'Old')
  def test_writer_refuses_unresolved_collision_and_source_mutation(self):
   t=copy.deepcopy(self.table);t['entries'][0]['review_reasons']=['printed_missing']
   with self.assertRaises(ValueError):export(t,self.root/'x.pdf')

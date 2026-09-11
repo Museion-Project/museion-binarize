@@ -1,0 +1,10 @@
+{
+  "schema": "mpdf-python-runtime/1",
+  "version": "3.11.16",
+  "build": "20260901",
+  "target": "aarch64-apple-darwin",
+  "archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.11.16%2B20260901-aarch64-apple-darwin-install_only_stripped.tar.gz",
+  "archive_sha256": "768f05cf200273bbdda9a5955a5a6892a4b22f2a0b1e4b0a9160f5c7fce86816",
+  "metadata_archive_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.11.16%2B20260901-aarch64-apple-darwin-pgo%2Blto-full.tar.zst",
+  "metadata_archive_sha256": "19b8d2af1719e3fe8cd4edfa2e5030dab776233c05044f4348dbe3c0af7d1b2f"
+}

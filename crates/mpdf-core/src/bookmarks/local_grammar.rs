@@ -107,7 +107,7 @@ fn parse(text: &str) -> Label {
         Kind::Upper((first.as_bytes()[0] - b'A' + 1) as u32)
     } else if first.len() == 1
         && raw.ends_with(')')
-        && first.chars().all(|c| ('a'..='z').contains(&c))
+        && first.chars().all(|c| c.is_ascii_lowercase())
     {
         Kind::Lower((first.as_bytes()[0] - b'a' + 1) as u32)
     } else if first.chars().all(|c| "IVXLCDM".contains(c)) && !first.is_empty() {
@@ -176,7 +176,9 @@ pub(super) fn resolve(input: &[(String, f64, bool)]) -> Vec<Decision> {
                     && b[b.len() - 1] == a[a.len() - 1] + 2
                 {
                     let mut p = a;
-                    p.last_mut().map(|n| *n += 1);
+                    if let Some(n) = p.last_mut() {
+                        *n += 1;
+                    }
                     Some(p)
                 } else if b.len() == a.len() + 1 && b[..a.len()] == a && b[b.len() - 1] == 2 {
                     let mut p = a;
