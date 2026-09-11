@@ -36,7 +36,10 @@
     ],
     "resources": {
       "../../../scripts/bookmarks/local/*.py": "bookmarks/",
-      "../../../scripts/bookmarks/local/vision_fast.swift": "bookmarks/vision_fast.swift"
+      "../../../scripts/bookmarks/local/vision_fast.swift": "bookmarks/vision_fast.swift",
+      "../../../scripts/bookmarks/hierarchy_foundation_models/hierarchy.py": "hierarchy_foundation_models/hierarchy.py",
+      "../../../scripts/bookmarks/hierarchy_models/manager.py": "hierarchy_models/manager.py",
+      "../../../scripts/bookmarks/hierarchy_models/desktop_bridge.py": "hierarchy_models/desktop_bridge.py"
     }
   }
 }

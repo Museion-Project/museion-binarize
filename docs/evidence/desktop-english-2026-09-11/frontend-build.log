@@ -1,0 +1,13 @@
+
+> mpdf-desktop@0.1.0-rc.3 build
+> tsc && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 55 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.46 kB │ gzip:  0.30 kB
+dist/assets/index-DMNTxbZa.css   16.51 kB │ gzip:  4.30 kB
+dist/assets/index-DB57cIib.js   278.57 kB │ gzip: 87.66 kB
+✓ built in 553ms

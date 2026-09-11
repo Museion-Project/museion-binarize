@@ -1,0 +1,4 @@
+
+> mpdf-desktop@0.1.0-rc.3 lint
+> eslint . --ext ts,tsx --max-warnings 0
+

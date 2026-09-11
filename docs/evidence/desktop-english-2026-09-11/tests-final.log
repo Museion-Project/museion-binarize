@@ -1,0 +1,23 @@
+
+> mpdf-desktop@0.1.0-rc.3 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/theo/AI 工作流/museion-binarize/apps/desktop
+
+ ✓ src/lib/i18n.test.ts (2 tests) 8ms
+ ✓ src/app/reducer.test.ts (9 tests) 7ms
+ ✓ src/components/ApiRoutingPanel.test.tsx (2 tests) 113ms
+ ✓ src/components/OcrProviderPicker.test.tsx (3 tests) 99ms
+ ✓ src/components/LocalPipelinePanel.test.tsx (8 tests) 344ms
+ ✓ src/app/localTools.test.ts (4 tests) 5ms
+ ✓ src/lib/formatting.test.ts (6 tests) 3ms
+ ✓ src/components/ReviewWorkbench.test.tsx (14 tests) 609ms
+ ✓ src/App.test.tsx (17 tests) 2494ms
+   ✓ selective binarization > does not precompute black-and-white and reuses the original page cache  619ms
+
+ Test Files  9 passed (9)
+      Tests  65 passed (65)
+   Start at  16:10:12
+   Duration  4.10s (transform 665ms, setup 1.95s, collect 1.11s, tests 3.68s, environment 4.83s, prepare 954ms)
+

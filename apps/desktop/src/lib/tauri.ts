@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 // The single integration layer between the React app and Tauri. Every
 // `invoke()` call and every event name lives here — components never call
 // `invoke` or `listen` directly, so the IPC contract has exactly one place
@@ -336,7 +337,7 @@ export async function pickPdfToOpen(): Promise<string | null> {
   const selection = await openDialog({
     multiple: false,
     directory: false,
-    filters: [{ name: "PDF files", extensions: ["pdf"] }],
+    filters: [{ name: t("PDF 文件"), extensions: ["pdf"] }],
   });
   return typeof selection === "string" ? selection : null;
 }
@@ -346,7 +347,7 @@ export async function pickOutputDestination(defaultFileName: string): Promise<st
   if (import.meta.env.DEV && window.__MPDF_UI_TEST__) return window.__MPDF_UI_TEST__.save;
   const selection = await saveDialog({
     defaultPath: defaultFileName,
-    filters: [{ name: "PDF files", extensions: ["pdf"] }],
+    filters: [{ name: t("PDF 文件"), extensions: ["pdf"] }],
   });
   return selection ?? null;
 }
@@ -405,7 +406,7 @@ export function onProcessingFailed(
 export function localBookmarkReadiness():Promise<import("../app/localTools").LocalReadiness>{
   return call("local_bookmark_readiness",{});
 }
-export function generateLocalContents(request:{documentId:string;operationId:string;pages:number[];mode:"auto"|"image"}):Promise<import("../app/localTools").ContentsResult>{
+export function generateLocalContents(request:{documentId:string;operationId:string;pages:number[];mode:"auto"|"image";hierarchyProvider?:import("../app/localTools").HierarchyProvider}):Promise<import("../app/localTools").ContentsResult>{
   return call("generate_local_contents",{request});
 }
 export function saveLocalPdf(request:{documentId:string;operationId:string;outputPath:string;binarize:boolean;binarizePages?:number[];preparedId?:string;settings:ProcessingSettings;bookmarkSessionId:string|null;entries:{id:string;title:string;parent:string|null;target_pdf_page:number|null}[];projection:"navigation"|"source";reviewAccepted:boolean}):Promise<import("../app/localTools").LocalSaveResult>{
@@ -422,3 +423,5 @@ export function documentAnalysisStatus(documentId:string):Promise<import("../app
 export function prepareLocalBinarization(request:{documentId:string;operationId:string;settings:ProcessingSettings;binarizePages:number[]}):Promise<import("../app/localTools").PreparedBinarizationResult>{
   return call("prepare_local_binarization",{request});
 }
+
+export function localHierarchyModels():Promise<import("../app/localTools").HierarchyModelStatus[]>{ return call("local_hierarchy_models"); }

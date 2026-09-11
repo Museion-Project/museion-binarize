@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import { useEffect, useRef } from "react";
 
 interface PageThumbnailProps {
@@ -48,7 +49,7 @@ export function PageThumbnail({
       type="button"
       className={`page-thumbnail${selected ? " selected" : ""}`}
       aria-current={selected ? "true" : undefined}
-      aria-label={`PDF 第${pageNumber}页`}
+      aria-label={t("PDF 第{0}页", pageNumber)}
       onClick={() => onSelect(pageNumber)}
     >
       <span className="page-thumbnail-image">

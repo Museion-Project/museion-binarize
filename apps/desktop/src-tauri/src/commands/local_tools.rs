@@ -114,6 +114,8 @@ pub struct GenerateRequest {
     operation_id: String,
     pages: Vec<u32>,
     mode: String,
+    #[serde(default)]
+    hierarchy_provider: Option<String>,
 }
 #[tauri::command]
 pub async fn generate_local_contents(
@@ -123,6 +125,9 @@ pub async fn generate_local_contents(
     tools: State<'_, LocalToolsState>,
     pagination: State<'_, super::document_analysis::PaginationState>,
 ) -> Result<Value, UiErrorDto> {
+    if request.hierarchy_provider.as_deref().is_some_and(|p| p != "apple") {
+        return Err(request_error("invalid_request", "目录层级仅支持 Apple。"));
+    }
     let operation = state
         .try_claim_operation(OperationKind::AutoBookmark)
         .ok_or_else(|| request_error("operation_active", "请等待当前文档操作完成。"))?;
@@ -142,7 +147,12 @@ pub async fn generate_local_contents(
         let runtime=Runtime::resolve(resources.as_deref(),cache)?;
         progress("mapping_pages",None,None);
         let map=pagination.wait_result(&doc.document_id,&cancel);
-        let session=Arc::new(local_tools::generate_with_pagination(&runtime,&worker,&doc,&request.pages,&request.mode,session_id,cancel,progress,map.as_ref().map(|m|m.path.as_path()))?);
+        let mut session=local_tools::generate_with_pagination(&runtime,&worker,&doc,&request.pages,&request.mode,session_id,cancel.clone(),progress.clone(),map.as_ref().map(|m|m.path.as_path()))?;
+        if let Some(provider) = request.hierarchy_provider {
+            let result = runtime.hierarchy_runtime().run("hierarchy",session.work.path(),json!({"provider":provider,"model_root":runtime.model_root()}),&cancel,&progress)?;
+            session.table=result["table"].clone();session.intake=result["intake"].clone();
+        }
+        let session=Arc::new(session);
         let response=json!({"documentId":doc.document_id,"sessionId":session.id,"table":session.table,"intake":session.intake});
         *store.session.lock().unwrap()=Some(session);Ok(response)
     }).await.map_err(|e|request_error("internal_error",e.to_string()))?.map_err(map_error)
@@ -268,4 +278,14 @@ pub fn cancel_local_tools(
     } else {
         Err(request_error("job_not_found", "操作已结束。"))
     }
+}
+
+#[tauri::command]
+pub async fn local_hierarchy_models(app: AppHandle) -> Result<Value, UiErrorDto> {
+    let (resources, cache)=locations(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let rt=Runtime::resolve(resources.as_deref(),cache)?;
+        let work=tempfile::Builder::new().prefix("models-status-").tempdir_in(&rt.cache).map_err(|e|e.to_string())?;
+        rt.hierarchy_runtime().run("models_status",work.path(),json!({"model_root":rt.model_root()}),&AtomicBool::new(false),&(Arc::new(|_: &str, _: Option<u32>, _: Option<u32>|{}) as Notify))
+    }).await.map_err(|e|request_error("internal_error",e.to_string()))?.map_err(map_error)
 }

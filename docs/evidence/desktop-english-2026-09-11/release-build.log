@@ -1,0 +1,12 @@
+
+> mpdf-desktop@0.1.0-rc.3 tauri
+> tauri build --bundles app --config ../../docs/evidence/desktop-english-2026-09-11/local-app-config.json -- --offline
+
+        Info Looking up installed tauri packages to check mismatched versions...
+   Compiling mpdf-desktop v0.1.0-rc.3 (/Users/theo/AI 工作流/museion-binarize/apps/desktop/src-tauri)
+    Finished `release` profile [optimized] target(s) in 25.17s
+       Built application at: /Users/theo/AI 工作流/museion-binarize/target/release/mpdf-desktop
+    Bundling Museion Binarize English.app (/Users/theo/AI 工作流/museion-binarize/target/release/bundle/macos/Museion Binarize English.app)
+    Finished 1 bundle at:
+        /Users/theo/AI 工作流/museion-binarize/target/release/bundle/macos/Museion Binarize English.app
+

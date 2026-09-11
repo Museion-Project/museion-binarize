@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { t, localizeMessage, useLocale, setLocale } from "./lib/i18n";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import "./App.css";
 import {initialState,reducer} from "./app/reducer";
 import type {LocalEntry,ContentsDraft,LocalReadiness,LocalSaveResult,TreeProjection,PreparedBinarizationResult} from "./app/localTools";
 import {documentAnalysisLabel,parseBinarizePages,parseContentsPages,orderedTree,changeProjection,entryProblems,STAGE_LABELS} from "./app/localTools";
+import {AppleHierarchyStatus} from "./components/AppleHierarchyStatus";
 import {ContentsEditor} from "./components/ContentsEditor";
 import {ErrorBoundary} from "./components/ErrorBoundary";
 import {ErrorPanel} from "./components/ErrorPanel";
@@ -20,6 +22,8 @@ type Task={kind:"generate"|"binarize"|"save";id:string;stage:string;cancelling:b
 function message(error:unknown){return error instanceof BackendError?error.error.message:error instanceof Error?error.message:String(error);}
 
 function App(){
+  const locale=useLocale();
+  useEffect(()=>{document.documentElement.lang=locale==="zh"?"zh-CN":"en";},[locale]);
   const [state,dispatch]=useReducer(reducer,initialState);
   const ready=state.kind==="ready"?state:null;
   const [binarize,setBinarize]=useState(true),[bookmarks,setBookmarks]=useState(false);
@@ -40,7 +44,7 @@ function App(){
   currentDocument.current=ready?.document.documentId??null;
   const busy=!!task||state.kind==="opening";
 
-  const range=useMemo(()=>parseBinarizePages(rangeMode==="all"?"all":binarizeRange,ready?.document.pageCount??0,skippedPages),[rangeMode,binarizeRange,ready?.document.pageCount,skippedPages]);
+  const range=parseBinarizePages(rangeMode==="all"?"all":binarizeRange,ready?.document.pageCount??0,skippedPages);
   const processingSignature=JSON.stringify([ready?.document.documentId,ready?.settings,range.pages]);
   const preparedMatches=!!prepared&&prepared.signature===processingSignature;
   const currentIncluded=range.pages.includes(ready?.currentPage??0);
@@ -94,7 +98,7 @@ function App(){
   },[]);
   const requestOpen=useCallback((path:string)=>{
     if(taskRef.current||opening.current)return;
-    if(draft?.dirty)setConfirm({message:"当前目录有未保存的内容。打开其他 PDF 将丢弃这些修改。",action:()=>{void doOpenPath(path);}});
+    if(draft?.dirty)setConfirm({message:t("当前目录有未保存的内容。打开其他 PDF 将丢弃这些修改。"),action:()=>{void doOpenPath(path);}});
     else void doOpenPath(path);
   },[draft?.dirty,doOpenPath]);
   const handleOpen=useCallback(async()=>{
@@ -109,7 +113,7 @@ function App(){
       if(event.type==="enter"){setDragActive(true);return;}
       if(event.type!=="drop")return;
       setDragActive(false);
-      if(event.paths.length!==1||!/\.pdf$/i.test(event.paths[0])){setError("请一次打开一个 PDF 文件。");return;}
+      if(event.paths.length!==1||!/\.pdf$/i.test(event.paths[0])){setError(t("请一次打开一个 PDF 文件。"));return;}
       requestOpen(event.paths[0]);
     }).then(unlisten=>{if(disposed)unlisten();else stop=unlisten;}).catch(()=>{});
     return ()=>{disposed=true;stop?.();};
@@ -128,9 +132,9 @@ function App(){
     try{
       const result=await prepareLocalBinarization({documentId,operationId:current.id,settings:ready.settings,binarizePages:range.pages});
       if(currentDocument.current!==documentId)return;
-      setPrepared({...result,signature});setNotice(`已完成 ${result.pagesProcessed} 页黑白处理，可保存或继续生成目录。`);
+      setPrepared({...result,signature});setNotice(t("已完成 {0} 页黑白处理，可保存或继续生成目录。", result.pagesProcessed));
       if(currentIncluded)dispatch({type:"SET_VIEW_MODE",mode:"processed"});
-    }catch(e){if(e instanceof BackendError&&e.error.code==="cancelled")setNotice("已取消黑白处理，未保存文件。");else setError(message(e));}
+    }catch(e){if(e instanceof BackendError&&e.error.code==="cancelled")setNotice(t("已取消黑白处理，未保存文件。"));else setError(message(e));}
     finally{end(current.id);}
   }
   async function generate(){
@@ -140,17 +144,17 @@ function App(){
     const current=begin("generate");if(!current)return;
     const documentId=ready.document.documentId;
     try{
-      const response=await generateLocalContents({documentId,operationId:current.id,pages:parsed.pages,mode});
+      const response=await generateLocalContents({documentId,operationId:current.id,pages:parsed.pages,mode,hierarchyProvider:"apple"});
       if(currentDocument.current!==documentId)return;
       const entries=orderedTree(response.table.entries);
       setDraft({result:response,entries,projection:"navigation",selectedId:entries[0]?.id??null,reviewed:false,dirty:true,history:[]});
       setHighlight(null);dispatch({type:"SELECT_PAGE",page:parsed.pages[0]});dispatch({type:"SET_VIEW_MODE",mode:"original"});
-      setNotice(entries.length?`已生成 ${entries.length} 个目录条目，请核对后保存。`:"没有识别到目录条目。请检查目录页，或手动添加书签。");
-    }catch(e){if(e instanceof BackendError&&e.error.code==="cancelled")setNotice("已取消生成，之前的目录仍保留。");else setError(message(e));}
+      setNotice(entries.length?t("已生成 {0} 个目录条目。{1}", entries.length, (response.intake.hierarchy?.message?localizeMessage(response.intake.hierarchy.message):null)??t("请核对后保存。")):t("没有识别到目录条目。请检查目录页，或手动添加书签。"));
+    }catch(e){if(e instanceof BackendError&&e.error.code==="cancelled")setNotice(t("已取消生成，之前的目录仍保留。"));else setError(message(e));}
     finally{end(current.id);}
   }
   function requestGenerate(){
-    if(draft?.dirty)setConfirm({message:"重新生成目录将替换当前目录和未保存的修改。",action:()=>{void generate();}});
+    if(draft?.dirty)setConfirm({message:t("重新生成目录将替换当前目录和未保存的修改。"),action:()=>{void generate();}});
     else void generate();
   }
   function changeEntries(entries:LocalEntry[],projection?:TreeProjection){
@@ -162,12 +166,12 @@ function App(){
   }
   async function save(){
     if(!ready||taskRef.current)return;
-    if(binarize&&!preparedMatches){setError("请先点击黑白处理的开始。");return;}
+    if(binarize&&!preparedMatches){setError(t("请先点击黑白处理的开始。"));return;}
     if(binarize&&range.error){setError(range.error);return;}
-    if(!binarize&&!bookmarks){setError("请至少选择一项处理内容。");return;}
-    if(bookmarks&&draft&&(mode!==draft.result.intake.mode||parseContentsPages(contentsPages,ready.document.pageCount).pages.join(",")!==draft.result.intake.selected_pages.join(","))){setError("目录页或读取方式已改变，请重新生成目录。");return;}
-    if(bookmarks&&(!draft||!draft.reviewed)){setError("请先生成并核对目录，再确认保存。");return;}
-    if(bookmarks&&draft){const p=entryProblems(draft.entries,ready.document.pageCount);if(p.missingTargets||p.emptyTitles){setError("请补齐目录标题和 PDF 目标页。");return;}}
+    if(!binarize&&!bookmarks){setError(t("请至少选择一项处理内容。"));return;}
+    if(bookmarks&&draft&&(mode!==draft.result.intake.mode||parseContentsPages(contentsPages,ready.document.pageCount).pages.join(",")!==draft.result.intake.selected_pages.join(","))){setError(t("目录页或读取方式已改变，请重新生成目录。"));return;}
+    if(bookmarks&&(!draft||!draft.reviewed)){setError(t("请先生成并核对目录，再确认保存。"));return;}
+    if(bookmarks&&draft){const p=entryProblems(draft.entries,ready.document.pageCount);if(p.missingTargets||p.emptyTitles){setError(t("请补齐目录标题和 PDF 目标页。"));return;}}
     const suffix=[binarize?"binarized":null,bookmarks?"bookmarks":null].filter(Boolean).join("-");
     let output:string|null;
     try{output=await pickOutputDestination(`${ready.document.fileName.replace(/\.pdf$/i,"")}-${suffix}.pdf`);}catch(e){setError(message(e));return;}
@@ -176,7 +180,7 @@ function App(){
     try{
       const completed=await saveLocalPdf({documentId:ready.document.documentId,operationId:current.id,outputPath:output,binarize,binarizePages:binarize?range.pages:undefined,preparedId:binarize&&preparedMatches?prepared?.preparedId:undefined,settings:ready.settings,bookmarkSessionId:bookmarks&&draft?draft.result.sessionId:null,entries:bookmarks&&draft?draft.entries.map(({id,title,parent,target_pdf_page})=>({id,title,parent,target_pdf_page})):[],projection:draft?.projection??"navigation",reviewAccepted:bookmarks&&!!draft?.reviewed});
       setResult(completed);setNotice(null);if(bookmarks)setDraft(d=>d?{...d,dirty:false}:d);
-    }catch(e){if(e instanceof BackendError&&e.error.code==="cancelled")setNotice("已取消，未保存文件。目录修改仍保留。");else setError(message(e));}
+    }catch(e){if(e instanceof BackendError&&e.error.code==="cancelled")setNotice(t("已取消，未保存文件。目录修改仍保留。"));else setError(message(e));}
     finally{end(current.id);}
   }
   function cancel(){const current=taskRef.current;if(!current)return;setTask(t=>t?{...t,cancelling:true}:t);void cancelLocalTools(current.id).catch(e=>setError(message(e)));}
@@ -197,37 +201,38 @@ function App(){
   const contentsStale=!!draft&&(mode!==draft.result.intake.mode||!!chosenPages?.error||chosenPages?.pages.join(",")!==draft.result.intake.selected_pages.join(","));
   const canSave=!!ready&&!busy&&(binarize||bookmarks)&&(!binarize||!range.error&&preparedMatches)&&(!bookmarks||!!draft?.reviewed&&!contentsStale);
   return <ErrorBoundary><main className="app-shell">
-    <header className="app-header"><div className="brand"><span className="brand-mark">M</span><div>Museion <strong>Binarize</strong></div></div><span className="header-divider"/><div className="document-name">{ready?<><strong title={ready.document.fileName}>{ready.document.fileName}</strong><span>{ready.document.pageCount} 页 · {formatBytes(ready.document.sourceBytes)}</span></>:<span>本地 PDF 工具</span>}</div><button onClick={()=>void handleOpen()} disabled={busy} title="⌘O / Ctrl+O">打开 PDF</button></header>
-    <div className="workflow-line" aria-label="使用步骤"><span className={ready?"complete":"current"}>1 打开文档</span><i>›</i><span className={ready&&!result?"current":""}>2 开始处理 · 预览与修改</span><i>›</i><span className={result?"complete":""}>3 保存新 PDF</span></div>
-    {error&&<div className="inline-error" role="alert"><span>{error}</span><button aria-label="关闭错误提示" onClick={()=>setError(null)}>×</button></div>}
+    <header className="app-header"><div className="brand"><span className="brand-mark">M</span><div>Museion <strong>Binarize</strong></div></div><label className="language-switch"><span className="sr-only">Language / 语言</span><select aria-label="Language / 语言" value={locale} onChange={e=>setLocale(e.target.value as "zh"|"en")}><option value="zh">中文</option><option value="en">English</option></select></label><span className="header-divider"/><div className="document-name">{ready?<><strong title={ready.document.fileName}>{ready.document.fileName}</strong><span>{t("{0} 页 · {1}",ready.document.pageCount,formatBytes(ready.document.sourceBytes))}</span></>:<span>{t("本地 PDF 工具")}</span>}</div><button onClick={()=>void handleOpen()} disabled={busy} title="⌘O / Ctrl+O">{t("打开 PDF")}</button></header>
+    <div className="workflow-line" aria-label={t("使用步骤")}><span className={ready?"complete":"current"}>{t("1 打开文档")}</span><i>›</i><span className={ready&&!result?"current":""}>{t("2 开始处理 · 预览与修改")}</span><i>›</i><span className={result?"complete":""}>{t("3 保存新 PDF")}</span></div>
+    {error&&<div className="inline-error" role="alert"><span>{localizeMessage(error)}</span><button aria-label={t("关闭错误提示")} onClick={()=>setError(null)}>×</button></div>}
     <div className={`workspace ${bookmarks&&ready?"has-contents":""}`}>
-      <aside className="tools-panel" aria-label="处理工具"><div className="tool-options"><h2>处理内容</h2><p className="panel-intro">可以单独使用，也可以一起保存。</p>
-        <section className={`tool-section ${binarize?"enabled":""}`}><div className="tool-header"><label className="tool-heading"><input type="checkbox" checked={binarize} disabled={!ready||busy} onChange={e=>{setBinarize(e.target.checked);setResult(null);if(!e.target.checked)dispatch({type:"SET_VIEW_MODE",mode:"original"});}}/><span><strong>黑白处理</strong><small>清理底色，输出黑白 PDF</small></span></label><button className="tool-action" disabled={!ready||busy||!binarize||!!range.error} aria-busy={task?.kind==="binarize"} onClick={()=>void startBinarize()}>开始</button></div>{binarize&&ready&&<><div className="settings-panel binarize-range"><label htmlFor="binarize-scope">处理范围</label><select id="binarize-scope" value={rangeMode} disabled={busy} onChange={e=>{setRangeMode(e.target.value as "all"|"custom");setResult(null);}}><option value="all">全部页面</option><option value="custom">指定页码</option></select><button disabled={busy} onClick={()=>{setRangeMode("custom");setBinarizeRange(String(ready.currentPage));setSkippedPages(p=>p.filter(n=>n!==ready.currentPage));setResult(null);}}>仅本页</button>{rangeMode==="custom"&&<input aria-label="黑白处理页码" placeholder="如 1-20, 35" value={binarizeRange} disabled={busy} onChange={e=>{setBinarizeRange(e.target.value);setResult(null);}}/>}<small role={range.error?"alert":undefined}>{range.error??`处理 ${range.pages.length} 页，其余 ${ready.document.pageCount-range.pages.length} 页保留原样。`}</small>{skippedPages.length>0&&<div><small>已跳过：{[...skippedPages].sort((a,b)=>a-b).join(", ")}</small><button disabled={busy} onClick={()=>{setSkippedPages([]);setResult(null);}}>恢复全部跳过页</button></div>}</div>{prepared&&<p className="field-hint prepared-status">{preparedMatches?`已处理 ${prepared.pagesProcessed} 页 · ${prepared.elapsedSeconds.toFixed(1)} 秒`:"范围或参数已修改，请再次开始。"}</p>}<SettingsPanel settings={ready.settings} preset={ready.preset} disabled={busy} onChange={(settings,preset)=>{dispatch({type:"SET_SETTINGS",settings,preset});setResult(null);}}/></>}</section>
-        <section className={`tool-section ${bookmarks?"enabled":""}`}><div className="tool-header"><label className="tool-heading"><input type="checkbox" checked={bookmarks} disabled={!ready||busy} onChange={e=>{setBookmarks(e.target.checked);setResult(null);}}/><span><strong>目录书签</strong><small>从目录页生成可点击的书签</small></span></label><button className="tool-action" disabled={!ready||!bookmarks||busy||!readiness?.available} aria-busy={task?.kind==="generate"} onClick={requestGenerate}>生成</button></div>
-          {bookmarks&&ready&&<div className="contents-controls"><label htmlFor="contents-pages">目录所在的 PDF 页码</label><input id="contents-pages" value={contentsPages} disabled={busy} placeholder="例如 6-7, 13" onChange={e=>{setContentsPages(e.target.value);setError(null);setResult(null);}}/><p className="field-hint">使用预览上方的页码，不是书内印刷页码。</p><button className="text-button" disabled={busy} onClick={()=>{const parsed=contentsPages.trim()?parseContentsPages(contentsPages,ready.document.pageCount):{pages:[],error:null};if(parsed.error){setError(parsed.error);return;}setContentsPages([...new Set([...parsed.pages,ready.currentPage])].sort((a,b)=>a-b).join(", "));}}>＋ 加入当前页（{ready.currentPage}）</button>
-          <details><summary>读取方式</summary><label className="sr-only" htmlFor="contents-mode">目录读取方式</label><select id="contents-mode" value={mode} disabled={busy} onChange={e=>{setMode(e.target.value as "auto"|"image");setResult(null);}}><option value="auto">自动：读取文字或识别图像</option><option value="image" disabled={readiness?.imageRecognitionAvailable===false}>从页面图像识别</option></select><p className="field-hint">已有文字不完整时，可尝试从图像重新识别。</p></details>
-          {contentsStale&&<p className="attention">目录页或读取方式已改变，请重新生成。</p>}
-          {!readiness?<p className="field-hint">正在检查本地目录组件…</p>:!readiness.available?<p className="attention" role="alert">{readiness.message}</p>:draft&&<p className="field-hint">本次：{draft.result.intake.routes.filter(r=>r.path==="native_text").length} 页读取文字，{draft.result.intake.routes.filter(r=>r.path==="apple_vision_fast").length} 页图像识别。</p>}
+      <aside className="tools-panel" aria-label={t("处理工具")}><div className="tool-options"><h2>{t("处理内容")}</h2><p className="panel-intro">{t("可以单独使用，也可以一起保存。")}</p>
+        <section className={`tool-section ${binarize?"enabled":""}`}><div className="tool-header"><label className="tool-heading"><input type="checkbox" checked={binarize} disabled={!ready||busy} onChange={e=>{setBinarize(e.target.checked);setResult(null);if(!e.target.checked)dispatch({type:"SET_VIEW_MODE",mode:"original"});}}/><span><strong>{t("黑白处理")}</strong><small>{t("清理底色，输出黑白 PDF")}</small></span></label><button className="tool-action" disabled={!ready||busy||!binarize||!!range.error} aria-busy={task?.kind==="binarize"} onClick={()=>void startBinarize()}>{t("开始")}</button></div>{binarize&&ready&&<><div className="settings-panel binarize-range"><label htmlFor="binarize-scope">{t("处理范围")}</label><select id="binarize-scope" value={rangeMode} disabled={busy} onChange={e=>{setRangeMode(e.target.value as "all"|"custom");setResult(null);}}><option value="all">{t("全部页面")}</option><option value="custom">{t("指定页码")}</option></select><button disabled={busy} onClick={()=>{setRangeMode("custom");setBinarizeRange(String(ready.currentPage));setSkippedPages(p=>p.filter(n=>n!==ready.currentPage));setResult(null);}}>{t("仅本页")}</button>{rangeMode==="custom"&&<input aria-label={t("黑白处理页码")} placeholder={t("如 1-20, 35")} value={binarizeRange} disabled={busy} onChange={e=>{setBinarizeRange(e.target.value);setResult(null);}}/>}<small role={range.error?"alert":undefined}>{range.error??t("处理 {0} 页，其余 {1} 页保留原样。", range.pages.length, ready.document.pageCount-range.pages.length)}</small>{skippedPages.length>0&&<div><small>{t("已跳过：")}{[...skippedPages].sort((a,b)=>a-b).join(", ")}</small><button disabled={busy} onClick={()=>{setSkippedPages([]);setResult(null);}}>{t("恢复全部跳过页")}</button></div>}</div>{prepared&&<p className="field-hint prepared-status">{preparedMatches?t("已处理 {0} 页 · {1} 秒", prepared.pagesProcessed, prepared.elapsedSeconds.toFixed(1)):t("范围或参数已修改，请再次开始。")}</p>}<SettingsPanel settings={ready.settings} preset={ready.preset} disabled={busy} onChange={(settings,preset)=>{dispatch({type:"SET_SETTINGS",settings,preset});setResult(null);}}/></>}</section>
+        <section className={`tool-section ${bookmarks?"enabled":""}`}><div className="tool-header"><label className="tool-heading"><input type="checkbox" checked={bookmarks} disabled={!ready||busy} onChange={e=>{setBookmarks(e.target.checked);setResult(null);}}/><span><strong>{t("目录书签")}</strong><small>{t("从目录页生成可点击的书签")}</small></span></label><button className="tool-action" disabled={!ready||!bookmarks||busy||!readiness?.available} aria-busy={task?.kind==="generate"} onClick={requestGenerate}>{t("生成")}</button></div>
+          {bookmarks&&ready&&<div className="contents-controls"><label htmlFor="contents-pages">{t("目录所在的 PDF 页码")}</label><input id="contents-pages" value={contentsPages} disabled={busy} placeholder={t("例如 6-7, 13")} onChange={e=>{setContentsPages(e.target.value);setError(null);setResult(null);}}/><p className="field-hint">{t("使用预览上方的页码，不是书内印刷页码。")}</p><button className="text-button" disabled={busy} onClick={()=>{const parsed=contentsPages.trim()?parseContentsPages(contentsPages,ready.document.pageCount):{pages:[],error:null};if(parsed.error){setError(parsed.error);return;}setContentsPages([...new Set([...parsed.pages,ready.currentPage])].sort((a,b)=>a-b).join(", "));}}>{t("＋ 加入当前页（{0}）",ready.currentPage)}</button>
+          <AppleHierarchyStatus disabled={!!task}/>
+          <details><summary>{t("读取方式")}</summary><label className="sr-only" htmlFor="contents-mode">{t("目录读取方式")}</label><select id="contents-mode" value={mode} disabled={busy} onChange={e=>{setMode(e.target.value as "auto"|"image");setResult(null);}}><option value="auto">{t("自动：读取文字或识别图像")}</option><option value="image" disabled={readiness?.imageRecognitionAvailable===false}>{t("从页面图像识别")}</option></select><p className="field-hint">{t("已有文字不完整时，可尝试从图像重新识别。")}</p></details>
+          {contentsStale&&<p className="attention">{t("目录页或读取方式已改变，请重新生成。")}</p>}
+          {!readiness?<p className="field-hint">{t("正在检查本地目录组件…")}</p>:!readiness.available?<p className="attention" role="alert">{localizeMessage(readiness.message??"")}</p>:draft&&<p className="field-hint">{t("本次：{0} 页读取文字，{1} 页图像识别。",draft.result.intake.routes.filter(r=>r.path==="native_text").length,draft.result.intake.routes.filter(r=>r.path==="apple_vision_fast").length)}</p>}
           </div>}
         </section>
-        </div><div className="tool-section unavailable"><button className="tool-heading" disabled aria-label="OCR 正文识别，暂未开放"><span className="disabled-tool-icon">T</span><span><strong>OCR 正文识别 <em>暂未开放</em></strong><small>让扫描文档可搜索、可复制</small></span></button></div>
-        <p className="local-note">所有当前操作在本机完成。<br/>保存为新文件，原 PDF 保持不变。</p>
+        </div><div className="tool-section unavailable"><button className="tool-heading" disabled aria-label={t("OCR 正文识别，暂未开放")}><span className="disabled-tool-icon">T</span><span><strong>{t("OCR 正文识别")}<em>{t("暂未开放")}</em></strong><small>{t("让扫描文档可搜索、可复制")}</small></span></button></div>
+        <p className="local-note">{t("所有当前操作在本机完成。")}<br/>{t("保存为新文件，原 PDF 保持不变。")}</p>
       </aside>
       {!ready?<section className="empty-workspace">
-        {state.kind==="idle"&&<><div className="empty-document-icon">PDF</div><h1>把 PDF 整理得更好用</h1><p>黑白处理、添加目录书签。<br/>选择工具，开始处理，再保存。</p><button className="primary" onClick={()=>void handleOpen()}>选择 PDF</button><small>也可以把文件拖到这里</small></>}
-        {state.kind==="opening"&&<p role="status">正在打开 PDF…</p>}
+        {state.kind==="idle"&&<><div className="empty-document-icon">PDF</div><h1>{t("把 PDF 整理得更好用")}</h1><p>{t("黑白处理、添加目录书签。")}<br/>{t("选择工具，开始处理，再保存。")}</p><button className="primary" onClick={()=>void handleOpen()}>{t("选择 PDF")}</button><small>{t("也可以把文件拖到这里")}</small></>}
+        {state.kind==="opening"&&<p role="status">{t("正在打开 PDF…")}</p>}
         {state.kind==="failed"&&<ErrorPanel error={state.error} onDismiss={()=>dispatch({type:"DISMISS_ERROR"})}/>}
-      </section>:<section className="preview-area" aria-label="文档预览"><PageSidebar key={ready.document.documentId} document={ready.document} currentPage={ready.currentPage} onSelect={selectPage} paused={busy||ready.preview.loading}/><div className="document-preview"><div className="page-navigation"><div><button aria-label="上一页" disabled={busy||ready.currentPage<=1} onClick={()=>selectPage(ready.currentPage-1)}>‹</button><label htmlFor="current-page">PDF 第</label><input id="current-page" type="number" min={1} max={ready.document.pageCount} value={ready.currentPage} disabled={busy} onChange={e=>selectPage(Number(e.target.value))}/><span>/ {ready.document.pageCount} 页</span><button aria-label="下一页" disabled={busy||ready.currentPage>=ready.document.pageCount} onClick={()=>selectPage(ready.currentPage+1)}>›</button></div>{binarize&&<button className="skip-page" disabled={busy||(!currentIncluded&&!skippedPages.includes(ready.currentPage))} onClick={toggleSkip}>{skippedPages.includes(ready.currentPage)?"恢复本页处理":currentIncluded?"跳过本页":"本页保留原样"}</button>}<span className="preview-caption">{highlight?"目录原页 · 已标出条目位置":"预览"}</span></div><PreviewPane preview={ready.preview} viewMode={ready.viewMode} zoom={ready.zoom} pageNumber={ready.currentPage} onViewModeChange={mode=>dispatch({type:"SET_VIEW_MODE",mode})} onZoomChange={zoom=>dispatch({type:"SET_ZOOM",zoom})} showProcessed={binarize&&currentIncluded} pageWidth={page?.widthPoints??595} pageHeight={page?.heightPoints??842} highlight={highlight?.source_page===ready.currentPage-1&&ready.viewMode==="original"?highlight.source_bbox:null}/></div></section>}
-      {bookmarks&&ready&&(draft?<ContentsEditor draft={draft} pageCount={ready.document.pageCount} currentPage={ready.currentPage} disabled={busy||contentsStale} onChange={changeEntries} onProjection={projection=>changeEntries(changeProjection(draft,projection),projection)} onSelect={id=>setDraft(d=>d?{...d,selectedId:id}:d)} onSource={showSource} onTarget={selectPage} onReviewed={reviewed=>setDraft(d=>d?{...d,reviewed}:d)} onUndo={()=>setDraft(d=>d&&d.history.length?{...d,entries:d.history[0].entries,projection:d.history[0].projection,history:d.history.slice(1),reviewed:false,dirty:true}:d)}/>:<aside className="contents-panel contents-empty"><h2>目录书签</h2><div className="panel-empty"><span className="outline-icon">☷</span><h3>先选择目录页</h3><p>在左侧填写目录所在页，<br/>生成后在这里编辑和核对。</p><small>书签中的目标页使用 PDF 页码。</small></div></aside>)}
+      </section>:<section className="preview-area" aria-label={t("文档预览")}><PageSidebar key={ready.document.documentId} document={ready.document} currentPage={ready.currentPage} onSelect={selectPage} paused={busy||ready.preview.loading}/><div className="document-preview"><div className="page-navigation"><div><button aria-label={t("上一页")} disabled={busy||ready.currentPage<=1} onClick={()=>selectPage(ready.currentPage-1)}>‹</button><label htmlFor="current-page">{t("PDF 第")}</label><input id="current-page" type="number" min={1} max={ready.document.pageCount} value={ready.currentPage} disabled={busy} onChange={e=>selectPage(Number(e.target.value))}/><span>/ {ready.document.pageCount} {t("页")}</span><button aria-label={t("下一页")} disabled={busy||ready.currentPage>=ready.document.pageCount} onClick={()=>selectPage(ready.currentPage+1)}>›</button></div>{binarize&&<button className="skip-page" disabled={busy||(!currentIncluded&&!skippedPages.includes(ready.currentPage))} onClick={toggleSkip}>{skippedPages.includes(ready.currentPage)?t("恢复本页处理"):currentIncluded?t("跳过本页"):t("本页保留原样")}</button>}<span className="preview-caption">{highlight?t("目录原页 · 已标出条目位置"):t("预览")}</span></div><PreviewPane preview={ready.preview} viewMode={ready.viewMode} zoom={ready.zoom} pageNumber={ready.currentPage} onViewModeChange={mode=>dispatch({type:"SET_VIEW_MODE",mode})} onZoomChange={zoom=>dispatch({type:"SET_ZOOM",zoom})} showProcessed={binarize&&currentIncluded} pageWidth={page?.widthPoints??595} pageHeight={page?.heightPoints??842} highlight={highlight?.source_page===ready.currentPage-1&&ready.viewMode==="original"?highlight.source_bbox:null}/></div></section>}
+      {bookmarks&&ready&&(draft?<ContentsEditor draft={draft} pageCount={ready.document.pageCount} currentPage={ready.currentPage} disabled={busy||contentsStale} onChange={changeEntries} onProjection={projection=>changeEntries(changeProjection(draft,projection),projection)} onSelect={id=>setDraft(d=>d?{...d,selectedId:id}:d)} onSource={showSource} onTarget={selectPage} onReviewed={reviewed=>setDraft(d=>d?{...d,reviewed}:d)} onUndo={()=>setDraft(d=>d&&d.history.length?{...d,entries:d.history[0].entries,projection:d.history[0].projection,history:d.history.slice(1),reviewed:false,dirty:true}:d)}/>:<aside className="contents-panel contents-empty"><h2>{t("目录书签")}</h2><div className="panel-empty"><span className="outline-icon">☷</span><h3>{t("先选择目录页")}</h3><p>{t("在左侧填写目录所在页，")}<br/>{t("生成后在这里编辑和核对。")}</p><small>{t("书签中的目标页使用 PDF 页码。")}</small></div></aside>)}
     </div>
     <footer className="save-bar">
-      <div className="save-status" role="status" aria-live="polite">{task?<><strong>{task.cancelling?"正在取消，请等待当前步骤结束…":STAGE_LABELS[task.stage]??"正在处理…"}</strong><span>{task.page&&task.count?`PDF 第 ${task.page} 页 / 共 ${task.count} 页 · `:""}{elapsed} 秒</span></>:result?<><strong className="success">已保存新 PDF</strong><span title={result.outputPath}>{result.pages} 页{result.pagesProcessed!==undefined?` · 黑白处理 ${result.pagesProcessed} 页`:""}{result.bookmarksWritten?` · ${result.bookmarksWritten} 个书签`:""} · {formatBytes(result.outputBytes)} · {result.elapsedSeconds.toFixed(1)} 秒</span></>:<><strong>{ready?[binarize?"黑白处理":null,bookmarks?"目录书签":null].filter(Boolean).join(" ＋ ")||"请选择处理内容":"等待打开文档"}</strong><span>{notice??(bookmarks&&!draft?"生成目录后，可修改并保存。":bookmarks&&!draft?.reviewed?"核对目录后，勾选整份目录确认。":"预览满意后，保存为新文件。")}</span></>}{ready&&<small className="document-analysis-status" title={analysis?.message??(analysis?.sampledPages?`页码基于 ${analysis.sampledPages} 页图像抽样与一致规则，生成后可核对跳转。`:undefined)}>{documentAnalysisLabel(analysis)}</small>}</div>
-      {result&&!task&&<><button onClick={()=>requestOpen(result.outputPath)}>打开结果</button><button onClick={()=>void revealItemInDir(result.outputPath).catch(e=>setError(message(e)))}>在 Finder 中显示</button></>}
-      {task?<button onClick={cancel} disabled={task.cancelling}>取消</button>:<button className="primary save-button" disabled={!canSave} onClick={()=>void save()} title="⌘Enter / Ctrl+Enter">保存新 PDF…</button>}
+      <div className="save-status" role="status" aria-live="polite">{task?<><strong>{task.cancelling?t("正在取消，请等待当前步骤结束…"):t(STAGE_LABELS[task.stage]??"")||t("正在处理…")}</strong><span>{task.page&&task.count?t("PDF 第 {0} 页 / 共 {1} 页 · ", task.page, task.count):""}{t("{0} 秒",elapsed)}</span></>:result?<><strong className="success">{t("已保存新 PDF")}</strong><span title={result.outputPath}>{result.pages} {t("页")}{result.pagesProcessed!==undefined?t(" · 黑白处理 {0} 页", result.pagesProcessed):""}{result.bookmarksWritten?t(" · {0} 个书签", result.bookmarksWritten):""} · {formatBytes(result.outputBytes)} · {result.elapsedSeconds.toFixed(1)} {t("秒")}</span></>:<><strong>{ready?[binarize?t("黑白处理"):null,bookmarks?t("目录书签"):null].filter(Boolean).join(" ＋ ")||t("请选择处理内容"):t("等待打开文档")}</strong><span>{(notice?localizeMessage(notice):null)??(bookmarks&&!draft?t("生成目录后，可修改并保存。"):bookmarks&&!draft?.reviewed?t("核对目录后，勾选整份目录确认。"):t("预览满意后，保存为新文件。"))}</span></>}{ready&&<small className="document-analysis-status" title={(analysis?.message?localizeMessage(analysis.message):null)??(analysis?.sampledPages?t("页码基于 {0} 页图像抽样与一致规则，生成后可核对跳转。", analysis.sampledPages):undefined)}>{documentAnalysisLabel(analysis)}</small>}</div>
+      {result&&!task&&<><button onClick={()=>requestOpen(result.outputPath)}>{t("打开结果")}</button><button onClick={()=>void revealItemInDir(result.outputPath).catch(e=>setError(message(e)))}>{t("在 Finder 中显示")}</button></>}
+      {task?<button onClick={cancel} disabled={task.cancelling}>{t("取消")}</button>:<button className="primary save-button" disabled={!canSave} onClick={()=>void save()} title="⌘Enter / Ctrl+Enter">{t("保存新 PDF…")}</button>}
     </footer>
-    {dragActive&&<div className="file-drop-overlay" role="status">松开以打开 PDF</div>}
+    {dragActive&&<div className="file-drop-overlay" role="status">{t("松开以打开 PDF")}</div>}
     {state.kind==="passwordRequired"&&<PasswordPrompt fileName={state.path.split(/[/\\]/).pop()??state.path} attemptError={state.attemptError} onCancel={()=>dispatch({type:"DISMISS_ERROR"})} onSubmit={async password=>{try{const document=await openDocument(state.path,password);setDraft(null);setPrepared(null);setContentsPages("");dispatch({type:"OPEN_SUCCEEDED",document});}catch(e){dispatch({type:"PASSWORD_RETRY_FAILED",message:message(e)});}}}/>}
-    {confirm&&<div className="modal-overlay" role="dialog" aria-modal="true" aria-label="未保存的修改"><div className="confirm-dialog"><h2>未保存的修改</h2><p>{confirm.message}</p><div><button autoFocus onClick={()=>setConfirm(null)}>保留当前内容</button><button onClick={()=>{const action=confirm.action;setConfirm(null);action();}}>丢弃并继续</button></div></div></div>}
+    {confirm&&<div className="modal-overlay" role="dialog" aria-modal="true" aria-label={t("未保存的修改")}><div className="confirm-dialog"><h2>{t("未保存的修改")}</h2><p>{localizeMessage(confirm.message)}</p><div><button autoFocus onClick={()=>setConfirm(null)}>{t("保留当前内容")}</button><button onClick={()=>{const action=confirm.action;setConfirm(null);action();}}>{t("丢弃并继续")}</button></div></div></div>}
   </main></ErrorBoundary>;
 }
 export default App;

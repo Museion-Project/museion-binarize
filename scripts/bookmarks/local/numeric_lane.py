@@ -39,6 +39,7 @@ def prepare(raw_paths,directory,max_crops=160):
 def collect(result_dir):
     by_raw={};receipts=[]
     for path in sorted(Path(result_dir).glob('*.json')):
+        if path.name.startswith('._'):continue  # macOS sidecar, not a recognition record
         r=load(path);tokens=[o for o in r.get('observations',[]) if number(o['text'].strip())]
         candidate=None
         if len(tokens)==1:

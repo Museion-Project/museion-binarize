@@ -52,6 +52,13 @@ impl Runtime {
             cache,
         })
     }
+    pub fn hierarchy_runtime(&self) -> Self {
+        Self { python: self.python.clone(), script: self.script.parent().unwrap().join("../hierarchy_models/desktop_bridge.py"), cache: self.cache.clone() }
+    }
+    pub fn model_root(&self) -> PathBuf {
+        let local = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../.runtime/toc-models");
+        if local.is_dir() { local } else { self.cache.join("toc-models") }
+    }
     pub fn run(
         &self,
         verb: &str,

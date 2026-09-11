@@ -83,6 +83,7 @@ pub fn run() {
             project_info,
             commands::document_analysis::document_analysis_status,
             commands::local_tools::local_bookmark_readiness,
+            commands::local_tools::local_hierarchy_models,
             commands::local_tools::generate_local_contents,
             commands::local_tools::save_local_pdf,
             commands::local_tools::prepare_local_binarization,

@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import {useEffect,useState} from "react";
 import type {DocumentAnalysisStatus} from "../app/localTools";
 import {documentAnalysisStatus} from "../lib/tauri";
@@ -16,7 +17,7 @@ export function useDocumentAnalysis(documentId:string|null){
         setStatus(value);
         if(value.paginationStatus==="running")timer=window.setTimeout(()=>void refresh(),450);
       }catch{
-        if(!disposed)setStatus({documentId,textLayer:"unavailable",paginationStatus:"unavailable",sequenceCount:0,sampledPages:0,message:"文档信息暂不可用。"});
+        if(!disposed)setStatus({documentId,textLayer:"unavailable",paginationStatus:"unavailable",sequenceCount:0,sampledPages:0,message:t("文档信息暂不可用。")});
       }
     };
     void refresh();

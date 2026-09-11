@@ -1,0 +1,4 @@
+   Compiling mpdf-desktop v0.1.0-rc.3 (/private/tmp/museion-release-ready-20260911/apps/desktop/src-tauri)
+    Checking mpdf-core v0.1.0-rc.3 (/private/tmp/museion-release-ready-20260911/crates/mpdf-core)
+    Checking mpdf-api-client v0.1.0-rc.3 (/private/tmp/museion-release-ready-20260911/crates/mpdf-api-client)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 46.18s

@@ -1,0 +1,8 @@
+{
+  "typescript": "pass",
+  "frontend_tests": 65,
+  "apple_runtime_tests": 9,
+  "hierarchy_contract_tests": 8,
+  "cargo_check_offline": "pass",
+  "scope": "Isolated restored checkout; node dependencies and Cargo compilation cache reused, no uncommitted Rust sources from original workspace. No release readiness claim."
+}

@@ -15,6 +15,7 @@ function contents():ContentsResult{const entries=[sampleEntry("entry-0","Introdu
 async function backend(command:string,args?:Record<string,unknown>):Promise<unknown>{
  if(command==="open_document")return document;
  if(command==="render_preview"){const r=args?.request as {requestId:number;pageNumber:number;kind:string};return {...r,pngBase64:"AA",width:595,height:842,renderDpi:150,isReducedResolution:true};}
+ if(command==="local_hierarchy_models")return [{provider:"apple",label:"Apple",state:"unavailable",available:false,message:"modelNotReady"}];
  if(command==="local_bookmark_readiness")return {available:true,imageRecognitionAvailable:true,message:null};
  if(command==="document_analysis_status")return {documentId:"doc-1",textLayer:"present",paginationStatus:"ready",sequenceCount:2,sampledPages:0,message:null};
  if(command==="prepare_local_binarization")return {documentId:"doc-1",preparedId:"prepared-1",pagesProcessed:3,elapsedSeconds:.1};
@@ -72,5 +73,57 @@ describe("selective binarization",()=>{
   await waitFor(()=>expect(main()).toHaveLength(2));
   fireEvent.click(screen.getByRole("button",{name:"上一页"}));
   await new Promise(r=>setTimeout(r,240));expect(main()).toHaveLength(2);
+ });
+});
+
+describe("Apple-only hierarchy",()=>{
+ it("checks Apple proactively and keeps basic generation available without local-model controls",async()=>{
+  render(<App/>);await open();fireEvent.click(screen.getByRole("checkbox",{name:/目录书签/}));
+  await screen.findByText(/modelNotReady/);
+  expect(mocks.invoke.mock.calls.some(([n])=>n==="local_hierarchy_models")).toBe(true);
+  expect(screen.queryByLabelText("目录层级模型")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button",{name:"下载模型"})).not.toBeInTheDocument();
+  expect(screen.queryByText(/MiniCPM|Qwen/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"生成"})).toBeEnabled();
+  const before=mocks.invoke.mock.calls.filter(([n])=>n==="local_hierarchy_models").length;
+  fireEvent.click(screen.getByRole("button",{name:"重新检测"}));
+  await waitFor(()=>expect(mocks.invoke.mock.calls.filter(([n])=>n==="local_hierarchy_models")).toHaveLength(before+1));
+  expect(mocks.invoke.mock.calls.some(([n])=>n==="download_hierarchy_model")).toBe(false);
+ });
+ it("always requests Apple and still requires review before saving",async()=>{
+  render(<App/>);await open();await generate();
+  expect(mocks.invoke.mock.calls.find(([n])=>n==="generate_local_contents")![1].request.hierarchyProvider).toBe("apple");
+  expect(screen.getByRole("button",{name:/保存新 PDF/})).toBeDisabled();
+ });
+});
+
+describe("English localization",()=>{
+ it("switches a live document without changing titles, targets or review state, then saves in English",async()=>{
+  const view=render(<App/>);await open();await generate();
+  fireEvent.change(screen.getByLabelText("PDF 目标页"),{target:{value:"2"}});
+  fireEvent.change(screen.getByLabelText("标题"),{target:{value:"目录 — Original title"}});accept();
+  fireEvent.change(screen.getByRole("combobox",{name:"Language / 语言"}),{target:{value:"en"}});
+  expect(window.document.documentElement.lang).toBe("en");
+  expect(localStorage.getItem("museion-binarize.locale")).toBe("en");
+  expect(screen.getByLabelText("Title")).toHaveValue("目录 — Original title");
+  expect(screen.getByLabelText("PDF target page")).toHaveValue(2);
+  expect(screen.getByRole("checkbox",{name:"I have reviewed the contents. Save them as shown."})).toBeChecked();
+  expect(screen.getByText(/Text layer: Present/)).toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"Check again"})).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button",{name:"Start"}));
+  await screen.findByText(/Converted 3 pages to black and white/);
+  fireEvent.click(screen.getByRole("button",{name:"Save new PDF…"}));await screen.findByText("New PDF saved");
+  expect(mocks.invoke.mock.calls.find(([n])=>n==="save_local_pdf")![1].request.entries[0]).toMatchObject({title:"目录 — Original title",target_pdf_page:1});
+  view.unmount();render(<App/>);expect(screen.getByRole("button",{name:"Open PDF"})).toBeInTheDocument();
+ });
+ it("translates existing errors and validation messages when switching languages",async()=>{
+  render(<App/>);await open();
+  fireEvent.change(screen.getByLabelText("处理范围"),{target:{value:"custom"}});
+  fireEvent.change(screen.getByLabelText("黑白处理页码"),{target:{value:"99"}});
+  fireEvent.change(screen.getByRole("combobox",{name:"Language / 语言"}),{target:{value:"en"}});
+  expect(screen.getByRole("alert")).toHaveTextContent("Pages to process must be between 1 and 3.");
+  expect(screen.getByRole("button",{name:"Start"})).toBeDisabled();
+  fireEvent.change(screen.getByRole("combobox",{name:"Language / 语言"}),{target:{value:"zh"}});
+  expect(screen.getByRole("alert")).toHaveTextContent("处理页需在 1–3 之间。");
  });
 });

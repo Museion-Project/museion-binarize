@@ -87,3 +87,19 @@ Measured `title_start_x` and `label_bbox` are derived only from existing token
 boxes. An unavailable substring boundary falls back to the original line box;
 no character-width geometry is synthesized. These are parser alternatives, not
 Vision n-best candidates; the existing worker/raw contract remains unchanged.
+
+### Explicit-TOC recovery development entry point
+
+`recover.py SOURCE.pdf NEW_OUTPUT --vision-worker /absolute/vision-fast --compiler
+/absolute/mpdf-bookmarks` accepts a complete PDF without annotated page numbers.
+It scans every page using native observations or the existing Vision fast worker,
+then compiles discovered navigation spans independently. `prediction.json` retains
+source entries, complete printed references, group pages and review diagnostics.
+Raw discovery observations, selected-page recognition and numeric rereads remain
+alongside it. It does not perform pagination mapping or write a bookmarked PDF.
+
+This is the development CLI evaluated under
+`evaluation/toc-generalization-2026-09-10/`; it is not an automatic desktop page
+selection feature. Discovery can miss unrecognized headings or admit unrelated
+navigation-like pages. Results require review, and a completed process is not an
+exact-document pass. No body-heading style model or body-derived TOC is used.

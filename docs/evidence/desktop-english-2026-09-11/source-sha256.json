@@ -1,0 +1,21 @@
+{
+  "apps/desktop/src/App.tsx": "970014e1e429faf95b68c448b96ab77c80a892ffc5a69426880e45d9ac850c09",
+  "apps/desktop/src/App.css": "284aaf90a4faec9ac109afef14ddfc0ed636baa900010283d0fb31c1d2fac688",
+  "apps/desktop/src/App.test.tsx": "d8eedc5ce7bc653f9edc5a988a099d3b9a08e256c6bb645257b083c604068bf5",
+  "apps/desktop/src/app/localTools.ts": "f49d8a9ddcc4608db6932c85d6e4b133046a4bc649eaa3154ac8447c82c66ad8",
+  "apps/desktop/src/components/AppleHierarchyStatus.tsx": "b6a97827b3e6d34b65ad7c4f946b15232b58152d376b568bdb2ac931b36cb0d0",
+  "apps/desktop/src/components/ContentsEditor.tsx": "3232a459923cfce839f18e8eb7740a2bf8981f97da24b892cb6552a953b31fea",
+  "apps/desktop/src/components/SettingsPanel.tsx": "69981353c95b9e9faf2aa0f71a863dde27c33fa2b39289b1d7a7d500f1e4eec8",
+  "apps/desktop/src/components/PreviewPane.tsx": "cc55539e47043c7d587679c05e1a0680bfebb700014af11a6d777f93e0de8190",
+  "apps/desktop/src/components/PageThumbnail.tsx": "73c8025baeb410b3dc4c9282f479e8b4cc8a9c0312c1e068680c660e330de21f",
+  "apps/desktop/src/components/PageSidebar.tsx": "226e6d13ae476ca49a503db7e3174814f136593ecaf6e199ded8ef3dbf59f143",
+  "apps/desktop/src/components/PasswordPrompt.tsx": "df1c0ed96caf228d8b1a0dbcaca2760ee2a933ded3692e4af4b0e2a162bde229",
+  "apps/desktop/src/components/ErrorPanel.tsx": "6ae520ee12cabf25bd03380fa78118649887ea12a8dd2624b16135fcf2a3acea",
+  "apps/desktop/src/components/ErrorBoundary.tsx": "1d727ecb1175a42932c246fe9bb9af659e77143d37b0c37fed8e358da6f961be",
+  "apps/desktop/src/hooks/useDocumentAnalysis.ts": "847f5fd599f62441e166adfddbccbaac8d2a6c933a97e0c605c96d50e521b816",
+  "apps/desktop/src/lib/tauri.ts": "fe281cd5525528b4482eefdb6b4e74925de38a3712593fe2311ad7ff65efe6db",
+  "apps/desktop/src/lib/i18n.ts": "741f89195b67911d2654346f18ecde1c6b448f329dae34d97a6df144e6c2759f",
+  "apps/desktop/src/lib/messages.ts": "4f35e2423a848ee2dbc4ae0f9e5d13f8ba2cd95ecd0b86410ec48b22ee8b3c67",
+  "apps/desktop/src/lib/i18n.test.ts": "fc6e4ab72c235fab01f642d7122b8f9a302b4ea2bf7c7e10cf791c6d0eae2408",
+  "apps/desktop/src/test/setup.ts": "556530f97b208dd17eeee8e362db34e233961979432501fa618ef47a10439ae7"
+}

@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { DocumentSummary } from "../app/types";
@@ -59,8 +60,8 @@ export function PageSidebar({ document, currentPage, onSelect, paused=false }: P
   },[document.documentId,currentPage,paused,queueVersion]);
 
   return (
-    <nav className="page-sidebar" aria-label="Pages">
-      <div className="page-sidebar-list" role="listbox" aria-label="Page thumbnails">
+    <nav className="page-sidebar" aria-label={t("页面")}>
+      <div className="page-sidebar-list" role="listbox" aria-label={t("页面缩略图")}>
         {document.pages.map((page) => (
           <PageThumbnail
             key={page.pageNumber}
