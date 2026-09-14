@@ -1,3 +1,5 @@
+> **Current Apple Silicon download: [Museion PDF 0.2.0-beta.2](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.2.0-beta.2).** Developer ID signed and Apple notarized. This update fixes selected-page export validation errors and removes obsolete replaced-page objects. Conversion may still increase file size; generated bookmarks require review. The development/older RC documentation below is retained for reference.
+
 English | [简体中文](README.zh-CN.md)
 
 # M PDF Processor

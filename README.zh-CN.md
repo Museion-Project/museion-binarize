@@ -1,3 +1,5 @@
+> **Apple Silicon 最新下载：[Museion PDF 处理器 0.2.0-beta.2](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.2.0-beta.2)。** 已使用 Developer ID 签名并通过 Apple 公证。本次修复部分页面导出校验误报，并清除被替换页面的废弃对象。二值化仍可能增大文件，自动目录仍需人工核对。下方保留开发版及旧 RC 的历史说明。
+
 [English](README.md) | 简体中文
 
 # M PDF 处理器
