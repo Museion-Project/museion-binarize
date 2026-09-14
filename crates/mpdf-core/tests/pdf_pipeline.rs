@@ -1512,3 +1512,97 @@ fn analyze_with_a_page_selection_analyzes_only_the_selected_pages() {
     let reported_numbers: Vec<u32> = report.pages.iter().map(|p| p.page_number).collect();
     assert_eq!(reported_numbers, vec![1, 3]);
 }
+
+fn check_selective_tail(modern: bool) {
+    let (pdfium, _guard) = require_pdfium!();
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("source.pdf");
+    let mut original = lopdf::Document::load_mem(&test_fixtures::mixed_page_sizes()).unwrap();
+    let pages = original.get_pages();
+    // Large original page streams must disappear once their pages are replaced.
+    // A shared resource must survive because the unselected cover still uses it.
+    let shared = original.add_object(lopdf::dictionary! {"Marker" => 123});
+    for (&number, &id) in &pages {
+        let page = original.get_object_mut(id).unwrap().as_dict_mut().unwrap();
+        page.set("Resources", shared);
+        if number > 1 {
+            let content = page.get(b"Contents").unwrap().as_reference().unwrap();
+            let stream = original
+                .get_object_mut(content)
+                .unwrap()
+                .as_stream_mut()
+                .unwrap();
+            stream.content.extend_from_slice(b"\n%");
+            stream.content.extend(vec![b'x'; 128 * 1024]);
+            stream.content.push(b'\n');
+            stream.dict.set("Length", stream.content.len() as i64);
+        }
+    }
+    if modern {
+        original
+            .save_modern(&mut std::fs::File::create(&input).unwrap())
+            .unwrap();
+    } else {
+        original.save(&input).unwrap();
+    }
+    let session = PdfDocumentSession::open(
+        &input,
+        &PdfOpenOptions {
+            pdfium: pdfium.clone(),
+            compute_source_hash: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let output = dir.path().join("tail.pdf");
+    let selection = mpdf_core::page_selection::PageSelection::parse("2-3", 3).unwrap();
+    let report = mpdf_core::selective_pdf::process_selected_with_open_session(
+        &session,
+        &selection,
+        &output,
+        &settings(BinarizationMethod::Otsu, 300),
+        &options(pdfium.clone(), ValidationMode::default()),
+        &RecordingProgress::new(),
+    )
+    .unwrap();
+    eprintln!(
+        "modern={modern} original={} output={}",
+        report.original_bytes, report.output_bytes
+    );
+    assert!(
+        report.output_bytes < report.original_bytes / 2,
+        "original={} output={}",
+        report.original_bytes,
+        report.output_bytes
+    );
+    let saved = lopdf::Document::load(&output).unwrap();
+    assert_eq!(
+        saved.get_object(shared).unwrap(),
+        original.get_object(shared).unwrap()
+    );
+    assert_eq!(saved.get_pages(), pages);
+    let reopened = PdfDocumentSession::open(
+        &output,
+        &PdfOpenOptions {
+            pdfium,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        session.render_page(0, 72).unwrap().to_rgb8(),
+        reopened.render_page(0, 72).unwrap().to_rgb8()
+    );
+}
+
+#[test]
+#[ignore]
+fn selective_tail_discards_replaced_streams() {
+    check_selective_tail(false);
+}
+
+#[test]
+#[ignore]
+fn selective_tail_accepts_object_and_xref_streams() {
+    check_selective_tail(true);
+}

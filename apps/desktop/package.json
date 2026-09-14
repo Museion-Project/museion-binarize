@@ -1,7 +1,7 @@
 {
   "name": "mpdf-desktop",
   "private": true,
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "description": "Museion PDF desktop application (Tauri 2 + React + TypeScript)",
   "license": "MIT OR Apache-2.0",
   "author": "Pei Haoran",

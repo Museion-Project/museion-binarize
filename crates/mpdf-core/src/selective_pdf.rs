@@ -18,6 +18,30 @@ use std::{collections::BTreeSet, path::Path, time::Instant};
 fn invalid(message: impl ToString) -> CoreError {
     CoreError::OutputValidationFailed(message.to_string())
 }
+
+// PDF numbers such as 0.0 can be serialized as 0. Compare their exact values,
+// while retaining strict equality of references, keys, arrays and stream bytes.
+fn same_pdf_object(a: &Object, b: &Object) -> bool {
+    let same_dict = |a: &lopdf::Dictionary, b: &lopdf::Dictionary| {
+        a.len() == b.len()
+            && a.iter()
+                .all(|(key, value)| b.get(key).is_ok_and(|other| same_pdf_object(value, other)))
+    };
+    match (a, b) {
+        (Object::Integer(i), Object::Real(r)) | (Object::Real(r), Object::Integer(i)) => {
+            let r = f64::from(*r);
+            r.fract() == 0.0 && r >= i64::MIN as f64 && r < -(i64::MIN as f64) && r as i64 == *i
+        }
+        (Object::Array(a), Object::Array(b)) => {
+            a.len() == b.len() && a.iter().zip(b).all(|(a, b)| same_pdf_object(a, b))
+        }
+        (Object::Dictionary(a), Object::Dictionary(b)) => same_dict(a, b),
+        (Object::Stream(a), Object::Stream(b)) => {
+            a.content == b.content && same_dict(&a.dict, &b.dict)
+        }
+        _ => a == b,
+    }
+}
 fn cancelled(progress: &dyn ProgressReporter) -> Result<()> {
     if progress.is_cancelled() {
         Err(CoreError::Cancelled)
@@ -171,6 +195,12 @@ pub fn process_selected_with_open_session(
         }
         replaced.insert(target);
     }
+    // Keep only objects reachable from the final document trailer. Replaced
+    // page streams/images and the imported subset's catalog/page tree are no
+    // longer needed. Shared resources, outlines and untouched pages remain
+    // reachable and retain their original IDs and bytes. This also removes
+    // obsolete ObjStm/XRef containers, which lopdf rewrites on serialization.
+    let removed: BTreeSet<_> = merged.prune_objects().into_iter().collect();
     // Materialize unused object-number slots as PDF null. PDFium accepts sparse
     // xref subsections, but MuPDF's strict xref enumeration errors on missing
     // slots; the bookmark preservation verifier must be able to inspect them.
@@ -189,8 +219,9 @@ pub fn process_selected_with_open_session(
         .map_err(|e| CoreError::io(&staged, e))?;
     cancelled(progress)?;
     progress.report(ProgressEvent::Validating);
-    // Verify original object preservation after serialization, including raw
-    // content/image streams and unselected page dictionaries. No renumbering
+    // Verify retained original objects after serialization, including raw
+    // content/image streams and unselected page dictionaries. Unreachable
+    // objects were deliberately discarded above, not changed. No renumbering
     // of original page IDs: outline and link page targets retain their identity.
     let reopened = Document::load(&staged).map_err(invalid)?;
     if reopened.get_pages() != original_pages {
@@ -198,7 +229,13 @@ pub fn process_selected_with_open_session(
     }
     for (id, object) in &original.objects {
         cancelled(progress)?;
-        if !replaced.contains(id) && reopened.objects.get(id) != Some(object) {
+        if !replaced.contains(id)
+            && !removed.contains(id)
+            && !reopened
+                .objects
+                .get(id)
+                .is_some_and(|other| same_pdf_object(object, other))
+        {
             return Err(invalid(format!("未处理页面的原对象发生改变：{id:?}")));
         }
     }
@@ -251,4 +288,45 @@ pub fn process_selected_with_open_session(
     report.estimate_comparison = None;
     progress.report(ProgressEvent::Finished);
     Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lopdf::dictionary;
+
+    #[test]
+    fn preservation_accepts_exact_numeric_reencoding_only() {
+        let before = Object::Dictionary(lopdf::dictionary! {
+            "MediaBox" => vec![Object::Real(0.0), Object::Integer(0), Object::Real(300.0)],
+            "Parent" => Object::Reference((4, 0)),
+        });
+        let after = Object::Dictionary(lopdf::dictionary! {
+            "Parent" => Object::Reference((4, 0)),
+            "MediaBox" => vec![Object::Integer(0), Object::Integer(0), Object::Integer(300)],
+        });
+        assert!(same_pdf_object(&before, &after));
+        let mut changed = after.clone();
+        changed
+            .as_dict_mut()
+            .unwrap()
+            .set("Parent", Object::Reference((5, 0)));
+        assert!(!same_pdf_object(&before, &changed));
+        assert!(!same_pdf_object(&Object::Real(0.1), &Object::Integer(0)));
+        assert!(!same_pdf_object(
+            &Object::Real(2_f32.powi(63)),
+            &Object::Integer(i64::MAX)
+        ));
+        assert!(!same_pdf_object(
+            &Object::Real(2_f32.powi(53)),
+            &Object::Integer(9_007_199_254_740_993)
+        ));
+    }
+
+    #[test]
+    fn preservation_rejects_changed_stream_bytes() {
+        let a = Object::Stream(lopdf::Stream::new(lopdf::dictionary! {}, vec![1, 2]));
+        let b = Object::Stream(lopdf::Stream::new(lopdf::dictionary! {}, vec![1, 3]));
+        assert!(!same_pdf_object(&a, &b));
+    }
 }

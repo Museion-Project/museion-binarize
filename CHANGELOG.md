@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project intends to adhere to [Semantic Versioning](https://semver.org/)
 once a first tagged release is published.
 
+## [0.2.0-beta.2] - 2026-09-14
+
+- Fix false validation errors when saving selected-page black-and-white conversion
+  of PDFs with object streams or equivalent integer/real coordinates.
+- Remove unreachable original objects after replacing selected pages, avoiding
+  retention of obsolete page images. Conversion can still increase file size.
+- Tolerate floating-point roundoff at valid contents-title geometry boundaries.
+- Retain manual bookmark target review and the macOS Apple Silicon local-only scope.
+- Regression evidence: 10 complete PDFs, 1,743 pages, 70 saved combinations;
+  66 strict validations passed and four retained a documented pre-existing source
+  stream defect. This is scoped application evidence, not automatic TOC accuracy.
+
 ## [0.2.0-beta.1] - 2026-09-11
 
 - Rename the desktop app to Museion PDF (中文：Museion PDF 处理器).

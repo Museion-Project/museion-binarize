@@ -221,8 +221,12 @@ pub fn compile_local(pages: &[BookmarkEvidence]) -> Result<LocalCompilation, Str
         let mut ids = std::collections::HashSet::new();
         for (i, l) in p.lines.iter().enumerate() {
             let b = l.bbox;
+            // Token positions and union bounds can differ by a few floating
+            // point ULPs after coordinate conversion. This is not a geometric
+            // tolerance: genuine out-of-bounds evidence must still fail.
+            let roundoff = 8.0 * f64::EPSILON * p.width.max(1.0);
             if l.title_start_x
-                .is_some_and(|x| !x.is_finite() || x < b.x || x > b.x + b.width)
+                .is_some_and(|x| !x.is_finite() || x < b.x - roundoff || x > b.x + b.width + roundoff)
             {
                 return Err("invalid title start geometry".into());
             }
@@ -538,5 +542,20 @@ mod tests {
         let mut p = evidence();
         p.lines[1].title_start_x = Some(599.);
         assert!(compile_local(&[p]).is_err());
+    }
+
+    #[test]
+    fn title_geometry_accepts_roundoff_but_not_real_offsets() {
+        let mut p = evidence();
+        p.lines[1].bbox.x = 79.61224489795919;
+        p.lines[1].title_start_x = Some(79.61224489795917);
+        assert!(compile_local(&[p.clone()]).is_ok());
+        let right = p.lines[1].bbox.x + p.lines[1].bbox.width;
+        p.lines[1].title_start_x = Some(f64::from_bits(right.to_bits() + 1));
+        assert!(compile_local(&[p.clone()]).is_ok());
+        for x in [p.lines[1].bbox.x - 1e-6, right + 1e-6, f64::NAN, f64::INFINITY] {
+            p.lines[1].title_start_x = Some(x);
+            assert!(compile_local(&[p.clone()]).is_err());
+        }
     }
 }

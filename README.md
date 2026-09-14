@@ -6,7 +6,7 @@ Local PDF black-and-white processing and editable contents bookmarks, with a Chi
 
 ## Download and install
 
-[Download 0.2.0-beta.1](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.2.0-beta.1). Open the DMG and drag **Museion PDF.app** into Applications. The release is Developer ID signed and Apple notarized. No separate Python or Homebrew installation is needed.
+[Download 0.2.0-beta.2](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.2.0-beta.2). Open the DMG and drag **Museion PDF.app** into Applications. The release is Developer ID signed and Apple notarized. No separate Python or Homebrew installation is needed.
 
 ## Use
 

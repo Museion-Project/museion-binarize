@@ -6,7 +6,7 @@
 
 ## 下载与安装
 
-[下载 0.2.0-beta.1](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.2.0-beta.1)。打开 DMG，将 **Museion PDF.app** 拖入“应用程序”。发布包使用 Developer ID 签名并经 Apple 公证；无需另装 Python 或 Homebrew。
+[下载 0.2.0-beta.2](https://github.com/Museion-Project/museion-binarize/releases/tag/v0.2.0-beta.2)。打开 DMG，将 **Museion PDF.app** 拖入“应用程序”。发布包使用 Developer ID 签名并经 Apple 公证；无需另装 Python 或 Homebrew。
 
 ## 使用
 
