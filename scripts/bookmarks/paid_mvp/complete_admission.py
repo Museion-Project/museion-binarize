@@ -22,15 +22,17 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
     if len(ids)!=len(set(ids)):raise ValueError('DUPLICATE_PREDICTION_ROW_IDENTITY')
     rows_by_id={r['raw_index']:r for r in rows}
     known={e['entry_id']:e for e in entries if e['state']=='OBSERVED' and e.get('printed_folio')}
-    matched={};unresolved=[];risks=[];observations=[]
+    matched={};unresolved=[];risks=[];observations=[];opaque_prediction=False;unknown_coverage=set()
     for row in rows:
         binding=row.get('source_member_binding');entry=by_id.get((binding or {}).get('entry_id'))
         if not binding or not entry:
             unresolved.append(dict(raw_index=row['raw_index'],reason='complete source-member binding absent'))
+            opaque_prediction=True
             continue
         if (binding.get('source_sha256')!=source_sha256 or binding.get('raw_model_sha256')!=raw_sha256
             or Counter(binding.get('word_ids',[]))!=Counter(entry['word_ids'])):
             unresolved.append(dict(raw_index=row['raw_index'],reason='incomplete or stale source-member binding'))
+            opaque_prediction=True
             risks.append(dict(code='incomplete_source_member_ownership',severity='unknown',raw_index=row['raw_index']))
             continue
         if row['source_page']!=entry['page']:
@@ -46,8 +48,16 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
                                  complete_member_binding=True,literal_folio_equal=bool(folio and row.get('printed_page')==folio['literal']),
                                  state='KNOWN_VALID' if eligible else 'UNKNOWN'))
         if eligible:matched[entry['entry_id']]=row['raw_index']
-        else:unresolved.append(dict(raw_index=row['raw_index'],entry_id=entry['entry_id'],reason='source title/folio or semantic identity unresolved'))
-    missing=[eid for eid in known if eid not in matched];total=len(known);fraction=len(missing)/total if total else None
+        else:
+            unresolved.append(dict(raw_index=row['raw_index'],entry_id=entry['entry_id'],reason='source title/folio or semantic identity unresolved'))
+            if entry['entry_id'] in known:unknown_coverage.add(entry['entry_id'])
+    if opaque_prediction:unknown_coverage.update(set(known)-set(matched))
+    unknown_coverage.difference_update(matched)
+    # Only a fully source-bound prediction inventory can prove absence. An
+    # opaque prediction might cover an unmatched known entry: retain UNKNOWN,
+    # rather than manufacturing a catastrophic omission from adapter failure.
+    missing=[eid for eid in known if eid not in matched and eid not in unknown_coverage]
+    total=len(known);fraction=len(missing)/total if total else None
     # UNKNOWN source and unbound model rows can never enlarge this denominator.
     unknown_source=[e['entry_id'] for e in entries if e['entry_id'] not in known]
     unknown_members=list(document.get('unresolved',[]))
@@ -55,11 +65,11 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
         risks.append(dict(code='large_source_region_gap',severity='severe',fraction=fraction))
     for page in source['pages']:
         page_known=[eid for eid,e in known.items() if e['page']==page['page_number']]
-        if len(page_known)>=CONFIG['min_regions'] and not any(eid in matched for eid in page_known):
+        if len(page_known)>=CONFIG['min_regions'] and all(eid in missing for eid in page_known):
             risks.append(dict(code='entire_source_page_missing',severity='severe',page_number=page['page_number']))
     for group in document.get('groups',[]):
         group_known=[eid for eid in group['entry_ids'] if eid in known]
-        if len(group_known)>=CONFIG['min_regions'] and not any(eid in matched for eid in group_known):
+        if len(group_known)>=CONFIG['min_regions'] and all(eid in missing for eid in group_known):
             risks.append(dict(code='entire_source_group_missing',severity='severe',group_id=group['group_id']))
     # Retain the original structural risk labels. Indices are immutable raw
     # identities, not positions in a filtered/reordered list.
@@ -89,6 +99,7 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
                 raw_model_sha256=raw_sha256,revision=revision,config=copy.deepcopy(CONFIG),config_sha256=hash_value(CONFIG),
                 source_probe_sha256=hash_value(source),known_units=total,known_valid=len(matched),
                 known_missing=len(missing),known_missing_entry_ids=missing,known_missing_fraction=fraction,
+                known_coverage_unknown=len(unknown_coverage),unknown_coverage_entry_ids=sorted(unknown_coverage),
                 unknown_source_entry_ids=unknown_source,unknown_source_members=unknown_members,
                 unresolved_predictions=unresolved,observations=observations,risks=risks,
                 human_checked=False,admission_ready=False,quality_ready=False,natural_safety_verified=False,

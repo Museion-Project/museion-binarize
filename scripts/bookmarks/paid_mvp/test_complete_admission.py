@@ -2,6 +2,7 @@
 import copy
 import unittest
 from .complete_admission import decide_complete
+from .failure_detection import seal_tree,verify
 
 
 class CompleteAdmissionTests(unittest.TestCase):
@@ -21,6 +22,9 @@ class CompleteAdmissionTests(unittest.TestCase):
         self.assertEqual(result['decision'],'accept-draft');self.assertEqual(result['known_valid'],28)
         self.assertFalse(result['admission_ready']);self.assertFalse(result['natural_safety_verified'])
         self.assertTrue(result['export_locked']);self.assertEqual(result['export_authority'],'CANDIDATE_ONLY')
+        table=dict(entries=[],source_sha256='s',raw_model_sha256='r',revision=0)
+        table['admission']=seal_tree(result,table)
+        with self.assertRaisesRegex(ValueError,'SEVERE_TOC_EXPORT_LOCK'):verify(table)
 
     def test_six_missing_of_28_cannot_be_diluted_by_100_unknown_source_entries(self):
         source=self.source();rows=self.rows(source)[6:]
@@ -29,6 +33,12 @@ class CompleteAdmissionTests(unittest.TestCase):
         result=decide_complete(rows,source,'s','r')
         self.assertEqual(result['known_units'],28);self.assertEqual(result['known_missing'],6)
         self.assertAlmostEqual(result['known_missing_fraction'],6/28);self.assertEqual(result['decision'],'abstain')
+        for n,e in enumerate(source['document']['entries'][28:]):
+            rows.append(dict(raw_index=1000+n,source_page=1,title='unknown',printed_page=None,
+                             source_member_binding=dict(entry_id=e['entry_id'],word_ids=e['word_ids'],source_sha256='s',raw_model_sha256='r')))
+        result=decide_complete(rows,source,'s','r')
+        self.assertEqual(result['known_missing'],6);self.assertAlmostEqual(result['known_missing_fraction'],6/28)
+        self.assertEqual(result['decision'],'abstain')
         source=self.source();source['document']['groups']=[dict(group_id='g',entry_ids=['0','1'])]
         result=decide_complete(self.rows(source)[2:],source,'s','r')
         self.assertLess(result['known_missing_fraction'],.2)
@@ -52,12 +62,20 @@ class CompleteAdmissionTests(unittest.TestCase):
     def test_partial_or_stale_binding_cannot_certify_a_known_source_unit(self):
         source=self.source(2);rows=self.rows(source);rows[0]['source_member_binding']['word_ids']=rows[0]['source_member_binding']['word_ids'][:1]
         result=decide_complete(rows,source,'s','r');self.assertEqual(result['known_valid'],1)
+        self.assertEqual(result['known_missing'],0);self.assertEqual(result['known_coverage_unknown'],1)
+        self.assertEqual(result['decision'],'review')
         rows=self.rows(source);rows[0]['source_member_binding']['raw_model_sha256']='stale'
         self.assertEqual(decide_complete(rows,source,'s','r')['known_valid'],1)
 
     def test_no_known_denominator_or_incomplete_observer_cannot_auto_accept(self):
         source=self.source(0);result=decide_complete([],source,'s','r')
         self.assertIsNone(result['known_missing_fraction']);self.assertEqual(result['decision'],'review')
+        source=self.source();rows=self.rows(source)
+        for row in rows:row.pop('source_member_binding')
+        result=decide_complete(rows,source,'s','r')
+        self.assertEqual(result['known_missing'],0);self.assertEqual(result['known_coverage_unknown'],28)
+        self.assertEqual(result['decision'],'review')
+        self.assertFalse(any(r['severity']=='severe' for r in result['risks']))
         source=self.source();rows=self.rows(source);source['document']['complete_identity_ready']=False
         self.assertEqual(decide_complete(rows,source,'s','r')['decision'],'review')
         rows[0]['continuation_of']=1000;rows[1]['parent_index']=2000

@@ -9,6 +9,12 @@ from .selective import request_shape,validate,durable_request
 class SelectiveTest(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name);self.image=self.root/'page.png'
+  # Keep the literal square/Unicode fixture. Noto Sans lacks that glyph; using
+  # an OS fallback hid the dependency. Pin the test font to our PyMuPDF build's
+  # embedded CJK font, materialized only in this test's temporary directory.
+  import fitz
+  fixture_font=fitz.Font('cjk');self.assertTrue(fixture_font.has_glyph(ord('□')))
+  font_path=self.root/'fixture-font.ttf';font_path.write_bytes(fixture_font.buffer);self.font=str(font_path)
   image=Image.new('RGB',(200,400),'white');ImageDraw.Draw(image).rectangle((25,25,90,34),fill='black');image.save(self.image)
   self.page=observations(dict(pages=[dict(markdown='□ bad\nunlocated tail',dimensions=dict(width=200,height=400),blocks=[dict(content='□ bad',top_left_x=20,top_left_y=20,bottom_right_x=100,bottom_right_y=40)])]),digest(self.image),1)
   prove_lines(self.page,self.image);self.units=build(self.page,'source','response','epoch1');self.shape=request_shape(self.page,self.units,self.image,self.root/'crops')
@@ -88,14 +94,14 @@ class SelectiveTest(unittest.TestCase):
   from .pipeline import write,review,export_pdf
   import fitz
   pdf=self.root/'input.pdf';d=fitz.open();d.new_page(width=200,height=400);d.new_page(width=200,height=400);d.save(pdf);d.close()
-  out=self.root/'operation';out.mkdir();task=dict(operation_id='test',page_numbers=[1],input_pdf=str(pdf),input_sha256=digest(pdf),images=[dict(path=str(self.image),sha256=digest(self.image))]);write(out/'task.json',task);pages=[dict(page_number=1,status='EXPORT_REVIEW',observation=self.page)];write(out/'pages-v0.json',pages)
+  out=self.root/'operation';out.mkdir();task=dict(operation_id='test',font_path=self.font,page_numbers=[1],input_pdf=str(pdf),input_sha256=digest(pdf),images=[dict(path=str(self.image),sha256=digest(self.image))]);write(out/'task.json',task);pages=[dict(page_number=1,status='EXPORT_REVIEW',observation=self.page)];write(out/'pages-v0.json',pages)
   review(out,0,task['input_sha256'],[]);pages[0]['observation']['repair_units']=self.units;write(out/'pages-v0.json',pages)
   with self.assertRaises(BoundaryError):export_pdf(out,1)
  def test_full_pdf_unselected_page_kept(self):
   from .pipeline import write,review,export_pdf
   import fitz
   pdf=self.root/'input.pdf';d=fitz.open();d.new_page(width=200,height=400);p=d.new_page(width=222,height=333);p.insert_text((20,30),'native unselected');d.save(pdf);d.close()
-  out=self.root/'operation';out.mkdir();task=dict(operation_id='test',page_numbers=[1],input_pdf=str(pdf),input_sha256=digest(pdf),images=[dict(path=str(self.image),sha256=digest(self.image))]);write(out/'task.json',task);write(out/'pages-v0.json',[dict(page_number=1,status='EXPORT_REVIEW',observation=self.page)])
+  out=self.root/'operation';out.mkdir();task=dict(operation_id='test',font_path=self.font,page_numbers=[1],input_pdf=str(pdf),input_sha256=digest(pdf),images=[dict(path=str(self.image),sha256=digest(self.image))]);write(out/'task.json',task);write(out/'pages-v0.json',[dict(page_number=1,status='EXPORT_REVIEW',observation=self.page)])
   review(out,0,task['input_sha256'],[]);result=export_pdf(out,1)
   with fitz.open(result['searchable_pdf']) as reopened:self.assertEqual(len(reopened),2);self.assertIn('native unselected',reopened[1].get_text());self.assertEqual(reopened[1].rect.width,222)
   self.assertIn('unlocated tail',Path(result['text']).read_text());self.assertEqual(result['coverage'][0]['status'],'EXPORT_REVIEW')
@@ -105,7 +111,7 @@ class SelectiveTest(unittest.TestCase):
   from .selective import mistral_manifest,base_run,repair_manifest,repair_run,review_context
   import fitz
   pdf=self.root/'source.pdf';d=fitz.open();d.new_page(width=200,height=400);d.new_page(width=250,height=350);d.save(pdf);d.close();out=self.root/'operation'
-  task=dict(mode='paid',operation_id='synthetic-cycle',input_pdf=str(pdf),input_sha256=digest(pdf),page_numbers=[1],images=[dict(path=str(self.image),sha256=digest(self.image))],output_directory=str(out),config_version='v3-test',region_protocol=VERSION)
+  task=dict(mode='paid',font_path=self.font,operation_id='synthetic-cycle',input_pdf=str(pdf),input_sha256=digest(pdf),page_numbers=[1],images=[dict(path=str(self.image),sha256=digest(self.image))],output_directory=str(out),config_version='v3-test',region_protocol=VERSION)
   def approval(m):return dict(manifest_seal=m['seal'],combined_reservation_reconciled=True,mistral_free_only=True,historical_spent_usd=.04,historical_unsettled_usd=.008,combined_new_reserve_usd=m['worst_case_reservation_usd'],cap_usd=1,approved_request_ids=[c['request_id'] for c in m['calls']],approved_images=m['calls'])
   m=mistral_manifest(task)
   def mistral(url,body):
