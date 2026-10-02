@@ -9,7 +9,7 @@
     "route": {
       "oneOf": [
         {"type": "string", "const": "native_text"},
-        {"type": "object", "required": ["ocr"], "properties": {"ocr": {"type": "object", "required": ["reason"], "properties": {"reason": {"enum": ["missing_text", "too_little_text", "garbled_text"]}}, "additionalProperties": false}}, "additionalProperties": false}
+        {"type": "object", "required": ["ocr"], "properties": {"ocr": {"type": "object", "required": ["reason"], "properties": {"reason": {"enum": ["missing_text", "too_little_text", "garbled_text", "provider_required_raster"]}}, "additionalProperties": false}}, "additionalProperties": false}
       ]
     },
     "width": {"type": "integer", "minimum": 1},

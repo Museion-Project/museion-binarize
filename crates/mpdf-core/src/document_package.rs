@@ -1070,6 +1070,12 @@ fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T> {
         .map_err(|e| package_error(format!("invalid JSON at {}: {e}", path.display())))
 }
 
+/// An unvalidated summary placeholder. Public so fixture builders can
+/// construct a package before running the validator over it.
+pub fn empty_validation_summary() -> ValidationSummary {
+    empty_validation()
+}
+
 fn empty_validation() -> ValidationSummary {
     ValidationSummary {
         schema: MDP_SCHEMA.to_owned(),
@@ -1105,6 +1111,11 @@ fn source_id(digest: &str) -> String {
     format!("source-{digest}")
 }
 fn page_id(digest: &str, index: u32) -> String {
+    page_id_for_sha256(digest, index)
+}
+
+/// The stable page ID derivation, exposed for fixture builders.
+pub fn page_id_for_sha256(digest: &str, index: u32) -> String {
     let seed = format!("{digest}:{index}");
     format!("page-{}", sha256_hex(seed.as_bytes()))
 }

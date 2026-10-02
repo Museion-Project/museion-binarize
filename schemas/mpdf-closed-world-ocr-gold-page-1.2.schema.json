@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mpdf-closed-world-ocr-gold-page-1.2",
+  "title": "Closed-world human OCR gold page with structure and typography",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "page_id", "image", "coverage", "annotation_seed", "lines"],
+  "properties": {
+    "schema": { "const": "mpdf-closed-world-ocr-gold-page" },
+    "schema_version": { "const": "1.2" },
+    "page_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "width", "height", "mime_type"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "mime_type": { "enum": ["image/jpeg", "image/png", "image/tiff"] }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "closed_world", "all_visible_lines_exhaustively_reviewed", "all_structure_exhaustively_reviewed", "all_typography_exhaustively_reviewed", "reviewer", "verified_at", "unresolved_notes"],
+      "properties": {
+        "status": { "enum": ["draft", "verified"] },
+        "closed_world": { "const": true },
+        "all_visible_lines_exhaustively_reviewed": { "type": "boolean" },
+        "all_structure_exhaustively_reviewed": { "type": "boolean" },
+        "all_typography_exhaustively_reviewed": { "type": "boolean" },
+        "footnote_marker_exceptions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["note_id", "reason"],
+            "properties": {
+              "note_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "reason": { "type": "string", "minLength": 1, "maxLength": 1024 }
+            }
+          }
+        },
+        "external_footnote_targets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["target_id", "reason"],
+            "properties": {
+              "target_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "reason": { "type": "string", "minLength": 1, "maxLength": 1024 }
+            }
+          }
+        },
+        "reviewer": { "type": "string", "maxLength": 256 },
+        "verified_at": { "type": ["string", "null"], "format": "date-time" },
+        "unresolved_notes": { "type": "string", "maxLength": 4096 }
+      }
+    },
+    "annotation_seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "warning"],
+      "properties": {
+        "kind": { "const": "blank_human_annotation" },
+        "warning": { "type": "string", "minLength": 1 }
+      }
+    },
+    "lines": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": { "$ref": "#/$defs/line" }
+    }
+  },
+  "$defs": {
+    "bbox": {
+      "description": "[left, top, right, bottom] in original image pixels",
+      "type": "array",
+      "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}, {"type": "number"}],
+      "items": false
+    },
+    "canonical_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "system", "label", "anchor_line_id"],
+      "properties": {
+        "kind": { "enum": ["marginal_page_label", "marginal_line_number", "canonical_reference", "toc_destination"] },
+        "system": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "label": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "anchor_line_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "inline_span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["span_id", "start_char", "end_char", "text", "styles", "semantic_role", "target_id", "bbox"],
+      "properties": {
+        "span_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "start_char": { "type": "integer", "minimum": 0 },
+        "end_char": { "type": "integer", "minimum": 1 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "styles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["italic", "bold", "superscript", "subscript", "underline", "small_caps"] }
+        },
+        "semantic_role": { "enum": ["none", "footnote_marker", "canonical_reference", "emphasis", "title", "citation", "other"] },
+        "target_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+        "bbox": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/bbox" }
+          ]
+        }
+      }
+    },
+    "line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line_id", "reading_order", "bbox", "text", "language", "content_class", "geometry_status", "structure_status", "transcription_status", "typography_status", "paragraph_role", "leaf_id", "column_id", "hierarchy_level", "note_id", "canonical_reference", "inline_spans", "source"],
+      "properties": {
+        "line_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "reading_order": { "type": "integer", "minimum": 0 },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "text": { "type": "string", "maxLength": 16384 },
+        "language": { "enum": ["grc", "lat", "deu", "fra", "eng", "mixed", "zxx", "und"] },
+        "content_class": { "enum": ["document_title", "table_of_contents_title", "table_of_contents_entry", "section_heading", "main_text", "apparatus", "running_head", "footer", "page_number", "footnote", "bibliography", "marginal_page_label", "marginal_line_number", "marginalia", "caption", "table", "equation", "other", "unclassified"] },
+        "geometry_status": { "enum": ["candidate_unverified", "human_verified"] },
+        "structure_status": { "enum": ["candidate_unverified", "human_verified"] },
+        "transcription_status": { "enum": ["candidate_unverified", "human_verified"] },
+        "typography_status": { "enum": ["candidate_unverified", "human_verified"] },
+        "paragraph_role": { "enum": ["start", "continuation", "standalone", "not_applicable", "unclassified"] },
+        "leaf_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+        "column_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+        "hierarchy_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 32 },
+        "note_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+        "canonical_reference": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/canonical_reference" }
+          ]
+        },
+        "inline_spans": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": { "$ref": "#/$defs/inline_span" }
+        },
+        "source": { "enum": ["human_draft", "human"] }
+      }
+    }
+  }
+}

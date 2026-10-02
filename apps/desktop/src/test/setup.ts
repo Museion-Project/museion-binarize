@@ -1,6 +1,7 @@
+import { setLocale } from "../lib/i18n";
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { beforeEach, afterEach } from "vitest";
 
 // vitest.config.ts does not set `test.globals`, so @testing-library/react's
 // own auto-cleanup (which relies on a global `afterEach`) never registers.
@@ -30,3 +31,6 @@ class IntersectionObserverStub {
 if (!window.HTMLElement.prototype.scrollIntoView) {
   window.HTMLElement.prototype.scrollIntoView = () => {};
 }
+
+// Existing UI tests exercise the Chinese locale explicitly.
+beforeEach(() => { setLocale("zh"); });

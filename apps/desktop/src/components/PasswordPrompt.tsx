@@ -1,3 +1,4 @@
+import { t, localizeMessage } from "../lib/i18n";
 import { useState } from "react";
 
 interface PasswordPromptProps {
@@ -26,12 +27,11 @@ export function PasswordPrompt({
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Password required">
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={t("输入 PDF 密码")}>
       <form className="password-prompt" onSubmit={submit}>
         <p>
-          <strong>{fileName}</strong> is password-protected.
-        </p>
-        <label htmlFor="password-input">Password</label>
+          <strong>{fileName}</strong> {t("需要密码才能打开。")}</p>
+        <label htmlFor="password-input">{t("密码")}</label>
         <input
           id="password-input"
           type="password"
@@ -41,16 +41,14 @@ export function PasswordPrompt({
         />
         {attemptError && (
           <p className="password-prompt-error" role="alert">
-            {attemptError}
+            {localizeMessage(attemptError)}
           </p>
         )}
         <div className="password-prompt-actions">
           <button type="button" onClick={onCancel}>
-            Cancel
-          </button>
+            {t("取消")}</button>
           <button type="submit" className="primary" disabled={password.length === 0}>
-            Open
-          </button>
+            {t("打开")}</button>
         </div>
       </form>
     </div>

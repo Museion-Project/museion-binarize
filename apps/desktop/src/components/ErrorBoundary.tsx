@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface ErrorBoundaryProps {
@@ -28,8 +29,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.error) {
       return (
         <div className="error-boundary" role="alert">
-          <h1>Something went wrong in the interface.</h1>
-          <p>Restart the application.</p>
+          <h1>{t("界面发生错误。")}</h1>
+          <p>{t("请重新启动应用。")}</p>
           {import.meta.env.DEV && (
             <pre className="error-boundary-detail">{String(this.state.error.stack ?? this.state.error)}</pre>
           )}

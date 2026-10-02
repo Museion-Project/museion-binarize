@@ -29,15 +29,116 @@ use crate::jobs::{
 
 pub const OCR_PROTOCOL: &str = "mpdf-ocr";
 pub const OCR_PROTOCOL_VERSION: &str = "0.1";
+const OCR_ACTIVE_RUN_PROTOCOL: &str = "mpdf-ocr-active-run";
 pub const CANONICAL_OCR_DPI: u16 = 300;
 pub const MAX_OCR_BLOCKS: usize = 4_096;
 pub const MAX_OCR_LINES: usize = 16_384;
 pub const MAX_OCR_WORDS: usize = 65_536;
 pub const MAX_OCR_TEXT_BYTES: usize = 4 * 1024 * 1024;
 pub const MAX_RAW_ARTIFACT_BYTES: usize = 1024 * 1024;
+/// The ceiling on one *provider response* and one *page record*. This is the
+/// untrusted-input boundary: it bounds what a sidecar process can hand back
+/// for a single page.
 pub const MAX_PROVIDER_OUTPUT_BYTES: u64 = 8 * 1024 * 1024;
+/// The ceiling on `ocr/summary.json`, which holds the whole document rather
+/// than one page.
+///
+/// This is deliberately *not* [`MAX_PROVIDER_OUTPUT_BYTES`]. Reusing the
+/// per-page bound for the aggregate made the pipeline fail on any real book:
+/// a dense 300-dpi scanned page costs roughly 200 KB of typed evidence, so a
+/// 160-page volume needs about 34 MB and hit the 8 MB per-response limit at
+/// around page 40. Synthetic fixtures are a few sparse pages and never reach
+/// it. The summary is this crate's own re-serialization of records that were
+/// each already validated and size-checked on the way in, so the bound here
+/// exists to fail closed on a corrupt or runaway workspace file, not to
+/// police a provider.
+pub const MAX_OCR_SUMMARY_BYTES: u64 = 512 * 1024 * 1024;
 pub const MAX_PROVIDER_STDERR_BYTES: u64 = 16 * 1024;
 pub const MAX_PROVIDER_RUNTIME: Duration = Duration::from_secs(120);
+/// The language profiles the local sidecar understands.
+///
+/// These mirror `scripts/ocr/mpdf_ocr_sidecar.py`. "Greek" is deliberately not
+/// one profile: polytonic Ancient Greek and monotonic Modern Greek need
+/// different models, and treating them as interchangeable is what silently
+/// destroys breathings and iota subscripts.
+pub const OCR_LANGUAGE_PROFILES: [&str; 8] = [
+    "auto",
+    "greek-ancient",
+    "greek-ancient-german-english",
+    "greek-modern",
+    "german",
+    "german-english",
+    "english",
+    "latin-german-english",
+];
+
+/// The profile chosen when a caller expresses no preference.
+pub const DEFAULT_OCR_LANGUAGE_PROFILE: &str = "auto";
+
+/// The production model set this build expects, as pinned in
+/// `distribution/ocr-models/manifest.toml`.
+pub const PRODUCTION_MODEL_SET: &str = "tessdata_best";
+pub const PRODUCTION_MODEL_SET_VERSION: &str = "4.1.0";
+
+/// Model files a `tessdata` model directory must contain for a profile to be
+/// runnable. `osd` is always required: the sidecar's orientation pass reads it
+/// on every page.
+pub fn required_model_files(language_profile: &str) -> Option<Vec<String>> {
+    let languages: &[&str] = match language_profile {
+        "auto" | "greek-ancient-german-english" => &["grc", "deu", "eng"],
+        "greek-ancient" => &["grc"],
+        "greek-modern" => &["ell"],
+        "german" => &["deu"],
+        "german-english" => &["deu", "eng"],
+        "english" => &["eng"],
+        "latin-german-english" => &["lat", "deu", "eng"],
+        _ => return None,
+    };
+    let mut files: Vec<String> = languages
+        .iter()
+        .map(|language| format!("{language}.traineddata"))
+        .collect();
+    files.push("osd.traineddata".to_owned());
+    files.push("manifest.json".to_owned());
+    Some(files)
+}
+
+/// Which local engine the sidecar should drive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OcrEngine {
+    /// Tesseract 5 LSTM with a pinned `tessdata_best` model set. The only
+    /// engine cleared as a production default by the gold evaluation.
+    #[default]
+    Tesseract,
+    /// PaddleOCR/RapidOCR-style detector + region recognizer. Evaluation only:
+    /// it fetches weights at first use and cannot represent polytonic Greek.
+    PaddleOcr,
+}
+
+impl OcrEngine {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Tesseract => "tesseract",
+            Self::PaddleOcr => "paddleocr",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "tesseract" => Some(Self::Tesseract),
+            "paddleocr" => Some(Self::PaddleOcr),
+            _ => None,
+        }
+    }
+
+    /// Whether this engine may be a production default. Kept next to the
+    /// engine list so a new engine cannot be adopted without an explicit
+    /// decision here and a passing gold run.
+    pub fn cleared_for_production(self) -> bool {
+        matches!(self, Self::Tesseract)
+    }
+}
+
 pub const RAPIDOCR_MODEL_FILES: [&str; 3] = [
     "ch_PP-OCRv4_det_infer.onnx",
     "ch_PP-OCRv4_rec_infer.onnx",
@@ -71,6 +172,7 @@ pub enum OcrRouteReason {
     MissingText,
     TooLittleText,
     GarbledText,
+    ProviderRequiredRaster,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -143,7 +245,56 @@ pub struct OcrProviderProvenance {
     pub version: String,
     pub parameters: BTreeMap<String, String>,
     pub input_asset_sha256: String,
-    pub execution_location: String,
+    pub execution_location: ExecutionLocation,
+    /// The language profile the page was recognized under. A page recognized
+    /// with the wrong profile is the single largest source of the Greek and
+    /// German failures this layer exists to prevent, so it is recorded as a
+    /// first-class field rather than left in `parameters`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language_profile: Option<String>,
+    /// `language:sha256` for every model file that actually took part.
+    /// Changing a model therefore changes the evidence fingerprint, which
+    /// invalidates downstream checkpoints and candidate digests by design.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_digest: Option<String>,
+    /// SPDX-ish license expression for the model weights.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_license: Option<String>,
+    /// Pinned model-set name and version, e.g. `tessdata_best 4.1.0`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_set: Option<String>,
+}
+
+impl OcrProviderProvenance {
+    /// Builds provenance from a provider response, promoting the identity
+    /// parameters the sidecar reports into their own fields.
+    fn from_response(
+        engine: String,
+        model: String,
+        version: String,
+        parameters: BTreeMap<String, String>,
+        input_asset_sha256: String,
+        execution_location: ExecutionLocation,
+    ) -> Self {
+        let take = |key: &str| parameters.get(key).filter(|v| !v.is_empty()).cloned();
+        let model_set = match (take("model_set"), take("model_set_version")) {
+            (Some(name), Some(version)) => Some(format!("{name} {version}")),
+            (Some(name), None) => Some(name),
+            _ => None,
+        };
+        Self {
+            language_profile: take("language_profile"),
+            model_digest: take("model_files_sha256"),
+            model_license: take("model_license"),
+            model_set,
+            engine,
+            model,
+            version,
+            parameters,
+            input_asset_sha256,
+            execution_location,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -177,7 +328,7 @@ impl OcrRun {
             if !seen.insert(page.page_index) {
                 return Err(OcrError::InvalidEvidence("duplicate page index".into()));
             }
-            validate_page(page)?;
+            validate_ocr_page(page)?;
         }
         for error in &self.errors {
             if error.message.is_empty()
@@ -225,7 +376,11 @@ fn validate_protocol(protocol: &str, version: &str) -> std::result::Result<(), O
     Ok(())
 }
 
-fn validate_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
+/// Validates one canonical coordinate-bearing OCR page.
+///
+/// Public so complete providers and text-enhancement application can share the
+/// exact same evidence boundary instead of maintaining weaker copies.
+pub fn validate_ocr_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
     if page.width == 0 || page.height == 0 || page.blocks.len() > MAX_OCR_BLOCKS {
         return Err(OcrError::InvalidEvidence(
             "invalid OCR page dimensions/count".into(),
@@ -317,7 +472,6 @@ fn validate_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
             || provenance.model.len() > 256
             || provenance.version.is_empty()
             || provenance.version.len() > 64
-            || provenance.execution_location.is_empty()
             || provenance.input_asset_sha256.len() != 64
             || !provenance
                 .input_asset_sha256
@@ -327,6 +481,21 @@ fn validate_page(page: &OcrPage) -> std::result::Result<(), OcrError> {
             return Err(OcrError::InvalidEvidence(
                 "OCR provider provenance is incomplete".into(),
             ));
+        }
+        for (value, limit) in [
+            (&provenance.language_profile, 128usize),
+            (&provenance.model_digest, 4096),
+            (&provenance.model_license, 256),
+            (&provenance.model_set, 256),
+        ] {
+            if value
+                .as_ref()
+                .is_some_and(|text| text.is_empty() || text.len() > limit)
+            {
+                return Err(OcrError::InvalidEvidence(
+                    "OCR model provenance field is out of range".into(),
+                ));
+            }
         }
         if provenance.parameters.len() > 128
             || provenance
@@ -369,12 +538,45 @@ fn validate_confidence(confidence: f32) -> std::result::Result<(), OcrError> {
 }
 
 pub trait PageOcrProvider {
+    fn requires_raster_recognition(&self) -> bool {
+        false
+    }
+
+    /// Where this provider executes when recognition is attempted. This is
+    /// deliberately mandatory: a future network provider must make the
+    /// choice explicitly, so even failed attempts cannot silently inherit a
+    /// local default in durable provenance.
+    fn execution_location(&self) -> ExecutionLocation;
+
     fn recognize(
         &mut self,
         page_index: u32,
         image: &DynamicImage,
         input_asset_sha256: &str,
     ) -> std::result::Result<OcrPage, OcrError>;
+}
+
+/// Provider used by the base package when the optional offline OCR plugin is
+/// absent. Reliable native text pages never call it; a scanned/image-only page
+/// receives the supplied actionable diagnostic.
+#[derive(Debug, Clone)]
+pub struct OptionalOcrPluginUnavailable {
+    pub diagnostic: String,
+}
+
+impl PageOcrProvider for OptionalOcrPluginUnavailable {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
+    fn recognize(
+        &mut self,
+        _page_index: u32,
+        _image: &DynamicImage,
+        _input_asset_sha256: &str,
+    ) -> std::result::Result<OcrPage, OcrError> {
+        Err(OcrError::ProviderUnavailable(self.diagnostic.clone()))
+    }
 }
 
 /// Deterministic provider used by integration tests and development builds.
@@ -385,6 +587,10 @@ pub trait PageOcrProvider {
 pub struct ReferenceOcrProvider;
 
 impl PageOcrProvider for ReferenceOcrProvider {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
     fn recognize(
         &mut self,
         page_index: u32,
@@ -432,29 +638,210 @@ impl PageOcrProvider for ReferenceOcrProvider {
                 version: "0.1".into(),
                 parameters: BTreeMap::new(),
                 input_asset_sha256: input_asset_sha256.into(),
-                execution_location: "local".into(),
+                execution_location: ExecutionLocation::Local,
+                language_profile: None,
+                model_digest: None,
+                model_license: None,
+                model_set: None,
             }),
             provider_raw_artifact: Some("reference-provider".into()),
         })
     }
 }
 
+/// Legacy RapidOCR sidecar configuration.
+///
+/// Retained so an expert can still reproduce the old path while debugging;
+/// `scripts/ocr/rapidocr_sidecar.py` is no longer a supported default for any
+/// language. New callers use [`SidecarOcrConfig`].
 #[derive(Debug, Clone)]
 pub struct RapidOcrConfig {
     pub executable: PathBuf,
     pub model_dir: PathBuf,
 }
 
+/// Configuration for `scripts/ocr/mpdf_ocr_sidecar.py`.
+#[derive(Debug, Clone)]
+pub struct SidecarOcrConfig {
+    pub executable: PathBuf,
+    pub model_dir: PathBuf,
+    /// Optional Tesseract executable passed to the sidecar. `None` preserves
+    /// the developer-configured PATH behavior; bundled runtimes always set it
+    /// to their executable-adjacent engine path.
+    pub engine_binary: Option<PathBuf>,
+    pub engine: OcrEngine,
+    pub language_profile: String,
+    /// Page segmentation mode passed to Tesseract. General OCR keeps the
+    /// historical PSM 6 default; the selected geometry-only pipeline uses PSM
+    /// 3 because its clean-native control included multi-column pages.
+    pub psm: u8,
+    /// Files that must exist in `model_dir` before the provider is considered
+    /// available. Empty means "do not pre-check" (legacy behavior).
+    pub required_files: Vec<String>,
+    /// Optional recognition passes, passed to the sidecar explicitly rather
+    /// than left to its defaults.
+    ///
+    /// They are on the command line, and in the job fingerprint, for the same
+    /// reason: they change what the evidence *is*. A page recognized with the
+    /// small-type pass on is not the same evidence as one recognized without
+    /// it, so flipping either must invalidate the checkpoint rather than let
+    /// a resumed run mix the two.
+    pub passes: SidecarPasses,
+}
+
+/// Which optional sidecar passes are enabled. Both default to off, matching
+/// the sidecar's own defaults; see docs/ocr-engines.md for why.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SidecarPasses {
+    /// Block-level Greek script routing (`--routing`).
+    pub greek_routing: bool,
+    /// Small-type Latin re-recognition (`--small-type-latin`).
+    pub small_type_latin: bool,
+    /// Detached Greek accent band re-recognition (`--detached-greek-accents`).
+    pub detached_greek_accents: bool,
+}
+
+impl SidecarPasses {
+    pub fn routing_arg(self) -> &'static str {
+        if self.greek_routing {
+            "block-script-v1"
+        } else {
+            "off"
+        }
+    }
+
+    pub fn small_type_arg(self) -> &'static str {
+        if self.small_type_latin {
+            "on"
+        } else {
+            "off"
+        }
+    }
+
+    pub fn detached_accents_arg(self) -> &'static str {
+        if self.detached_greek_accents {
+            "on"
+        } else {
+            "off"
+        }
+    }
+
+    /// Stable identity for the job fingerprint.
+    pub fn fingerprint(self) -> String {
+        format!(
+            "routing={}|small_type_latin={}|detached_greek_accents={}",
+            self.routing_arg(),
+            self.small_type_arg(),
+            self.detached_accents_arg()
+        )
+    }
+}
+
+impl SidecarOcrConfig {
+    /// The production configuration: Tesseract LSTM, the pinned model set, and
+    /// the requested language profile.
+    pub fn tesseract(
+        executable: PathBuf,
+        model_dir: PathBuf,
+        language_profile: &str,
+    ) -> std::result::Result<Self, OcrError> {
+        let required = required_model_files(language_profile).ok_or_else(|| {
+            OcrError::ProviderUnavailable(format!(
+                "unknown OCR language profile: {language_profile}"
+            ))
+        })?;
+        Ok(Self {
+            executable,
+            model_dir,
+            engine_binary: None,
+            engine: OcrEngine::Tesseract,
+            language_profile: language_profile.to_owned(),
+            psm: 6,
+            required_files: required,
+            passes: SidecarPasses::default(),
+        })
+    }
+
+    /// The frozen Tesseract configuration selected for line geometry on the
+    /// 2026-08-30 clean-native control. Historical material remains unvalidated.
+    pub fn tesseract_geometry(
+        executable: PathBuf,
+        model_dir: PathBuf,
+        language_profile: &str,
+    ) -> std::result::Result<Self, OcrError> {
+        let mut config = Self::tesseract(executable, model_dir, language_profile)?;
+        config.psm = 3;
+        Ok(config)
+    }
+}
+
+fn sidecar_command(config: &SidecarOcrConfig, input: &Path) -> Command {
+    let mut command = Command::new(&config.executable);
+    command
+        .arg("--protocol")
+        .arg(OCR_PROTOCOL)
+        .arg("--protocol-version")
+        .arg(OCR_PROTOCOL_VERSION)
+        .arg("--model-dir")
+        .arg(&config.model_dir)
+        .arg("--input")
+        .arg(input)
+        .arg("--engine")
+        .arg(config.engine.as_str())
+        .arg("--language-profile")
+        .arg(&config.language_profile)
+        .arg("--psm")
+        .arg(config.psm.to_string())
+        .arg("--routing")
+        .arg(config.passes.routing_arg())
+        .arg("--small-type-latin")
+        .arg(config.passes.small_type_arg())
+        .arg("--detached-greek-accents")
+        .arg(config.passes.detached_accents_arg());
+    if let Some(path) = &config.engine_binary {
+        command.arg("--engine-binary").arg(path);
+    }
+    command
+}
+
 #[derive(Debug, Clone)]
 pub struct RapidOcrProvider {
-    config: RapidOcrConfig,
+    config: SidecarOcrConfig,
 }
 
 impl RapidOcrProvider {
+    /// Legacy constructor: the old RapidOCR sidecar, whose model files are
+    /// fixed and whose language profile is not selectable.
     pub fn new(config: RapidOcrConfig) -> Self {
+        Self {
+            config: SidecarOcrConfig {
+                executable: config.executable,
+                model_dir: config.model_dir,
+                engine_binary: None,
+                engine: OcrEngine::PaddleOcr,
+                language_profile: DEFAULT_OCR_LANGUAGE_PROFILE.to_owned(),
+                psm: 6,
+                required_files: RAPIDOCR_MODEL_FILES
+                    .iter()
+                    .map(|name| (*name).to_owned())
+                    .collect(),
+                passes: SidecarPasses::default(),
+            },
+        }
+    }
+
+    pub fn from_sidecar(config: SidecarOcrConfig) -> Self {
         Self { config }
     }
+
+    pub fn language_profile(&self) -> &str {
+        &self.config.language_profile
+    }
 }
+
+/// The general local sidecar provider. `RapidOcrProvider` is the same type
+/// under its historical name; this alias is what new code should use.
+pub type SidecarOcrProvider = RapidOcrProvider;
 
 #[derive(Debug, Serialize)]
 struct RapidRequest<'a> {
@@ -462,6 +849,9 @@ struct RapidRequest<'a> {
     protocol_version: &'static str,
     page_index: u32,
     input_asset_sha256: &'a str,
+    /// Echoed to the sidecar so a page can never be recognized under a
+    /// different profile than the one this run recorded.
+    language_profile: &'a str,
 }
 
 #[derive(Debug, Deserialize)]
@@ -477,10 +867,14 @@ struct RapidResponse {
     model: String,
     version: String,
     parameters: BTreeMap<String, String>,
-    execution_location: String,
+    execution_location: ExecutionLocation,
 }
 
 impl PageOcrProvider for RapidOcrProvider {
+    fn execution_location(&self) -> ExecutionLocation {
+        ExecutionLocation::Local
+    }
+
     fn recognize(
         &mut self,
         page_index: u32,
@@ -499,12 +893,14 @@ impl PageOcrProvider for RapidOcrProvider {
                 self.config.model_dir.display()
             )));
         }
-        if let Some(name) = RAPIDOCR_MODEL_FILES
+        if let Some(name) = self
+            .config
+            .required_files
             .iter()
             .find(|name| !self.config.model_dir.join(name).is_file())
         {
             return Err(OcrError::ProviderUnavailable(format!(
-                "RapidOCR model file is missing: {name}"
+                "local OCR model file is missing: {name}"
             )));
         }
         let temp = tempfile::NamedTempFile::new()
@@ -527,6 +923,7 @@ impl PageOcrProvider for RapidOcrProvider {
             protocol_version: OCR_PROTOCOL_VERSION,
             page_index,
             input_asset_sha256,
+            language_profile: &self.config.language_profile,
         })
         .map_err(|error| OcrError::ProviderFailed {
             page: page_index,
@@ -534,15 +931,8 @@ impl PageOcrProvider for RapidOcrProvider {
         })?;
         // Command::new executes the configured executable directly. No shell,
         // interpolation, PATH fallback, or network operation is involved.
-        let mut child = Command::new(&self.config.executable)
-            .arg("--protocol")
-            .arg(OCR_PROTOCOL)
-            .arg("--protocol-version")
-            .arg(OCR_PROTOCOL_VERSION)
-            .arg("--model-dir")
-            .arg(&self.config.model_dir)
-            .arg("--input")
-            .arg(temp.path())
+        let mut command = sidecar_command(&self.config, temp.path());
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             // Provider diagnostics may contain document text. Do not expose
@@ -669,19 +1059,19 @@ impl PageOcrProvider for RapidOcrProvider {
             height: response.height,
             blocks: response.blocks,
             revisions: Vec::new(),
-            provider_provenance: Some(OcrProviderProvenance {
-                engine: response.engine,
-                model: response.model,
-                version: response.version,
-                parameters: response.parameters,
-                input_asset_sha256: input_asset_sha256.into(),
-                execution_location: response.execution_location,
-            }),
+            provider_provenance: Some(OcrProviderProvenance::from_response(
+                response.engine,
+                response.model,
+                response.version,
+                response.parameters,
+                input_asset_sha256.into(),
+                response.execution_location,
+            )),
             // Preserve the exact bounded provider JSON response; the page
             // writer also stores it under ocr/raw/ without logging it.
             provider_raw_artifact: Some(raw_response),
         };
-        validate_page(&page)?;
+        validate_ocr_page(&page)?;
         Ok(page)
     }
 }
@@ -804,10 +1194,12 @@ pub fn run_session<S: DocumentSession, P: PageOcrProvider + ?Sized>(
     for page in &session.info().pages {
         let native = session.native_text(page.index)?;
         let (width, height) = page.geometry.pixel_size(dpi)?;
-        let route_reason = native_is_reliable(&native)
-            .err()
-            .unwrap_or(OcrRouteReason::MissingText);
-        if matches!(native_is_reliable(&native), Ok(())) {
+        let route_reason = if provider.requires_raster_recognition() {
+            OcrRouteReason::ProviderRequiredRaster
+        } else {
+            native_is_reliable(&native).err().unwrap_or(OcrRouteReason::MissingText)
+        };
+        if !provider.requires_raster_recognition() && native_is_reliable(&native).is_ok() {
             run.pages
                 .push(native_page(page.index, &native, width, height));
             continue;
@@ -833,7 +1225,10 @@ pub fn run_session<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 evidence.route = OcrRoute::Ocr {
                     reason: route_reason.clone(),
                 };
-                if let Err(error) = validate_page(&evidence) {
+                let validation =
+                    validate_page_execution_location(&evidence, provider.execution_location())
+                        .and_then(|()| validate_ocr_page(&evidence));
+                if let Err(error) = validation {
                     run.errors.push(OcrPageError {
                         page_index: page.index,
                         route_reason: route_reason.clone(),
@@ -876,6 +1271,34 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
     owner: &str,
     dpi: u16,
 ) -> std::result::Result<OcrRun, CoreError> {
+    run_session_durable_with_cancel(
+        session,
+        provider,
+        store,
+        job_id,
+        job_fingerprint,
+        output_root,
+        owner,
+        dpi,
+        &|| false,
+    )
+}
+
+/// Cancellation-aware durable OCR orchestration used by the full pipeline.
+/// The callback is checked around rendering and provider execution; when it
+/// fires the durable job is marked cancelled before control returns.
+#[allow(clippy::too_many_arguments)]
+pub fn run_session_durable_with_cancel<S: DocumentSession, P: PageOcrProvider + ?Sized>(
+    session: &S,
+    provider: &mut P,
+    store: &JobStore,
+    job_id: &str,
+    job_fingerprint: &str,
+    output_root: &Path,
+    owner: &str,
+    dpi: u16,
+    cancelled: &dyn Fn() -> bool,
+) -> std::result::Result<OcrRun, CoreError> {
     if dpi == 0 {
         return Err(CoreError::InvalidParameter(
             "OCR DPI must be positive".into(),
@@ -883,7 +1306,11 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
     }
     prepare_ocr_directory(output_root)
         .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
-    validate_ocr_page_files(output_root, session.info().page_count)
+    let run_root = prepare_durable_run_root(output_root, job_fingerprint)
+        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+    activate_ocr_run(output_root, job_fingerprint)
+        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+    validate_ocr_page_files(&run_root, session.info().page_count)
         .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
     store
         .ensure_job(job_id, session.info().page_count, job_fingerprint)
@@ -895,6 +1322,7 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
         errors: Vec::new(),
     };
     for page in &session.info().pages {
+        check_durable_cancelled(store, job_id, cancelled)?;
         let status = store
             .job(job_id)
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
@@ -907,9 +1335,11 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?
         {
             if matches!(record.status, crate::jobs::PageStatus::Completed) {
-                let existing = read_ocr_page(output_root, page.index)
+                let existing = read_ocr_page_at_root(&run_root, page.index)
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
-                let page_path = output_root
+                validate_page_execution_location(&existing, provider.execution_location())
+                    .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                let page_path = run_root
                     .join("ocr/pages")
                     .join(format!("p{:06}.json", page.index.saturating_add(1)));
                 let bytes = read_bounded_file(&page_path, MAX_PROVIDER_OUTPUT_BYTES)
@@ -928,7 +1358,7 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
             // stopped before SQLite. The page JSON is the commit marker; adopt
             // it only after full typed/raw validation, then checkpoint it
             // without invoking the provider.
-            let page_path = output_root
+            let page_path = run_root
                 .join("ocr/pages")
                 .join(format!("p{:06}.json", page.index.saturating_add(1)));
             if matches!(
@@ -936,7 +1366,9 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 crate::jobs::PageStatus::Queued | crate::jobs::PageStatus::Running
             ) && fs::symlink_metadata(&page_path).is_ok()
             {
-                let orphan = read_ocr_page(output_root, page.index)
+                let orphan = read_ocr_page_at_root(&run_root, page.index)
+                    .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                validate_page_execution_location(&orphan, provider.execution_location())
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
                 let claimed = store
                     .claim_page_at(job_id, owner, page.index, unix_seconds()?, 3_600)
@@ -950,23 +1382,42 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 let bytes = read_bounded_file(&page_path, MAX_PROVIDER_OUTPUT_BYTES)
                     .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
                 let digest = crate::document_package::sha256_digest(&bytes);
-                store
-                    .checkpoint_page(
-                        job_id,
-                        page.index,
-                        owner,
-                        &format!("ocr-page-{}", page.index + 1),
-                        &digest,
-                        unix_seconds()?,
-                    )
-                    .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                let checkpointed_at = unix_seconds()?;
+                if let Some(response) = provider_response_for_page(&orphan, digest.clone()) {
+                    // Preserve provider provenance when adopting a page that
+                    // reached disk before the SQLite transaction. Otherwise
+                    // a paid remote result would survive only as a generic
+                    // checkpoint with no provider-run location.
+                    store
+                        .record_provider_success_and_checkpoint(
+                            job_id,
+                            page.index,
+                            owner,
+                            &format!("ocr-page-{}", page.index + 1),
+                            &response,
+                            checkpointed_at,
+                            checkpointed_at,
+                        )
+                        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                } else {
+                    store
+                        .checkpoint_page(
+                            job_id,
+                            page.index,
+                            owner,
+                            &format!("ocr-page-{}", page.index + 1),
+                            &digest,
+                            checkpointed_at,
+                        )
+                        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+                }
                 run.pages.push(orphan);
                 continue;
             }
         }
         let now = unix_seconds()?;
         let claimed = store
-            .claim_page(job_id, owner, now, 3_600)
+            .claim_page_at(job_id, owner, page.index, now, 3_600)
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         if claimed.is_none() {
             return Err(CoreError::InvalidDocument(format!(
@@ -990,10 +1441,13 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 break;
             }
         };
-        let route_reason = native_is_reliable(&native)
-            .err()
-            .unwrap_or(OcrRouteReason::MissingText);
-        let evidence = if native_is_reliable(&native).is_ok() {
+        let route_reason = if provider.requires_raster_recognition() {
+            OcrRouteReason::ProviderRequiredRaster
+        } else {
+            native_is_reliable(&native).err().unwrap_or(OcrRouteReason::MissingText)
+        };
+        check_durable_cancelled(store, job_id, cancelled)?;
+        let evidence = if !provider.requires_raster_recognition() && native_is_reliable(&native).is_ok() {
             let (width, height) = page.geometry.pixel_size(dpi)?;
             native_page(page.index, &native, width, height)
         } else {
@@ -1013,9 +1467,11 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                     break;
                 }
             };
+            check_durable_cancelled(store, job_id, cancelled)?;
             let input_digest = image_sha256(&image).map_err(CoreError::Image)?;
             match provider.recognize(page.index, &image, &input_digest) {
                 Ok(mut evidence) => {
+                    check_durable_cancelled(store, job_id, cancelled)?;
                     evidence.page_index = page.index;
                     evidence.route = OcrRoute::Ocr {
                         reason: route_reason,
@@ -1023,13 +1479,18 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                     evidence
                 }
                 Err(error) => {
+                    check_durable_cancelled(store, job_id, cancelled)?;
                     let provenance = ProviderProvenance {
-                        engine: "local-ocr".into(),
+                        // The attempt can be local or remote. Until the page
+                        // provider exposes richer failure identity, keep this
+                        // label neutral and let the mandatory typed location
+                        // carry the privacy/billing distinction.
+                        engine: "ocr-provider".into(),
                         model: "unavailable".into(),
                         version: OCR_PROTOCOL_VERSION.into(),
                         parameters: BTreeMap::new(),
                         input_asset_sha256: input_digest,
-                        execution_location: ExecutionLocation::Local,
+                        execution_location: provider.execution_location(),
                     };
                     store
                         .record_provider_failure(
@@ -1057,8 +1518,12 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 }
             }
         };
-        validate_page(&evidence).map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
-        write_ocr_page(output_root, &evidence)
+        check_durable_cancelled(store, job_id, cancelled)?;
+        validate_page_execution_location(&evidence, provider.execution_location())
+            .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+        validate_ocr_page(&evidence)
+            .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+        write_ocr_page(&run_root, &evidence)
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         // `write_ocr_page` persists pretty JSON; hash those exact canonical
         // bytes so a whitespace or byte-level tamper cannot be mistaken for
@@ -1066,20 +1531,7 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
         let bytes = serde_json::to_vec_pretty(&evidence)
             .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         let output_digest = crate::document_package::sha256_digest(&bytes);
-        if let Some(provenance) = &evidence.provider_provenance {
-            let response = ProviderResponse {
-                protocol: JOB_PROTOCOL.into(),
-                protocol_version: JOB_PROTOCOL_VERSION.into(),
-                output_digest,
-                provenance: ProviderProvenance {
-                    engine: provenance.engine.clone(),
-                    model: provenance.model.clone(),
-                    version: provenance.version.clone(),
-                    parameters: provenance.parameters.clone(),
-                    input_asset_sha256: provenance.input_asset_sha256.clone(),
-                    execution_location: ExecutionLocation::Local,
-                },
-            };
+        if let Some(response) = provider_response_for_page(&evidence, output_digest.clone()) {
             store
                 .record_provider_success_and_checkpoint(
                     job_id,
@@ -1108,9 +1560,9 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
     run.validate()
         .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
     if run.errors.is_empty() && run.pages.len() == session.info().page_count as usize {
-        let summary_path = output_root.join("ocr/summary.json");
+        let summary_path = run_root.join("ocr/summary.json");
         if summary_path.exists() {
-            let existing = read_ocr_records(output_root)
+            let existing = read_ocr_records_at_root(&run_root)
                 .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
             if existing != run {
                 return Err(CoreError::InvalidDocument(
@@ -1118,11 +1570,185 @@ pub fn run_session_durable<S: DocumentSession, P: PageOcrProvider + ?Sized>(
                 ));
             }
         } else {
-            write_ocr_summary(output_root, &run)
+            write_ocr_summary(&run_root, &run)
                 .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
         }
+        publish_active_ocr_run(output_root, &run_root, job_fingerprint, &run)
+            .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
     }
     Ok(run)
+}
+
+fn provider_response_for_page(page: &OcrPage, output_digest: String) -> Option<ProviderResponse> {
+    let provenance = page.provider_provenance.as_ref()?;
+    Some(ProviderResponse {
+        protocol: JOB_PROTOCOL.into(),
+        protocol_version: JOB_PROTOCOL_VERSION.into(),
+        output_digest,
+        provenance: ProviderProvenance {
+            engine: provenance.engine.clone(),
+            model: provenance.model.clone(),
+            version: provenance.version.clone(),
+            parameters: provenance.parameters.clone(),
+            input_asset_sha256: provenance.input_asset_sha256.clone(),
+            execution_location: provenance.execution_location,
+        },
+    })
+}
+
+fn validate_page_execution_location(
+    page: &OcrPage,
+    declared_location: ExecutionLocation,
+) -> std::result::Result<(), OcrError> {
+    let Some(provenance) = &page.provider_provenance else {
+        return Ok(());
+    };
+    if provenance.execution_location != declared_location {
+        return Err(OcrError::InvalidEvidence(format!(
+            "OCR provider execution location mismatch: provider declared {}, page recorded {}",
+            declared_location.as_str(),
+            provenance.execution_location.as_str()
+        )));
+    }
+    Ok(())
+}
+
+fn check_durable_cancelled(
+    store: &JobStore,
+    job_id: &str,
+    cancelled: &dyn Fn() -> bool,
+) -> std::result::Result<(), CoreError> {
+    if !cancelled() {
+        return Ok(());
+    }
+    store
+        .request_cancel(job_id)
+        .map_err(|error| CoreError::InvalidDocument(error.to_string()))?;
+    Err(CoreError::Cancelled)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ActiveOcrRun {
+    protocol: String,
+    protocol_version: String,
+    fingerprint_sha256: String,
+}
+
+fn fingerprint_namespace(job_fingerprint: &str) -> String {
+    crate::document_package::sha256_digest(job_fingerprint.as_bytes())
+}
+
+fn prepare_durable_run_root(
+    output_root: &Path,
+    job_fingerprint: &str,
+) -> std::result::Result<PathBuf, OcrError> {
+    let ocr_dir = output_root.join("ocr");
+    let runs_dir = ocr_dir.join("runs");
+    ensure_real_directory(&runs_dir, "OCR runs")?;
+    let run_root = runs_dir.join(fingerprint_namespace(job_fingerprint));
+    ensure_real_directory(&run_root, "OCR run")?;
+    prepare_ocr_directory(&run_root)?;
+    Ok(run_root)
+}
+
+fn ensure_real_directory(path: &Path, label: &str) -> std::result::Result<(), OcrError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => Ok(()),
+        Ok(_) => Err(OcrError::Package(format!(
+            "{label} is not a real directory"
+        ))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            fs::create_dir(path).map_err(|error| OcrError::Package(error.to_string()))
+        }
+        Err(error) => Err(OcrError::Package(error.to_string())),
+    }
+}
+
+fn active_ocr_storage_root(root: &Path) -> std::result::Result<PathBuf, OcrError> {
+    let pointer_path = root.join("ocr/active-run.json");
+    let metadata = match fs::symlink_metadata(&pointer_path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(root.to_path_buf()),
+        Err(error) => return Err(OcrError::Package(error.to_string())),
+    };
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Err(OcrError::Package(
+            "OCR active-run pointer is not a real file".into(),
+        ));
+    }
+    let pointer: ActiveOcrRun = serde_json::from_slice(&read_bounded_file(
+        &pointer_path,
+        MAX_PROVIDER_OUTPUT_BYTES,
+    )?)
+    .map_err(|error| OcrError::Package(error.to_string()))?;
+    if pointer.protocol != OCR_ACTIVE_RUN_PROTOCOL
+        || pointer.protocol_version != OCR_PROTOCOL_VERSION
+        || pointer.fingerprint_sha256.len() != 64
+        || !pointer
+            .fingerprint_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(OcrError::Package(
+            "OCR active-run pointer is invalid".into(),
+        ));
+    }
+    let run_root = root.join("ocr/runs").join(pointer.fingerprint_sha256);
+    let metadata =
+        fs::symlink_metadata(&run_root).map_err(|error| OcrError::Package(error.to_string()))?;
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        return Err(OcrError::Package(
+            "OCR active run is not a real directory".into(),
+        ));
+    }
+    Ok(run_root)
+}
+
+fn publish_active_ocr_run(
+    output_root: &Path,
+    run_root: &Path,
+    job_fingerprint: &str,
+    run: &OcrRun,
+) -> std::result::Result<(), OcrError> {
+    // Keep the legacy top-level summary as a compatibility marker for package
+    // readers, then atomically switch the typed active-run pointer. Readers in
+    // this crate resolve the pointer and never combine pages from two runs.
+    atomic_replace_json(
+        &output_root.join("ocr/summary.json"),
+        run,
+        MAX_OCR_SUMMARY_BYTES,
+    )?;
+    activate_ocr_run(output_root, job_fingerprint)?;
+    let pointer = active_ocr_run(job_fingerprint);
+    let expected_root = output_root
+        .join("ocr/runs")
+        .join(&pointer.fingerprint_sha256);
+    if expected_root != run_root {
+        return Err(OcrError::Package(
+            "OCR active-run namespace does not match fingerprint".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn active_ocr_run(job_fingerprint: &str) -> ActiveOcrRun {
+    ActiveOcrRun {
+        protocol: OCR_ACTIVE_RUN_PROTOCOL.into(),
+        protocol_version: OCR_PROTOCOL_VERSION.into(),
+        fingerprint_sha256: fingerprint_namespace(job_fingerprint),
+    }
+}
+
+fn activate_ocr_run(
+    output_root: &Path,
+    job_fingerprint: &str,
+) -> std::result::Result<(), OcrError> {
+    atomic_replace_json(
+        &output_root.join("ocr/active-run.json"),
+        &active_ocr_run(job_fingerprint),
+        MAX_PROVIDER_OUTPUT_BYTES,
+    )
 }
 
 fn unix_seconds() -> std::result::Result<i64, CoreError> {
@@ -1159,9 +1785,9 @@ pub fn write_ocr_records(root: &Path, run: &OcrRun) -> std::result::Result<(), O
             .ok_or_else(|| OcrError::Package("OCR page index overflow".into()))?;
         let path = pages_dir.join(format!("p{page_number:06}.json"));
         write_raw_artifact(root, page)?;
-        atomic_create_json(&path, page)?;
+        atomic_create_json(&path, page, MAX_PROVIDER_OUTPUT_BYTES)?;
     }
-    atomic_create_json(&ocr_dir.join("summary.json"), run)?;
+    atomic_create_json(&ocr_dir.join("summary.json"), run, MAX_OCR_SUMMARY_BYTES)?;
     Ok(())
 }
 
@@ -1204,14 +1830,14 @@ pub fn write_ocr_summary(root: &Path, run: &OcrRun) -> std::result::Result<(), O
             "cannot finalize an incomplete OCR run".into(),
         ));
     }
-    atomic_create_json(&root.join("ocr/summary.json"), run)
+    atomic_create_json(&root.join("ocr/summary.json"), run, MAX_OCR_SUMMARY_BYTES)
 }
 
 /// Installs exactly one page record. The durable orchestrator calls this
 /// before its SQLite checkpoint; an interrupted write therefore cannot make
 /// a completed database page appear successful on resume.
 pub fn write_ocr_page(root: &Path, page: &OcrPage) -> std::result::Result<(), OcrError> {
-    validate_page(page)?;
+    validate_ocr_page(page)?;
     let pages_dir = root.join("ocr/pages");
     if !pages_dir.is_dir() {
         return Err(OcrError::Package("OCR pages directory is missing".into()));
@@ -1224,7 +1850,11 @@ pub fn write_ocr_page(root: &Path, page: &OcrPage) -> std::result::Result<(), Oc
     // marker. A crash can therefore leave an orphan raw file but not a
     // database-completed page without its evidence.
     write_raw_artifact(root, page)?;
-    atomic_create_json(&pages_dir.join(format!("p{page_number:06}.json")), page)
+    atomic_create_json(
+        &pages_dir.join(format!("p{page_number:06}.json")),
+        page,
+        MAX_PROVIDER_OUTPUT_BYTES,
+    )
 }
 
 fn raw_artifact_path(root: &Path, page_index: u32) -> PathBuf {
@@ -1252,7 +1882,12 @@ fn write_raw_artifact(root: &Path, page: &OcrPage) -> std::result::Result<(), Oc
             }
             Ok(())
         }
-        Err(_) => atomic_create_bytes(&path, raw.as_bytes()),
+        Err(_) => atomic_create_bytes(
+            &path,
+            raw.as_bytes(),
+            MAX_RAW_ARTIFACT_BYTES as u64,
+            "OCR raw artifact is too large",
+        ),
     }
 }
 
@@ -1295,6 +1930,11 @@ fn read_bounded_file(path: &Path, limit: u64) -> std::result::Result<Vec<u8>, Oc
 }
 
 pub fn read_ocr_page(root: &Path, page_index: u32) -> std::result::Result<OcrPage, OcrError> {
+    let storage_root = active_ocr_storage_root(root)?;
+    read_ocr_page_at_root(&storage_root, page_index)
+}
+
+fn read_ocr_page_at_root(root: &Path, page_index: u32) -> std::result::Result<OcrPage, OcrError> {
     let page_number = page_index
         .checked_add(1)
         .ok_or_else(|| OcrError::Package("OCR page index overflow".into()))?;
@@ -1319,28 +1959,31 @@ pub fn read_ocr_page(root: &Path, page_index: u32) -> std::result::Result<OcrPag
             "OCR page index does not match path".into(),
         ));
     }
-    validate_page(&page)?;
+    validate_ocr_page(&page)?;
     verify_raw_artifact(root, &page)?;
     Ok(page)
 }
 
 pub fn read_ocr_records(root: &Path) -> std::result::Result<OcrRun, OcrError> {
+    let storage_root = active_ocr_storage_root(root)?;
+    read_ocr_records_at_root(&storage_root)
+}
+
+fn read_ocr_records_at_root(root: &Path) -> std::result::Result<OcrRun, OcrError> {
     let summary_path = root.join("ocr/summary.json");
     let summary_metadata = fs::symlink_metadata(&summary_path)
         .map_err(|error| OcrError::Package(error.to_string()))?;
     if !summary_metadata.is_file()
         || summary_metadata.file_type().is_symlink()
-        || summary_metadata.len() > MAX_PROVIDER_OUTPUT_BYTES
+        || summary_metadata.len() > MAX_OCR_SUMMARY_BYTES
     {
         return Err(OcrError::Package(
             "OCR summary is missing, unsafe, or too large".into(),
         ));
     }
-    let run: OcrRun = serde_json::from_slice(&read_bounded_file(
-        &summary_path,
-        MAX_PROVIDER_OUTPUT_BYTES,
-    )?)
-    .map_err(|error| OcrError::Package(error.to_string()))?;
+    let run: OcrRun =
+        serde_json::from_slice(&read_bounded_file(&summary_path, MAX_OCR_SUMMARY_BYTES)?)
+            .map_err(|error| OcrError::Package(error.to_string()))?;
     run.validate()?;
     let pages_dir = root.join("ocr/pages");
     if let Ok(metadata) = fs::symlink_metadata(&pages_dir) {
@@ -1434,15 +2077,52 @@ fn validate_ocr_page_files(root: &Path, page_count: u32) -> std::result::Result<
     Ok(())
 }
 
-fn atomic_create_json<T: Serialize>(path: &Path, value: &T) -> std::result::Result<(), OcrError> {
+/// `limit` is passed explicitly because a single page record and a
+/// whole-document summary are bounded differently; see
+/// [`MAX_OCR_SUMMARY_BYTES`].
+fn atomic_create_json<T: Serialize>(
+    path: &Path,
+    value: &T,
+    limit: u64,
+) -> std::result::Result<(), OcrError> {
     let bytes =
         serde_json::to_vec_pretty(value).map_err(|error| OcrError::Package(error.to_string()))?;
-    atomic_create_bytes(path, &bytes)
+    atomic_create_bytes(path, &bytes, limit, "OCR JSON record is too large")
 }
 
-fn atomic_create_bytes(path: &Path, bytes: &[u8]) -> std::result::Result<(), OcrError> {
-    if bytes.len() > MAX_RAW_ARTIFACT_BYTES {
-        return Err(OcrError::Package("OCR raw artifact is too large".into()));
+fn atomic_replace_json<T: Serialize>(
+    path: &Path,
+    value: &T,
+    limit: u64,
+) -> std::result::Result<(), OcrError> {
+    let bytes =
+        serde_json::to_vec_pretty(value).map_err(|error| OcrError::Package(error.to_string()))?;
+    if bytes.len() as u64 > limit {
+        return Err(OcrError::Package("OCR JSON record is too large".into()));
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| OcrError::Package("OCR path has no parent".into()))?;
+    let mut temp = tempfile::Builder::new()
+        .prefix(".mpdf-ocr-active-")
+        .tempfile_in(parent)
+        .map_err(|error| OcrError::Package(error.to_string()))?;
+    temp.write_all(&bytes)
+        .and_then(|_| temp.as_file().sync_all())
+        .map_err(|error| OcrError::Package(error.to_string()))?;
+    temp.persist(path)
+        .map_err(|error| OcrError::Package(error.error.to_string()))?;
+    Ok(())
+}
+
+fn atomic_create_bytes(
+    path: &Path,
+    bytes: &[u8],
+    limit: u64,
+    too_large: &str,
+) -> std::result::Result<(), OcrError> {
+    if bytes.len() as u64 > limit {
+        return Err(OcrError::Package(too_large.into()));
     }
     let parent = path
         .parent()
@@ -1526,6 +2206,53 @@ mod tests {
     }
 
     #[test]
+    fn bundled_engine_is_bound_to_sidecar_argv_while_legacy_config_stays_optional() {
+        let mut config = SidecarOcrConfig::tesseract(
+            PathBuf::from("/bundle/ocr-runtime/bin/mpdf-ocr-sidecar"),
+            PathBuf::from("/bundle/ocr-runtime/tessdata"),
+            "english",
+        )
+        .unwrap();
+        let legacy = sidecar_command(&config, Path::new("/tmp/page.png"));
+        assert!(!legacy.get_args().any(|arg| arg == "--engine-binary"));
+
+        config.engine_binary = Some(PathBuf::from("/bundle/ocr-runtime/bin/tesseract"));
+        let bundled = sidecar_command(&config, Path::new("/tmp/page.png"));
+        let args: Vec<_> = bundled
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        let position = args
+            .iter()
+            .position(|arg| arg == "--engine-binary")
+            .expect("bundled engine must be explicit in sidecar argv");
+        assert_eq!(args[position + 1], "/bundle/ocr-runtime/bin/tesseract");
+        let psm = args
+            .iter()
+            .position(|arg| arg == "--psm")
+            .expect("page segmentation mode must be explicit");
+        assert_eq!(args[psm + 1], "6");
+    }
+
+    #[test]
+    fn selected_geometry_config_uses_psm3() {
+        let config = SidecarOcrConfig::tesseract_geometry(
+            PathBuf::from("/bundle/ocr-runtime/bin/mpdf-ocr-sidecar"),
+            PathBuf::from("/bundle/ocr-runtime/tessdata"),
+            "auto",
+        )
+        .unwrap();
+        assert_eq!(config.psm, 3);
+        let command = sidecar_command(&config, Path::new("/tmp/page.png"));
+        let args: Vec<_> = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        let psm = args.iter().position(|arg| arg == "--psm").unwrap();
+        assert_eq!(args[psm + 1], "3");
+    }
+
+    #[test]
     fn native_text_is_not_sent_to_provider() {
         let mut provider = ReferenceOcrProvider;
         let run = run_session(
@@ -1535,6 +2262,45 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(run.pages[0].route, OcrRoute::NativeText));
+    }
+
+    #[test]
+    fn explicitly_selected_spatial_pipeline_cannot_skip_native_text_pages() {
+        struct RequiredRaster { calls: usize }
+        impl PageOcrProvider for RequiredRaster {
+            fn execution_location(&self) -> ExecutionLocation { ExecutionLocation::Local }
+            fn requires_raster_recognition(&self) -> bool { true }
+            fn recognize(&mut self, index: u32, image: &DynamicImage, digest: &str) -> std::result::Result<OcrPage, OcrError> {
+                self.calls += 1;
+                ReferenceOcrProvider.recognize(index, image, digest)
+            }
+        }
+        let mut provider=RequiredRaster { calls:0 };
+        let run=run_session(&session(&["reliable native text layer"]), &mut provider, 300).unwrap();
+        assert!(run.errors.is_empty());
+        assert_eq!(provider.calls,1);
+        assert!(matches!(run.pages[0].route, OcrRoute::Ocr { reason: OcrRouteReason::ProviderRequiredRaster }));
+    }
+
+    #[test]
+    fn base_package_without_plugin_keeps_native_text_but_explains_scanned_pages() {
+        let diagnostic = "scanned pages require the optional offline OCR plugin";
+        let mut provider = OptionalOcrPluginUnavailable {
+            diagnostic: diagnostic.into(),
+        };
+        let native = run_session(
+            &session(&["reliable native text layer"]),
+            &mut provider,
+            300,
+        )
+        .unwrap();
+        assert!(native.errors.is_empty());
+        assert!(matches!(native.pages[0].route, OcrRoute::NativeText));
+
+        let scanned = run_session(&session(&[""]), &mut provider, 300).unwrap();
+        assert!(scanned.pages.is_empty());
+        assert_eq!(scanned.errors[0].code, "provider_unavailable");
+        assert!(scanned.errors[0].message.contains(diagnostic));
     }
 
     #[test]
@@ -1594,10 +2360,88 @@ mod tests {
         assert_eq!(read_ocr_records(dir.path()).unwrap(), run);
     }
 
+    #[test]
+    fn execution_location_round_trips_in_ocr_records_and_reads_legacy_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut provider = ReferenceOcrProvider;
+        let mut run = run_session(&session(&["", "", ""]), &mut provider, 300).unwrap();
+        for (page, location) in run.pages.iter_mut().zip([
+            ExecutionLocation::Local,
+            ExecutionLocation::BrokeredCloud,
+            ExecutionLocation::LegacyUserKey,
+        ]) {
+            page.provider_provenance
+                .as_mut()
+                .unwrap()
+                .execution_location = location;
+        }
+
+        write_ocr_records(dir.path(), &run).unwrap();
+        assert_eq!(read_ocr_records(dir.path()).unwrap(), run);
+
+        let canonical = serde_json::to_string(&run.pages[2]).unwrap();
+        assert!(canonical.contains("remote:user-key"));
+        let legacy = canonical.replace("remote:user-key", "remote_user_key");
+        let migrated: OcrPage = serde_json::from_str(&legacy).unwrap();
+        assert_eq!(
+            migrated.provider_provenance.unwrap().execution_location,
+            ExecutionLocation::LegacyUserKey
+        );
+    }
+
+    #[test]
+    fn a_whole_book_summary_is_not_bounded_by_the_single_response_limit() {
+        // The regression this pins: `ocr/summary.json` holds every page, so
+        // bounding it with the per-page provider limit made the pipeline die
+        // partway through any real book. A dense 300-dpi scanned page costs
+        // roughly 200 KB of typed evidence, so a modest volume is already far
+        // past 8 MB. Synthetic fixtures are small enough never to notice.
+        const REAL_PAGE_EVIDENCE_BYTES: u64 = 200 * 1024;
+        const A_MODEST_BOOK: u64 = 160;
+        // These are facts about the constants, so they are checked when the
+        // crate is built rather than when the suite is run: a future edit that
+        // reintroduces the bug fails to compile.
+        const _: () = assert!(
+            REAL_PAGE_EVIDENCE_BYTES * A_MODEST_BOOK > MAX_PROVIDER_OUTPUT_BYTES,
+            "the per-response limit must not be able to hold a whole book, \
+             or this test is not measuring the bug it exists for"
+        );
+        const _: () = assert!(
+            MAX_OCR_SUMMARY_BYTES > REAL_PAGE_EVIDENCE_BYTES * A_MODEST_BOOK,
+            "the summary bound must accommodate a real book"
+        );
+        // A 1000-page volume must still fit.
+        const _: () = assert!(MAX_OCR_SUMMARY_BYTES >= REAL_PAGE_EVIDENCE_BYTES * 1000);
+    }
+
+    #[test]
+    fn typed_json_records_are_not_limited_to_raw_artifact_size() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("large.json");
+        let value = "x".repeat(MAX_RAW_ARTIFACT_BYTES + 1);
+        atomic_create_json(&path, &value, MAX_PROVIDER_OUTPUT_BYTES).unwrap();
+        assert!(path.metadata().unwrap().len() > MAX_RAW_ARTIFACT_BYTES as u64);
+
+        let raw_path = dir.path().join("large.raw");
+        let error = atomic_create_bytes(
+            &raw_path,
+            value.as_bytes(),
+            MAX_RAW_ARTIFACT_BYTES as u64,
+            "OCR raw artifact is too large",
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("raw artifact is too large"));
+        assert!(!raw_path.exists());
+    }
+
     struct CountingProvider {
         calls: usize,
     }
     impl PageOcrProvider for CountingProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -1607,6 +2451,226 @@ mod tests {
             self.calls += 1;
             ReferenceOcrProvider.recognize(page_index, image, digest)
         }
+    }
+
+    struct LocatedProvider {
+        calls: usize,
+        location: ExecutionLocation,
+        fail: bool,
+    }
+
+    impl PageOcrProvider for LocatedProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            self.location
+        }
+
+        fn recognize(
+            &mut self,
+            page_index: u32,
+            image: &DynamicImage,
+            digest: &str,
+        ) -> std::result::Result<OcrPage, OcrError> {
+            self.calls += 1;
+            if self.fail {
+                return Err(OcrError::ProviderFailed {
+                    page: page_index,
+                    reason: "remote fixture failed".into(),
+                });
+            }
+            let mut page = ReferenceOcrProvider.recognize(page_index, image, digest)?;
+            page.provider_provenance
+                .as_mut()
+                .unwrap()
+                .execution_location = self.location;
+            Ok(page)
+        }
+    }
+
+    struct MismatchedLocationProvider;
+
+    impl PageOcrProvider for MismatchedLocationProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::BrokeredCloud
+        }
+
+        fn recognize(
+            &mut self,
+            page_index: u32,
+            image: &DynamicImage,
+            digest: &str,
+        ) -> std::result::Result<OcrPage, OcrError> {
+            // Reference evidence is explicitly local, contradicting this
+            // provider's brokered-cloud declaration.
+            ReferenceOcrProvider.recognize(page_index, image, digest)
+        }
+    }
+
+    #[test]
+    fn durable_run_rejects_a_remote_provider_that_labels_its_page_local() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let mut provider = MismatchedLocationProvider;
+        let error = run_session_durable(
+            &session(&[""]),
+            &mut provider,
+            &store,
+            "mismatched-location",
+            "mismatched-location-fingerprint",
+            dir.path(),
+            "worker",
+            300,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("execution location mismatch"));
+        assert!(store
+            .provider_runs("mismatched-location")
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn durable_remote_success_and_failure_keep_their_execution_location() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let document = session(&[""]);
+
+        let mut success = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: false,
+        };
+        let run = run_session_durable(
+            &document,
+            &mut success,
+            &store,
+            "brokered-success",
+            "brokered-success-fingerprint",
+            dir.path(),
+            "worker-success",
+            300,
+        )
+        .unwrap();
+        assert_eq!(
+            run.pages[0]
+                .provider_provenance
+                .as_ref()
+                .unwrap()
+                .execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+        assert_eq!(
+            store.provider_runs("brokered-success").unwrap()[0].execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+
+        let mut failure = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: true,
+        };
+        let failed = run_session_durable(
+            &document,
+            &mut failure,
+            &store,
+            "brokered-failure",
+            "brokered-failure-fingerprint",
+            dir.path(),
+            "worker-failure",
+            300,
+        )
+        .unwrap();
+        assert_eq!(failed.errors.len(), 1);
+        let attempts = store.provider_runs("brokered-failure").unwrap();
+        assert_eq!(attempts.len(), 1);
+        assert_eq!(attempts[0].outcome, crate::jobs::ProviderOutcome::Failed);
+        assert_eq!(
+            attempts[0].execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+    }
+
+    #[test]
+    fn adopting_a_remote_page_restores_provider_run_provenance() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let document = session(&[""]);
+        let job_id = "brokered-adoption";
+        let fingerprint = "brokered-adoption-fingerprint";
+        store.ensure_job(job_id, 1, fingerprint).unwrap();
+
+        prepare_ocr_directory(dir.path()).unwrap();
+        let run_root = prepare_durable_run_root(dir.path(), fingerprint).unwrap();
+        let image = document.render_page(0, 300).unwrap();
+        let digest = image_sha256(&image).unwrap();
+        let mut page = ReferenceOcrProvider.recognize(0, &image, &digest).unwrap();
+        page.provider_provenance
+            .as_mut()
+            .unwrap()
+            .execution_location = ExecutionLocation::BrokeredCloud;
+        write_ocr_page(&run_root, &page).unwrap();
+
+        let mut provider = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: false,
+        };
+        let adopted = run_session_durable(
+            &document,
+            &mut provider,
+            &store,
+            job_id,
+            fingerprint,
+            dir.path(),
+            "worker",
+            300,
+        )
+        .unwrap();
+        assert_eq!(provider.calls, 0);
+        assert_eq!(adopted.pages, vec![page]);
+        let attempts = store.provider_runs(job_id).unwrap();
+        assert_eq!(attempts.len(), 1);
+        assert_eq!(attempts[0].outcome, crate::jobs::ProviderOutcome::Succeeded);
+        assert_eq!(
+            attempts[0].execution_location,
+            ExecutionLocation::BrokeredCloud
+        );
+    }
+
+    #[test]
+    fn adopting_a_remote_job_rejects_an_orphan_page_labelled_local() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = JobStore::open(&dir.path().join("jobs.sqlite")).unwrap();
+        let document = session(&[""]);
+        let job_id = "brokered-adoption-mismatch";
+        let fingerprint = "brokered-adoption-mismatch-fingerprint";
+        store.ensure_job(job_id, 1, fingerprint).unwrap();
+
+        prepare_ocr_directory(dir.path()).unwrap();
+        let run_root = prepare_durable_run_root(dir.path(), fingerprint).unwrap();
+        let image = document.render_page(0, 300).unwrap();
+        let digest = image_sha256(&image).unwrap();
+        let local_page = ReferenceOcrProvider.recognize(0, &image, &digest).unwrap();
+        write_ocr_page(&run_root, &local_page).unwrap();
+
+        let mut provider = LocatedProvider {
+            calls: 0,
+            location: ExecutionLocation::BrokeredCloud,
+            fail: false,
+        };
+        let error = run_session_durable(
+            &document,
+            &mut provider,
+            &store,
+            job_id,
+            fingerprint,
+            dir.path(),
+            "worker",
+            300,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("execution location mismatch"));
+        assert_eq!(provider.calls, 0);
+        assert!(store.provider_runs(job_id).unwrap().is_empty());
     }
 
     #[test]
@@ -1650,7 +2714,34 @@ mod tests {
         database: PathBuf,
     }
 
+    struct ExternalCancelingProvider {
+        calls: usize,
+        cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    impl PageOcrProvider for ExternalCancelingProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
+        fn recognize(
+            &mut self,
+            page_index: u32,
+            image: &DynamicImage,
+            digest: &str,
+        ) -> std::result::Result<OcrPage, OcrError> {
+            self.calls += 1;
+            self.cancelled
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+            ReferenceOcrProvider.recognize(page_index, image, digest)
+        }
+    }
+
     impl PageOcrProvider for CancelingProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -1698,6 +2789,43 @@ mod tests {
     }
 
     #[test]
+    fn external_cancel_marks_the_durable_job_and_does_not_commit_the_inflight_page() {
+        let dir = tempfile::tempdir().unwrap();
+        let database = dir.path().join("jobs.sqlite");
+        let store = JobStore::open(&database).unwrap();
+        let document = session(&["", ""]);
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let mut provider = ExternalCancelingProvider {
+            calls: 0,
+            cancelled: cancelled.clone(),
+        };
+
+        let error = run_session_durable_with_cancel(
+            &document,
+            &mut provider,
+            &store,
+            "external-cancel",
+            "source-and-provider-v1",
+            dir.path(),
+            "worker",
+            300,
+            &|| cancelled.load(std::sync::atomic::Ordering::SeqCst),
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, CoreError::Cancelled));
+        assert_eq!(provider.calls, 1);
+        assert!(
+            store
+                .job("external-cancel")
+                .unwrap()
+                .unwrap()
+                .cancel_requested
+        );
+        assert!(read_ocr_page(dir.path(), 0).is_err());
+    }
+
+    #[test]
     fn durable_resume_fails_closed_when_completed_page_file_changes() {
         let dir = tempfile::tempdir().unwrap();
         let database = dir.path().join("jobs.sqlite");
@@ -1715,7 +2843,9 @@ mod tests {
             300,
         )
         .unwrap();
-        let page_path = dir.path().join("ocr/pages/p000001.json");
+        let page_path = prepare_durable_run_root(dir.path(), "source-and-provider-v1")
+            .unwrap()
+            .join("ocr/pages/p000001.json");
         OpenOptions::new()
             .append(true)
             .open(&page_path)
@@ -1743,6 +2873,10 @@ mod tests {
     }
 
     impl PageOcrProvider for FailOnceProvider {
+        fn execution_location(&self) -> ExecutionLocation {
+            ExecutionLocation::Local
+        }
+
         fn recognize(
             &mut self,
             page_index: u32,
@@ -1807,7 +2941,7 @@ mod tests {
     }
 
     #[test]
-    fn durable_adopts_page_written_before_database_checkpoint_and_new_job() {
+    fn durable_new_job_does_not_adopt_a_legacy_page() {
         let dir = tempfile::tempdir().unwrap();
         let database = dir.path().join("jobs.sqlite");
         let store = JobStore::open(&database).unwrap();
@@ -1830,7 +2964,7 @@ mod tests {
         )
         .unwrap();
         assert!(run.is_complete(1));
-        assert_eq!(provider.calls, 0);
+        assert_eq!(provider.calls, 1);
         assert_eq!(
             store
                 .page("new-job-after-crash", 0)
@@ -1839,6 +2973,51 @@ mod tests {
                 .status,
             crate::jobs::PageStatus::Completed
         );
+    }
+
+    #[test]
+    fn durable_different_fingerprints_use_distinct_page_namespaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let database = dir.path().join("jobs.sqlite");
+        let store = JobStore::open(&database).unwrap();
+        let document = session(&[""]);
+        let mut first = CountingProvider { calls: 0 };
+        run_session_durable(
+            &document,
+            &mut first,
+            &store,
+            "local-job",
+            "local-fingerprint",
+            dir.path(),
+            "worker-local",
+            300,
+        )
+        .unwrap();
+        let mut second = CountingProvider { calls: 0 };
+        run_session_durable(
+            &document,
+            &mut second,
+            &store,
+            "cloud-job",
+            "cloud-fingerprint",
+            dir.path(),
+            "worker-cloud",
+            300,
+        )
+        .unwrap();
+
+        assert_eq!(first.calls, 1);
+        assert_eq!(second.calls, 1);
+        let local_page = prepare_durable_run_root(dir.path(), "local-fingerprint")
+            .unwrap()
+            .join("ocr/pages/p000001.json");
+        let cloud_page = prepare_durable_run_root(dir.path(), "cloud-fingerprint")
+            .unwrap()
+            .join("ocr/pages/p000001.json");
+        assert!(local_page.is_file());
+        assert!(cloud_page.is_file());
+        assert_ne!(local_page, cloud_page);
+        assert!(read_ocr_records(dir.path()).unwrap().is_complete(1));
     }
 
     #[test]

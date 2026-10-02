@@ -772,14 +772,22 @@ fn row_provider_run(row: &rusqlite::Row<'_>) -> rusqlite::Result<ProviderRunReco
             .map_err(|_| rusqlite::Error::InvalidQuery)?,
         input_asset_sha256: row.get(7)?,
         output_digest: row.get(8)?,
-        execution_location: serde_json::from_str(&row.get::<_, String>(9)?)
-            .map_err(|_| rusqlite::Error::InvalidQuery)?,
+        execution_location: parse_execution_location(row.get::<_, String>(9)?)?,
         outcome: serde_json::from_str(&row.get::<_, String>(10)?)
             .map_err(|_| rusqlite::Error::InvalidQuery)?,
         error: row.get(11)?,
         started_at: row.get(12)?,
         finished_at: row.get(13)?,
     })
+}
+fn parse_execution_location(value: String) -> rusqlite::Result<ExecutionLocation> {
+    // Current rows contain a JSON string because `insert_provider_run` uses
+    // serde. Compatibility imports may contain the bare historical value, so
+    // read both forms without weakening the typed result.
+    serde_json::from_str(&value)
+        .ok()
+        .or_else(|| ExecutionLocation::parse(&value))
+        .ok_or(rusqlite::Error::InvalidQuery)
 }
 fn parse_job(value: String) -> rusqlite::Result<JobStatus> {
     serde_json::from_str(&format!("\"{value}\"")).map_err(|_| rusqlite::Error::InvalidQuery)
@@ -814,9 +822,55 @@ pub struct ProviderProvenance {
     pub execution_location: ExecutionLocation,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 pub enum ExecutionLocation {
+    #[serde(rename = "local")]
     Local,
+    /// A paid/cloud provider called through M PDF's broker. The stable wire
+    /// value predates this typed distinction and is retained so existing OCR
+    /// evidence and provider-run rows remain byte-compatible.
+    #[serde(
+        rename = "remote:mpdf-brokered",
+        alias = "brokered_cloud",
+        alias = "brokered-cloud",
+        alias = "remote_mpdf_brokered"
+    )]
+    BrokeredCloud,
+    /// Historical direct-to-provider execution with a user-managed key.
+    /// This remains readable for old evidence, but the product-level BYOK
+    /// mode stays disabled; this provenance value does not enable it.
+    #[serde(
+        rename = "remote:user-key",
+        alias = "legacy_user_key",
+        alias = "legacy-user-key",
+        alias = "remote_user_key",
+        alias = "remote"
+    )]
+    LegacyUserKey,
+}
+
+impl ExecutionLocation {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Local => "local",
+            Self::BrokeredCloud => "remote:mpdf-brokered",
+            Self::LegacyUserKey => "remote:user-key",
+        }
+    }
+
+    /// Accepts canonical values plus spellings written by pre-enum builds.
+    /// Unknown remote values fail closed instead of being relabelled local.
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "local" => Some(Self::Local),
+            "remote:mpdf-brokered"
+            | "brokered_cloud"
+            | "brokered-cloud"
+            | "remote_mpdf_brokered" => Some(Self::BrokeredCloud),
+            "remote:user-key" | "legacy_user_key" | "legacy-user-key" | "remote_user_key"
+            | "remote" => Some(Self::LegacyUserKey),
+            _ => None,
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProviderResponse {
@@ -1585,12 +1639,14 @@ mod tests {
             input_asset_sha256: "a".repeat(64),
             parameters: BTreeMap::new(),
         };
-        let response = provider.process(&request).unwrap();
+        let mut response = provider.process(&request).unwrap();
+        response.provenance.execution_location = ExecutionLocation::BrokeredCloud;
         store.claim_page("j", "w", 0, 60).unwrap();
         store
             .record_provider_success_and_checkpoint("j", 0, "w", "checkpoint", &response, 0, 1)
             .unwrap();
         let mut failure_provenance = response.provenance.clone();
+        failure_provenance.execution_location = ExecutionLocation::LegacyUserKey;
         store.claim_page("j", "w", 2, 60).unwrap();
         assert_eq!(
             store
@@ -1598,15 +1654,80 @@ mod tests {
                 .unwrap(),
             PageStatus::Queued
         );
+        let stored_locations: Vec<String> = store
+            .connection
+            .prepare("SELECT execution_location FROM provider_runs ORDER BY run_id")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(
+            stored_locations,
+            vec![
+                "\"remote:mpdf-brokered\"".to_owned(),
+                "\"remote:user-key\"".to_owned()
+            ]
+        );
+
+        // Accept both a JSON alias and a bare compatibility-import value.
+        // Reopening performs the migration read; neither value is ever
+        // guessed to mean local.
+        store
+            .connection
+            .execute(
+                "UPDATE provider_runs SET execution_location='\"brokered_cloud\"' WHERE run_id=?1",
+                params![1],
+            )
+            .unwrap();
+        store
+            .connection
+            .execute(
+                "UPDATE provider_runs SET execution_location='remote_user_key' WHERE run_id=?1",
+                params![2],
+            )
+            .unwrap();
         drop(store);
         let reopened = JobStore::open(&db).unwrap();
         let runs = reopened.provider_runs("j").unwrap();
         assert_eq!(runs.len(), 2);
         assert_eq!(runs[0].outcome, ProviderOutcome::Succeeded);
+        assert_eq!(runs[0].execution_location, ExecutionLocation::BrokeredCloud);
         assert_eq!(runs[1].outcome, ProviderOutcome::Failed);
+        assert_eq!(runs[1].execution_location, ExecutionLocation::LegacyUserKey);
         assert_eq!(runs[1].error.as_deref(), Some("temporary"));
         failure_provenance.engine.clear();
         assert!(validate_provenance(&failure_provenance).is_err());
+    }
+
+    #[test]
+    fn execution_locations_have_stable_wire_values_and_legacy_aliases() {
+        for (location, wire) in [
+            (ExecutionLocation::Local, "local"),
+            (ExecutionLocation::BrokeredCloud, "remote:mpdf-brokered"),
+            (ExecutionLocation::LegacyUserKey, "remote:user-key"),
+        ] {
+            let encoded = serde_json::to_string(&location).unwrap();
+            assert_eq!(encoded, format!("\"{wire}\""));
+            assert_eq!(
+                serde_json::from_str::<ExecutionLocation>(&encoded).unwrap(),
+                location
+            );
+        }
+
+        for (legacy, expected) in [
+            ("brokered_cloud", ExecutionLocation::BrokeredCloud),
+            ("remote_mpdf_brokered", ExecutionLocation::BrokeredCloud),
+            ("legacy_user_key", ExecutionLocation::LegacyUserKey),
+            ("remote_user_key", ExecutionLocation::LegacyUserKey),
+            ("remote", ExecutionLocation::LegacyUserKey),
+        ] {
+            assert_eq!(
+                serde_json::from_str::<ExecutionLocation>(&format!("\"{legacy}\"")).unwrap(),
+                expected
+            );
+        }
+        assert!(serde_json::from_str::<ExecutionLocation>("\"unknown-remote\"").is_err());
     }
 
     #[test]

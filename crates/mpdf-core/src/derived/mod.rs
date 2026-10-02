@@ -3,8 +3,10 @@ pub mod exporters;
 pub mod model;
 pub mod review;
 pub mod revisions;
+pub mod toc_projection;
 use crate::document_package::{DocumentPackage, Rect};
 use crate::error::{CoreError, Result};
+use crate::logical_lines::{self, LineAssembly, LogicalLineConfig};
 use crate::ocr::{OcrBlock, OcrLine, OcrRun, OcrWord};
 pub use exporters::*;
 #[cfg(test)]
@@ -16,6 +18,71 @@ use sha2::{Digest, Sha256};
 pub const MAX_BUNDLE_ARTIFACTS: usize = 32;
 impl DerivedDocument {
     pub fn from_package(p: &DocumentPackage, ocr: Option<&OcrRun>) -> Result<Self> {
+        Self::from_package_impl(p, ocr, false)
+    }
+
+    /// Preserve the canonical membership/order of checked spatial transcription.
+    /// Each page requires its checked inputs and independently retained artifact
+    /// digest. A metadata flag alone cannot bypass legacy line assembly.
+    pub fn from_checked_spatial_package(
+        p: &DocumentPackage,
+        ocr: &OcrRun,
+        checked: &[(
+            &crate::ocr_provider::spatial_transcription::CheckedSupportPage,
+            &str,
+        )],
+    ) -> Result<Self> {
+        let invalid = |s: &str| CoreError::InvalidDocument(s.into());
+        if checked.len() != ocr.pages.len() {
+            return Err(invalid("Checked spatial page bindings are incomplete"));
+        }
+        for (page, (input, artifact_sha)) in ocr.pages.iter().zip(checked) {
+            let raw = page
+                .provider_raw_artifact
+                .as_deref()
+                .ok_or_else(|| invalid("Checked spatial artifact is missing"))?;
+            input
+                .verify_artifact(raw, artifact_sha)
+                .map_err(|e| invalid(&e.to_string()))?;
+            let artifact: serde_json::Value = serde_json::from_str(raw)
+                .map_err(|_| invalid("Invalid checked spatial artifact"))?;
+            let rebuilt = input
+                .compose(
+                    artifact["response_json"]
+                        .as_str()
+                        .ok_or_else(|| invalid("Missing checked response"))?,
+                    artifact["response_sha256"]
+                        .as_str()
+                        .ok_or_else(|| invalid("Missing response digest"))?,
+                    "derivation-check",
+                    "derivation-check",
+                    "derivation-check",
+                    Default::default(),
+                )
+                .map_err(|e| invalid(&e.to_string()))?;
+            if page.page_index != rebuilt.page_index
+                || page.width != rebuilt.width
+                || page.height != rebuilt.height
+                || serde_json::to_value(&page.blocks).unwrap()
+                    != serde_json::to_value(&rebuilt.blocks).unwrap()
+                || !page.revisions.is_empty()
+            {
+                return Err(invalid(
+                    "OCR page differs from checked canonical spatial composition",
+                ));
+            }
+        }
+        let mut document = Self::from_package_impl(p, Some(ocr), true)?;
+        document.manifest.exporter_version =
+            format!("{DERIVED_EXPORTER_VERSION}+checked-spatial/1");
+        Ok(document)
+    }
+
+    fn from_package_impl(
+        p: &DocumentPackage,
+        ocr: Option<&OcrRun>,
+        preserve_spatial: bool,
+    ) -> Result<Self> {
         p.validate()?;
         if let Some(r) = ocr {
             r.validate()
@@ -40,6 +107,7 @@ impl DerivedDocument {
         let pd =
             digest(&serde_json::to_vec(p).map_err(|e| CoreError::InvalidDocument(e.to_string()))?);
         let od = ocr.map(|r| digest(&serde_json::to_vec(r).unwrap()));
+        let line_config = LogicalLineConfig::default();
         let mut pages = Vec::new();
         let mut chunks = Vec::new();
         for pge in &p.pages {
@@ -47,9 +115,25 @@ impl DerivedDocument {
             let ed = ev
                 .map(|x| digest(&serde_json::to_vec(x).unwrap()))
                 .unwrap_or_else(|| digest(pge.page_id.as_bytes()));
-            let blocks: Vec<DerivedBlock> = ev
-                .map(|x| {
-                    x.blocks
+            // Logical lines are rebuilt here, once, before anything downstream
+            // sees the page. The typed OCR record on disk keeps the provider's
+            // own segmentation untouched (and `evidence_digest` above still
+            // binds to it), so the raw evidence stays auditable while every
+            // consumer -- derived exports, the bookmark text index, and the
+            // invisible text layer -- reads real rows.
+            let assembled = ev.map(|x| {
+                if preserve_spatial {
+                    // No synthetic line-assembly claims: the checked provider
+                    // already owns unit membership and canonical support order.
+                    (x.clone(), Vec::new())
+                } else {
+                    logical_lines::assemble_page(x, &line_config)
+                }
+            });
+            let blocks: Vec<DerivedBlock> = match (&assembled, ev) {
+                (Some((page, audit)), Some(x)) => {
+                    let mut cursor = audit.iter();
+                    page.blocks
                         .iter()
                         .enumerate()
                         .map(|(i, b)| {
@@ -62,11 +146,13 @@ impl DerivedDocument {
                                 x.height,
                                 pge.master_space.width,
                                 pge.master_space.height,
+                                &mut cursor,
                             )
                         })
                         .collect()
-                })
-                .unwrap_or_default();
+                }
+                _ => Vec::new(),
+            };
             for b in &blocks {
                 for l in &b.lines {
                     let t = l
@@ -188,7 +274,7 @@ impl DerivedDocument {
     }
 }
 #[allow(clippy::too_many_arguments)]
-fn block(
+fn block<'a>(
     pid: &str,
     space: &str,
     i: usize,
@@ -197,13 +283,27 @@ fn block(
     sh: u32,
     mw: f64,
     mh: f64,
+    audit: &mut impl Iterator<Item = &'a LineAssembly>,
 ) -> DerivedBlock {
     let path = format!("p{pid}/b{i:06}");
     let lines = b
         .lines
         .iter()
         .enumerate()
-        .map(|(i, l)| line(pid, space, &path, i, l, sw, sh, mw, mh))
+        .map(|(i, l)| {
+            line(
+                pid,
+                space,
+                &path,
+                i,
+                l,
+                sw,
+                sh,
+                mw,
+                mh,
+                audit.next().cloned(),
+            )
+        })
         .collect();
     DerivedBlock {
         id: stable("block", &[&path, &bbox_key(&b.bbox)]),
@@ -226,6 +326,7 @@ fn line(
     sh: u32,
     mw: f64,
     mh: f64,
+    assembly: Option<LineAssembly>,
 ) -> DerivedLine {
     let path = format!("{parent}/l{i:06}");
     let words = l
@@ -242,6 +343,7 @@ fn line(
         structural_path: path,
         reading_order: l.reading_order,
         words,
+        assembly,
     }
 }
 #[allow(clippy::too_many_arguments)]

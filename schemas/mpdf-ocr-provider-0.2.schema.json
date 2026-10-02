@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mpdf-ocr-provider-0.2",
+  "title": "Machine-verifiable OCR provider capability contract",
+  "description": "Version 0.2 distinguishes independent complete OCR from text enhancement and experimental text-plus-local-alignment composites. Version 0.1 remains unchanged for historical records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "capabilities"],
+  "properties": {
+    "schema": { "const": "mpdf-ocr-provider" },
+    "schema_version": { "const": "0.2" },
+    "capabilities": { "$ref": "#/$defs/capabilities" }
+  },
+  "$defs": {
+    "mode": {
+      "description": "gemini-byok is accepted only for historical deserialization and is disabled for new runs.",
+      "enum": ["local", "gemini-byok", "mpdf-credits", "broker-test"]
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "provider_name",
+        "model",
+        "model_version",
+        "role",
+        "coordinate_granularity",
+        "reading_order",
+        "text_geometry_mapping",
+        "confidence_metadata",
+        "language_metadata",
+        "billing",
+        "requires_explicit_consent",
+        "requires_cost_limit",
+        "uses_network",
+        "requires_credential",
+        "supports_structured_bbox",
+        "structured_bbox_default_enabled",
+        "production_ready",
+        "not_production_ready_reason"
+      ],
+      "properties": {
+        "mode": { "$ref": "#/$defs/mode" },
+        "provider_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "model": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "model_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "not": { "pattern": "^[Ll][Aa][Tt][Ee][Ss][Tt]$" }
+        },
+        "role": {
+          "enum": ["complete_ocr", "text_enhancer", "experimental_composite"]
+        },
+        "coordinate_granularity": { "enum": ["none", "line", "word"] },
+        "reading_order": { "enum": ["none", "best_effort", "stable"] },
+        "text_geometry_mapping": { "enum": ["none", "local_alignment", "direct"] },
+        "confidence_metadata": { "$ref": "#/$defs/metadata_support" },
+        "language_metadata": { "$ref": "#/$defs/metadata_support" },
+        "billing": { "enum": ["free", "user_managed", "brokered_credits"] },
+        "requires_explicit_consent": { "type": "boolean" },
+        "requires_cost_limit": { "type": "boolean" },
+        "uses_network": { "type": "boolean" },
+        "requires_credential": { "type": "boolean" },
+        "supports_structured_bbox": {
+          "type": "boolean",
+          "description": "Legacy diagnostic only. Complete-OCR eligibility is determined by role, coordinate_granularity, reading_order, and text_geometry_mapping."
+        },
+        "structured_bbox_default_enabled": { "type": "boolean" },
+        "production_ready": { "type": "boolean" },
+        "not_production_ready_reason": { "type": ["string", "null"], "maxLength": 4096 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "broker-test" } } },
+          "then": {
+            "properties": {
+              "billing": { "const": "user_managed" },
+              "requires_explicit_consent": { "const": true },
+              "requires_cost_limit": { "const": true },
+              "uses_network": { "const": true },
+              "requires_credential": { "const": false },
+              "production_ready": { "const": false },
+              "not_production_ready_reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "role": { "const": "complete_ocr" } } },
+          "then": {
+            "properties": {
+              "coordinate_granularity": { "enum": ["line", "word"] },
+              "reading_order": { "const": "stable" },
+              "text_geometry_mapping": { "const": "direct" },
+              "supports_structured_bbox": { "const": true }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "local" } } },
+          "then": {
+            "properties": {
+              "billing": { "const": "free" },
+              "requires_explicit_consent": { "const": false },
+              "requires_cost_limit": { "const": false },
+              "uses_network": { "const": false },
+              "requires_credential": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "mpdf-credits" } } },
+          "then": {
+            "properties": {
+              "billing": { "const": "brokered_credits" },
+              "requires_explicit_consent": { "const": true },
+              "requires_cost_limit": { "const": true },
+              "uses_network": { "const": true },
+              "requires_credential": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "gemini-byok" } } },
+          "then": { "not": { "properties": { "role": { "const": "complete_ocr" } } } }
+        }
+      ]
+    },
+    "metadata_support": { "enum": ["unsupported", "page", "line", "word"] }
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "mpdf-toc-semantic-projection/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "policy",
+    "page_index",
+    "geometry_sha256",
+    "response_sha256",
+    "input_manifest_sha256",
+    "context_sha256",
+    "evidence_sha256",
+    "supports"
+  ],
+  "properties": {
+    "schema": {
+      "const": "mpdf-toc-semantic-projection/1"
+    },
+    "policy": {
+      "const": "toc-dotted-leader/1"
+    },
+    "page_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "geometry_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "response_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "context_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evidence_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "supports": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "support_id",
+          "source_text",
+          "semantic_text",
+          "removed_span",
+          "render_bbox",
+          "leader_present",
+          "leader_bbox"
+        ],
+        "properties": {
+          "support_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "semantic_text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "removed_span": {
+            "type": "array",
+            "description": "Half-open Unicode scalar offsets into accepted NFC source text, never byte offsets",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "render_bbox": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "leader_present": {
+            "type": "boolean"
+          },
+          "leader_bbox": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

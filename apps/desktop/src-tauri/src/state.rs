@@ -23,6 +23,7 @@ pub struct OpenDocumentState {
     pub input_path: PathBuf,
     pub page_count: u32,
     pub password_protected_session: bool,
+    pub source_sha256: String,
 }
 
 /// The one processing job currently running, if any. `cancelled` is
@@ -33,6 +34,44 @@ pub struct OpenDocumentState {
 pub struct JobState {
     pub job_id: String,
     pub cancelled: Arc<AtomicBool>,
+}
+
+/// The one in-flight automatic bookmark run. `cancelled` is shared with the
+/// worker thread and checked between pages, contents entries, alignment
+/// steps, and the PDF write, so cancelling never leaves a half-written
+/// snapshot, report, or output file behind.
+pub struct AutoBookmarkState {
+    pub job_id: String,
+    pub document_id: String,
+    pub cancelled: Arc<AtomicBool>,
+    /// Present for the full OCR pipeline. Cancellation uses it to set the
+    /// durable SQLite cancel bit as well as the in-process flag.
+    pub durable_workspace: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OperationKind {
+    Processing,
+    RemoteApi,
+    AutoBookmark,
+}
+
+/// A single atomic gate for all operations that use the serialized worker or
+/// mutate the active document. The legacy per-operation slots remain as
+/// cancellation handles, but never decide admission.
+pub struct OperationLease {
+    gate: Arc<Mutex<Option<OperationKind>>>,
+    kind: OperationKind,
+}
+
+impl Drop for OperationLease {
+    fn drop(&mut self) {
+        if let Ok(mut gate) = self.gate.lock() {
+            if gate.as_ref() == Some(&self.kind) {
+                *gate = None;
+            }
+        }
+    }
 }
 
 /// The most recently completed size estimate for the open document, kept
@@ -52,6 +91,8 @@ pub struct CachedEstimate {
 
 pub struct AppState {
     pub worker: WorkerHandle,
+    /// Only the newest main preview may enter expensive work.
+    pub main_preview_cancel: Mutex<Option<Arc<AtomicBool>>>,
     pub document: Mutex<Option<OpenDocumentState>>,
     pub job: Mutex<Option<JobState>>,
     /// A cancellation flag for whichever size estimate is currently
@@ -64,6 +105,12 @@ pub struct AppState {
     /// Cancellation handle for the one consented remote OCR request. The
     /// handle contains no credential or document bytes.
     pub api_cancellation: Mutex<Option<mpdf_api_client::Cancellation>>,
+    /// The one automatic bookmark run this window may have in flight. Held
+    /// under the same check-and-set discipline as `job`, so a conversion, a
+    /// remote OCR install, and a bookmark run can never overlap on the one
+    /// serialized PDFium worker thread.
+    pub auto_bookmark: Mutex<Option<AutoBookmarkState>>,
+    operation_gate: Arc<Mutex<Option<OperationKind>>>,
     /// The trusted bundled PDFium library path for this packaged build,
     /// if one was found under Tauri's resolved resource directory at
     /// startup — `None` in a development run with no bundled resource.
@@ -79,14 +126,44 @@ impl AppState {
     pub fn new(bundled_pdfium_path: Option<PathBuf>) -> Self {
         Self {
             worker: WorkerHandle::spawn(bundled_pdfium_path.clone()),
+            main_preview_cancel: Mutex::new(None),
             document: Mutex::new(None),
             job: Mutex::new(None),
             estimate_job: Mutex::new(None),
             estimate_cache: Mutex::new(None),
             api_cancellation: Mutex::new(None),
+            auto_bookmark: Mutex::new(None),
+            operation_gate: Arc::new(Mutex::new(None)),
             bundled_pdfium_path,
             next_id: AtomicU64::new(1),
         }
+    }
+
+    pub fn try_claim_operation(&self, kind: OperationKind) -> Option<OperationLease> {
+        let mut gate = self.operation_gate.lock().ok()?;
+        if gate.is_some() {
+            return None;
+        }
+        *gate = Some(kind);
+        Some(OperationLease {
+            gate: self.operation_gate.clone(),
+            kind,
+        })
+    }
+
+    /// Hold the document mutation gate before resolving the UI's document ID.
+    /// Open/close use the same gate; the returned document cannot be replaced
+    /// until this operation finishes. A stale request never acquires a source.
+    pub fn claim_document_operation(
+        &self,
+        document_id: Option<&str>,
+        kind: OperationKind,
+    ) -> Result<(OperationLease, OpenDocumentState), &'static str> {
+        let lease = self.try_claim_operation(kind).ok_or("operation_active")?;
+        let document = self.document.lock().map_err(|_| "document_stale")?
+            .as_ref().filter(|doc| Some(doc.document_id.as_str()) == document_id)
+            .cloned().ok_or("document_stale")?;
+        Ok((lease, document))
     }
 
     /// A process-unique id for a new document or job. Not a security
@@ -101,5 +178,61 @@ impl AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self::new(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn operation_gate_is_mutually_exclusive_across_all_long_running_kinds() {
+        let state = AppState::default();
+        for kind in [
+            OperationKind::Processing,
+            OperationKind::RemoteApi,
+            OperationKind::AutoBookmark,
+        ] {
+            let lease = state.try_claim_operation(kind).expect("first claim wins");
+            assert!(state.try_claim_operation(kind).is_none());
+            assert!(state
+                .try_claim_operation(OperationKind::Processing)
+                .is_none());
+            drop(lease);
+            assert!(state.try_claim_operation(kind).is_some());
+            // The temporary lease above is dropped at the end of this loop
+            // iteration, proving both success and failure release paths.
+            state.operation_gate.lock().unwrap().take();
+        }
+    }
+
+    fn document(id: &str) -> OpenDocumentState {
+        OpenDocumentState { document_id: id.into(), file_name: "source.pdf".into(),
+            input_path: PathBuf::from("/source.pdf"), page_count: 2,
+            password_protected_session: false, source_sha256: "a".repeat(64) }
+    }
+
+    #[test]
+    fn stale_document_binding_releases_gate_without_starting_work() {
+        let state = AppState::default();
+        *state.document.lock().unwrap() = Some(document("new"));
+        assert!(matches!(state.claim_document_operation(Some("old"), OperationKind::Processing), Err("document_stale")));
+        assert!(state.try_claim_operation(OperationKind::Processing).is_some());
+        assert!(matches!(state.claim_document_operation(None, OperationKind::Processing), Err("document_stale")));
+    }
+
+    #[test]
+    fn document_binding_is_resolved_after_the_shared_gate_and_keeps_it() {
+        let state = AppState::default();
+        *state.document.lock().unwrap() = Some(document("source"));
+        let (lease, source) = state.claim_document_operation(Some("source"), OperationKind::Processing).unwrap();
+        assert_eq!(source.document_id, "source");
+        assert!(state.try_claim_operation(OperationKind::Processing).is_none());
+        drop(lease);
+        let opening = state.try_claim_operation(OperationKind::Processing).unwrap();
+        assert!(matches!(state.claim_document_operation(Some("source"), OperationKind::Processing), Err("operation_active")));
+        *state.document.lock().unwrap() = Some(document("replacement"));
+        drop(opening);
+        assert!(matches!(state.claim_document_operation(Some("source"), OperationKind::Processing), Err("document_stale")));
     }
 }

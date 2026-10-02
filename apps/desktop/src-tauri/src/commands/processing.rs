@@ -24,7 +24,7 @@ use crate::dto::{
 };
 use crate::errors::{classify_core_error, request_error};
 use crate::settings::to_processing_settings;
-use crate::state::{AppState, JobState};
+use crate::state::{AppState, JobState, OperationKind};
 use crate::worker::WorkerCommand;
 
 pub const EVENT_PROGRESS: &str = "mpdf://processing-progress";
@@ -38,6 +38,14 @@ pub async fn start_processing(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<ProcessingStartedDto, UiErrorDto> {
+    let operation = state
+        .try_claim_operation(OperationKind::Processing)
+        .ok_or_else(|| {
+            request_error(
+                "operation_active",
+                "another document operation is running; wait for it to finish",
+            )
+        })?;
     let page_count = {
         let document = state.document.lock().unwrap();
         match document.as_ref() {
@@ -145,6 +153,7 @@ pub async fn start_processing(
         let job_id_for_task = job_id.clone();
         let output_path_for_task = request.output_path.clone();
         tauri::async_runtime::spawn(async move {
+            let _operation = operation;
             let outcome = tauri::async_runtime::spawn_blocking(move || reply_rx.recv())
                 .await
                 .ok()

@@ -84,6 +84,16 @@ pub struct NativeTextPage {
     pub text: String,
 }
 
+/// One actual PDFium text object, in content order (recursing into forms).
+/// PDFium may synthesize spaces, collapse repeated spaces and mark hyphens
+/// even at object scope. This is a layout diagnostic, not literal decoding.
+/// No additional Unicode or whitespace normalization is applied here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeTextObject {
+    pub text: String,
+    pub invisible: bool,
+}
+
 /// Backend-neutral outline information used to validate searchable-PDF
 /// write-back without leaking PDFium handles beyond the session.
 #[derive(Debug, Clone, PartialEq)]
@@ -189,6 +199,54 @@ impl PdfDocumentSession {
     /// Identity of the exact byte snapshot this session opened.
     pub fn source_identity(&self) -> &SourceIdentity {
         &self.source_identity
+    }
+
+    /// Read the real written text objects using PDFium's ToUnicode handling.
+    /// Empty objects are retained so a missing mapping cannot hide a span.
+    /// Object access errors fail closed instead of terminating an iterator.
+    pub fn native_text_objects(&self, index: u32) -> Result<Vec<NativeTextObject>> {
+        fn collect(
+            object: &PdfPageObject<'_>,
+            text_page: &PdfPageText<'_>,
+            depth: usize,
+            into: &mut Vec<NativeTextObject>,
+        ) -> Result<()> {
+            if depth > 64 || into.len() > 1_000_000 {
+                return Err(CoreError::OutputValidationFailed(
+                    "pdfium_text_objects:complexity_limit".into(),
+                ));
+            }
+            if let Some(text) = object.as_text_object() {
+                into.push(NativeTextObject {
+                    text: text_page.for_object(text),
+                    invisible: text.render_mode() == PdfPageTextRenderMode::Invisible,
+                });
+            } else if let Some(form) = object.as_x_object_form_object() {
+                for child in 0..form.len() {
+                    let child = form.get(child).map_err(|error| {
+                        CoreError::OutputValidationFailed(format!("pdfium_form_object:{error}"))
+                    })?;
+                    collect(&child, text_page, depth + 1, into)?;
+                }
+            }
+            Ok(())
+        }
+
+        let page = self.document.pages().get(index as i32).map_err(|error| {
+            CoreError::OutputValidationFailed(format!("pdfium_text_page:{error}"))
+        })?;
+        let text_page = page.text().map_err(|error| {
+            CoreError::OutputValidationFailed(format!("pdfium_text_load:{error}"))
+        })?;
+        let objects = page.objects();
+        let mut result = Vec::new();
+        for index in 0..objects.len() {
+            let object = objects.get(index).map_err(|error| {
+                CoreError::OutputValidationFailed(format!("pdfium_text_object:{error}"))
+            })?;
+            collect(&object, &text_page, 0, &mut result)?;
+        }
+        Ok(result)
     }
 
     pub fn native_outline(&self) -> Result<Vec<NativeOutlineItem>> {

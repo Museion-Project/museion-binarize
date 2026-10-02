@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 // The single integration layer between the React app and Tauri. Every
 // `invoke()` call and every event name lives here — components never call
 // `invoke` or `listen` directly, so the IPC contract has exactly one place
@@ -22,12 +23,25 @@ import type {
   PreviewResult,
   UiError,
   BookmarkCandidate,
+  AutoBookmarkRequest,
+  AutoBookmarkStarted,
+  AutoBookmarkStageEvent,
+  AutoBookmarkResult,
+  AutoBookmarkFailed,
   ApiRouteOptions,
   ApiCredentialPresence,
   ApiConsentSummary,
   ApiPlanRequest,
   ApiRunRequest,
   ApiTaskProgress,
+  OcrProviderStatus,
+  LocalOcrReadiness,
+  LocalOcrReadinessRequest,
+  LocalPipelineCompleted,
+  LocalPipelineFailed,
+  LocalPipelineRequest,
+  LocalPipelineStageEvent,
+  LocalPipelineStarted,
 } from "../app/types";
 
 /** Thrown for every failed command; `error` is the backend's structured DTO. */
@@ -55,7 +69,151 @@ export function addReviewRevision(request: {
   return call("add_review_revision", request);
 }
 
-export function loadBookmarks(packagePath: string): Promise<BookmarkCandidate[]> { return call("load_bookmarks", { packagePath }); }
+/** The effective bookmark tree for a package, as project-owned DTOs. */
+export function loadBookmarkTree(packagePath: string): Promise<BookmarkCandidate[]> {
+  return call("load_bookmark_tree", { packagePath });
+}
+
+/**
+ * Starts one automatic table-of-contents run. Resolves as soon as the run is
+ * handed to the worker thread; stages and the result arrive as
+ * `mpdf://auto-bookmark-*` events, so the UI never blocks on a long book.
+ */
+export function startAutoBookmark(request: AutoBookmarkRequest): Promise<AutoBookmarkStarted> {
+  return call("start_auto_bookmark", { request });
+}
+
+export function cancelAutoBookmark(jobId: string, documentId: string): Promise<void> {
+  return call("cancel_auto_bookmark", { jobId, documentId });
+}
+
+export function onAutoBookmarkStage(
+  handler: (payload: AutoBookmarkStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkStageEvent>("mpdf://auto-bookmark-stage", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onAutoBookmarkCompleted(
+  handler: (payload: AutoBookmarkResult) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkResult>("mpdf://auto-bookmark-completed", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onAutoBookmarkCancelled(
+  handler: (payload: AutoBookmarkStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkStageEvent>("mpdf://auto-bookmark-cancelled", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onAutoBookmarkFailed(
+  handler: (payload: AutoBookmarkFailed) => void,
+): Promise<UnlistenFn> {
+  return listen<AutoBookmarkFailed>("mpdf://auto-bookmark-failed", (event) =>
+    handler(event.payload),
+  );
+}
+
+// --------------------------------------------------------------------------
+// The main flow: OCR the original, compile bookmarks, binarize, assemble.
+// --------------------------------------------------------------------------
+
+/**
+ * Reports whether local OCR can run and what is missing. Nothing is
+ * downloaded or discovered; this only inspects configured paths.
+ */
+export function localOcrReadiness(
+  request: LocalOcrReadinessRequest,
+): Promise<LocalOcrReadiness> {
+  return call("local_ocr_readiness", { request });
+}
+
+/**
+ * Starts (or resumes) the main flow. Resolves once the run is handed to the
+ * worker; stages and the result arrive as `mpdf://pipeline-*` events.
+ *
+ * Resuming is not a separate call: starting again with the same workspace
+ * reuses every OCR page already committed there.
+ */
+export function startLocalPipeline(
+  request: LocalPipelineRequest,
+): Promise<LocalPipelineStarted> {
+  return call("start_local_pipeline", { request });
+}
+
+/**
+ * Reads the provider picker's data. Cheap, offline, and safe to call on every
+ * render of the settings section: it makes no provider request.
+ */
+export function ocrProviderStatus(): Promise<OcrProviderStatus> {
+  return call("ocr_provider_status", { slot: null });
+}
+
+export function cancelLocalPipeline(): Promise<void> {
+  return call("cancel_local_pipeline");
+}
+
+/** Marks the durable OCR job cancelled so the next start does not resume it. */
+export function cancelLocalPipelineJob(
+  workspacePath: string,
+  jobId: string,
+): Promise<void> {
+  return call("cancel_local_pipeline_job", { workspacePath, jobId });
+}
+
+export function onLocalPipelineStage(
+  handler: (payload: LocalPipelineStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineStageEvent>("mpdf://pipeline-stage", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onLocalPipelineCompleted(
+  handler: (payload: LocalPipelineCompleted) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineCompleted>("mpdf://pipeline-completed", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onLocalPipelineCancelled(
+  handler: (payload: LocalPipelineStageEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineStageEvent>("mpdf://pipeline-cancelled", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onLocalPipelineFailed(
+  handler: (payload: LocalPipelineFailed) => void,
+): Promise<UnlistenFn> {
+  return listen<LocalPipelineFailed>("mpdf://pipeline-failed", (event) =>
+    handler(event.payload),
+  );
+}
+
+/**
+ * Opens an existing MDP package, or chooses a new non-existent package path
+ * when `defaultName` is supplied. The pipeline must not target an existing
+ * directory because package creation is deliberately overwrite-safe.
+ */
+export async function pickPackageDirectory(defaultName?: string): Promise<string | null> {
+  if (defaultName) {
+    const selection = await saveDialog({
+      defaultPath: defaultName,
+      title: "Create working package",
+    });
+    return typeof selection === "string" ? selection : null;
+  }
+  const selection = await openDialog({ multiple: false, directory: true });
+  return typeof selection === "string" ? selection : null;
+}
 export function confirmBookmark(packagePath: string, candidateId: string): Promise<void> { return call("confirm_bookmark", { packagePath, candidateId }); }
 export function rejectBookmark(packagePath: string, candidateId: string): Promise<void> { return call("reject_bookmark", { packagePath, candidateId }); }
 export function editBookmark(packagePath: string, candidateId: string, title: string): Promise<void> { return call("edit_bookmark", { packagePath, candidateId, title }); }
@@ -168,21 +326,28 @@ export function startEstimate(request: EstimateRequest): Promise<EstimateResult>
   return call("start_estimate", { request });
 }
 
+// Development-only integration fixture. Vite removes these branches from builds.
+declare global {
+  interface Window { __MPDF_UI_TEST__?: { open: string; save: string } }
+}
+
 /** Opens the native "choose a PDF" dialog. Returns `null` if the user cancelled. */
 export async function pickPdfToOpen(): Promise<string | null> {
+  if ((import.meta.env.DEV || import.meta.env.MODE === "desktop-ui-test") && window.__MPDF_UI_TEST__) return window.__MPDF_UI_TEST__.open;
   const selection = await openDialog({
     multiple: false,
     directory: false,
-    filters: [{ name: "PDF files", extensions: ["pdf"] }],
+    filters: [{ name: t("PDF 文件"), extensions: ["pdf"] }],
   });
   return typeof selection === "string" ? selection : null;
 }
 
 /** Opens the native "save output as" dialog with a suggested filename. */
 export async function pickOutputDestination(defaultFileName: string): Promise<string | null> {
+  if ((import.meta.env.DEV || import.meta.env.MODE === "desktop-ui-test") && window.__MPDF_UI_TEST__) return window.__MPDF_UI_TEST__.save;
   const selection = await saveDialog({
     defaultPath: defaultFileName,
-    filters: [{ name: "PDF files", extensions: ["pdf"] }],
+    filters: [{ name: t("PDF 文件"), extensions: ["pdf"] }],
   });
   return selection ?? null;
 }
@@ -235,3 +400,28 @@ export function onProcessingFailed(
     handler(event.payload),
   );
 }
+
+// Unified local tools. OCR remains a disabled UI entry; these commands never
+// invoke the legacy OCR/remote pipeline.
+export function localBookmarkReadiness():Promise<import("../app/localTools").LocalReadiness>{
+  return call("local_bookmark_readiness",{});
+}
+export function generateLocalContents(request:{documentId:string;operationId:string;pages:number[];mode:"auto"|"image";hierarchyProvider?:import("../app/localTools").HierarchyProvider}):Promise<import("../app/localTools").ContentsResult>{
+  return call("generate_local_contents",{request});
+}
+export function saveLocalPdf(request:{documentId:string;operationId:string;outputPath:string;binarize:boolean;binarizePages?:number[];preparedId?:string;settings:ProcessingSettings;bookmarkSessionId:string|null;entries:{id:string;title:string;parent:string|null;target_pdf_page:number|null}[];projection:"navigation"|"source";reviewAccepted:boolean}):Promise<import("../app/localTools").LocalSaveResult>{
+  return call("save_local_pdf",{request});
+}
+export function cancelLocalTools(operationId:string):Promise<void>{return call("cancel_local_tools",{operationId});}
+export function onLocalToolsProgress(handler:(payload:import("../app/localTools").LocalToolsProgress)=>void):Promise<UnlistenFn>{
+  return listen<import("../app/localTools").LocalToolsProgress>("mpdf://local-tools-progress",event=>handler(event.payload));
+}
+
+export function documentAnalysisStatus(documentId:string):Promise<import("../app/localTools").DocumentAnalysisStatus>{
+  return call("document_analysis_status",{documentId});
+}
+export function prepareLocalBinarization(request:{documentId:string;operationId:string;settings:ProcessingSettings;binarizePages:number[]}):Promise<import("../app/localTools").PreparedBinarizationResult>{
+  return call("prepare_local_binarization",{request});
+}
+
+export function localHierarchyModels():Promise<import("../app/localTools").HierarchyModelStatus[]>{ return call("local_hierarchy_models"); }

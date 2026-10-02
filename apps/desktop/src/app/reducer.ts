@@ -140,7 +140,7 @@ export function reducer(state: AppState, action: Action): AppState {
         currentPage: 1,
         settings: state.kind === "ready" ? state.settings : defaultSettings(),
         preset: "default",
-        viewMode: "processed",
+        viewMode: "original",
         zoom: 0,
         outputPath: null,
         preview: emptyPreview,
@@ -160,7 +160,7 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, attemptError: action.message };
 
     case "SELECT_PAGE": {
-      if (state.kind !== "ready") return state;
+      if (state.kind !== "ready" || state.currentPage === action.page) return state;
       return { ...state, currentPage: action.page, preview: emptyPreview };
     }
 
@@ -324,7 +324,7 @@ export function reducer(state: AppState, action: Action): AppState {
         currentPage: 1,
         settings: "settings" in state ? state.settings : defaultSettings(),
         preset: "default",
-        viewMode: "processed",
+        viewMode: "original",
         zoom: 0,
         outputPath: null,
         preview: emptyPreview,
@@ -343,7 +343,7 @@ export function reducer(state: AppState, action: Action): AppState {
             currentPage: 1,
             settings: defaultSettings(),
             preset: "default",
-            viewMode: "processed",
+            viewMode: "original",
             zoom: 0,
             outputPath: null,
             preview: emptyPreview,

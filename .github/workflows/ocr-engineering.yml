@@ -1,0 +1,72 @@
+name: OCR engineering contracts
+
+on:
+  push:
+    branches: [codex/ocr-engineering-ci-20261002]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocr-engineering-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Synthetic Python contracts (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: scripts/ci/ocr-engineering-requirements.txt
+      - run: python -m pip install -r scripts/ci/ocr-engineering-requirements.txt
+      - run: python scripts/ci/ocr_engineering.py
+
+  desktop:
+    name: Current desktop source (macOS arm64)
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scripts/ci/ocr_engineering.py --verify-only
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Pinned Rust toolchain
+        run: rustup show
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ocr-engineering-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+      - name: Desktop local candidate unit tests
+        run: cargo test --locked -p mpdf-desktop --lib --features local-ocr-candidate
+      - name: Default desktop remains compilable
+        run: cargo check --locked -p mpdf-desktop
+      - name: Evidence boundary
+        run: |
+          echo 'Source/component build only. No PDFium E2E, OCR quality, real GUI, install, signing, notarization or release.'
+          echo 'Another Mac remains the final Release Gate. quality_ready/app_admission/distribution_ready/release_ready=false.'

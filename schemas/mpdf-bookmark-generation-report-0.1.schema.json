@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mpdf.example/schema/bookmark-generation-report/0.1",
+  "title": "MPDF bookmark generation report 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "source_digest",
+    "package_digest",
+    "ocr_digest",
+    "derived_digest",
+    "revision_digest",
+    "rule_config_digest",
+    "rule_version",
+    "mode",
+    "status",
+    "safe_refusal_reason",
+    "ocr_provenance",
+    "front_page_limit",
+    "scanned_front_pages",
+    "toc_pages",
+    "parsed_entries",
+    "auto_confirmed",
+    "needs_review",
+    "skipped",
+    "reason_code_counts",
+    "mapping_segments",
+    "truncated",
+    "truncation_reasons",
+    "shortlist_postings_visited",
+    "body_lines_indexed",
+    "generation_digest",
+    "report_digest"
+  ],
+  "properties": {
+    "schema": {
+      "const": "mpdf-bookmark-generation-report"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "source_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "package_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "ocr_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "derived_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revision_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rule_config_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "rule_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "mode": {
+      "enum": [
+        "existing_outline",
+        "toc_aligned",
+        "safe_refusal"
+      ]
+    },
+    "status": {
+      "enum": [
+        "auto_confirmed",
+        "needs_review",
+        "safe_refusal"
+      ]
+    },
+    "safe_refusal_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 512
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ocr_provenance": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/provenance"
+      }
+    },
+    "front_page_limit": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scanned_front_pages": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "toc_pages": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/toc_page"
+      }
+    },
+    "parsed_entries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "auto_confirmed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "needs_review": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skipped": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reason_code_counts": {
+      "type": "object",
+      "maxProperties": 256,
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "mapping_segments": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/segment"
+      }
+    },
+    "truncated": {
+      "type": "boolean"
+    },
+    "truncation_reasons": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "string",
+        "maxLength": 128
+      }
+    },
+    "shortlist_postings_visited": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "body_lines_indexed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "generation_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "report_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "engine",
+        "model",
+        "version",
+        "execution_location",
+        "page_count"
+      ],
+      "properties": {
+        "route": {
+          "enum": [
+            "native_text",
+            "ocr"
+          ]
+        },
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "toc_page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "page_id",
+        "page_index",
+        "score",
+        "signals",
+        "parsed_entries",
+        "keyword_line_ids",
+        "entry_line_ids"
+      ],
+      "properties": {
+        "page_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signals": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "parsed_entries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "keyword_line_ids": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "entry_line_ids": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numbering_family",
+        "segment_index",
+        "offset",
+        "anchor_count",
+        "first_printed_number",
+        "last_printed_number",
+        "residual_min",
+        "residual_max"
+      ],
+      "properties": {
+        "numbering_family": {
+          "enum": [
+            "arabic",
+            "roman"
+          ]
+        },
+        "segment_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "anchor_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_printed_number": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_printed_number": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "residual_min": {
+          "type": "integer"
+        },
+        "residual_max": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

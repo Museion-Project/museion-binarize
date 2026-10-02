@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "M PDF Processor",
-  "version": "0.1.0-rc.2",
+  "version": "0.1.0-rc.3",
   "identifier": "me.mpdf.processor",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -13,10 +13,10 @@
     "windows": [
       {
         "title": "M PDF Processor",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 900,
-        "minHeight": 600,
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
         "resizable": true
       }
     ],
@@ -33,6 +33,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "../../../scripts/bookmarks/local/*.py": "bookmarks/",
+      "../../../scripts/bookmarks/local/vision_fast.swift": "bookmarks/vision_fast.swift",
+      "../../../scripts/bookmarks/hierarchy_foundation_models/hierarchy.py": "hierarchy_foundation_models/hierarchy.py",
+      "../../../scripts/bookmarks/hierarchy_models/manager.py": "hierarchy_models/manager.py",
+      "../../../scripts/bookmarks/hierarchy_models/desktop_bridge.py": "hierarchy_models/desktop_bridge.py"
+    }
   }
 }

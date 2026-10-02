@@ -37,7 +37,18 @@ pub fn effective(
                         "bookmark title must not be empty".into(),
                     ));
                 }
+                if title.len() > MAX_TITLE_BYTES {
+                    return Err(CoreError::InvalidParameter(
+                        "bookmark title exceeds its byte limit".into(),
+                    ));
+                }
                 c.effective_title = title.clone();
+                // Touching an automatic entry makes it a human decision. The
+                // automatic score, source title, and decision provenance are
+                // all retained; only the effective status changes.
+                if c.status == BookmarkStatus::AutoConfirmed {
+                    c.status = BookmarkStatus::Confirmed;
+                }
             }
             ReviewAction::Reparent { parent_id, level } => {
                 if *level > 64 {
@@ -47,6 +58,9 @@ pub fn effective(
                 }
                 c.effective_parent_id = parent_id.clone();
                 c.effective_level = *level;
+                if c.status == BookmarkStatus::AutoConfirmed {
+                    c.status = BookmarkStatus::Confirmed;
+                }
             }
         }
     }
@@ -150,6 +164,7 @@ fn operation_id(id: &str, a: &ReviewAction, ordinal: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::derived::Bbox;
     #[test]
     fn edit_keeps_source_title_and_evidence() {
         let c = BookmarkCandidate {
@@ -182,6 +197,9 @@ mod tests {
             },
             reason_codes: vec![],
             rule_trace: vec![],
+            confidence_breakdown: None,
+            alignment_evidence: None,
+            automatic_decision: None,
         };
         let mut s = BookmarkSnapshot {
             schema: BOOKMARK_SCHEMA.into(),
@@ -192,6 +210,11 @@ mod tests {
             generator: c.generator.clone(),
             candidates: vec![c],
             generation_digest: "c".repeat(64),
+            ocr_digest: None,
+            revision_digest: None,
+            rule_config_digest: None,
+            rule_version: None,
+            generation_mode: None,
         };
         s.generation_digest = s.recomputed_generation_digest();
         let mut r = BookmarkReviews::empty(s.generation_digest.clone());

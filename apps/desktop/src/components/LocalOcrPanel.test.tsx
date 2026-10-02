@@ -1,0 +1,69 @@
+import {render,screen,waitFor,fireEvent,act} from "@testing-library/react";
+import {describe,it,expect,vi,beforeEach} from "vitest";
+import {LocalOcrPanel} from "./LocalOcrPanel";
+import {setLocale} from "../lib/i18n";
+const ipc=vi.hoisted(()=>vi.fn());
+type Progress={payload:{documentId:string;event:{session_id?:string;client_operation_id?:string;event?:string}}};
+const events=vi.hoisted(()=>({handler:null as ((event:Progress)=>void)|null}));
+vi.mock("@tauri-apps/api/core",()=>({invoke:ipc}));
+vi.mock("@tauri-apps/api/event",()=>({listen:vi.fn().mockImplementation((_event:string,handler:(event:Progress)=>void)=>{events.handler=handler;return Promise.resolve(()=>{});})}));
+vi.mock("../lib/tauri",()=>({pickOutputDestination:vi.fn()}));
+const props={documentId:"source",pageCount:12,currentPage:1,previewReady:true,disabled:false,onPage:vi.fn(),onBusy:vi.fn(),onOpen:vi.fn()};
+const result={session_id:"a".repeat(32),revision:0,status:"review_required",source_sha256:"hash",output_pdf:"/derived.pdf",pages:[{page:1,status:"EXPORT_REVIEW",words:[{id:"word",text:"alpha",bbox:[1,2,3,4],source_members:["member"],export_status:"EXPORT_REVIEW"}]}],export_review:[{member_id:"word",text:"alpha",issues:["UNSUPPORTED_GLYPH"]}]};
+beforeEach(()=>{events.handler=null;ipc.mockReset();setLocale("zh");ipc.mockImplementation((c:string,a?:{request:{action:string}})=>Promise.resolve(c==="local_ocr_capabilities"?{enabled:true}:a?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:result));});
+async function start(){await waitFor(()=>expect(screen.getByTestId("local-ocr-start")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-start"));await screen.findByTestId("local-ocr-result");fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:"word"}});}
+describe("normal local OCR workflow",()=>{
+ it("is off in the published build",async()=>{ipc.mockResolvedValue({enabled:false});render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(ipc).toHaveBeenCalled());expect(screen.queryByText("本地文字识别")).toBeNull();});
+ it("offers a plain page selection without developer paths or record inputs",async()=>{render(<LocalOcrPanel {...props}/>);await start();expect(screen.queryByLabelText("已有结果 JSON 路径")).toBeNull();expect(screen.getByTestId("local-ocr-export-review")).toBeVisible();expect(screen.getByTestId("local-ocr-save")).toBeDisabled();});
+ it("requires actual original onLoad state and resets proof on text/page/document changes",async()=>{const view=render(<LocalOcrPanel {...props} previewReady={false}/>);await start();fireEvent.click(screen.getByTestId("local-ocr-source"));expect(screen.getByTestId("local-ocr-accept")).toBeDisabled();view.rerender(<LocalOcrPanel {...props} previewReady={true}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeEnabled());fireEvent.change(screen.getByLabelText("待审文字"),{target:{value:"beta"}});await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeDisabled());fireEvent.click(screen.getByTestId("local-ocr-source"));await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeEnabled());view.rerender(<LocalOcrPanel {...props} currentPage={2}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeDisabled());view.rerender(<LocalOcrPanel {...props} documentId="next"/>);await waitFor(()=>expect(screen.queryByTestId("local-ocr-result")).toBeNull());});
+ it("discards a stale IPC result after document replacement",async()=>{let resolve:(x:unknown)=>void=()=>{};ipc.mockImplementation((c:string,a?:{request:{action:string}})=>c==="local_ocr_capabilities"?Promise.resolve({enabled:true}):a?.request.action==="start"?new Promise(r=>{resolve=r;}):Promise.resolve({local_runtime_ready:true,blockers:[]}));const view=render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-start")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-start"));view.rerender(<LocalOcrPanel {...props} documentId="replacement"/>);resolve(result);await waitFor(()=>expect(screen.queryByTestId("local-ocr-cancel")).toBeNull());expect(screen.queryByTestId("local-ocr-result")).toBeNull();});
+});
+
+it("defers a pre-session cancellation to the matching operation once and restores review on resume/reload",async()=>{
+ let resolve:(x:unknown)=>void=()=>{};let token="";
+ ipc.mockImplementation((command:string,args?:{request:{action:string;clientOperationId?:string}})=>{
+  if(command==="local_ocr_capabilities")return Promise.resolve({enabled:true});
+  if(args?.request.action==="readiness")return Promise.resolve({local_runtime_ready:true,blockers:[]});
+  if(args?.request.action==="start"){token=args.request.clientOperationId??"";return new Promise(r=>{resolve=r;});}
+  return Promise.resolve(result);
+ });
+ render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-start")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-start"));fireEvent.click(screen.getByTestId("local-ocr-cancel"));expect(ipc.mock.calls.filter(c=>c[1]?.request.action==="cancel")).toHaveLength(0);
+ await act(async()=>{events.handler?.({payload:{documentId:"source",event:{session_id:"stale",client_operation_id:"old"}}});});expect(ipc.mock.calls.filter(c=>c[1]?.request.action==="cancel")).toHaveLength(0);
+ const event={payload:{documentId:"source",event:{session_id:result.session_id,client_operation_id:token}}};await act(async()=>{events.handler?.(event);events.handler?.(event);});const cancellations=ipc.mock.calls.filter(c=>c[1]?.request.action==="cancel");expect(cancellations).toHaveLength(1);expect(cancellations[0][1].request).toMatchObject({sessionId:result.session_id,clientOperationId:token});
+ await act(async()=>resolve(result));await screen.findByTestId("local-ocr-result");fireEvent.click(screen.getByTestId("local-ocr-resume"));await waitFor(()=>expect(screen.queryByTestId("local-ocr-cancel")).toBeNull());fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:"word"}});fireEvent.click(screen.getByTestId("local-ocr-source"));await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeEnabled());
+ fireEvent.click(screen.getByTestId("local-ocr-reload"));await waitFor(()=>expect(screen.queryByTestId("local-ocr-cancel")).toBeNull());fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:"word"}});fireEvent.click(screen.getByTestId("local-ocr-source"));await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeEnabled());
+});
+it("does not deliver an old document's pending cancellation after a document epoch change",async()=>{
+ let resolve:(x:unknown)=>void=()=>{};let token="";ipc.mockImplementation((command:string,args?:{request:{action:string;clientOperationId?:string}})=>command==="local_ocr_capabilities"?Promise.resolve({enabled:true}):args?.request.action==="start"?new Promise(r=>{token=args.request.clientOperationId??"";resolve=r;}):Promise.resolve({local_runtime_ready:true,blockers:[]}));
+ const view=render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-start")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-start"));fireEvent.click(screen.getByTestId("local-ocr-cancel"));const oldHandler=events.handler;view.rerender(<LocalOcrPanel {...props} documentId="new"/>);await act(async()=>oldHandler?.({payload:{documentId:"source",event:{session_id:result.session_id,client_operation_id:token}}}));expect(ipc.mock.calls.some(c=>c[1]?.request.action==="cancel")).toBe(false);await act(async()=>resolve(result));expect(screen.queryByTestId("local-ocr-result")).toBeNull();
+});
+
+const pendingSave={journal_id:`save-pending-${"b".repeat(32)}.json`,journal_sha256:"c".repeat(64),status:"complete_copy_pending_receipt",recoverable:true,output_pdf:"/existing-complete.pdf",reason:null};
+it("requires draft acknowledgement and sends the exact journal/revision for receipt recovery",async()=>{
+ const pending={...result,runtime_compatible:true,session_storage:"persistent-private",pending_saves:[pendingSave]};
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:args?.request.action==="recover-save"?{...pending,saved:{output_pdf:pendingSave.output_pdf},pending_saves:[{...pendingSave,status:"recovered",recoverable:false}]}:pending));
+ render(<LocalOcrPanel {...props}/>);await start();expect(screen.getByTestId("local-ocr-recover-save")).toBeDisabled();
+ fireEvent.click(screen.getByTestId("local-ocr-partial"));expect(screen.getByTestId("local-ocr-recover-save")).toBeEnabled();
+ fireEvent.click(screen.getByTestId("local-ocr-recover-save"));await screen.findByTestId("local-ocr-saved");
+ const request=ipc.mock.calls.find(c=>c[1]?.request.action==="recover-save")?.[1].request;
+ expect(request).toMatchObject({documentId:"source",mode:"local",sessionId:result.session_id,expectedRevision:0,saveJournalId:pendingSave.journal_id,saveJournalSha256:pendingSave.journal_sha256});
+ expect(ipc.mock.calls.filter(c=>c[1]?.request.action==="start")).toHaveLength(1);expect(ipc.mock.calls.filter(c=>c[1]?.request.action==="save")).toHaveLength(0);
+ expect(screen.getByText("保存收据已恢复，PDF 内容未改动。")).toBeVisible();expect(screen.queryByTestId("local-ocr-recover-save")).toBeNull();
+});
+it("keeps a runtime-mismatched legacy draft readable with mutation buttons disabled",async()=>{
+ const stale={...result,runtime_compatible:false,session_storage:"legacy-temporary",pending_saves:[pendingSave]};
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:stale));
+ render(<LocalOcrPanel {...props}/>);await start();fireEvent.click(screen.getByTestId("local-ocr-source"));fireEvent.click(screen.getByTestId("local-ocr-partial"));
+ expect(screen.getByTestId("local-ocr-runtime-stale")).toBeVisible();expect(screen.getByTestId("local-ocr-accept")).toBeDisabled();expect(screen.getByTestId("local-ocr-change")).toBeDisabled();expect(screen.getByTestId("local-ocr-save")).toBeDisabled();expect(screen.getByTestId("local-ocr-recover-save")).toBeDisabled();expect(screen.getByTestId("local-ocr-reload")).toBeEnabled();
+});
+it("keeps unresolved interrupted saves visible without offering receipt recovery",async()=>{
+ const pending={...result,runtime_compatible:true,pending_saves:[{...pendingSave,recoverable:false,status:"unresolved",reason:"RECOVERY_OUTPUT_CHANGED_OR_REPLACED"}]};
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:pending));
+ render(<LocalOcrPanel {...props}/>);await start();expect(screen.getByText("无法确认这次保存，请保留现有文件。可以另选新文件名保存。")).toBeVisible();expect(screen.queryByTestId("local-ocr-recover-save")).toBeNull();
+});
+it("discards a recovery result after the source document changes",async()=>{
+ let resolve:(x:unknown)=>void=()=>{};const pending={...result,runtime_compatible:true,pending_saves:[pendingSave]};
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>command==="local_ocr_capabilities"?Promise.resolve({enabled:true}):args?.request.action==="readiness"?Promise.resolve({local_runtime_ready:true,blockers:[]}):args?.request.action==="recover-save"?new Promise(r=>{resolve=r;}):Promise.resolve(pending));
+ const view=render(<LocalOcrPanel {...props}/>);await start();fireEvent.click(screen.getByTestId("local-ocr-partial"));fireEvent.click(screen.getByTestId("local-ocr-recover-save"));view.rerender(<LocalOcrPanel {...props} documentId="replacement"/>);
+ await act(async()=>resolve({...pending,saved:{output_pdf:pendingSave.output_pdf}}));expect(screen.queryByTestId("local-ocr-result")).toBeNull();expect(screen.queryByTestId("local-ocr-saved")).toBeNull();
+});

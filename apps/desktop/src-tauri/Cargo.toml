@@ -25,11 +25,20 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # strategy in worker.rs; see docs/mac-app-store-readiness.md, "Sandboxed
 # output-save architecture."
 mas-sandbox = []
+# Development protocol fixture only; never enabled by distribution builds.
+dev-credits = []
+# Opt-in local UI integration harness; excluded from normal builds.
+desktop-ui-test = []
+# Independent, explicit MVP candidate only; ordinary/release defaults remain OCR-off.
+mvp-development = []
+# Explicit local candidate; packaged resources, no development environment switch.
+local-ocr-candidate = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+tempfile = "3"
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"

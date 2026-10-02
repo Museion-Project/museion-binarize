@@ -22,6 +22,9 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// The main flow: OCR the original PDF, compile bookmarks, binarize the
+    /// pages, and write one final searchable, outlined, bilevel PDF.
+    Run(RunArgs),
     /// Print project and build information.
     Info(InfoArgs),
     /// Inspect a PDF: page count, geometry, rotation, and render sizes.
@@ -65,10 +68,15 @@ pub enum Command {
     /// Build a searchable derivative while preserving the source PDF.
     #[command(subcommand)]
     Pdf(PdfCommand),
+    /// Inspect current OCR product modes and their availability.
+    #[command(subcommand)]
+    Provider(ProviderCommand),
 }
 
 #[derive(Subcommand)]
 pub enum BookmarkCommand {
+    /// Compile bookmarks from evidence and write an outlined PDF in one step.
+    Auto(BookmarkAutoArgs),
     Generate(BookmarkGenerateArgs),
     List(BookmarkListArgs),
     Confirm(BookmarkMutationArgs),
@@ -76,10 +84,39 @@ pub enum BookmarkCommand {
     Edit(BookmarkEditArgs),
     Reparent(BookmarkReparentArgs),
 }
+/// One command for the whole automatic path: validate the package, compile
+/// bookmarks from a native outline or a printed contents list, and — when
+/// anything reached the confidence gate — write and verify a searchable,
+/// outlined PDF. A document with no reliable structure returns a normal,
+/// explained refusal and writes no output.
+#[derive(Args)]
+pub struct BookmarkAutoArgs {
+    /// Existing MDP package directory.
+    pub input: PathBuf,
+    /// The source PDF this package was built from.
+    #[arg(long)]
+    pub source: PathBuf,
+    /// Destination for the new outlined PDF. The source is never modified.
+    #[arg(long)]
+    pub output: PathBuf,
+    /// Authorize replacing an existing regular output file.
+    #[arg(long)]
+    pub overwrite: bool,
+    /// Authorize replacing existing bookmark candidates and report.
+    /// Independent of --overwrite, and still refused when reviews exist.
+    #[arg(long)]
+    pub regenerate: bool,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
 #[derive(Args)]
 pub struct BookmarkGenerateArgs {
     pub input: PathBuf,
-    #[arg(long)]
+    /// Authorize replacing existing bookmark candidates and report.
+    #[arg(long, alias = "regenerate")]
     pub overwrite: bool,
     #[command(flatten)]
     pub output_mode: OutputArgs,
@@ -129,6 +166,8 @@ pub struct PdfBuildSearchableArgs {
     pub output: PathBuf,
     #[arg(long)]
     pub overwrite: bool,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
     #[command(flatten)]
     pub output_mode: OutputArgs,
 }
@@ -668,6 +707,216 @@ pub struct EstimateArgs {
 
     #[command(flatten)]
     pub pdfium: PdfiumArgs,
+}
+
+/// Which execution mode runs OCR.
+///
+/// `local` is the default and the only one that touches no network. Choosing
+/// anything else uploads page images, which is why it is an explicit flag and
+/// why `--cloud-consent` is required alongside it.
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum OcrProviderModeArg {
+    /// Local OCR when the optional plugin is installed; native text otherwise.
+    Local,
+    /// Historical compatibility value. Always returns the stable disabled
+    /// migration error and is hidden from current choices.
+    #[value(hide = true)]
+    GeminiByok,
+    /// M PDF's own service executes the model. No production service exists
+    /// in this build; see `mpdf provider list`.
+    MpdfCredits,
+    /// Explicit real-broker integration test; never a released product mode.
+    #[value(hide = true)]
+    BrokerTest,
+}
+
+/// What to do when a cloud provider cannot produce a page.
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum CloudFallbackArg {
+    /// Use the locally recognized page and record the fallback per page.
+    /// The run still produces a searchable PDF.
+    Local,
+    /// Stop the run. Nothing is written.
+    Fail,
+}
+
+/// Whether provider-returned rectangles may be evaluated.
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum StructuredBboxArg {
+    /// Never request or accept model coordinates. The default, and the only
+    /// setting cleared for real work.
+    Disabled,
+    /// Request them, cross-validate against the local detector, and fall back
+    /// deterministically when any gate fails. Evaluation only.
+    EvaluateWithFallback,
+}
+
+#[derive(Subcommand)]
+pub enum ProviderCommand {
+    /// List the OCR provider modes, their capabilities and their blockers.
+    List(ProviderListArgs),
+    /// Non-billable connection test. Never prints a credential.
+    Test(ProviderTestArgs),
+    /// Historical BYOK commands. Retained only to return a stable disabled
+    /// migration error; no command reads stdin or a credential store.
+    #[command(subcommand, hide = true)]
+    Credential(ProviderCredentialCommand),
+}
+
+#[derive(Subcommand)]
+pub enum ProviderCredentialCommand {
+    /// Legacy compatibility command; always reports that BYOK is disabled.
+    Set(ProviderCredentialArgs),
+    /// Legacy compatibility command; never consults credential storage.
+    Status(ProviderCredentialArgs),
+    /// Legacy compatibility command; never changes credential storage.
+    Delete(ProviderCredentialArgs),
+}
+
+#[derive(Args)]
+pub struct ProviderCredentialArgs {
+    /// Retained legacy slot label; ignored by the disabled command.
+    #[arg(long, default_value = "default")]
+    pub slot: String,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Args)]
+pub struct ProviderListArgs {
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Args)]
+pub struct ProviderTestArgs {
+    #[arg(long, value_enum, default_value_t = OcrProviderModeArg::Local)]
+    pub mode: OcrProviderModeArg,
+    #[arg(long, default_value = "default")]
+    #[arg(hide = true)]
+    pub slot: String,
+    /// Advanced: override the provider endpoint. Must be HTTPS.
+    #[arg(long, hide = true)]
+    pub endpoint: Option<String>,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum RunProviderArg {
+    /// Tesseract LSTM with the pinned `tessdata_best` model set. The only
+    /// engine cleared for production by the gold evaluation.
+    Tesseract,
+    /// PaddleOCR/RapidOCR-style detector + region recognizer. Evaluation only:
+    /// it cannot represent polytonic Ancient Greek and fetches weights at
+    /// first use.
+    Paddleocr,
+    /// Deterministic offline stub. Development and tests only; it recognizes
+    /// nothing, so it can never produce real bookmarks.
+    Reference,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum ReviewPolicyArg {
+    /// Stop before writing anything if entries need a human decision.
+    Pause,
+    /// Write only what is already confirmed and skip the rest.
+    Confirmed,
+    /// Apply the review decisions stored in the workspace, then continue.
+    Reviewed,
+}
+
+/// `mpdf run` — one input PDF, one output PDF.
+///
+/// A user of this command does not have to know what a provider, a model, a
+/// TOC offset, or a threshold is. The order is fixed and enforced by the core
+/// orchestrator: the original pages are OCR'd first, bookmarks are compiled
+/// from that evidence, and only then are the visible pages binarized.
+#[derive(Args)]
+pub struct RunArgs {
+    /// The original colour or grayscale PDF. Never modified.
+    pub input: PathBuf,
+    /// The final binarized, searchable, outlined PDF.
+    #[arg(long, short)]
+    pub output: PathBuf,
+    /// Replace the destination if it already exists.
+    #[arg(long)]
+    pub overwrite: bool,
+    /// Language profile. `auto` covers this project's corpus: polytonic
+    /// Ancient Greek plus German plus English, in one combined pass.
+    #[arg(long, default_value = "auto")]
+    pub language: String,
+    /// Advanced: which local OCR engine to drive.
+    #[arg(long, value_enum, default_value_t = RunProviderArg::Tesseract)]
+    pub provider: RunProviderArg,
+    /// Advanced: the OCR sidecar executable. Defaults to `$MPDF_OCR_SIDECAR`.
+    #[arg(long)]
+    pub ocr_sidecar: Option<PathBuf>,
+    /// Advanced: the provisioned model directory. Defaults to
+    /// `$MPDF_OCR_MODELS`. Never downloaded automatically.
+    #[arg(long)]
+    pub models: Option<PathBuf>,
+    /// Advanced: durable workspace for evidence and bookmark candidates.
+    /// Defaults to a directory beside the output.
+    #[arg(long)]
+    pub workspace: Option<PathBuf>,
+    /// What to do when entries need a human decision.
+    #[arg(long, value_enum, default_value_t = ReviewPolicyArg::Pause)]
+    pub on_review: ReviewPolicyArg,
+    /// Advanced: OCR raster resolution. Unrelated to the output DPI.
+    #[arg(long, default_value_t = 300)]
+    pub ocr_dpi: u16,
+
+    /// Which execution mode runs OCR. `local` is the default and never
+    /// touches the network.
+    #[arg(long, value_enum, default_value_t = OcrProviderModeArg::Local)]
+    pub ocr_provider: OcrProviderModeArg,
+    /// Required by every non-local `--ocr-provider`: acknowledges that a
+    /// rendered image of every OCR'd page is uploaded to that provider.
+    #[arg(long)]
+    pub cloud_consent: bool,
+    /// Test-only nonsecret broker/runtime configuration; requires broker-test.
+    #[arg(long, hide = true)]
+    pub broker_test_config: Option<PathBuf>,
+    /// What to do when a cloud page fails. Defaults to keeping the locally
+    /// recognized page and recording the fallback.
+    #[arg(long, value_enum, default_value_t = CloudFallbackArg::Local)]
+    pub cloud_fallback: CloudFallbackArg,
+    /// Historical BYOK slot label. Accepted only so old invocations receive a
+    /// stable disabled error; it is never read from a credential store.
+    #[arg(long, default_value = "default", hide = true)]
+    pub credential_slot: String,
+    /// Advanced: model-provider endpoint. Must be HTTPS.
+    #[arg(long, hide = true)]
+    pub cloud_endpoint: Option<String>,
+    /// Advanced: pinned model name for cloud modes.
+    #[arg(long, hide = true)]
+    pub cloud_model: Option<String>,
+    /// Advanced: pinned model version for cloud modes. Never `latest`.
+    #[arg(long, hide = true)]
+    pub cloud_model_version: Option<String>,
+    /// Advanced: whether model-returned rectangles may be evaluated.
+    #[arg(long, value_enum, default_value_t = StructuredBboxArg::Disabled, hide = true)]
+    pub structured_bbox: StructuredBboxArg,
+    /// M PDF Credits: credits to reserve per page.
+    #[arg(long, default_value_t = 1)]
+    pub credits_per_page: u64,
+    /// M PDF Credits: the hard ceiling this run may reserve. The run refuses
+    /// to start rather than exceed it.
+    #[arg(long, default_value_t = 0)]
+    pub max_credits: u64,
+    /// Print the declared plan, upload boundary, and cost ceiling, then exit.
+    /// Checks argument/policy consistency only: it does not open the input or
+    /// inspect the optional OCR plugin/runtime, and makes no provider call.
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[command(flatten)]
+    pub settings: SettingsArgs,
+    #[command(flatten)]
+    pub pdfium: PdfiumArgs,
+    #[command(flatten)]
+    pub output_mode: OutputArgs,
 }
 
 #[derive(Args)]

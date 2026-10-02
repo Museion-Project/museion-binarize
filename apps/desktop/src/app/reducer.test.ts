@@ -185,3 +185,9 @@ describe("estimate state transitions", () => {
     expect(state.estimate).toEqual({ kind: "idle" });
   });
 });
+
+
+it("keeps the loaded source preview when a review revisits the current physical page",()=>{
+ const state=readyState({preview:{originalDataUrl:"data:image/png;base64,actual",processedDataUrl:null,loading:false,error:null}});
+ expect(reducer(state,{type:"SELECT_PAGE",page:state.currentPage})).toBe(state);
+});

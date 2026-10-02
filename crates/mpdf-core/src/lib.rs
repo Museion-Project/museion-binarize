@@ -17,6 +17,7 @@ pub mod benchmark;
 pub mod benchmark_fixtures;
 pub mod bilevel;
 pub mod binarization;
+pub mod bookmark_fixtures;
 pub mod bookmarks;
 pub mod ccitt;
 pub mod cleanup;
@@ -29,7 +30,11 @@ pub mod estimation;
 pub mod grayscale;
 pub mod image_pipeline;
 pub mod jobs;
+pub mod logical_lines;
 pub mod ocr;
+pub mod ocr_provider;
+pub mod ocr_runtime;
+pub mod orchestrator;
 pub mod page_geometry;
 pub mod page_selection;
 pub mod pdf_writer;
@@ -39,11 +44,13 @@ pub mod preprocessing;
 pub mod progress;
 pub mod remote_api;
 pub mod report;
+pub mod searchable_output;
 pub mod searchable_pdf;
 pub mod settings;
 pub mod source_identity;
 pub mod test_fixtures;
 pub mod timing;
+pub mod transcription_fidelity;
 pub mod validation;
 /// Short technical alias used by MDP consumers.
 pub use document_package as mdp;
@@ -81,3 +88,5 @@ mod tests {
         assert_eq!(info.phase, "Phase 1 — under development");
     }
 }
+
+pub mod selective_pdf;

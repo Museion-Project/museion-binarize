@@ -11,7 +11,7 @@
     "errors": {"type": "array", "maxItems": 100000, "items": {"$ref": "#/$defs/error"}}
   },
   "$defs": {
-    "error": {"type": "object", "required": ["page_index", "route_reason", "code", "message"], "properties": {"page_index": {"type": "integer", "minimum": 0}, "route_reason": {"enum": ["missing_text", "too_little_text", "garbled_text"]}, "code": {"type": "string", "minLength": 1}, "message": {"type": "string", "minLength": 1, "maxLength": 1024}}, "additionalProperties": false}
+    "error": {"type": "object", "required": ["page_index", "route_reason", "code", "message"], "properties": {"page_index": {"type": "integer", "minimum": 0}, "route_reason": {"enum": ["missing_text", "too_little_text", "garbled_text", "provider_required_raster"]}, "code": {"type": "string", "minLength": 1}, "message": {"type": "string", "minLength": 1, "maxLength": 1024}}, "additionalProperties": false}
   },
   "additionalProperties": false
 }
