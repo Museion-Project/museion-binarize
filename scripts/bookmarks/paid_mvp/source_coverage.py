@@ -14,14 +14,14 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def observe_candidate(request, *, layouts, cached_pages=()):
+def observe_candidate(request, *, layouts, cached_pages=(),document_relations=()):
     """Explicit P5 complete-source candidate; never implicitly changes admission.
 
     Source layouts/raw receipts are mandatory evidence. This path starts no
     reader, accepts no prediction or reference counts and grants no export.
     """
     from .complete_source import observe_complete
-    return observe_complete(request, layouts=layouts, cached_pages=cached_pages)
+    return observe_complete(request, layouts=layouts, cached_pages=cached_pages,document_relations=document_relations)
 
 
 def observe(request, timeout=60):

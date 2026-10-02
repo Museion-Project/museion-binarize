@@ -27,9 +27,12 @@ TEST_MODULES = (
     'scripts.distribution.test_local_candidate',
     'scripts.distribution.test_launcher_contract',
     'scripts.distribution.test_signature_repair',
+    'scripts.distribution.test_resource_dossier',
     'scripts.ocr.paid_mvp.test_p9_contract',
+    'scripts.ocr.paid_mvp.test_selective',
     'scripts.bookmarks.paid_mvp.test_source_identity',
     'scripts.bookmarks.paid_mvp.test_complete_source',
+    'scripts.bookmarks.paid_mvp.test_complete_admission',
 )
 
 

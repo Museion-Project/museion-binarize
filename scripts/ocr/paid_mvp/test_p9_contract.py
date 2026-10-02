@@ -146,6 +146,46 @@ class P9ContractTest(unittest.TestCase):
         self.assertEqual(units[0]['locator'], 'UNKNOWN')
         self.assertEqual(page['regions'][0]['line_proof_reason'], 'multiple_or_disconnected_ink_bands')
 
+    def multiline_response(self, text='First line\nSecond line'):
+        response=copy.deepcopy(self.response);p=response['pages'][0]
+        p['markdown']=p['blocks'][0]['content']=text;p['blocks'][0]['bottom_right_y']=150
+        p['confidence_scores']['word_confidence_scores']=[
+            dict(text=m.group(),start_index=m.start(),confidence=.1)
+            for m in __import__('re').finditer(r'\S+',text)]
+        image=Image.new('RGB',(200,500),'white');draw=ImageDraw.Draw(image)
+        draw.rectangle((25,105,90,118),fill='black');draw.rectangle((25,131,90,142),fill='black');image.save(self.image)
+        return response
+
+    def test_multiline_paragraph_uses_source_bands_and_exact_raw_offsets(self):
+        response=self.multiline_response();original=copy.deepcopy(response)
+        page,units=self.units(response)
+        self.assertEqual([u['original_text'] for u in units],['First line','Second line'])
+        self.assertEqual([u['raw_start'] for u in units],[0,11])
+        self.assertTrue(all(u['locator']=='LOCATED' for u in units));self.assertEqual(len(select(units)['selected']),2)
+        self.assertEqual(page['raw_response'],original);self.assertEqual(page['raw_regions'][0]['original_text'],original['pages'][0]['markdown'])
+        self.assertNotEqual(units[0]['member_ids'],units[1]['member_ids'])
+        from .repair_units import verify
+        verify(units,page)
+
+    def test_multiline_count_mismatch_and_repeated_anchor_remain_unknown(self):
+        response=self.multiline_response('First\nSecond\nThird');page,units=self.units(response)
+        self.assertEqual(len(units),1);self.assertEqual(units[0]['locator'],'UNKNOWN')
+        response=self.multiline_response('same\nsame');page,units=self.units(response)
+        self.assertTrue(all(u['locator']=='UNKNOWN' for u in units));self.assertFalse(select(units)['selected'])
+
+    def test_multiline_cannot_crop_neighboring_column_into_owned_line(self):
+        response=self.multiline_response()
+        with Image.open(self.image) as image:
+            ImageDraw.Draw(image).rectangle((120,105,150,118),fill='black');image.save(self.image)
+        page,units=self.units(response)
+        self.assertEqual(units[0]['locator'],'UNKNOWN');self.assertEqual(units[1]['locator'],'LOCATED')
+
+    def test_multiline_revalidation_invalidates_changed_source_pixels(self):
+        response=self.multiline_response();page,units=self.units(response)
+        self.assertTrue(all(u['locator']=='LOCATED' for u in units))
+        Image.new('RGB',(200,500),'white').save(self.image);prove_lines(page,self.image)
+        self.assertTrue(all(u['locator']=='UNKNOWN' for u in build(page,'s','r','e')))
+
     def test_changed_image_invalidates_prior_proof(self):
         page, _ = self.units()
         self.assertIn('line_proof', page['regions'][0])

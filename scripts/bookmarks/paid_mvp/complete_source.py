@@ -15,7 +15,7 @@ from PIL import Image
 from .source_identity import bind_words, physical_lines, compare_readers, ownership, identity, entry_identity
 from .source_coverage import digest
 
-VERSION = 'toc-complete-source-v1'
+VERSION = 'toc-complete-source-v2'
 TSV_FIELDS = ('level','page_num','block_num','par_num','line_num','word_num','left','top','width','height','conf','text')
 ROMAN = re.compile(r'M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$',re.I)
 
@@ -68,19 +68,22 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
     """Attach only uniquely proved adjacent continuation/author/folio lines.
 
     Relations contain immutable line IDs and source-layout evidence. No title
-    supplied by a model is used. Cross-page links are deliberately unsupported
-    until a source-bound head/tail and group ledger is implemented.
+    supplied by a model is used. A cross-page link additionally needs both image
+    identities, exact endpoint bounds and consecutive source-page head/tail proof.
     """
-    all_lines=line_result['lines'];zone_map={z['id']:z for z in zones};headers=[];role_rejections=[]
+    all_lines=line_result['lines'];zone_map={(z['page'],z['id']):z for z in zones};headers=[];role_rejections=[]
+    if len(zone_map)!=len(zones):raise ValueError('DUPLICATE_SOURCE_PAGE_REGION')
+    if len({l['line_id'] for l in all_lines})!=len(all_lines):raise ValueError('DUPLICATE_SOURCE_LINE_IDENTITY')
+    def zone_for(line):return zone_map[(line['page'],line['region_id'])]
     roles={r['line_id']:r for r in line_roles}
     if len(roles)!=len(line_roles):raise ValueError('DUPLICATE_SOURCE_LINE_ROLE')
     for line in all_lines:
         role=roles.get(line['line_id'])
         if role is None:continue
         e=role.get('evidence',{});key=line['words'][0]['identity']
-        sequence=sorted([l for l in all_lines if l['region_id']==line['region_id']],key=lambda l:(l['bbox'][1],l['bbox'][0]))
+        sequence=sorted([l for l in all_lines if l['page']==line['page'] and l['region_id']==line['region_id']],key=lambda l:(l['bbox'][1],l['bbox'][0]))
         isolated=sequence[0] is line and len(sequence)>1 and sequence[1]['bbox'][1]-line['bbox'][3]>=line['bbox'][3]-line['bbox'][1]
-        valid=(role.get('role')=='header' and isolated and folio_member(line,zone_map[line['region_id']]) is None
+        valid=(role.get('role')=='header' and isolated and folio_member(line,zone_for(line)) is None
                and e.get('basis')=='source-pixels' and e.get('source_sha256')==key['source_sha256']
                and e.get('image_sha256')==key['image_sha256'] and bool(e.get('note')))
         if valid:headers.append(dict(line,source_role=role))
@@ -99,7 +102,22 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
         reason=None
         if a is None or b is None or a is b:reason='missing or self continuation member'
         elif rel.get('kind') not in ('continuation','author','folio'):reason='unknown relation kind'
-        elif a['page']!=b['page'] or a['region_id']!=b['region_id']:reason='cross-page or cross-region relation unproved'
+        elif a['page']!=b['page']:
+            ak=a['words'][0]['identity'];bk=b['words'][0]['identity']
+            tail=sorted([l for l in lines if l['page']==a['page'] and l['region_id']==a['region_id']],key=lambda l:(l['bbox'][1],l['bbox'][0]))
+            head=sorted([l for l in lines if l['page']==b['page'] and l['region_id']==b['region_id']],key=lambda l:(l['bbox'][1],l['bbox'][0]))
+            source_bound=(ak['source_sha256']==bk['source_sha256']==e.get('source_sha256')
+                          and e.get('basis')=='source-pixels' and bool(e.get('note'))
+                          and e.get('from_image_sha256')==ak['image_sha256']
+                          and e.get('to_image_sha256')==bk['image_sha256']
+                          and e.get('from_bbox')==a['bbox'] and e.get('to_bbox')==b['bbox']
+                          and e.get('from_region')==a['region_id'] and e.get('to_region')==b['region_id'])
+            if b['page']!=a['page']+1 or tail[-1] is not a or head[0] is not b:
+                reason='cross-page relation lacks consecutive source head/tail'
+            elif not source_bound:reason='cross-page source-pixel endpoint evidence unproved'
+            elif rel['kind']=='continuation' and folio_member(a,zone_for(a)) is not None:
+                reason='completed title cannot absorb next-page title'
+        elif a['region_id']!=b['region_id']:reason='cross-region relation unproved'
         else:
             members=a['words']+b['words'];key=members[0]['identity']
             sequence=sorted([l for l in lines if l['page']==a['page'] and l['region_id']==a['region_id']],key=lambda l:(l['bbox'][1],l['bbox'][0]))
@@ -122,8 +140,8 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
     entries=[]
     rejected_members={r['relation'].get(k) for r in rejected for k in ('from','to')}
     for members in grouped.values():
-        members.sort(key=lambda l:(l['bbox'][1],l['bbox'][0]));zone=zone_map[members[0]['region_id']]
-        folios=[folio_member(l,zone) for l in members];folios=[f for f in folios if f]
+        members.sort(key=lambda l:(l['page'],l['bbox'][1],l['bbox'][0]))
+        folios=[folio_member(l,zone_for(l)) for l in members];folios=[f for f in folios if f]
         reasons=[]
         if len(folios)!=1:reasons.append('missing or multiple uniquely owned folios')
         if any(l['line_id'] in rejected_members for l in members):reasons.append('continuation ownership unresolved')
@@ -137,6 +155,8 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
         title_words=[w['text'] for l in members if roles.get(l['line_id'],'title')=='title' for w in l['words'] if not f or w['word_id']!=f['word_id']]
         authors=[l['text'] for l in members if roles.get(l['line_id'])=='author']
         entries.append(dict(entry_id=entry_identity(members),region_id=members[0]['region_id'],page=members[0]['page'],
+                            source_pages=sorted({l['page'] for l in members}),
+                            source_regions=[dict(page=l['page'],region_id=l['region_id'],line_id=l['line_id']) for l in members],
                             word_ids=ids,line_ids=[l['line_id'] for l in members],members=[dict(l,member_role=roles.get(l['line_id'],'title')) for l in members],
                             title_literal=' '.join(title_words),authors_literal=authors,
                             text=' '.join(l['text'] for l in members),printed_folio=f,
@@ -144,8 +164,8 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
                             state='UNKNOWN' if reasons else 'OBSERVED',reasons=reasons))
     groups=[]
     for zone in zones:
-        subset=[e for e in entries if e['region_id']==zone['id']]
-        region_headers=[h for h in headers if h['region_id']==zone['id']]
+        subset=[e for e in entries if e['page']==zone['page'] and e['region_id']==zone['id']]
+        region_headers=[h for h in headers if h['page']==zone['page'] and h['region_id']==zone['id']]
         # Region grouping is not a semantic section hierarchy. Keep that limit.
         group_key=dict(region_id=zone['id'],page=zone['page'],source_sha256=zone['source_sha256'],image_sha256=zone['image_sha256'],
                        entry_ids=[e['entry_id'] for e in subset],header_word_ids=[w for h in region_headers for w in h['word_ids']])
@@ -192,7 +212,7 @@ def cached_words(receipt,page,image,clip,verified_dpi):
                       invocation_binary_identity='UNVERIFIED',historical_receipt=receipt)
 
 
-def observe_complete(request,*,layouts,cached_pages=()):
+def observe_complete(request,*,layouts,cached_pages=(),document_relations=()):
     source=Path(request['input_pdf']);source_sha=request['input_sha256']
     if digest(source.read_bytes())!=source_sha:raise ValueError('SOURCE_PDF_CHANGED')
     cached={p['page_number']:p for p in cached_pages}
@@ -201,7 +221,7 @@ def observe_complete(request,*,layouts,cached_pages=()):
     if len(layout_map)!=len(layouts):raise ValueError('DUPLICATE_LAYOUT_PAGE')
     numbers=[im['page_number'] for im in request['images']]
     if len(numbers)!=len(set(numbers)):raise ValueError('DUPLICATE_REQUEST_PAGE')
-    pages=[]
+    pages=[];document_lines=[];document_unresolved=[];document_zones=[];document_roles=[];document_links=[];comparisons=[]
     with fitz.open(source) as doc:
         for raw_image in request['images']:
             image=dict(raw_image,source_sha256=source_sha);number=image['page_number'];page=doc[number-1]
@@ -238,10 +258,20 @@ def observe_complete(request,*,layouts,cached_pages=()):
                 alt_lines=physical_lines(alt_bound,zones);comparison=compare_readers(line_result['lines'],alt_lines['lines'])
                 comparison.update(provenance=alt_proof,unresolved=alt_lines['unresolved'])
             result=complete_entries(line_result,zones,relations,comparison,(layout or {}).get('line_roles',[]))
+            document_lines.extend(line_result['lines']);document_unresolved.extend(line_result['unresolved'])
+            document_zones.extend(zones);document_roles.extend((layout or {}).get('line_roles',[]));document_links.extend(relations)
+            if comparison:comparisons.extend(comparison['primary'])
             pages.append(dict(page_number=number,source_sha256=source_sha,image_sha256=image['sha256'],method=method,
                               words=bound,lines=line_result['lines'],line_ownership=line_result['ownership'],
                               reader_provenance=provenance,reader_comparison=comparison,layout=layout,**result))
     if digest(source.read_bytes())!=source_sha:raise ValueError('SOURCE_CHANGED_DURING_OBSERVATION')
+    document_line_audit=ownership([w['word_id'] for p in pages for w in p['words']],
+                                  [l['word_ids'] for l in document_lines],[u['word_id'] for u in document_unresolved])
+    document=complete_entries(dict(lines=document_lines,unresolved=document_unresolved,
+                                  identity_ready=not document_unresolved and document_line_audit['state']=='PASS'),
+                              document_zones,document_links+list(document_relations),
+                              dict(primary=comparisons),document_roles)
     return dict(schema='toc-complete-source/1',observer_version=VERSION,source_sha256=source_sha,pages=pages,
+                document=document,document_line_ownership=document_line_audit,
                 new_reader_calls=0,network_sent=False,admission_ready=False,
                 limitation='Explicit source-layout candidate; counts alone do not certify source completeness or natural safety')

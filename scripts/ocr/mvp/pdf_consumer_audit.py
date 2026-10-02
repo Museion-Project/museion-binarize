@@ -16,7 +16,7 @@ from pathlib import Path
 
 import fitz
 
-VERSION = 'pdf-consumer-audit-v2'
+VERSION = 'pdf-consumer-audit-v3'
 
 
 def sha(path):
@@ -154,6 +154,8 @@ def correspondence(source, consumer):
 def source_order_check(ledger, source, snapshot, pdf_hash):
     if ledger is None:
         return dict(state='INSUFFICIENT', reason='independent source row/column ledger missing')
+    if ledger.get('consumer_ready') is not True:
+        return dict(state='INSUFFICIENT', reason='source preparation is not a reviewed consumer ledger')
     if ledger.get('source_sha256') != snapshot['input_sha256'] or ledger.get('pdf_sha256') != pdf_hash:
         raise ValueError('SOURCE_LEDGER_IDENTITY')
     if ledger.get('basis') != 'source-pixels' or not ledger.get('evidence_sha256'):
@@ -166,6 +168,60 @@ def source_order_check(ledger, source, snapshot, pdf_hash):
     # This checks declared order only; caller must verify the referenced evidence.
     return dict(state='PASS' if members == [s['id'] for s in source] else 'FAIL',
                 basis='externally source-reviewed row ledger', rows=ledger['rows'])
+
+
+def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
+    """Verify reviewed source geometry before measuring actual consumer positions.
+
+    A row proposal or old reader frame is not per-member source evidence. The
+    review is an explicit AI/human observation, not Gold or recognition quality.
+    Rendering binds its image to the actual physical page. No inference runs.
+    """
+    if not ledger or ledger.get('consumer_ready') is not True:
+        return dict(state='INSUFFICIENT',reason='independent reviewed source-member geometry missing',members=[])
+    proof=ledger.get('member_review')
+    if not proof:return dict(state='INSUFFICIENT',reason='source-member review absent',members=[])
+    path=Path(proof['path'])
+    if sha(path)!=proof['sha256']:raise ValueError('SOURCE_MEMBER_REVIEW_CHANGED')
+    review=json.loads(path.read_text())
+    if (review.get('schema')!='source-member-geometry-review/1'
+        or review.get('basis')!='source-pixel-review'
+        or review.get('source_sha256')!=snapshot['input_sha256']
+        or review.get('pdf_sha256')!=pdf_hash or review.get('physical_page')!=number):
+        raise ValueError('SOURCE_MEMBER_REVIEW_IDENTITY')
+    if not review.get('reviewer') or review.get('review_kind') not in ('AI_SOURCE_REVIEW','HUMAN_SOURCE_REVIEW'):
+        raise ValueError('SOURCE_MEMBER_REVIEW_PROVENANCE')
+    image=review['source_image'];dpi=image['dpi']
+    if type(dpi) is not int or not 72<=dpi<=600:raise ValueError('SOURCE_MEMBER_REVIEW_DPI')
+    if sha(image['path'])!=image['sha256']:raise ValueError('SOURCE_MEMBER_IMAGE_CHANGED')
+    from PIL import Image
+    with Image.open(image['path']) as frozen:
+        frozen=frozen.convert('RGB');pix=original.get_pixmap(dpi=dpi,alpha=False)
+        if frozen.size!=(pix.width,pix.height) or frozen.tobytes()!=pix.samples:
+            raise ValueError('SOURCE_MEMBER_IMAGE_PAGE_MISMATCH')
+    records=review['members'];expected={s['id']:s for s in source}
+    if Counter(r['member_id'] for r in records)!=Counter(expected.keys()):raise ValueError('SOURCE_MEMBER_REVIEW_COVERAGE')
+    members=[];gaps=[];rejected=[]
+    for record in records:
+        member=expected[record['member_id']]
+        if record.get('export_literal')!=member['text']:raise ValueError('SOURCE_MEMBER_REVIEW_LITERAL_CHANGED')
+        if record.get('state')=='REJECTED':rejected.append(member['id']);continue
+        if record.get('state')!='SOURCE_POSITION_REVIEWED':gaps.append(member['id']);continue
+        box=record.get('bbox')
+        if (record.get('position_basis')!='source-pixels' or not record.get('note')
+            or not box or len(box)!=4 or not all(type(v) in (int,float) and math.isfinite(v) for v in box)
+            or fitz.Rect(box).is_empty or not original.rect.contains(fitz.Rect(box))):
+            raise ValueError('SOURCE_MEMBER_GEOMETRY_UNPROVED')
+        scale=dpi/72
+        pixel_box=[math.floor(box[0]*scale),math.floor(box[1]*scale),math.ceil(box[2]*scale),math.ceil(box[3]*scale)]
+        if frozen.crop(pixel_box).convert('L').getextrema()[0]>=180:
+            gaps.append(member['id']);continue
+        members.append(dict(id=member['id'],text=member['text'],bbox=list(box),
+                            source_literal=record.get('source_literal'),review_kind=review['review_kind']))
+    return dict(state='FAIL' if rejected else 'INSUFFICIENT' if gaps else 'PASS',members=members,
+                unresolved_member_ids=gaps,rejected_member_ids=rejected,
+                review_sha256=proof['sha256'],source_image_sha256=image['sha256'],
+                recognition_quality_verified=False,human_checked=review['review_kind']=='HUMAN_SOURCE_REVIEW')
 
 
 def physical_row_relations(source, nodes, ledger):
@@ -291,11 +347,17 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
                         native_or_unselected_text_equal=page.get_text() == original[n-1].get_text() if native else None)
             if source:
                 page_ledger=(ledger or {}).get(str(n))
+                geometry=source_geometry_check(page_ledger,source,snapshot,sha(pdf_path),n,original[n-1])
+                independent_members=geometry['members']
                 rows.update(poppler=correspondence(source,tokens), mupdf=correspondence(source,glyphs),
+                            source_geometry=geometry,
+                            independent_mupdf_positions=correspondence(independent_members,glyphs) if geometry['state']=='PASS' else None,
+                            independent_poppler_positions=correspondence(independent_members,tokens) if geometry['state']=='PASS' else None,
                             mupdf_raw_order=[w[4] for w in page.get_text('words')] == expected,
                             poppler_raw_order=raw[n-1].split() == expected,
                             source_order=source_order_check(page_ledger,source,snapshot,sha(pdf_path)),
-                            poppler_physical_rows=physical_row_relations(source,nodes[n-1],page_ledger))
+                            poppler_physical_rows=physical_row_relations(independent_members,nodes[n-1],page_ledger)
+                                if geometry['state']=='PASS' else dict(state='INSUFFICIENT',reason='independent source-member geometry not ready',nodes=[]))
             pages.append(rows)
         def toc(doc):
             return [[a,b,c,{k:str(v) for k,v in d.items() if k != 'xref'}] for a,b,c,d in doc.get_toc(False)]
@@ -324,6 +386,12 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
             (failures if p['source_order']['state'] == 'FAIL' else gaps).append(f'page {p["page"]}: source reading relations')
         if p['poppler_physical_rows']['state']!='PASS':
             (failures if p['poppler_physical_rows']['state']=='FAIL' else gaps).append(f'page {p["page"]}: consumer physical row relations')
+        if p['source_geometry']['state']!='PASS':
+            (failures if p['source_geometry']['state']=='FAIL' else gaps).append(f'page {p["page"]}: independently reviewed source-member geometry')
+        else:
+            for engine in ('mupdf','poppler'):
+                if not p['independent_'+engine+'_positions']['complete_positions']:
+                    gaps.append(f'page {p["page"]}: {engine} independent source positions unresolved')
     return dict(schema=VERSION, state='FAIL' if failures else ('INSUFFICIENT' if gaps else 'PASS'),
                 inputs={str(p):sha(p) for p in (snapshot_path,pdf_path,xml_path,raw_path)},
                 failures=failures, gaps=gaps, bookmarks_equal=bookmarks, pages=pages,

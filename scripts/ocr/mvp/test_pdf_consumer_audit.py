@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import fitz
-from .pdf_consumer_audit import correspondence, poppler_nodes, glyph_tokens, source_order_check, audit
+from .pdf_consumer_audit import correspondence, poppler_nodes, glyph_tokens, source_order_check, source_geometry_check, sha, audit
 
 
 class ConsumerAuditTests(unittest.TestCase):
@@ -59,6 +59,50 @@ class ConsumerAuditTests(unittest.TestCase):
 
     def test_internal_sort_is_not_source_order_proof(self):
         self.assertEqual(source_order_check(None,[],{},'x')['state'],'INSUFFICIENT')
+
+    def test_unaccepted_source_row_proposal_cannot_pass_by_member_order(self):
+        proposal=dict(consumer_ready=False,rows=[dict(member_ids=['a'])])
+        self.assertEqual(source_order_check(proposal,[self.member('a','word',[0,0,40,10])],{},'x')['state'],'INSUFFICIENT')
+
+    def source_review_fixture(self,root,page):
+        import json
+        image=root/'source.png';page.get_pixmap(dpi=144,alpha=False).save(image)
+        review=dict(schema='source-member-geometry-review/1',basis='source-pixel-review',
+                    source_sha256='s',pdf_sha256='p',physical_page=1,reviewer='synthetic-test',
+                    review_kind='AI_SOURCE_REVIEW',source_image=dict(path=str(image),sha256=sha(image),dpi=144),
+                    members=[dict(member_id='a',export_literal='word',source_literal='word',
+                                  state='SOURCE_POSITION_REVIEWED',bbox=[10,10,45,25],
+                                  position_basis='source-pixels',note='synthetic measured source position')])
+        path=root/'review.json';path.write_text(json.dumps(review))
+        ledger=dict(consumer_ready=True,member_review=dict(path=str(path),sha256=sha(path)))
+        return ledger,review,path
+
+    def test_source_geometry_is_bound_to_actual_pixels_page_literal_and_multiplicity(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+            root=Path(directory);page=doc.new_page(width=100,height=60);page.insert_text((10,22),'word')
+            ledger,review,path=self.source_review_fixture(root,page)
+            source=[self.member('a','word',[0,0,100,60])]
+            result=source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+            self.assertEqual(result['state'],'PASS');self.assertEqual(result['members'][0]['bbox'],[10,10,45,25])
+            self.assertFalse(result['recognition_quality_verified']);self.assertFalse(result['human_checked'])
+            review['members'].append(dict(review['members'][0]));path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            with self.assertRaisesRegex(ValueError,'SOURCE_MEMBER_REVIEW_COVERAGE'):
+                source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+
+    def test_source_review_rejects_wrong_page_and_keeps_blank_or_pending_member_unknown(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+            root=Path(directory);page=doc.new_page(width=100,height=60);page.insert_text((10,22),'word')
+            ledger,review,path=self.source_review_fixture(root,page);source=[self.member('a','word',[0,0,100,60])]
+            other=doc.new_page(width=100,height=60)
+            with self.assertRaisesRegex(ValueError,'SOURCE_MEMBER_IMAGE_PAGE_MISMATCH'):
+                source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,other)
+            page=doc[0];review['members'][0]['bbox']=[60,40,90,55]
+            path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            self.assertEqual(source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)['state'],'INSUFFICIENT')
+            review['members'][0]['state']='UNKNOWN';path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            self.assertEqual(source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)['unresolved_member_ids'],['a'])
 
     def test_cross_line_column_and_small_member_do_not_borrow_hit(self):
         source=[self.member('body','the',[0,0,30,10]),self.member('margin','the',[100,0,130,10]),
