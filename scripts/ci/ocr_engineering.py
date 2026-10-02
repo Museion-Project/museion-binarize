@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import platform
-import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -29,6 +28,8 @@ TEST_MODULES = (
     'scripts.distribution.test_launcher_contract',
     'scripts.distribution.test_signature_repair',
     'scripts.ocr.paid_mvp.test_p9_contract',
+    'scripts.bookmarks.paid_mvp.test_source_identity',
+    'scripts.bookmarks.paid_mvp.test_complete_source',
 )
 
 

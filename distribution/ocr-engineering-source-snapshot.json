@@ -265,7 +265,7 @@
     "scripts/bookmarks/paid_mvp/source_coverage.py": "cf7e01d2b8cbd9282dc780f816ab4ddc2eb46126fab4503bd50a238bd2ceb576",
     "scripts/bookmarks/paid_mvp/writer_adapter.py": "0aa868ccf279d250510eebcec4e46b28bfc663b5ef204ed1d5aeefe545af9d42",
     "scripts/ci/ocr-engineering-requirements.txt": "6ed23ffd68019666f4a2d7b801fdd097044fcb3178ad1b966e3c144e0eabdbfa",
-    "scripts/ci/ocr_engineering.py": "3c21380e7d28cec49ec414ddb8405195727e3340b0ffc43460415d27eaa9f75f",
+    "scripts/ci/ocr_engineering.py": "817a4966e496fec958fc733e0003c47f40e6ef7797c7bb22ffefbe314d93d780",
     "scripts/distribution/build_local_apple_helper.py": "1b2ce3614fdcb1f016f4cabbbe3977204581df97de3a1b2cb82afb1b50822deb",
     "scripts/distribution/check_version_consistency.py": "bd60eac25ba16a8f831a8035d5599bb203f49ac94b1d56a9cb175f40b5a9d1d0",
     "scripts/distribution/package_local_candidate.py": "17e489e2c0e4d1fd0e05ea5cc196fb201a1cb1bb8e6710a851f7e81c5789297f",
@@ -335,7 +335,11 @@
     "scripts/ocr/paid_mvp/selective.py": "08125ab63a3d6a76e04f65be9a3c4373ef416db8099c2d24b96ae99df13b10bc",
     "scripts/ocr/paid_mvp/selector.py": "9cad843fbfce2dd8bef04088d9e75f51ffc3b9e6546c502ae3fcf5c363507d0d",
     "scripts/ocr/paid_mvp/state.py": "e80cacc301aa9183a990ccf96f327f8f69198349a7865bd784c54e6903accd2e",
-    "scripts/ocr/paid_mvp/test_p9_contract.py": "01ef00bd65dc66015daf5a59bfc8092e52e7f3698e9811d7d427ff13c818acf2"
+    "scripts/ocr/paid_mvp/test_p9_contract.py": "01ef00bd65dc66015daf5a59bfc8092e52e7f3698e9811d7d427ff13c818acf2",
+    "scripts/bookmarks/paid_mvp/source_identity.py": "cd6c3df05ea2eb3e63b8c2af4dda4afdb994293c2493bfdbdf4cc5d1969d417a",
+    "scripts/bookmarks/paid_mvp/reconcile_source_entries.py": "c71c167cbdfc3cd945ea5ff819ada08774a56b153248f180273b30d1c0527e6b",
+    "scripts/bookmarks/paid_mvp/test_source_identity.py": "ab2046cd15af4cbf49843b12f49ba208087d16002a6139e297b1999a36017825",
+    "scripts/bookmarks/paid_mvp/test_complete_source.py": "06a75fd6548ad1cff2668aa5730571b32544abe8863f3f1034f0127114093648"
   },
   "private_research_payloads": 0,
   "source_mode": "selected current working-tree source",
