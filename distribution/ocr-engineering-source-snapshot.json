@@ -2,7 +2,7 @@
   "schema": "ocr-engineering-source-snapshot/1",
   "baseline": "NEXT1-NEXT6 / FREE + direct user decision2026-10-02",
   "files": {
-    ".github/workflows/ocr-engineering.yml": "40fde0d34c48fa4089b3c2d017cb00313f00fca1edaf6887749a2af27367f96c",
+    ".github/workflows/ocr-engineering.yml": "d92a8dfed2422677b8577736ec5b34fca9aabce05e6ba7a4da90ef02b70ab50d",
     "Cargo.lock": "bd8bbd0b82ca91f2b096fd54bdb829b8e58bbce235e422a507632439dc4cc3ba",
     "Cargo.toml": "6f1dda2c162984b33ccd700cf09482abdae26250bc721b1ac50ec197563c91fb",
     "apps/desktop/eslint.config.js": "4e2b2aa6d79f0929cdf1e22a7c8cc9314dbaa8cd55d0100cad0a98dddae8160f",
@@ -339,7 +339,8 @@
     "scripts/bookmarks/paid_mvp/source_identity.py": "cd6c3df05ea2eb3e63b8c2af4dda4afdb994293c2493bfdbdf4cc5d1969d417a",
     "scripts/bookmarks/paid_mvp/reconcile_source_entries.py": "c71c167cbdfc3cd945ea5ff819ada08774a56b153248f180273b30d1c0527e6b",
     "scripts/bookmarks/paid_mvp/test_source_identity.py": "ab2046cd15af4cbf49843b12f49ba208087d16002a6139e297b1999a36017825",
-    "scripts/bookmarks/paid_mvp/test_complete_source.py": "06a75fd6548ad1cff2668aa5730571b32544abe8863f3f1034f0127114093648"
+    "scripts/bookmarks/paid_mvp/test_complete_source.py": "06a75fd6548ad1cff2668aa5730571b32544abe8863f3f1034f0127114093648",
+    "apps/desktop/src-tauri/tauri.dist.conf.json": "6f6314da68b761e2c88e5901ab8d71e3753b09b159e8c1c378d5937e26ae982e"
   },
   "private_research_payloads": 0,
   "source_mode": "selected current working-tree source",

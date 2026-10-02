@@ -44,6 +44,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: python scripts/ci/ocr_engineering.py --verify-only
+      - name: Source version consistency
+        run: python scripts/distribution/check_version_consistency.py
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
