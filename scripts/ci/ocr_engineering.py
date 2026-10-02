@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TEST_MODULES = (
     'scripts.ocr.mvp.test_mvp',
+    'scripts.ocr.mvp.test_position_export_candidate',
     'scripts.ocr.mvp.test_pdf_consumer_audit',
     'scripts.ocr.mvp.test_physical_row_audit',
     'scripts.ocr.mvp.test_development_panel',

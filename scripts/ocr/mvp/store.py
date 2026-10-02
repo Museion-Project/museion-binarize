@@ -102,6 +102,10 @@ def insert_exportable(page,words,width,height,fonts):
             writer.write_text(page,render_mode=3,morph=(pt,fitz.Matrix(rect.width/max(.001,font.text_length(word['text'],fontsize=fs)),1)))
 
 def export_pdf(snapshot,path):
+    return _export_pdf_with_inserter(snapshot,path,insert_exportable)
+
+def _export_pdf_with_inserter(snapshot,path,inserter):
+    """Share source preservation with isolated output candidates; formal default unchanged."""
     if snapshot.get('font_path'):old.FONT=Path(snapshot['font_path'])
     source=Path(snapshot['source_pdf'])
     if sha(source)!=snapshot['input_sha256']:raise ValueError('SOURCE_CHANGED')
@@ -125,7 +129,7 @@ def export_pdf(snapshot,path):
                 replacement=fitz.open();normalized=replacement.new_page(width=dimensions.width,height=dimensions.height)
                 normalized.show_pdf_page(normalized.rect,temporary,0,rotate=-rotation)
                 out.delete_page(idx);out.insert_pdf(replacement,start_at=idx);target=out[idx];temporary.close();replacement.close()
-            insert_exportable(target,p['words'],p['width'],p['height'],fonts)
+            inserter(target,p['words'],p['width'],p['height'],fonts)
     if source_toc:out.set_toc(source_toc)
     out.save(path,deflate=True,garbage=3);out.close()
 
