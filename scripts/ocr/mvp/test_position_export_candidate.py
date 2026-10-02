@@ -165,3 +165,23 @@ class PositionExportCandidateTests(unittest.TestCase):
                 candidate.export_candidate(snapshot, output)
             self.assertEqual(core.sha(output), frozen_hash)
             self.assertEqual(snapshot, before)
+
+    def test_invalid_member_projection_refused_before_new_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, snapshot, _ = self.fixture(root)
+            duplicate = copy.deepcopy(snapshot)
+            duplicate['pages'][0]['words'].append(copy.deepcopy(duplicate['pages'][0]['words'][0]))
+            bad_box = copy.deepcopy(snapshot)
+            bad_box['pages'][0]['words'][0]['bbox'] = [-1, 60, 80, 80]
+            stale = copy.deepcopy(snapshot)
+            stale['pages_hash'] = core.digest(stale['pages'])
+            stale['pages'][0]['words'][0]['text'] = 'Changed without revision hash'
+            for index, invalid in enumerate((duplicate, bad_box, stale)):
+                with self.subTest(index=index):
+                    frozen = copy.deepcopy(invalid)
+                    output = root / f'invalid-{index}.pdf'
+                    with self.assertRaises(ValueError):
+                        candidate.export_candidate(invalid, output)
+                    self.assertFalse(output.exists())
+                    self.assertEqual(invalid, frozen)

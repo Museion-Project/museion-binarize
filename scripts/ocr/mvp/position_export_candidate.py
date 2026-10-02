@@ -12,7 +12,7 @@ from pathlib import Path
 import fitz
 
 from . import store
-from .core import reading_rows
+from .core import digest, invariant, reading_rows
 
 CANDIDATE_VERSION = 'row-sequence-size-position-candidate-v1'
 HEIGHT_BAND = .8
@@ -56,7 +56,14 @@ def export_candidate(snapshot, path):
     caller cannot treat this receipt as a manifest, revision or product gate.
     """
     candidate = copy.deepcopy(snapshot)
+    if 'pages_hash' in candidate:
+        invariant(candidate)
+    else:
+        candidate['pages_hash'] = digest(candidate['pages'])
+        invariant(candidate)
     store.prepare_export(candidate)
+    candidate['pages_hash'] = digest(candidate['pages'])
+    invariant(candidate)
     candidate['exporter_version'] = CANDIDATE_VERSION
     if store.sha(candidate['source_pdf']) != candidate['input_sha256']:
         raise ValueError('SOURCE_CHANGED')
