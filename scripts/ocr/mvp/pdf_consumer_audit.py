@@ -16,7 +16,7 @@ from pathlib import Path
 
 import fitz
 
-VERSION = 'pdf-consumer-audit-v3'
+VERSION = 'pdf-consumer-audit-v4'
 
 
 def sha(path):
@@ -25,6 +25,40 @@ def sha(path):
 
 def tokenize(text):
     return [(m.group(), m.start(), m.end()) for m in re.finditer(r'\S+', text)]
+
+
+def project_members(parents):
+    """Project exact literal tokens without dividing a parent's reader frame.
+
+    Parent IDs/ownership stay in the snapshot. Single tokens keep legacy IDs;
+    multipart token IDs bind the parent, whole literal and code-point offsets.
+    The parent frame is only an aggregate diagnostic, never a child's box.
+    """
+    ids = [p['id'] for p in parents]
+    if len(set(ids)) != len(ids):
+        raise ValueError('DUPLICATE_SOURCE_MEMBER')
+    result = []
+    used = set(ids)
+    for parent in parents:
+        literal = parent['text']
+        parts = tokenize(literal)
+        if not parts:
+            raise ValueError('EMPTY_SOURCE_MEMBER')
+        for text, start, end in parts:
+            identity = parent['id']
+            if len(parts) > 1:
+                binding = json.dumps([identity, literal, start, end], ensure_ascii=False,
+                                     separators=(',', ':')).encode('utf-8')
+                identity = 'source-token:' + hashlib.sha256(binding).hexdigest()
+                if identity in used:
+                    raise ValueError('SOURCE_TOKEN_ID_COLLISION')
+                used.add(identity)
+            result.append(dict(id=identity, parent_member_id=parent['id'],
+                               text=text, literal_offset=[start, end],
+                               bbox=list(parent['bbox']) if len(parts) == 1 else None,
+                               aggregate_bbox=list(parent['bbox']),
+                               precision='reader-frame' if len(parts) == 1 else 'aggregate-source-frame'))
+    return result
 
 
 def poppler_nodes(path):
@@ -92,7 +126,7 @@ def correspondence(source, consumer):
     """Bijection on exact tokens + geometry; alternative perfect match is UNKNOWN.
 
     Matching by occurrence/context can establish text membership for an aggregate
-    node. Only independent consumer word/character bounds establish position.
+    node. Individual source and consumer bounds are both required for position.
     Every consumer token is consumed at most once, even for repeated source words.
     """
     if len({s['id'] for s in source}) != len(source):
@@ -103,7 +137,8 @@ def correspondence(source, consumer):
     graph = {}
     for i, member in enumerate(source):
         graph[i] = [j for j in by_text[member['text']]
-                    if near(consumer[j].get('bbox') or consumer[j]['aggregate_bbox'], member['bbox'])]
+                    if near(consumer[j].get('bbox') or consumer[j]['aggregate_bbox'],
+                            member.get('bbox') or member['aggregate_bbox'])]
 
     def match(indices, forbidden=None):
         owners = {}
@@ -140,8 +175,11 @@ def correspondence(source, consumer):
         j = mapping.get(i)
         token = consumer[j] if j is not None else None
         state = 'MISSING' if token is None else ('UNKNOWN_AMBIGUOUS' if i in ambiguous else
-                ('POSITION_PROVEN' if token.get('bbox') is not None else 'TEXT_ONLY_AGGREGATE'))
-        rows.append(dict(member_id=member['id'], text=member['text'], source_bbox=member['bbox'],
+                ('TEXT_ONLY_SOURCE_AGGREGATE' if member.get('bbox') is None else
+                 'POSITION_PROVEN' if token.get('bbox') is not None else 'TEXT_ONLY_AGGREGATE'))
+        rows.append(dict(member_id=member['id'], parent_member_id=member.get('parent_member_id',member['id']),
+                         text=member['text'], source_bbox=member.get('bbox'),
+                         source_aggregate_bbox=member.get('aggregate_bbox'),
                          consumer_token=j, state=state, consumer=token))
     ec, ac = Counter(s['text'] for s in source), Counter(t['text'] for t in consumer)
     return dict(members=rows, missing=list((ec-ac).elements()),
@@ -179,12 +217,12 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
     """
     if not ledger or ledger.get('consumer_ready') is not True:
         return dict(state='INSUFFICIENT',reason='independent reviewed source-member geometry missing',members=[])
-    proof=ledger.get('member_review')
-    if not proof:return dict(state='INSUFFICIENT',reason='source-member review absent',members=[])
-    path=Path(proof['path'])
-    if sha(path)!=proof['sha256']:raise ValueError('SOURCE_MEMBER_REVIEW_CHANGED')
+    binding=ledger.get('member_review')
+    if not binding:return dict(state='INSUFFICIENT',reason='source-member review absent',members=[])
+    path=Path(binding['path'])
+    if sha(path)!=binding['sha256']:raise ValueError('SOURCE_MEMBER_REVIEW_CHANGED')
     review=json.loads(path.read_text())
-    if (review.get('schema')!='source-member-geometry-review/1'
+    if (review.get('schema') not in ('source-member-geometry-review/1','source-member-geometry-review/2')
         or review.get('basis')!='source-pixel-review'
         or review.get('source_sha256')!=snapshot['input_sha256']
         or review.get('pdf_sha256')!=pdf_hash or review.get('physical_page')!=number):
@@ -201,12 +239,10 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
             raise ValueError('SOURCE_MEMBER_IMAGE_PAGE_MISMATCH')
     records=review['members'];expected={s['id']:s for s in source}
     if Counter(r['member_id'] for r in records)!=Counter(expected.keys()):raise ValueError('SOURCE_MEMBER_REVIEW_COVERAGE')
-    members=[];gaps=[];rejected=[]
-    for record in records:
-        member=expected[record['member_id']]
-        if record.get('export_literal')!=member['text']:raise ValueError('SOURCE_MEMBER_REVIEW_LITERAL_CHANGED')
-        if record.get('state')=='REJECTED':rejected.append(member['id']);continue
-        if record.get('state')!='SOURCE_POSITION_REVIEWED':gaps.append(member['id']);continue
+    projected=project_members(source);by_parent=defaultdict(list)
+    for token in projected:by_parent[token['parent_member_id']].append(token)
+    members=[];gaps=[];rejected=[];token_gaps=[];token_rejected=[]
+    def checked_box(record):
         box=record.get('bbox')
         if (record.get('position_basis')!='source-pixels' or not record.get('note')
             or not box or len(box)!=4 or not all(type(v) in (int,float) and math.isfinite(v) for v in box)
@@ -214,13 +250,55 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
             raise ValueError('SOURCE_MEMBER_GEOMETRY_UNPROVED')
         scale=dpi/72
         pixel_box=[math.floor(box[0]*scale),math.floor(box[1]*scale),math.ceil(box[2]*scale),math.ceil(box[3]*scale)]
-        if frozen.crop(pixel_box).convert('L').getextrema()[0]>=180:
-            gaps.append(member['id']);continue
-        members.append(dict(id=member['id'],text=member['text'],bbox=list(box),
-                            source_literal=record.get('source_literal'),review_kind=review['review_kind']))
+        return list(box),frozen.crop(pixel_box).convert('L').getextrema()[0]<180
+    for record in records:
+        member=expected[record['member_id']]
+        if record.get('export_literal')!=member['text']:raise ValueError('SOURCE_MEMBER_REVIEW_LITERAL_CHANGED')
+        tokens=by_parent[member['id']]
+        if review['schema']=='source-member-geometry-review/2':
+            proofs=record.get('tokens',[])
+            if Counter(t.get('token_id') for t in proofs)!=Counter(t['id'] for t in tokens):
+                raise ValueError('SOURCE_TOKEN_REVIEW_COVERAGE')
+            token_by_id={t['id']:t for t in tokens}
+            for proof in proofs:
+                token=token_by_id[proof['token_id']];offset=proof.get('offset')
+                if (offset!=token['literal_offset'] or not isinstance(offset,list)
+                    or any(type(v) is not int for v in offset) or proof.get('text')!=token['text']):
+                    raise ValueError('SOURCE_TOKEN_REVIEW_LITERAL_CHANGED')
+        elif len(tokens)>1:
+            # An old single-box review cannot certify a multipart parent.
+            proofs=[]
+        else:
+            proofs=[dict(record,token_id=tokens[0]['id'])]
+        if record.get('state')=='REJECTED':rejected.append(member['id']);continue
+        if record.get('state')!='SOURCE_POSITION_REVIEWED':gaps.append(member['id']);continue
+        if not proofs:
+            gaps.append(member['id']);token_gaps.extend(t['id'] for t in tokens);continue
+        accepted=[];boxes=[];pending=False;failed=False
+        for proof in proofs:
+            token=next(t for t in tokens if t['id']==proof['token_id'])
+            if proof.get('state')=='REJECTED':
+                token_rejected.append(token['id']);failed=True;continue
+            if proof.get('state')!='SOURCE_POSITION_REVIEWED':
+                token_gaps.append(token['id']);pending=True;continue
+            box,ink=checked_box(proof)
+            if len(tokens)>1 and (box==list(member['bbox'])
+                or any((fitz.Rect(box)&fitz.Rect(other)).get_area()>0 for other in boxes)):
+                raise ValueError('SOURCE_TOKEN_GEOMETRY_OVERLAP_OR_AGGREGATE')
+            boxes.append(box)
+            if not ink:
+                token_gaps.append(token['id']);pending=True;continue
+            accepted.append(dict(id=token['id'],parent_member_id=member['id'],text=token['text'],
+                                 literal_offset=token['literal_offset'],bbox=box,
+                                 source_literal=proof.get('source_literal'),review_kind=review['review_kind']))
+        # Partial token evidence is retained but never promotes the parent/gate.
+        members.extend(accepted)
+        if pending:gaps.append(member['id'])
+        if failed:rejected.append(member['id'])
     return dict(state='FAIL' if rejected else 'INSUFFICIENT' if gaps else 'PASS',members=members,
                 unresolved_member_ids=gaps,rejected_member_ids=rejected,
-                review_sha256=proof['sha256'],source_image_sha256=image['sha256'],
+                unresolved_token_ids=token_gaps,rejected_token_ids=token_rejected,
+                review_sha256=binding['sha256'],source_image_sha256=image['sha256'],
                 recognition_quality_verified=False,human_checked=review['review_kind']=='HUMAN_SOURCE_REVIEW')
 
 
@@ -331,12 +409,15 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
                         x, y, r, b = w['bbox']
                         sx, sy = page.rect.width / p['width'], page.rect.height / p['height']
                         source.append(dict(id=w['id'], text=w['text'], bbox=[x*sx,y*sy,r*sx,b*sy]))
+            parents=source
+            source=project_members(parents)
             tokens = [dict(t, node_id=node['node_id'], block_id=node['block_id'],
                            line_id=node['line_id']) for node in nodes[n-1] for t in node['tokens']]
             glyphs = glyph_tokens(page)
             expected = [s['text'] for s in source]
             native = not source
             rows = dict(page=n, selected=p is not None, supported_words=len(source),
+                        supported_parent_members=len(parents), source_parent_members=parents,
                         pending_words=[w['id'] for w in p.get('words',[]) if w.get('export_status')!='EXPORTED'] if p and p['route']=='ocr' else [],
                         nodes=nodes[n-1], source_members=source,
                         pixels_equal=actual_pixels == original_pixels,
@@ -347,7 +428,7 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
                         native_or_unselected_text_equal=page.get_text() == original[n-1].get_text() if native else None)
             if source:
                 page_ledger=(ledger or {}).get(str(n))
-                geometry=source_geometry_check(page_ledger,source,snapshot,sha(pdf_path),n,original[n-1])
+                geometry=source_geometry_check(page_ledger,parents,snapshot,sha(pdf_path),n,original[n-1])
                 independent_members=geometry['members']
                 rows.update(poppler=correspondence(source,tokens), mupdf=correspondence(source,glyphs),
                             source_geometry=geometry,
@@ -380,7 +461,9 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
             c = p[engine]
             if c['missing'] or c['unexpected']:
                 failures.append(f'page {p["page"]}: {engine} word conservation')
-            if not c['complete_positions']:
+            # Reader frames remain diagnostics. Reviewed source pixels are the
+            # position authority when their complete, bound review passes.
+            if p['source_geometry']['state']!='PASS' and not c['complete_positions']:
                 gaps.append(f'page {p["page"]}: {engine} individual positions unresolved')
         if p['source_order']['state'] != 'PASS':
             (failures if p['source_order']['state'] == 'FAIL' else gaps).append(f'page {p["page"]}: source reading relations')
@@ -395,7 +478,9 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
     return dict(schema=VERSION, state='FAIL' if failures else ('INSUFFICIENT' if gaps else 'PASS'),
                 inputs={str(p):sha(p) for p in (snapshot_path,pdf_path,xml_path,raw_path)},
                 failures=failures, gaps=gaps, bookmarks_equal=bookmarks, pages=pages,
-                new_ocr_calls=0, new_reader_calls=0, cached_exposed_regression=True)
+                new_ocr_calls=0, new_reader_calls=0, cached_exposed_regression=True,
+                position_authority='complete independent source-token review; reader frames are diagnostics',
+                recognition_quality_verified=False, human_approval_claimed=False)
 
 
 def main():

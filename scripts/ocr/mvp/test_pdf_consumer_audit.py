@@ -1,13 +1,182 @@
 import tempfile
 import unittest
+import copy
+import json
 from pathlib import Path
 import fitz
-from .pdf_consumer_audit import correspondence, poppler_nodes, glyph_tokens, source_order_check, source_geometry_check, sha, audit
+from .pdf_consumer_audit import correspondence, poppler_nodes, glyph_tokens, source_order_check, source_geometry_check, project_members, sha, audit
+
+
+def multipart_review_fixture(root):
+    """Controlled printed template, frozen before any candidate PDF exists.
+
+    XML below is a synthetic consumer fixture, not an invocation of Poppler.
+    No OCR, research book, human review or product admission is exercised.
+    """
+    from . import store,core
+    from scripts.ocr.free_local.pipeline import FONT
+    root=Path(root);source=root/'source.pdf';literal='same same'
+    with fitz.open() as template:
+        page=template.new_page(width=200,height=100)
+        writer=fitz.TextWriter(page.rect)
+        writer.append((20,40),literal,font=fitz.Font(fontfile=str(FONT)),fontsize=12)
+        writer.write_text(page)
+        source_tokens=glyph_tokens(page)
+        pixels=page.get_pixmap(dpi=144,alpha=False)
+        with fitz.open() as image_doc:
+            scan=image_doc.new_page(width=200,height=100)
+            scan.insert_image(scan.rect,pixmap=pixels)
+            image_doc.save(source)
+    source_template=root/'source-template.json'
+    source_template.write_text(json.dumps(dict(literal=literal,tokens=source_tokens,
+                                               basis='controlled printed template before candidate export')))
+    box=fitz.Rect(source_tokens[0]['bbox'])|fitz.Rect(source_tokens[1]['bbox'])
+    word=dict(id='parent',text='samesame',bbox=list(box),engine='apple',line_id='1',
+              confidence=1,source_members=['raw-a'])
+    original=dict(word,id='raw-a',source_members=['raw-a'])
+    out=root/'out';raw=out/'raw/page.json';raw.parent.mkdir(parents=True)
+    raw.write_text(json.dumps(original))
+    snapshot=dict(schema_version=1,revision=0,source_pdf=str(source),input_sha256=sha(source),receipts=[],
+                  font_path=str(FONT),fallback_font_paths=[],
+                  pages=[dict(page=1,route='ocr',status='OCR_DRAFT',width=200,height=100,
+                              words=[word],original_apple=[original],contributions=core.ownership([word]),
+                              raw_files={'raw/page.json':sha(raw)})])
+    old=store.publish(out,snapshot)
+    protected={str(p):sha(p) for p in [source,source_template,raw,*old.iterdir()]}
+    receipt=store.review_save(out,dict(expected_revision=0,input_sha256=sha(source),
+                             actions=[dict(page=1,member_id='parent',action='change',text=literal)]))
+    loaded,folder=store.load_snapshot(out)
+    parent=dict(id='parent',text=literal,bbox=list(box));leaves=project_members([parent])
+    image=root/'source.png'
+    with fitz.open(source) as doc:doc[0].get_pixmap(dpi=144,alpha=False).save(image)
+    review=dict(schema='source-member-geometry-review/2',basis='source-pixel-review',
+                source_sha256=sha(source),pdf_sha256=sha(folder/'searchable.pdf'),physical_page=1,
+                reviewer='controlled-template-test',review_kind='AI_SOURCE_REVIEW',
+                source_image=dict(path=str(image),sha256=sha(image),dpi=144),
+                members=[dict(member_id='parent',export_literal=literal,state='SOURCE_POSITION_REVIEWED',
+                              tokens=[dict(token_id=leaf['id'],offset=leaf['literal_offset'],text=leaf['text'],
+                                           state='SOURCE_POSITION_REVIEWED',bbox=token['bbox'],
+                                           position_basis='source-pixels',note='controlled print template frozen before export')
+                                      for leaf,token in zip(leaves,source_tokens)])])
+    review_path=root/'review.json';review_path.write_text(json.dumps(review))
+    row_box=list(box+(-3,-3,3,3))
+    ledger=dict(consumer_ready=True,source_sha256=sha(source),pdf_sha256=sha(folder/'searchable.pdf'),
+                basis='source-pixels',evidence_path=str(source_template),evidence_sha256=sha(source_template),
+                rows=[dict(row_id='r',role='body',column_id='c',bbox=row_box,
+                           member_ids=[t['id'] for t in leaves])],
+                member_review=dict(path=str(review_path),sha256=sha(review_path)))
+    with fitz.open(folder/'searchable.pdf') as doc:actual=glyph_tokens(doc[0])
+    xml=root/'synthetic-bbox.xml'
+    xml.write_text('<html><page>'+''.join(
+        f'<word xMin="{t["bbox"][0]}" yMin="{t["bbox"][1]}" xMax="{t["bbox"][2]}" yMax="{t["bbox"][3]}">{t["text"]}</word>'
+        for t in actual)+'</page></html>')
+    raw_text=root/'synthetic-raw.txt';raw_text.write_text(literal+'\f')
+    return dict(source=source,out=out,old=old,folder=folder,loaded=loaded,receipt=receipt,
+                protected=protected,parent=parent,leaves=leaves,review=review,review_path=review_path,
+                ledger=ledger,xml=xml,raw_text=raw_text,actual=actual)
 
 
 class ConsumerAuditTests(unittest.TestCase):
     def member(self, identity, text, box):
         return dict(id=identity, text=text, bbox=box)
+
+    def rewrite_review(self,fixture):
+        fixture['review_path'].write_text(json.dumps(fixture['review']))
+        fixture['ledger']['member_review']['sha256']=sha(fixture['review_path'])
+
+    def check_fixture_geometry(self,fixture):
+        with fitz.open(fixture['source']) as doc:
+            return source_geometry_check(fixture['ledger'],[fixture['parent']],
+                                         dict(input_sha256=sha(fixture['source'])),
+                                         sha(fixture['folder']/'searchable.pdf'),1,doc[0])
+
+    def test_multipart_projection_is_literal_immutable_and_has_no_guessed_child_boxes(self):
+        literal='α\u0301 😀 “same,” same ='
+        parents=[self.member('p',literal,[0,0,100,10])];before=copy.deepcopy(parents)
+        tokens=project_members(parents)
+        self.assertEqual(parents,before)
+        self.assertEqual([t['literal_offset'] for t in tokens],[[0,2],[3,4],[5,12],[13,17],[18,19]])
+        self.assertEqual([t['text'] for t in tokens],['α\u0301','😀','“same,”','same','='])
+        self.assertTrue(all(t['bbox'] is None for t in tokens))
+        self.assertEqual(project_members(parents),tokens)
+        self.assertNotEqual(project_members([dict(parents[0],text=literal.replace('α\u0301','ά'))])[0]['id'],tokens[0]['id'])
+        with self.assertRaisesRegex(ValueError,'DUPLICATE_SOURCE_MEMBER'):project_members(parents*2)
+        with self.assertRaisesRegex(ValueError,'EMPTY_SOURCE_MEMBER'):project_members([dict(parents[0],text='  ')])
+
+    def test_parent_aggregate_cannot_prove_child_positions_or_consume_one_hit_twice(self):
+        leaves=project_members([self.member('p','same same',[0,0,100,10])])
+        result=correspondence(leaves,[dict(text='same',bbox=[0,0,30,10])])
+        self.assertEqual(len(result['unmatched_source']),1);self.assertFalse(result['complete_positions'])
+        result=correspondence(leaves,[dict(text='same',bbox=[0,0,30,10]),dict(text='same',bbox=[60,0,90,10])])
+        self.assertTrue(all(t['state']=='UNKNOWN_AMBIGUOUS' for t in result['members']))
+        distinct=project_members([self.member('p','qualify the',[0,0,100,10])])
+        result=correspondence(distinct,[dict(text='qualify',bbox=[0,0,60,10]),dict(text='the',bbox=[70,0,90,10])])
+        self.assertTrue(all(t['state']=='TEXT_ONLY_SOURCE_AGGREGATE' for t in result['members']))
+
+    def test_controlled_multipart_review_save_reload_keeps_parent_raw_and_prior_revision(self):
+        with tempfile.TemporaryDirectory() as temp:
+            f=multipart_review_fixture(Path(temp));loaded=f['loaded'];word=loaded['pages'][0]['words'][0]
+            prior=json.loads((f['old']/'snapshot.json').read_text())
+            self.assertEqual(loaded['revision'],1);self.assertEqual(word['text'],'same same')
+            for key in ('id','bbox','source_members','engine'):
+                self.assertEqual(word[key],prior['pages'][0]['words'][0][key])
+            for key in ('original_apple','contributions','raw_files'):
+                self.assertEqual(loaded['pages'][0][key],prior['pages'][0][key])
+            self.assertTrue(all(sha(path)==h for path,h in f['protected'].items()))
+            self.assertFalse(f['receipt']['receipt']['human_approval_claimed'])
+            self.assertEqual([t['text'] for t in f['actual']],['same','same'])
+            geometry=self.check_fixture_geometry(f)
+            self.assertEqual(geometry['state'],'PASS')
+            self.assertTrue(correspondence(geometry['members'],list(reversed(f['actual'])))['complete_positions'])
+            result=audit(f['folder']/'snapshot.json',f['folder']/'searchable.pdf',f['xml'],f['raw_text'],{'1':f['ledger']})
+            self.assertEqual(result['state'],'PASS');self.assertTrue(result['pages'][0]['pixels_equal'])
+            self.assertEqual(result['pages'][0]['supported_parent_members'],1)
+            self.assertEqual(result['pages'][0]['supported_words'],2)
+            self.assertFalse(result['pages'][0]['mupdf']['complete_positions'])
+            self.assertTrue(result['pages'][0]['independent_mupdf_positions']['complete_positions'])
+            # A real aggregate XML object still cannot supply individual boxes.
+            x,y,r,b=f['parent']['bbox']
+            f['xml'].write_text(f'<html><page><word xMin="{x}" yMin="{y}" xMax="{r}" yMax="{b}">same same</word></page></html>')
+            result=audit(f['folder']/'snapshot.json',f['folder']/'searchable.pdf',f['xml'],f['raw_text'],{'1':f['ledger']})
+            self.assertEqual(result['state'],'INSUFFICIENT')
+            self.assertFalse(result['pages'][0]['independent_poppler_positions']['complete_positions'])
+
+    def test_multipart_proof_cannot_use_v1_parent_box_or_partial_token_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            f=multipart_review_fixture(Path(temp));record=f['review']['members'][0]
+            record['tokens'][1]['state']='UNKNOWN';self.rewrite_review(f)
+            result=self.check_fixture_geometry(f)
+            self.assertEqual(result['state'],'INSUFFICIENT');self.assertEqual(len(result['members']),1)
+            self.assertEqual(result['unresolved_member_ids'],['parent'])
+            record['tokens'][1]['state']='REJECTED';self.rewrite_review(f)
+            self.assertEqual(self.check_fixture_geometry(f)['state'],'FAIL')
+            f['review']['schema']='source-member-geometry-review/1'
+            record.update(bbox=f['parent']['bbox'],position_basis='source-pixels',note='whole parent only')
+            self.rewrite_review(f)
+            self.assertEqual(self.check_fixture_geometry(f)['state'],'INSUFFICIENT')
+
+    def test_multipart_proof_binds_exact_token_coverage_offsets_and_parent_literal(self):
+        with tempfile.TemporaryDirectory() as temp:
+            f=multipart_review_fixture(Path(temp));original=copy.deepcopy(f['review'])
+            mutations=[('SOURCE_TOKEN_REVIEW_COVERAGE',lambda r:r['tokens'].pop()),
+                       ('SOURCE_TOKEN_REVIEW_COVERAGE',lambda r:r['tokens'].append(copy.deepcopy(r['tokens'][0]))),
+                       ('SOURCE_TOKEN_REVIEW_LITERAL_CHANGED',lambda r:r['tokens'][0].update(offset=[1,5])),
+                       ('SOURCE_TOKEN_REVIEW_LITERAL_CHANGED',lambda r:r['tokens'][0].update(offset=[False,4])),
+                       ('SOURCE_TOKEN_REVIEW_LITERAL_CHANGED',lambda r:r['tokens'][0].update(text='Same')),
+                       ('SOURCE_MEMBER_REVIEW_LITERAL_CHANGED',lambda r:r.update(export_literal='same  same'))]
+            for message,mutate in mutations:
+                with self.subTest(message=message):
+                    f['review']=copy.deepcopy(original);mutate(f['review']['members'][0]);self.rewrite_review(f)
+                    with self.assertRaisesRegex(ValueError,message):self.check_fixture_geometry(f)
+
+    def test_multipart_proof_rejects_reused_overlapping_or_aggregate_boxes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            f=multipart_review_fixture(Path(temp));original=copy.deepcopy(f['review'])
+            for box in (original['members'][0]['tokens'][0]['bbox'],f['parent']['bbox']):
+                f['review']=copy.deepcopy(original);f['review']['members'][0]['tokens'][1]['bbox']=box
+                self.rewrite_review(f)
+                with self.assertRaisesRegex(ValueError,'SOURCE_TOKEN_GEOMETRY_OVERLAP_OR_AGGREGATE'):
+                    self.check_fixture_geometry(f)
 
     def test_aggregate_keeps_offsets_without_fabricated_positions(self):
         with tempfile.TemporaryDirectory() as temp:
