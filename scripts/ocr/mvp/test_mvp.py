@@ -247,6 +247,6 @@ class FullPdfConsumerTests(unittest.TestCase):
                 page=doc.new_page(width=300+number*10,height=200);page.insert_textbox(fitz.Rect(10,10,280,180),(f'Native source page {number} is preserved without any OCR recognition. '*4),fontsize=6)
             doc.save(source);doc.close()
             task=dict(operation_id='native-partial-map',input_pdf=str(source),input_sha256=core.sha(source),page_numbers=[3,1],mode='local',output_directory=str(root/'out'),config_version=core.CONFIG_VERSION)
-            result=run_task(task,dict(apple_helper='/usr/bin/false'))
+            result=run_task(task,dict(apple_helper='/usr/bin/false',tesseract=str(source)))
             self.assertEqual([p['status'] for p in result['page_results']],['NATIVE_PRESERVED','NATIVE_PRESERVED']);self.assertEqual(result['source_page_count'],3);self.assertEqual(result['exported_page_count'],3);self.assertEqual(result['untouched_page_numbers'],[2]);self.assertEqual(len(fitz.open(result['artifacts']['searchable_pdf'])),3)
             self.assertEqual(store.load_snapshot(root/'out')[0]['pdf_page_mapping'],result['pdf_page_mapping']);self.assertTrue(Path(result['artifacts']['page_mapping_json']).exists());self.assertFalse(list((root/'out/raw').glob('page-*/apple-input.json')))

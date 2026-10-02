@@ -25,6 +25,7 @@ class RecoveryTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[3]
         self.config = dict(session_root=str(self.root / 'private-sessions'), persistent_sessions=True,
                            require_runtime_binding=True, local=dict(
+                               apple_helper=str(self.source),tesseract=str(self.source),
                                font=str(repo / 'crates/mpdf-core/assets/fonts/NotoSans-Regular.ttf')))
         self.request = dict(mode='local', input_pdf=str(self.source), input_sha256=sha(self.source))
         self.dest = self.root / 'saved.pdf'
@@ -33,7 +34,9 @@ class RecoveryTests(unittest.TestCase):
         self.temp.cleanup()
 
     def start(self):
-        return main(dict(self.request, action='start', pages=[1, 2], client_operation_id='c' * 32), self.config)
+        result=main(dict(self.request, action='start', pages=[1, 2], client_operation_id='c' * 32), self.config)
+        self.assertTrue(all(p['status']=='NATIVE_PRESERVED' for p in result['pages']))
+        return result
 
     def crash(self, *, receipt_present=False):
         path = self.root / 'crash-input.json'
@@ -45,6 +48,7 @@ from pathlib import Path
 from scripts.ocr.app_mvp_bridge.__main__ import main
 p=json.load(open(sys.argv[1]));r=p['request'];c=p['config']
 s=main(dict(r,action='start',pages=[1,2],client_operation_id='c'*32),c)
+assert all(page['status']=='NATIVE_PRESERVED' for page in s['pages'])
 link=os.link
 def crash_link(a,b):
  if Path(b).name.startswith('save-'):
