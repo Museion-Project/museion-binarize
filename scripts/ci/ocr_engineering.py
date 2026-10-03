@@ -34,6 +34,7 @@ TEST_MODULES = (
     'scripts.bookmarks.paid_mvp.test_source_identity',
     'scripts.bookmarks.paid_mvp.test_complete_source',
     'scripts.bookmarks.paid_mvp.test_complete_admission',
+    'scripts.bookmarks.development_corpus.test_source_review_package',
 )
 
 
