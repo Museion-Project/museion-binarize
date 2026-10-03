@@ -26,6 +26,7 @@ TEST_MODULES = (
     'scripts.ocr.app_mvp_bridge.test_atomic_save',
     'scripts.ocr.app_mvp_bridge.test_recovery',
     'scripts.distribution.test_local_candidate',
+    'scripts.distribution.test_local_app_resources',
     'scripts.distribution.test_launcher_contract',
     'scripts.distribution.test_signature_repair',
     'scripts.distribution.test_resource_dossier',

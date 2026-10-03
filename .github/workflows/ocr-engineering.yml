@@ -73,13 +73,17 @@ jobs:
           import json, subprocess, tempfile
           from pathlib import Path
           from scripts.distribution.package_local_candidate import local_app_overlay
+          from scripts.distribution.package_local_app_resources import app_resources_overlay
           root = Path.cwd()
           binary = root / 'target/debug/examples/resource_config_probe'
           base = (root / 'apps/desktop/src-tauri/tauri.conf.json').read_bytes()
           with tempfile.TemporaryDirectory() as temporary:
               folder = Path(temporary).resolve()
               overlay, inputs = local_app_overlay(root, folder / 'local-payload')
+              app_overlay, _ = app_resources_overlay(root, folder / 'local-payload', folder / 'desktop-payload')
               cases = [('generated', overlay, {str(folder / 'local-payload'): 'local-ocr'}),
+                       ('composed-App-resources', app_overlay,
+                        {str(folder / 'local-payload'): 'local-ocr', str(folder / 'desktop-payload/pdfium/*'): './'}),
                        ('static', json.loads((root / 'apps/desktop/src-tauri/tauri.local-ocr-candidate.overlay.json').read_text()),
                         {'resources/pdfium/*': './', 'resources/local-ocr': 'local-ocr'})]
               for name, patch, expected in cases:
