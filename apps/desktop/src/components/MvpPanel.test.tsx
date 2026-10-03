@@ -1,4 +1,4 @@
-import {render,screen,waitFor,fireEvent} from "@testing-library/react";
+import {render,screen,waitFor,fireEvent,within} from "@testing-library/react";
 import {describe,it,expect,vi,beforeEach} from "vitest";
 import {MvpPanel} from "./MvpPanel";
 import {setLocale} from "../lib/i18n";
@@ -7,7 +7,51 @@ vi.mock("@tauri-apps/api/core",()=>({invoke:ipc}));
 vi.mock("@tauri-apps/api/event",()=>({listen:vi.fn().mockResolvedValue(()=>{})}));
 vi.mock("../lib/tauri",()=>({pickOutputDestination:vi.fn()}));
 const props={documentId:"source",pageCount:12,currentPage:1,previewReady:true,disabled:false,onPage:vi.fn(),onBusy:vi.fn(),onOpen:vi.fn()};
+
+function alternativeResult(){
+ const row=(id:string,page:number)=>({alternative_id:id,text:"μακαριώτερον",page,source_sha256:"hash",revision:0,identity_status:"UNIQUE",decision_status:"NOT_RECORDED",review_actions:[],raw_member_id:"tess-w1",stream:"independent_reader",image_sha256:"image",raw_record:{id:"tess-w1",text:"μακαριώτερον"},read_only:true});
+ return {session_id:"a".repeat(32),mode:"local",status:"review_required",provenance:"synthetic",revision:0,source_sha256:"hash",pages:[{page:1,status:"OK",words:[{id:"w",text:"adopted",bbox:[1,2,3,4]}]}],reader_alternatives:{source_sha256:"hash",revision:0,read_only:true,rows:[row("raw-page1",1),row("raw-page2",2)],coverage:[{page:1,raw_records:2,adopted_records:1,alternative_records:1,unavailable_streams:[] as string[]},{page:2,raw_records:1,adopted_records:0,alternative_records:1,unavailable_streams:[] as string[]}]}};
+}
+function installAlternativeIpc(result=alternativeResult()){
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="mvp_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:result));
+}
+async function importAlternatives(){
+ await screen.findByText("OCR 开发诊断");fireEvent.change(screen.getByLabelText("已有结果 JSON 路径"),{target:{value:"/result.json"}});fireEvent.click(screen.getByTestId("mvp-import-button"));await screen.findByTestId("mvp-reader-alternatives");
+}
 beforeEach(()=>{ipc.mockReset();setLocale("zh");});
+describe("read-only saved reader alternatives",()=>{
+ it("clears existing member approval and cannot submit review when viewing raw readings",async()=>{
+  installAlternativeIpc();const onPage=vi.fn();render(<MvpPanel {...props} onPage={onPage}/>);await importAlternatives();
+  fireEvent.change(screen.getByLabelText("位置绑定的待审文字"),{target:{value:"w"}});fireEvent.click(screen.getByTestId("mvp-source"));await waitFor(()=>expect(screen.getByTestId("mvp-accept")).toBeEnabled());
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"raw-page2"}});expect(screen.queryByTestId("mvp-accept")).toBeNull();
+  const detail=screen.getByTestId("mvp-alternative-detail");expect(within(detail).queryByRole("textbox")).toBeNull();expect(within(detail).getAllByRole("button")).toHaveLength(1);
+  fireEvent.click(screen.getByTestId("mvp-alternative-source"));expect(onPage).toHaveBeenLastCalledWith(2);
+  fireEvent.change(screen.getByLabelText("位置绑定的待审文字"),{target:{value:"w"}});expect(screen.getByTestId("mvp-accept")).toBeDisabled();
+  expect(screen.queryByTestId("mvp-alternative-detail")).toBeNull();expect(ipc.mock.calls.some(c=>["review","save","start"].includes(c[1]?.request.action))).toBe(false);
+ });
+ it("keeps same reader IDs on different pages distinct and resets on reload, document and mode",async()=>{
+  const result=alternativeResult();installAlternativeIpc(result);const onPage=vi.fn();const view=render(<MvpPanel {...props} onPage={onPage}/>);await importAlternatives();
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"raw-page1"}});fireEvent.click(screen.getByTestId("mvp-alternative-source"));expect(onPage).toHaveBeenLastCalledWith(1);
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"raw-page2"}});fireEvent.click(screen.getByTestId("mvp-alternative-source"));expect(onPage).toHaveBeenLastCalledWith(2);
+  result.revision=1;result.reader_alternatives.revision=1;result.reader_alternatives.rows.forEach(row=>row.revision=1);
+  fireEvent.click(screen.getByTestId("mvp-reload"));await waitFor(()=>expect(screen.queryByTestId("mvp-alternative-detail")).toBeNull());
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"raw-page2"}});view.rerender(<MvpPanel {...props} documentId="other" onPage={onPage}/>);await waitFor(()=>expect(screen.queryByTestId("mvp-reader-alternatives")).toBeNull());
+  await importAlternatives();fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"raw-page1"}});fireEvent.change(screen.getByLabelText("识别模式"),{target:{value:"critical-edition"}});await waitFor(()=>expect(screen.queryByTestId("mvp-reader-alternatives")).toBeNull());
+ });
+ it.each(["revision","source","page-zero","page-outside"])("cannot navigate with invalid %s binding",async(kind)=>{
+  const result=alternativeResult(),row=result.reader_alternatives.rows[0];if(kind==="revision")row.revision=3;else if(kind==="source")row.source_sha256="other";else row.page=kind==="page-zero"?0:13;
+  installAlternativeIpc(result);const onPage=vi.fn();render(<MvpPanel {...props} onPage={onPage}/>);await importAlternatives();fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"raw-page1"}});
+  expect(screen.getByTestId("mvp-alternative-source")).toBeDisabled();fireEvent.click(screen.getByTestId("mvp-alternative-source"));expect(onPage).not.toHaveBeenCalled();
+ });
+ it("keeps missing raw unavailable without recognition",async()=>{
+  const result=alternativeResult();result.reader_alternatives.rows=[];result.reader_alternatives.coverage[0].unavailable_streams=["independent_reader"];
+  installAlternativeIpc(result);render(<MvpPanel {...props}/>);await importAlternatives();expect(screen.getByText("部分页面没有保留此类原始记录，不会自动重新识别。")).toBeVisible();expect(ipc.mock.calls.some(c=>c[1]?.request.action==="start")).toBe(false);
+ });
+ it("translates labels while preserving the original reader text",async()=>{
+  installAlternativeIpc();setLocale("en");render(<MvpPanel {...props}/>);await screen.findByTestId("mvp-import-button");fireEvent.change(document.getElementById("mvp-import")!,{target:{value:"/result.json"}});fireEvent.click(screen.getByTestId("mvp-import-button"));await screen.findByTestId("mvp-reader-alternatives");
+  expect(screen.getByText("Unadopted readings")).toBeVisible();fireEvent.change(screen.getByLabelText("Select an unadopted reading"),{target:{value:"raw-page1"}});expect(within(screen.getByTestId("mvp-alternative-detail")).getByText("μακαριώτερον",{selector:"pre"})).toBeVisible();
+ });
+});
 describe("explicit MVP development boundaries",()=>{
  it("keeps the default release entry hidden",async()=>{ipc.mockResolvedValue({enabled:false});render(<MvpPanel {...props}/>);await waitFor(()=>expect(ipc).toHaveBeenCalled());expect(screen.queryByText("OCR 开发诊断")).toBeNull();});
  it("does not offer a cloud start when paid mode is selected",async()=>{ipc.mockImplementation((command:string)=>Promise.resolve(command==="mvp_capabilities"?{enabled:true}:{local_runtime_ready:true,quality_ready:false,distribution_ready:false,ready:false,blockers:[]}));render(<MvpPanel {...props}/>);await screen.findByText("OCR 开发诊断");fireEvent.change(screen.getByLabelText("识别模式"),{target:{value:"paid"}});await screen.findByText(/云发送已停用/);expect(screen.queryByTestId("mvp-start")).toBeNull();expect(ipc.mock.calls.some(c=>c[1]?.request?.action==="start")).toBe(false);});

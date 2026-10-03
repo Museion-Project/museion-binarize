@@ -1,5 +1,6 @@
 """Immutable revision snapshots with single-writer CAS and persisted review receipts."""
 import copy
+from collections import Counter
 import fcntl
 import html
 import json
@@ -34,12 +35,64 @@ def load_snapshot(root):
             if not raw.is_relative_to(root) or sha(raw)!=h:raise ValueError('RAW_EVIDENCE_CORRUPT')
     return snapshot,folder
 
+def reader_alternatives(snapshot):
+    """Read-only saved readings, never new output members or source ground truth.
+
+    Match final members by exact reader ID and engine, not text or proximity.
+    Duplicate/missing IDs retain every raw record with an ambiguous identity.
+    The raw boxes are reader observations, not validated glyph geometry.
+    """
+    rows=[];coverage=[]
+    for page in snapshot['pages']:
+        streams=('independent_reader','residual_reader')
+        raw=[(stream,index,word) for stream in streams
+             if isinstance(page.get(stream),list)
+             for index,word in enumerate(page[stream])]
+        ids=Counter(word.get('id') for _,_,word in raw
+                    if isinstance(word,dict) and isinstance(word.get('id'),str) and word['id'])
+        final={(word.get('id'),word.get('engine')) for word in page.get('words',[])}
+        adopted=0
+        for stream,index,original in raw:
+            word=original if isinstance(original,dict) else {}
+            member=word.get('id');unique=isinstance(member,str) and bool(member) and ids[member]==1
+            engine=word.get('engine')
+            if unique and isinstance(engine,str) and (member,engine) in final:
+                adopted+=1;continue
+            # Bind immutable evidence separately from the current review revision.
+            evidence=digest(original)
+            binding=dict(source_sha256=snapshot['input_sha256'],page=page.get('page'),
+                         image_sha256=page.get('image_sha256'),stream=stream,
+                         raw_index=index,raw_member_id=member,evidence_sha256=evidence)
+            decisions=[copy.deepcopy(decision) for decision in page.get('decisions',[])
+                       if unique and (decision.get('reader_id')==member or member in decision.get('reader_ids',[]))]
+            actions=[dict(revision=receipt.get('revision'),action=action.get('action'))
+                     for receipt in snapshot.get('receipts',[])
+                     if unique and receipt.get('source_hash')==snapshot['input_sha256']
+                     for action in receipt.get('actions',[])
+                     if action.get('page')==page.get('page') and action.get('member_id')==member]
+            rows.append(dict(binding,alternative_id='reader-alternative:'+digest(binding),
+                             revision=snapshot['revision'],text=word.get('text',''),
+                             raw_record=copy.deepcopy(original),
+                             identity_status='UNIQUE' if unique else 'AMBIGUOUS',
+                             geometry_status='READER_OBSERVATION_UNVERIFIED',
+                             decision_status='RECORDED' if decisions else 'NOT_RECORDED',
+                             decisions=decisions,review_actions=actions,read_only=True))
+        coverage.append(dict(page=page.get('page'),raw_records=len(raw),adopted_records=adopted,
+                             alternative_records=len(raw)-adopted,
+                             unavailable_streams=[stream for stream in streams if not isinstance(page.get(stream),list)]))
+    return dict(schema='saved-reader-alternatives/1',source_sha256=snapshot['input_sha256'],
+                revision=snapshot['revision'],rows=rows,coverage=coverage,read_only=True)
+
 def review_html(snapshot):
     cards=[]
+    alternatives=reader_alternatives(snapshot)
     for page in snapshot['pages']:
         words=page.get('words',[])
         controls=''.join('<label>'+html.escape(w['id'])+' ['+html.escape(w.get('export_status','UNCHECKED'))+'] '+' <select data-action><option>accept</option><option>reject</option><option>change</option></select><input data-text value="'+html.escape(w['text'],quote=True)+'" data-id="'+html.escape(w['id'],quote=True)+'"></label><br>' for w in words)
-        cards.append(f'<section data-page="{page["page"]}"><h2>Page {page["page"]}: {html.escape(page["status"])}</h2><img src="{html.escape(page.get("image_path", ""))}"><div>{controls}</div></section>')
+        readings=''.join('<li data-alternative="'+html.escape(row['alternative_id'],quote=True)+'"><strong>'+html.escape(str(row['text']))+'</strong><pre>'+html.escape(json.dumps(row,ensure_ascii=False,indent=2))+'</pre></li>' for row in alternatives['rows'] if row['page']==page['page'])
+        coverage=next(item for item in alternatives['coverage'] if item['page']==page['page'])
+        readonly='<details><summary>未采用的识别读法 · Saved readings ('+str(coverage['alternative_records'])+')</summary><p>只读原始记录。可能是同一文字的其他读法；不代表漏词或正确文字。查看原页不会接受它们。Reader boxes are unverified.</p><p>'+html.escape(json.dumps(coverage,ensure_ascii=False))+'</p><ul>'+readings+'</ul></details>'
+        cards.append(f'<section data-page="{page["page"]}"><h2>Page {page["page"]}: {html.escape(page["status"])}</h2><img src="{html.escape(page.get("image_path", ""))}"><div>{controls}{readonly}</div></section>')
     context=json.dumps(dict(expected_revision=snapshot['revision'],input_sha256=snapshot['input_sha256']),ensure_ascii=False)
     return '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OCR source review</title><style>body{font:16px system-ui;margin:20px}img{width:48%;vertical-align:top}section>div{display:inline-block;width:48%;max-height:800px;overflow:auto}input{width:60%}button{padding:12px}</style><h1>机器草稿 · Source review</h1><p>每项绑定实际词框。Accept / Reject / Change 后导出补丁，使用 review-save 保存新版本 PDF。保存前原图和原始观察保留；下载补丁不是已保存 PDF。</p><button onclick="patch()">Export review patch</button>'+''.join(cards)+'''<script>const context='''+context+''';function patch(){const actions=[];document.querySelectorAll('section').forEach(s=>s.querySelectorAll('input').forEach(i=>actions.push({page:Number(s.dataset.page),member_id:i.dataset.id,action:i.previousElementSibling.value,text:i.value})));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({...context,actions},null,2)],{type:'application/json'}));a.download='review-patch.json';a.click();URL.revokeObjectURL(a.href)}</script>'''
 

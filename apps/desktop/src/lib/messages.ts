@@ -1,5 +1,19 @@
 // UI messages only. Document text and bookmark titles are never translated.
 export const english: Record<string, string> = {
+  "未采用的识别读法": "Unadopted readings",
+  "这些是保留的原始读法，可能对应已经识别的文字。它们不代表漏词或正确答案，仅供对照原页。": "These saved readings may refer to text already recognized. They do not establish missing words or correct answers; compare them with the original page.",
+  "保留 {0} 条读法，未采用 {1} 条。": "{0} saved readings, {1} unadopted.",
+  "部分页面没有保留此类原始记录，不会自动重新识别。": "Some pages have no saved readings of this kind. Recognition will not restart automatically.",
+  "选择未采用的读法": "Select an unadopted reading",
+  "选择读法": "Select a reading",
+  "已记录拒绝，原始读法仍保留。": "Rejection recorded; the original reading is retained.",
+  "没有记录采用决定，原始读法仍保留。": "No adoption decision recorded; the original reading is retained.",
+  "未采用，保留原处理记录。": "Unadopted; the original processing record is retained.",
+  "记录身份存在歧义，仅供查看。": "The record identity is ambiguous; viewing only.",
+  "查看此读法所在原页": "View the original page for this reading",
+  "查看原页不会接受这条读法；识别框尚未验证。": "Viewing the original does not accept this reading; reader boxes are unverified.",
+  "查看原始记录": "View the original record",
+
   "草稿保存在本机应用数据中，请保留原 PDF；不会自动重新识别。": "Drafts are stored in local app data. Keep the original PDF; recognition will not restart automatically.",
   "这是旧临时草稿；临时目录可能被系统清理，尚未自动迁移。": "This is a legacy temporary draft. The system may remove its directory; it has not been migrated automatically.",
   "草稿的处理版本无法确认或已改变。可查看历史结果；更正、保存与恢复收据已停用。": "The draft processing version is unverified or changed. History is available; editing, saving and receipt recovery are disabled.",
