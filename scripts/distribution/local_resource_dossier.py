@@ -13,6 +13,7 @@ from pathlib import Path
 import struct
 
 from scripts.ocr.app_mvp_bridge.runtime_contract import verify_inventory
+from .native_content_reference import bind_native_content_record
 
 MAGICS={b'\xcf\xfa\xed\xfe',b'\xfe\xed\xfa\xcf',b'\xce\xfa\xed\xfe',b'\xfe\xed\xfa\xce',b'\xca\xfe\xba\xbe',b'\xbe\xba\xfe\xca'}
 
@@ -49,7 +50,9 @@ def font_names(path):
     return dict(state='EMBEDDED_METADATA_OBSERVED',records=records,upstream_blob_identity='UNKNOWN')
 
 
-def inspect(resource_root,content_provenance=()):
+def inspect(resource_root,content_provenance=(),native_content_record=None,native_content_record_sha256=None):
+    if (native_content_record is None)!=(native_content_record_sha256 is None):
+        raise ValueError('NATIVE_CONTENT_RECORD_AND_HASH_REQUIRED')
     root=Path(resource_root).resolve();manifest_path=root/'runtime-manifest.json';manifest_sha256=sha(manifest_path)
     manifest=json.loads(manifest_path.read_text());inventory=verify_inventory(root,manifest)
     metadata=[];licenses=[];fonts=[];native=[];references={}
@@ -86,6 +89,11 @@ def inspect(resource_root,content_provenance=()):
                               original_installation_provenance='UNKNOWN'))
         with path.open('rb') as file:magic=file.read(4)
         if magic in MAGICS:native.append(dict(path=name,sha256=expected,original_build_provenance='UNKNOWN'))
+    native_content=None
+    if native_content_record is not None:
+        native_content=bind_native_content_record(native_content_record,native_content_record_sha256,native)
+        for obj in native:
+            obj['recorded_content_reference']=native_content['objects'][obj['path']]
     # Inventory validation is repeated after inspection; no loaded module or
     # signature claim follows from this static read.
     after=verify_inventory(root,manifest)
@@ -96,10 +104,12 @@ def inspect(resource_root,content_provenance=()):
         'all dependency notice/obligation correspondence',
         'final quality/exporter/App candidate; final signed package and independent Mac Release Gate']
     if any(font['path'] not in references for font in fonts):unresolved.append('font upstream blob identity')
+    if native_content is None:unresolved.append('native upstream content record not supplied')
     return dict(schema='local-resource-dossier/1',state='REVIEW_DRAFT',resource_root=str(root),
                 manifest_sha256=sha(manifest_path),inventory_before=inventory,inventory_after=after,
                 code_files=manifest['code_files'],runtime_files=len(manifest['runtime_files']),
                 metadata=metadata,notices=licenses,fonts=fonts,native_objects=native,
+                native_content_record_binding=native_content,
                 grouped_native_paths=dict(Counter(str(Path(n['path']).parent) for n in native)),
                 unresolved=unresolved,
                 executed_binaries=0,new_ocr_calls=0,new_reader_calls=0,provider_calls=0,
@@ -111,9 +121,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resource-root',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--content-provenance',type=Path,action='append',default=[])
+    parser.add_argument('--native-content-record',type=Path)
+    parser.add_argument('--native-content-record-sha256')
     args=parser.parse_args()
     if args.output.resolve().is_relative_to(args.resource_root.resolve()):raise ValueError('DOSSIER_OUTPUT_INSIDE_RESOURCE')
-    result=inspect(args.resource_root,args.content_provenance)
+    result=inspect(args.resource_root,args.content_provenance,args.native_content_record,args.native_content_record_sha256)
     with args.output.open('x') as output:json.dump(result,output,ensure_ascii=False,indent=2)
     print(json.dumps(dict(state=result['state'],runtime_files=result['runtime_files'],
                           metadata=len(result['metadata']),native_objects=len(result['native_objects']),

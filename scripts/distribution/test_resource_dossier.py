@@ -1,5 +1,6 @@
 """Inventory/notice evidence never implies release; inspect has no subprocess."""
 import json
+import copy
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -52,6 +53,106 @@ class ResourceDossierTests(unittest.TestCase):
         self.assertFalse(result['legal_admission'])
         reference.write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError,'CONTENT_PROVENANCE_IDENTITY'):inspect(resource,[record])
+
+    def native_record(self):
+        resource=self.root/'resource'
+        manifest=resource/'runtime-manifest.json';inventory=json.loads(manifest.read_text())
+        objects=[]
+        for name in ['native/library.dylib','python/lib/module.so']:
+            path=resource/name;path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(bytes.fromhex('cffaedfe')+name.encode())
+            digest=pack.sha(path);inventory['runtime_files'][name]=digest
+            objects.append(dict(path='Contents/Resources/local-ocr/'+name,sha256=digest,
+                source_reference_kind='EXACT_PUBLIC_ARTIFACT_MEMBER_TO_RECORDED_INPUT_AND_CURRENT_APP',
+                upstream_content_correspondence_verified=True,
+                current_local_transform_graph=dict(original_input_sha256='1'*64,current_App_sha256=digest,
+                    content_hash_path=['1'*64,digest])))
+        manifest.write_text(json.dumps(inventory))
+        # Main/PDFium are deliberately outside this runtime-only inspection.
+        objects.append(dict(path='Contents/MacOS/main',sha256='2'*64))
+        record=self.root/'native-record.json'
+        data=dict(schema='current-App-public-artifact-content-reference-SBOM/5',objects=objects)
+        record.write_text(json.dumps(data))
+        return resource,record,data
+
+    def test_native_record_binds_scope_and_keeps_history_and_admission_unknown(self):
+        resource,record,data=self.native_record()
+        with patch('subprocess.run',side_effect=AssertionError('no binaries allowed')):
+            result=inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+        binding=result['native_content_record_binding']
+        self.assertEqual(binding['scope_native_objects'],2)
+        self.assertEqual(binding['recorded_public_content_correspondences'],2)
+        self.assertEqual(binding['outside_scope_record_paths'],['Contents/MacOS/main'])
+        self.assertFalse(binding['upstream_prediction_replayed'])
+        self.assertFalse(binding['original_build_install_events_verified'])
+        self.assertTrue(all(x['original_build_provenance']=='UNKNOWN' for x in result['native_objects']))
+        self.assertFalse(result['legal_admission']);self.assertFalse(result['release_ready'])
+
+    def test_native_record_requires_explicit_matching_digest(self):
+        resource,record,_=self.native_record()
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORD_AND_HASH_REQUIRED'):
+            inspect(resource,native_content_record=record)
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORD_HASH'):
+            inspect(resource,native_content_record=record,native_content_record_sha256='0'*64)
+
+    def test_native_record_changed_or_foreign_package_digest_rejected(self):
+        resource,record,data=self.native_record();before=pack.sha(record)
+        data['objects'][0]['sha256']='3'*64;record.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORD_HASH'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=before)
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_PACKAGE_IDENTITY'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+
+    def test_native_record_missing_or_extra_scoped_object_rejected(self):
+        resource,record,data=self.native_record();bad=copy.deepcopy(data);bad['objects'].pop(0)
+        record.write_text(json.dumps(bad))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_SCOPE_COVERAGE'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+        bad=copy.deepcopy(data);bad['objects'][0]['path']='Contents/Resources/local-ocr/native/extra.dylib'
+        record.write_text(json.dumps(bad))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_PACKAGE_IDENTITY'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+
+    def test_native_record_duplicate_or_path_escape_rejected(self):
+        resource,record,data=self.native_record();bad=copy.deepcopy(data);bad['objects'].append(bad['objects'][0])
+        record.write_text(json.dumps(bad))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORD_DUPLICATE'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+        bad=copy.deepcopy(data);bad['objects'][0]['path']='Contents/Resources/local-ocr/../escape'
+        record.write_text(json.dumps(bad))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORD_PATH'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+
+    def test_native_record_broken_recorded_chain_rejected(self):
+        resource,record,data=self.native_record()
+        data['objects'][0]['current_local_transform_graph']['content_hash_path'][-1]='4'*64
+        record.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORDED_CHAIN'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+
+    def test_native_record_unchanged_input_has_one_hash_node_but_empty_chain_rejected(self):
+        resource,record,data=self.native_record()
+        obj=data['objects'][0];graph=obj['current_local_transform_graph']
+        graph['original_input_sha256']=obj['sha256'];graph['content_hash_path']=[obj['sha256']]
+        record.write_text(json.dumps(data))
+        result=inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+        self.assertEqual(result['native_content_record_binding']['recorded_public_content_correspondences'],2)
+        graph['content_hash_path']=[];record.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError,'NATIVE_CONTENT_RECORDED_CHAIN'):
+            inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+
+    def test_native_record_claimed_readiness_is_not_imported(self):
+        resource,record,data=self.native_record()
+        data.update(quality_ready=True,app_admission=True,distribution_ready=True,release_ready=True,legal_admission=True)
+        record.write_text(json.dumps(data))
+        result=inspect(resource,native_content_record=record,native_content_record_sha256=pack.sha(record))
+        for name in ['quality_ready','app_admission','distribution_ready','release_ready','legal_admission']:
+            self.assertFalse(result[name]);self.assertFalse(result['native_content_record_binding'][name])
+
+    def test_native_record_without_evidence_stays_explicitly_unknown(self):
+        resource,_,_=self.native_record();result=inspect(resource)
+        self.assertIsNone(result['native_content_record_binding'])
+        self.assertIn('native upstream content record not supplied',result['unresolved'])
 
 
 if __name__=='__main__':unittest.main()
