@@ -20,6 +20,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "inputs": inputs,
             "effective_resources": raw.pointer("/bundle/resources"),
             "typed_resources": typed.bundle.resources,
+            "effective_minimum_system_version": raw.pointer("/bundle/macOS/minimumSystemVersion"),
+            "typed_minimum_system_version": typed.bundle.macos.minimum_system_version,
             "App_started": false,
             "GUI": 0,
             "OCR": 0,

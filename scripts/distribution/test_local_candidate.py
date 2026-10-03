@@ -111,6 +111,7 @@ class LocalCandidateTests(unittest.TestCase):
         platform.write_text(json.dumps(dict(bundle=dict(resources={'platform-model.py':'model'}))))
         result=pack.package(self.repo,self.freeze_path,self.runtime_path,self.root/'stage',self.root/'output')
         overlay=json.loads((self.root/'output/tauri.generated.overlay.json').read_text())
+        self.assertEqual(overlay['bundle']['macOS']['minimumSystemVersion'],'27.0')
         self.assertEqual(overlay['bundle']['resources'],{'old-bookmarks.py':None,'old-model.py':None,
             'platform-model.py':None,str(self.root/'output'):'local-ocr'})
         receipt=json.loads((self.root/'output/resource-build.json').read_text())

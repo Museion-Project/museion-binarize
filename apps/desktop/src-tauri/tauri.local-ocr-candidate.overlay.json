@@ -10,5 +10,5 @@
   "../../../scripts/bookmarks/hierarchy_models/desktop_bridge.py":null,
   "resources/pdfium/*":"./",
   "resources/local-ocr":"local-ocr"
- }}
+ },"macOS":{"minimumSystemVersion":"27.0"}}
 }

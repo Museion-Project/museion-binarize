@@ -15,6 +15,9 @@ from pathlib import Path
 from scripts.ocr.app_mvp_bridge.runtime_contract import SOURCE_FILES
 COMPONENTS={'python','pymupdf','numpy','opencv-headless','pillow','tesseract','native-closure','apple-helper','noto-sans','tessdata-eng','tessdata-grc','notice'}
 MAGICS={b'\xcf\xfa\xed\xfe',b'\xfe\xed\xfa\xcf',b'\xca\xfe\xba\xbe',b'\xbe\xba\xfe\xca',b'\xce\xfa\xed\xfe',b'\xfe\xed\xfa\xce'}
+# The approved arm64 local target and current Apple helper require macOS 27.
+# This declaration does not certify another OS or a future helper build.
+LOCAL_MINIMUM_MACOS='27.0'
 
 
 def sha(path):
@@ -69,7 +72,7 @@ def local_app_overlay(repo, output):
     mappings={name:None for name in sorted(inherited)}
     mappings[str(Path(output).resolve())]='local-ocr'
     overlay=dict(productName='Museion Local OCR Candidate',identifier='me.mpdf.processor.local-ocr-candidate',
-                 bundle=dict(resources=mappings))
+                 bundle=dict(resources=mappings,macOS=dict(minimumSystemVersion=LOCAL_MINIMUM_MACOS)))
     return overlay,inputs
 
 

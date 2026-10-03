@@ -46,6 +46,7 @@ class LocalAppResourcesTests(unittest.TestCase):
         result = app.compose(**self.arguments)
         receipt = json.loads((self.output / 'resource-composition.json').read_text())
         overlay = json.loads((self.output / 'tauri.local-App.overlay.json').read_text())
+        self.assertEqual(overlay['bundle']['macOS']['minimumSystemVersion'], '27.0')
         mappings = overlay['bundle']['resources']
         self.assertEqual(mappings[str(self.local)], 'local-ocr')
         self.assertEqual(mappings[str(self.output / 'pdfium' / '*')], './')

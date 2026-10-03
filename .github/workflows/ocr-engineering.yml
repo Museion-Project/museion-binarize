@@ -94,8 +94,11 @@ jobs:
                   result = json.loads(subprocess.check_output([str(binary), str(case)], text=True, timeout=30))
                   assert result['effective_resources'] == expected
                   assert result['typed_resources'] == expected
+                  assert result['effective_minimum_system_version'] == '27.0'
+                  assert result['typed_minimum_system_version'] == '27.0'
                   assert not result['App_started'] and result['OCR'] == result['provider'] == 0
                   print(json.dumps({'case': name, 'effective_resources': expected,
+                                    'minimum_system_version': result['typed_minimum_system_version'],
                                     'config_inputs': inputs, 'App': False, 'release_ready': False}))
           PY
       - name: Default desktop remains compilable
