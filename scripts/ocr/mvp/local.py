@@ -165,6 +165,36 @@ def worker(request):
     p['timings']=stages;p['wall_seconds']=time.monotonic()-started;write(rawdir/'page-result.json',p)
     return p
 
+class PageWorkerCleanupError(RuntimeError):
+    """Do not advance to another page if the owned worker cannot be reaped."""
+
+def reap_page_worker(proc):
+    """Only for this parent's child, started in its own process session."""
+    try:
+        try:
+            # An unreaped child retains its PID even if it has just exited.
+            # Do not poll/reap before signalling its isolated worker group.
+            if proc.returncode is None:
+                try:os.killpg(proc.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+            proc.wait(timeout=5)
+        finally:
+            for stream in (proc.stdout,proc.stderr):
+                if stream is not None:stream.close()
+    except Exception as exc:
+        raise PageWorkerCleanupError('PAGE_WORKER_CLEANUP_FAILED') from exc
+
+def parent_page_result(out,resultpath,page):
+    """Keep worker-written bytes, including malformed or partial results."""
+    resultpath.parent.mkdir(parents=True,exist_ok=True)
+    receipt=resultpath.with_name('parent-result.json') if resultpath.exists() else resultpath
+    page['raw_files']={str(f.relative_to(out)):sha(f) for f in resultpath.parent.rglob('*')
+                       if f.is_file() and f!=receipt}
+    write(receipt,page)
+
+def pipe_text(value):
+    return value.decode('utf-8',errors='replace') if isinstance(value,bytes) else (value or '')
+
 def run_task(task,config=None):
     required=('operation_id','input_pdf','input_sha256','page_numbers','mode','output_directory','config_version')
     if any(k not in task for k in required):raise ValueError('MISSING_TASK_FIELDS')
@@ -194,6 +224,7 @@ def run_task(task,config=None):
     doc.close();identity=digest(dict(task=task,config=config))
     if out.exists():
         if not (out/'job.json').exists() or read(out/'job.json')['identity']!=identity:raise FileExistsError('Use a new output directory or identical resumable task')
+        if (out/'worker-cleanup-failure.json').exists():raise PageWorkerCleanupError('PAGE_WORKER_CLEANUP_UNVERIFIED')
         if (out/'CURRENT.json').exists():return read(out/'completion.json')
     else:out.mkdir(parents=True)
     write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config));(out/'raw').mkdir(exist_ok=True)
@@ -201,33 +232,53 @@ def run_task(task,config=None):
     for number in pages:
         if (out/'CANCEL').exists():cancelled=True;break
         resultpath=out/'raw'/f'page-{number:04}'/'page-result.json'
-        if resultpath.exists():p=read(resultpath)
+        parentpath=resultpath.with_name('parent-result.json')
+        if parentpath.exists():p=read(parentpath)
+        elif resultpath.exists():p=read(resultpath)
         else:
             request=dict(input_pdf=str(source),input_sha256=task['input_sha256'],page=number,mode=task['mode'],output=str(out),config=config)
             requestpath=out/'raw'/f'worker-{number}.json';write(requestpath,request)
-            proc=subprocess.Popen([sys.executable,'-m','scripts.ocr.mvp.local','--worker',str(requestpath)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=ROOT,start_new_session=True)
-            deadline=time.monotonic()+config['page_timeout_seconds']
+            proc=None;stdout=stderr=''
             try:
-                while True:
-                    if (out/'CANCEL').exists():
-                        cancelled=True;os.killpg(proc.pid,signal.SIGKILL);stdout,stderr=proc.communicate()
-                        p=dict(page=number,status='CANCELLED',route='failed',error='USER_CANCELLED',words=[],source_sha256=task['input_sha256'])
-                        resultpath.parent.mkdir(parents=True,exist_ok=True);write(resultpath,p);break
-                    remaining=deadline-time.monotonic()
-                    if remaining<=0:raise subprocess.TimeoutExpired(proc.args,config['page_timeout_seconds'])
-                    try:
-                        stdout,stderr=proc.communicate(timeout=min(.25,remaining));break
-                    except subprocess.TimeoutExpired:continue
+                try:
+                    proc=subprocess.Popen([sys.executable,'-m','scripts.ocr.mvp.local','--worker',str(requestpath)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=ROOT,start_new_session=True)
+                    deadline=time.monotonic()+config['page_timeout_seconds']
+                    while True:
+                        if (out/'CANCEL').exists():
+                            cancelled=True
+                            if proc.returncode is None:
+                                try:os.killpg(proc.pid,signal.SIGKILL)
+                                except ProcessLookupError:pass
+                            stdout,stderr=proc.communicate(timeout=5);break
+                        remaining=deadline-time.monotonic()
+                        if remaining<=0:raise subprocess.TimeoutExpired(proc.args,config['page_timeout_seconds'],output=stdout,stderr=stderr)
+                        try:
+                            stdout,stderr=proc.communicate(timeout=min(.25,remaining));break
+                        except subprocess.TimeoutExpired as exc:
+                            stdout=pipe_text(exc.output);stderr=pipe_text(exc.stderr)
+                finally:
+                    if proc is not None:reap_page_worker(proc)
                 (out/'raw'/f'worker-{number}.stdout').write_text(stdout);(out/'raw'/f'worker-{number}.stderr').write_text(stderr)
-                if not resultpath.exists():raise RuntimeError('PAGE_WORKER_FAILED')
-                p=read(resultpath)
-            except subprocess.TimeoutExpired:
-                os.killpg(proc.pid,signal.SIGKILL);stdout,stderr=proc.communicate()
+                if cancelled:
+                    p=dict(page=number,status='CANCELLED',route='failed',error='USER_CANCELLED',words=[],source_sha256=task['input_sha256'])
+                    parent_page_result(out,resultpath,p)
+                else:
+                    if not resultpath.exists():raise RuntimeError('PAGE_WORKER_FAILED')
+                    p=read(resultpath)
+            except PageWorkerCleanupError as exc:
+                p=dict(page=number,status='FAILED',route='failed',error=repr(exc),words=[],source_sha256=task['input_sha256'])
+                write(out/'worker-cleanup-failure.json',dict(operation_id=task['operation_id'],page=number,
+                      worker_pid=proc.pid if proc is not None else None,source_sha256=task['input_sha256'],
+                      error=repr(exc),cause=repr(exc.__cause__),resume_blocked=True))
+                parent_page_result(out,resultpath,p)
+                raise
+            except subprocess.TimeoutExpired as exc:
+                (out/'raw'/f'worker-{number}.stdout').write_text(pipe_text(exc.output));(out/'raw'/f'worker-{number}.stderr').write_text(pipe_text(exc.stderr))
                 p=dict(page=number,status='FAILED',route='failed',error='PAGE_TIMEOUT',words=[],wall_seconds=config['page_timeout_seconds'],source_sha256=task['input_sha256'])
-                resultpath.parent.mkdir(parents=True,exist_ok=True);write(resultpath,p)
+                parent_page_result(out,resultpath,p)
             except Exception as exc:
                 p=dict(page=number,status='FAILED',route='failed',error=repr(exc),words=[],source_sha256=task['input_sha256'])
-                resultpath.parent.mkdir(parents=True,exist_ok=True);write(resultpath,p)
+                parent_page_result(out,resultpath,p)
         results.append(p);write(out/'progress.json',dict(schema_version=1,completed=len(results),total=len(pages),page_results=results));print(f'page {number}: {p["status"]}',file=sys.stderr,flush=True)
         if cancelled:break
     # Cancellation preserves unprocessed source pages in output and records their state.
