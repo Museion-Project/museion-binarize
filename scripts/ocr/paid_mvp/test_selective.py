@@ -160,3 +160,88 @@ class SelectiveTest(unittest.TestCase):
    for call,body in [(first,self.shape['body']),(second,other_body)]:
     with self.assertRaises(BoundaryError):durable_request(call,body,None,{},transport)
   self.assertEqual(len(sent),1)
+
+ def semantic_repair_fixture(self,name):
+  """Only generated pixels/PDF and a fake response; never the user's ledger."""
+  from .pipeline import write
+  from .selective import repair_manifest
+  import fitz
+  pdf=self.root/(name+'.pdf');source=fitz.open();source.new_page(width=200,height=400);source.save(pdf);source.close()
+  out=self.root/name;out.mkdir();page=copy.deepcopy(self.page);page['repair_units']=self.units;page['selection']=dict(selected=self.units)
+  task=dict(mode='paid',operation_id=name,input_pdf=str(pdf),input_sha256=digest(pdf),images=[dict(path=str(self.image),sha256=digest(self.image))],output_directory=str(out),config_version='synthetic-semantic-halt',region_protocol=VERSION)
+  write(out/'pages-v0.json',[dict(page_number=1,status='awaiting_crop_authorization',observation=page)])
+  manifest=repair_manifest(self.shape,task,1);ledger=self.root/(name+'-shared-state')
+  approval=dict(manifest_seal=manifest['seal'],combined_reservation_reconciled=True,mistral_free_only=True,historical_spent_usd=.04,historical_unsettled_usd=.008,combined_new_reserve_usd=manifest['worst_case_reservation_usd'],cap_usd=1,approved_request_ids=[c['request_id']for c in manifest['calls']],approved_images=manifest['calls'])
+  return manifest,approval,ledger,out
+
+ def luna_response(self,payload):
+  return dict(model='gpt-6-luna',status='completed',usage=dict(input_tokens=10,output_tokens=10),output=[dict(type='message',content=[dict(type='output_text',text=json.dumps(payload))])])
+
+ def changed_repair_call(self,manifest):
+  call=copy.deepcopy(manifest['calls'][0]);body=copy.deepcopy(manifest['shape']['body']);body['max_output_tokens']=4000
+  call['body_sha256']=hashlib.sha256(canonical(body)).hexdigest();call['request_id']=hashlib.sha256(canonical({k:call[k]for k in ['image_sha256','destination','model','body_sha256']})).hexdigest()
+  return call,body
+
+ def test_rejected_luna_semantics_blocks_shared_dispatch(self):
+  from unittest.mock import patch
+  from .selective import repair_run
+  import sqlite3
+  invalid=[]
+  response=self.luna_response(self.payload());response['model']='unexpected-model';invalid.append(('wrong-model',response))
+  response=self.luna_response(self.payload());response['status']='incomplete';invalid.append(('incomplete-status',response))
+  response=self.luna_response(self.payload());response['output'][0]['content'][0]['text']='not JSON';invalid.append(('invalid-JSON',response))
+  payload=self.payload();payload['batch_sha256']='another-batch';invalid.append(('wrong-batch',self.luna_response(payload)))
+  payload=self.payload();payload['patches'][0]['unit_sha256']='another-member';invalid.append(('wrong-member',self.luna_response(payload)))
+  payload=self.payload();payload['patches']=[];invalid.append(('missing-member',self.luna_response(payload)))
+  payload=self.payload();payload['patches']=None;invalid.append(('invalid-patches-shape',self.luna_response(payload)))
+  response=self.luna_response(self.payload());response['output']=['not-message-object'];invalid.append(('invalid-output-shape',response))
+  for name,response in invalid:
+   with self.subTest(reason=name):
+    manifest,approval,ledger,out=self.semantic_repair_fixture(name);base_bytes=(out/'pages-v0.json').read_bytes();sent=[]
+    def transport(url,body):sent.append(url);return 200,canonical(response)
+    with patch('scripts.ocr.paid_mvp.selective.ledger_directory',return_value=ledger):
+     with self.assertRaises(BoundaryError):repair_run(manifest,approval,None,transport)
+     with sqlite3.connect(ledger/'state.sqlite')as db:state,cost,receipt_path=db.execute('SELECT state,cost,receipt FROM calls').fetchone()
+     self.assertEqual(state,'identity_failed');self.assertIsNotNone(cost)
+     receipt=json.loads(Path(receipt_path).read_text());self.assertEqual(Path(receipt['raw_path']).read_bytes(),canonical(response))
+     self.assertEqual(digest(receipt['raw_path']),receipt['response_sha256'])
+     halt=json.loads((Path(receipt['raw_path']).parent/'dispatch-halt.json').read_text());self.assertTrue(halt['raw_preserved'])
+     self.assertEqual((out/'pages-v0.json').read_bytes(),base_bytes);self.assertEqual(list(out.glob('patches-*.json')),[])
+     # Cached identical identity and a later distinct request both stay stopped.
+     call=manifest['calls'][0]
+     with self.assertRaises(BoundaryError):durable_request(call,manifest['shape']['body'],None,{},transport)
+     other,body=self.changed_repair_call(manifest)
+     with self.assertRaises(BoundaryError):durable_request(other,body,None,{},transport)
+    self.assertEqual(len(sent),1)
+
+ def test_luna_waits_for_semantic_validation_before_next_request(self):
+  from unittest.mock import patch
+  from .selective import repair_run
+  import sqlite3
+  manifest,approval,ledger,out=self.semantic_repair_fixture('pending-validation');sent=[];observed=[]
+  def transport(url,body):sent.append(url);return 200,canonical(self.luna_response(self.payload()))
+  original_validate=validate
+  def verify_pending(payload,shape):
+   with sqlite3.connect(ledger/'state.sqlite')as db:state=db.execute('SELECT state FROM calls').fetchone()[0]
+   observed.append(state);self.assertEqual(state,'received')
+   other,body=self.changed_repair_call(manifest)
+   with self.assertRaises(BoundaryError):durable_request(other,body,None,{},transport)
+   return original_validate(payload,shape)
+  with patch('scripts.ocr.paid_mvp.selective.ledger_directory',return_value=ledger),patch('scripts.ocr.paid_mvp.selective.validate',side_effect=verify_pending):
+   result=repair_run(manifest,approval,None,transport)
+  self.assertEqual(observed,['received']);self.assertEqual(len(sent),1);self.assertEqual(result['status'],'source_review_required')
+  with sqlite3.connect(ledger/'state.sqlite')as db:self.assertEqual(db.execute('SELECT state FROM calls').fetchone()[0],'complete')
+  self.assertEqual(len(list(out.glob('patches-*.json'))),1)
+
+ def test_successful_luna_validation_allows_later_exact_request(self):
+  from unittest.mock import patch
+  from .selective import repair_run
+  import sqlite3
+  manifest,approval,ledger,out=self.semantic_repair_fixture('valid-validation');base_bytes=(out/'pages-v0.json').read_bytes();sent=[]
+  def transport(url,body):sent.append(url);return 200,canonical(self.luna_response(self.payload()))
+  with patch('scripts.ocr.paid_mvp.selective.ledger_directory',return_value=ledger):
+   result=repair_run(manifest,approval,None,transport)
+   self.assertFalse(result['human_reviewed']);self.assertEqual(result['status'],'source_review_required')
+   with sqlite3.connect(ledger/'state.sqlite')as db:self.assertEqual(db.execute('SELECT state FROM calls').fetchone()[0],'complete')
+   other,body=self.changed_repair_call(manifest);durable_request(other,body,None,{},transport)
+  self.assertEqual(len(sent),2);self.assertEqual((out/'pages-v0.json').read_bytes(),base_bytes)

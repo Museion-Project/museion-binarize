@@ -55,7 +55,7 @@ def ledger_directory(root=None):
  from .state import directory
  return directory(root)
 
-def durable_request(call,body,config,approval,transport=None,*,state_root=None):
+def durable_request(call,body,config,approval,transport=None,*,state_root=None,semantic_validation_pending=False):
  """One ledger across operation IDs and App restarts; uncertainty never re-sends."""
  from .pipeline import request
  check(call['body_sha256']==hashlib.sha256(canonical(body)).hexdigest(),'body outside exact manifest')
@@ -65,7 +65,7 @@ def durable_request(call,body,config,approval,transport=None,*,state_root=None):
  if transport is None:check(approval.get('state_root')==str(ledger),'exact approved persistent state root required')
  ledger.mkdir(mode=0o700,parents=True,exist_ok=True)
  # Global stop check and reservation share pipeline.request's BEGIN IMMEDIATE.
- return request(call,body,ledger,config,approval,transport,global_stop=True,defer_completion=call['destination']==MISTRAL)
+ return request(call,body,ledger,config,approval,transport,global_stop=True,defer_completion=call['destination']==MISTRAL or semantic_validation_pending)
 
 def base_run(manifest,approval,config,transport=None,*,state_root=None):
  from .pipeline import authorize,write,read,observations
@@ -138,13 +138,26 @@ def repair_run(manifest,approval,config,transport=None,*,state_root=None):
  verify(shape['units'],page['observation'])
  for a in shape['audit']:check(digest(a['crop_path'])==a['crop_sha256'],'actual crop changed')
  check(not (out/'cancel').exists(),'cancelled before repair send')
- receipt=durable_request(manifest['calls'][0],shape['body'],config,approval,transport,state_root=state_root)
+ call=manifest['calls'][0]
+ receipt=durable_request(call,shape['body'],config,approval,transport,state_root=state_root,semantic_validation_pending=True)
  check(receipt['http_status']==200 and receipt['list_price_estimate_usd'] is not None,'Luna failure/usage unknown; stop')
- response=receipt['response'];check(response.get('model')==MODELS[LUNA] and response.get('status')=='completed','Luna model/status')
- texts=[c['text'] for o in response.get('output',[]) if o.get('type')=='message' for c in o.get('content',[]) if c.get('type')=='output_text']
- payload=validate(json.loads(''.join(texts)),shape)
- result=dict(protocol=VERSION,patches=payload,shape=shape,shape_sha256=hashlib.sha256(canonical(shape)).hexdigest(),receipt=receipt,status='cancelled' if (out/'cancel').exists() else 'source_review_required',human_reviewed=False)
- write(out/('patches-'+shape['batch_sha256']+'.json'),result,True);return result
+ try:
+  response=receipt['response'];check(type(response) is dict,'Luna response schema')
+  check(response.get('model')==MODELS[LUNA] and response.get('status')=='completed','Luna model/status')
+  texts=[c['text'] for o in response.get('output',[]) if o.get('type')=='message' for c in o.get('content',[]) if c.get('type')=='output_text']
+  payload=validate(json.loads(''.join(texts)),shape)
+  result=dict(protocol=VERSION,patches=payload,shape=shape,shape_sha256=hashlib.sha256(canonical(shape)).hexdigest(),receipt=receipt,status='cancelled' if (out/'cancel').exists() else 'source_review_required',human_reviewed=False)
+  write(out/('patches-'+shape['batch_sha256']+'.json'),result,True)
+ except (BoundaryError,ValueError,KeyError,TypeError,AttributeError) as error:
+  from .state import halt
+  reason=str(error) if isinstance(error,BoundaryError) else 'Luna response/patch schema invalid: '+type(error).__name__
+  halt(state_root,call,receipt,reason)
+  raise BoundaryError(reason) from error
+ # Known HTTP/usage is insufficient: only a bound, validated immutable patch
+ # can release the received row and permit a later different request identity.
+ from .state import accept
+ accept(state_root,call)
+ return result
 
 
 def review_context(directory,pages):

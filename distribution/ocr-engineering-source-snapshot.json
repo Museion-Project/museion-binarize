@@ -349,11 +349,11 @@
     "scripts/ocr/paid_mvp/protocol.py": "a39e3b2877a06632f1a1f7aba0377a5294e00161ba6df90e2c52680a03815838",
     "scripts/ocr/paid_mvp/repair_units.py": "214383be8c85a08c1366a460f70c513062252c4b590e3cdc3002afcb656b22b6",
     "scripts/ocr/paid_mvp/review_ui.py": "fa2dcf6fcfefa6841f3ed3e9514d22b972d5b071969e97bbd1cd84420d867da0",
-    "scripts/ocr/paid_mvp/selective.py": "08125ab63a3d6a76e04f65be9a3c4373ef416db8099c2d24b96ae99df13b10bc",
+    "scripts/ocr/paid_mvp/selective.py": "02c6ca93bd0c576d6aeddadc7443b1a5c5c92cf9d01d0f01486fd73143e34edf",
     "scripts/ocr/paid_mvp/selector.py": "9cad843fbfce2dd8bef04088d9e75f51ffc3b9e6546c502ae3fcf5c363507d0d",
     "scripts/ocr/paid_mvp/state.py": "e80cacc301aa9183a990ccf96f327f8f69198349a7865bd784c54e6903accd2e",
     "scripts/ocr/paid_mvp/test_p9_contract.py": "924907404db91955285a0b10e4fa13b5761096de24f5ef816e1134d8cad1e3bf",
-    "scripts/ocr/paid_mvp/test_selective.py": "fff0ddf15984a438c4176b32566b529fbd574884da03c4729c8683a1de09e257"
+    "scripts/ocr/paid_mvp/test_selective.py": "98b4a37553c0af40af4b22e015a346a01a33c6ebef57cd0d77a023c41481f50d"
   },
   "private_research_payloads": 0,
   "source_mode": "selected current working-tree source",
