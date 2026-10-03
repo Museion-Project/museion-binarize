@@ -66,6 +66,34 @@ jobs:
           key: ocr-engineering-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
       - name: Desktop local candidate unit tests
         run: cargo test --locked -p mpdf-desktop --lib --features local-ocr-candidate
+      - name: Local App resource configuration parser
+        run: |
+          cargo build --locked -p mpdf-desktop --example resource_config_probe --features local-ocr-candidate
+          python - <<'PY'
+          import json, subprocess, tempfile
+          from pathlib import Path
+          from scripts.distribution.package_local_candidate import local_app_overlay
+          root = Path.cwd()
+          binary = root / 'target/debug/examples/resource_config_probe'
+          base = (root / 'apps/desktop/src-tauri/tauri.conf.json').read_bytes()
+          with tempfile.TemporaryDirectory() as temporary:
+              folder = Path(temporary).resolve()
+              overlay, inputs = local_app_overlay(root, folder / 'local-payload')
+              cases = [('generated', overlay, {str(folder / 'local-payload'): 'local-ocr'}),
+                       ('static', json.loads((root / 'apps/desktop/src-tauri/tauri.local-ocr-candidate.overlay.json').read_text()),
+                        {'resources/pdfium/*': './', 'resources/local-ocr': 'local-ocr'})]
+              for name, patch, expected in cases:
+                  case = folder / name
+                  case.mkdir()
+                  (case / 'tauri.conf.json').write_bytes(base)
+                  (case / 'tauri.macos.conf.json').write_text(json.dumps(patch))
+                  result = json.loads(subprocess.check_output([str(binary), str(case)], text=True, timeout=30))
+                  assert result['effective_resources'] == expected
+                  assert result['typed_resources'] == expected
+                  assert not result['App_started'] and result['OCR'] == result['provider'] == 0
+                  print(json.dumps({'case': name, 'effective_resources': expected,
+                                    'config_inputs': inputs, 'App': False, 'release_ready': False}))
+          PY
       - name: Default desktop remains compilable
         run: cargo check --locked -p mpdf-desktop
       - name: Evidence boundary

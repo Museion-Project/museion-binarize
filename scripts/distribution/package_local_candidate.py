@@ -40,6 +40,39 @@ def output_guard(path, *, empty=False):
     return p
 
 
+def local_app_overlay(repo, output):
+    """Remove inherited resource mappings with Tauri's JSON Merge Patch rules.
+
+    A resource object in a config overlay is merged, not replaced. Explicit null
+    entries delete default mappings; the final parsed Config contains only the
+    declared local payload. These are build inputs, not runtime dependencies.
+    """
+    repo=Path(repo).resolve();config_root=repo/'apps/desktop/src-tauri'
+    inputs=[];inherited=set()
+    for name in ('tauri.conf.json5','Tauri.toml','tauri.macos.conf.json5','Tauri.macos.toml'):
+        if (config_root/name).exists():raise ValueError('APP_CONFIG_FORMAT_UNSUPPORTED')
+    for name in ('tauri.conf.json','tauri.macos.conf.json'):
+        path=config_root/name
+        if name=='tauri.macos.conf.json' and not path.exists() and not path.is_symlink():continue
+        if path.is_symlink() or any(p.is_symlink() for p in path.parents):raise ValueError('APP_CONFIG_SYMLINK')
+        if not path.is_file():raise ValueError('APP_BASE_CONFIG_REQUIRED')
+        data=json.loads(path.read_text())
+        if not isinstance(data,dict) or not isinstance(data.get('bundle',{}),dict):raise ValueError('APP_CONFIG_RESOURCE_SCHEMA')
+        resources=data.get('bundle',{}).get('resources')
+        if isinstance(resources,dict):
+            if any(not isinstance(k,str) or not k or not isinstance(v,str) for k,v in resources.items()):
+                raise ValueError('APP_CONFIG_RESOURCE_SCHEMA')
+            inherited.update(resources)
+        elif resources is not None and (not isinstance(resources,list) or any(not isinstance(v,str) for v in resources)):
+            raise ValueError('APP_CONFIG_RESOURCE_SCHEMA')
+        inputs.append(dict(path=str(path.relative_to(repo)),sha256=sha(path)))
+    mappings={name:None for name in sorted(inherited)}
+    mappings[str(Path(output).resolve())]='local-ocr'
+    overlay=dict(productName='Museion Local OCR Candidate',identifier='me.mpdf.processor.local-ocr-candidate',
+                 bundle=dict(resources=mappings))
+    return overlay,inputs
+
+
 def preflight(repo, freeze, runtime, staging, output):
     repo=Path(repo).resolve();staging=output_guard(staging,empty=True);output=output_guard(output)
     if staging==output or staging in output.parents or output in staging.parents:raise ValueError('OUTPUT_SCOPE_OVERLAP')
@@ -127,7 +160,9 @@ def macho_audit(root):
 def package(repo, freeze_path, runtime_path, staging, output, *, check_only=False):
     freeze=json.loads(Path(freeze_path).read_text());runtime=json.loads(Path(runtime_path).read_text())
     files,version,staging,output=preflight(repo,freeze,runtime,staging,output)
-    if check_only:return dict(state='PREFLIGHT_PASS',files=len(files),config_version=version,distribution_ready=False)
+    overlay,app_config_inputs=local_app_overlay(repo,output)
+    if check_only:return dict(state='PREFLIGHT_PASS',files=len(files),config_version=version,
+                              app_config_inputs=app_config_inputs,distribution_ready=False)
     staging.mkdir(parents=True,exist_ok=True)
     work=staging/('prepare-'+uuid.uuid4().hex);work.mkdir(mode=0o700)
     try:
@@ -166,16 +201,18 @@ def package(repo, freeze_path, runtime_path, staging, output, *, check_only=Fals
         report=dict(schema='local-resource-build/1',state='RESOURCE_CANDIDATE',files=inventory,inputs=files,
                     helper_build=runtime['helper_build'],components=runtime.get('components',[]),macho=closure,
                     native_mutations=mutations,signing_performed=False,packager_sha256=sha(__file__),
+                    app_config_inputs=app_config_inputs,
+                    app_resource_policy='JSON Merge Patch deletes inherited mappings; explicit local payload only',
                     signatures_unverified=True,
                     source_freeze=freeze,distribution_ready=False,release_ready=False,
                     unresolved=runtime.get('unresolved',[])+['actual App/runtime identity and independent Mac acceptance pending'])
         # Directory creation is exclusive; never replace an existing output even
         # if a competing process creates it between preflight and publication.
+        current_overlay,current_inputs=local_app_overlay(repo,output)
+        if current_overlay!=overlay or current_inputs!=app_config_inputs:raise ValueError('APP_CONFIG_CHANGED_DURING_BUILD')
         output.mkdir(parents=True,exist_ok=False)
         for child in work.iterdir():shutil.move(str(child),str(output/child.name))
         with (output/'resource-build.json').open('x') as f:json.dump(report,f,indent=2)
-        overlay=dict(productName='Museion Local OCR Candidate',identifier='me.mpdf.processor.local-ocr-candidate',
-                     bundle=dict(resources={str(output):'local-ocr'}))
         with (output/'tauri.generated.overlay.json').open('x') as f:json.dump(overlay,f,indent=2)
         return dict(state=report['state'],output=str(output),files=len(inventory),distribution_ready=False)
     finally:

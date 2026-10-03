@@ -14,6 +14,9 @@ class LocalCandidateTests(unittest.TestCase):
             file=self.repo/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_text('')
         (self.repo/'scripts/ocr/mvp/core.py').write_text("CONFIG_VERSION='test-v2'\n")
         (self.repo/'scripts/ocr/mvp/store.py').write_text("EXPORTER_VERSION='export-v1'\n")
+        self.app_config=self.repo/'apps/desktop/src-tauri/tauri.conf.json'
+        self.app_config.parent.mkdir(parents=True)
+        self.app_config.write_text(json.dumps(dict(bundle=dict(resources={'old-bookmarks.py':'bookmarks','old-model.py':'hierarchy_models'}))))
         self.freeze=dict(schema='local-code-freeze/1',config_version='test-v2',exporter_version='export-v1',
                          files={p:pack.sha(self.repo/p) for p in pack.SOURCE_FILES})
         deps=self.root/'deps';deps.mkdir();source=deps/'helper.swift';source.write_text('// test fixture')
@@ -102,6 +105,40 @@ class LocalCandidateTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 pack.package(self.repo,self.freeze_path,self.runtime_path,self.root/'stage',self.root/'output')
         self.assertEqual((self.root/'output/user-file').read_text(),'preserve')
+
+    def test_local_overlay_removes_default_and_platform_resource_mappings(self):
+        platform=self.app_config.parent/'tauri.macos.conf.json'
+        platform.write_text(json.dumps(dict(bundle=dict(resources={'platform-model.py':'model'}))))
+        result=pack.package(self.repo,self.freeze_path,self.runtime_path,self.root/'stage',self.root/'output')
+        overlay=json.loads((self.root/'output/tauri.generated.overlay.json').read_text())
+        self.assertEqual(overlay['bundle']['resources'],{'old-bookmarks.py':None,'old-model.py':None,
+            'platform-model.py':None,str(self.root/'output'):'local-ocr'})
+        receipt=json.loads((self.root/'output/resource-build.json').read_text())
+        self.assertEqual(len(receipt['app_config_inputs']),2)
+        self.assertFalse(result['distribution_ready'])
+
+    def test_changed_app_config_cannot_publish_a_stale_resource_recipe(self):
+        original=self.app_config.read_bytes()
+        def changed(root):
+            self.app_config.write_text(json.dumps(dict(bundle=dict(resources={'new-model.py':'model'}))))
+            return []
+        with patch.object(pack,'macho_audit',side_effect=changed):
+            with self.assertRaisesRegex(ValueError,'APP_CONFIG_CHANGED_DURING_BUILD'):
+                pack.package(self.repo,self.freeze_path,self.runtime_path,self.root/'stage',self.root/'output')
+        self.assertFalse((self.root/'output').exists())
+        self.assertEqual(list((self.root/'stage').iterdir()),[])
+        self.assertNotEqual(self.app_config.read_bytes(),original)
+
+    def test_unknown_config_format_missing_base_or_symlink_rejected(self):
+        alternate=self.app_config.parent/'tauri.macos.conf.json5';alternate.write_text('{}')
+        with self.assertRaisesRegex(ValueError,'APP_CONFIG_FORMAT_UNSUPPORTED'):
+            pack.local_app_overlay(self.repo,self.root/'output')
+        alternate.unlink();saved=self.root/'saved-config.json';self.app_config.rename(saved)
+        with self.assertRaisesRegex(ValueError,'APP_BASE_CONFIG_REQUIRED'):
+            pack.local_app_overlay(self.repo,self.root/'output')
+        self.app_config.symlink_to(saved)
+        with self.assertRaisesRegex(ValueError,'APP_CONFIG_SYMLINK'):
+            pack.local_app_overlay(self.repo,self.root/'output')
 
 
 if __name__=='__main__':unittest.main()
