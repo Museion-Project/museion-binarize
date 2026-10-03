@@ -16,7 +16,7 @@ from pathlib import Path
 
 import fitz
 
-VERSION = 'pdf-consumer-audit-v4'
+VERSION = 'pdf-consumer-audit-v5'
 
 
 def sha(path):
@@ -242,6 +242,11 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
     projected=project_members(source);by_parent=defaultdict(list)
     for token in projected:by_parent[token['parent_member_id']].append(token)
     members=[];gaps=[];rejected=[];token_gaps=[];token_rejected=[]
+    # Every independently reviewed support belongs to one token on this page,
+    # including legacy single-token parents and leaves of different parents.
+    # Distinct word regions may overlap (e.g. italic glyph extents); sharing a
+    # source cell or the exact same physical crop is not independent evidence.
+    source_cell_owners={};source_pixel_box_owners={}
     def checked_box(record):
         box=record.get('bbox')
         if (record.get('position_basis')!='source-pixels' or not record.get('note')
@@ -250,7 +255,7 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
             raise ValueError('SOURCE_MEMBER_GEOMETRY_UNPROVED')
         scale=dpi/72
         pixel_box=[math.floor(box[0]*scale),math.floor(box[1]*scale),math.ceil(box[2]*scale),math.ceil(box[3]*scale)]
-        return list(box),frozen.crop(pixel_box).convert('L').getextrema()[0]<180
+        return list(box),frozen.crop(pixel_box).convert('L').getextrema()[0]<180,pixel_box
     for record in records:
         member=expected[record['member_id']]
         if record.get('export_literal')!=member['text']:raise ValueError('SOURCE_MEMBER_REVIEW_LITERAL_CHANGED')
@@ -281,16 +286,28 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
                 token_rejected.append(token['id']);failed=True;continue
             if proof.get('state')!='SOURCE_POSITION_REVIEWED':
                 token_gaps.append(token['id']);pending=True;continue
-            box,ink=checked_box(proof)
+            box,ink,pixel_box=checked_box(proof)
             if len(tokens)>1 and (box==list(member['bbox'])
                 or any((fitz.Rect(box)&fitz.Rect(other)).get_area()>0 for other in boxes)):
                 raise ValueError('SOURCE_TOKEN_GEOMETRY_OVERLAP_OR_AGGREGATE')
             boxes.append(box)
             if not ink:
                 token_gaps.append(token['id']);pending=True;continue
+            cell=proof.get('source_cell_id')
+            if cell is not None:
+                if not isinstance(cell,str) or not cell:
+                    raise ValueError('SOURCE_TOKEN_SOURCE_CELL_IDENTITY')
+                if cell in source_cell_owners:
+                    raise ValueError('SOURCE_TOKEN_SOURCE_CELL_REUSED')
+            pixel_key=tuple(pixel_box)
+            if pixel_key in source_pixel_box_owners:
+                raise ValueError('SOURCE_TOKEN_GEOMETRY_REUSED')
+            if cell is not None:source_cell_owners[cell]=token['id']
+            source_pixel_box_owners[pixel_key]=token['id']
             accepted.append(dict(id=token['id'],parent_member_id=member['id'],text=token['text'],
                                  literal_offset=token['literal_offset'],bbox=box,
-                                 source_literal=proof.get('source_literal'),review_kind=review['review_kind']))
+                                 source_literal=proof.get('source_literal'),review_kind=review['review_kind'],
+                                 source_cell_id=cell,source_support_pixel_bbox=pixel_box))
         # Partial token evidence is retained but never promotes the parent/gate.
         members.extend(accepted)
         if pending:gaps.append(member['id'])

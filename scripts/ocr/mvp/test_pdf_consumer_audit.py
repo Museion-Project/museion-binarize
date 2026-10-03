@@ -273,6 +273,59 @@ class ConsumerAuditTests(unittest.TestCase):
             review['members'][0]['state']='UNKNOWN';path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
             self.assertEqual(source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)['unresolved_member_ids'],['a'])
 
+    def test_source_geometry_cannot_reuse_one_support_for_distinct_parents(self):
+        cases=[('copied box',[10,10,45,25],None,'SOURCE_TOKEN_GEOMETRY_REUSED'),
+               ('same source pixels',[10.01,10.01,44.99,24.99],None,'SOURCE_TOKEN_GEOMETRY_REUSED'),
+               ('same source cell at different boxes',[50,10,85,25],'source-cell-1','SOURCE_TOKEN_SOURCE_CELL_REUSED')]
+        for label,second_box,cell,error in cases:
+            with self.subTest(label=label),tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+                root=Path(directory);page=doc.new_page(width=100,height=60)
+                page.insert_text((10,22),'word');page.insert_text((50,22),'word')
+                ledger,review,path=self.source_review_fixture(root,page)
+                second=dict(review['members'][0],member_id='b',bbox=second_box)
+                if cell:
+                    review['members'][0]['source_cell_id']=cell;second['source_cell_id']=cell
+                review['members'].append(second);path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+                source=[self.member(mid,'word',[0,0,100,60])for mid in ['a','b']]
+                with self.assertRaisesRegex(ValueError,error):
+                    source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+
+    def test_source_cell_ownership_covers_multipart_leaves_and_other_parents(self):
+        with tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+            root=Path(directory);page=doc.new_page(width=100,height=60)
+            page.insert_text((10,22),'word');page.insert_text((50,22),'next');page.insert_text((10,42),'word')
+            ledger,review,path=self.source_review_fixture(root,page)
+            source=[self.member('a','word next',[0,0,100,60]),self.member('b','word',[0,0,100,60])]
+            leaves=project_members(source);boxes=[[10,10,45,25],[50,10,85,25],[10,30,45,45]]
+            proofs=[dict(token_id=t['id'],offset=t['literal_offset'],text=t['text'],state='SOURCE_POSITION_REVIEWED',
+                         bbox=b,position_basis='source-pixels',note='independent synthetic source support',source_cell_id=c)
+                    for t,b,c in zip(leaves,boxes,['cell-a','cell-next','cell-a'])]
+            review['schema']='source-member-geometry-review/2'
+            review['members']=[dict(member_id=s['id'],export_literal=s['text'],state='SOURCE_POSITION_REVIEWED',
+                                    tokens=[p for p,t in zip(proofs,leaves)if t['parent_member_id']==s['id']])for s in source]
+            path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            with self.assertRaisesRegex(ValueError,'SOURCE_TOKEN_SOURCE_CELL_REUSED'):
+                source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+            review['members'][1]['tokens'][0]['source_cell_id']='cell-b'
+            path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            result=source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+            self.assertEqual(result['state'],'PASS');self.assertEqual(len(result['members']),3)
+            self.assertEqual([m['source_cell_id']for m in result['members']],['cell-a','cell-next','cell-b'])
+
+    def test_distinct_repeated_words_may_have_overlapping_source_regions(self):
+        with tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+            root=Path(directory);page=doc.new_page(width=100,height=60)
+            page.insert_text((10,22),'word');page.insert_text((50,22),'word')
+            ledger,review,path=self.source_review_fixture(root,page)
+            review['members'][0].update(bbox=[10,10,51,25],source_cell_id='cell-a')
+            review['members'].append(dict(review['members'][0],member_id='b',bbox=[50,10,85,25],source_cell_id='cell-b'))
+            path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            source=[self.member(mid,'word',[0,0,100,60])for mid in ['a','b']]
+            result=source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+            self.assertEqual(result['state'],'PASS');self.assertEqual([m['id']for m in result['members']],['a','b'])
+            self.assertEqual([m['source_cell_id']for m in result['members']],['cell-a','cell-b'])
+            self.assertFalse(result['recognition_quality_verified']);self.assertFalse(result['human_checked'])
+
     def test_cross_line_column_and_small_member_do_not_borrow_hit(self):
         source=[self.member('body','the',[0,0,30,10]),self.member('margin','the',[100,0,130,10]),
                 self.member('foot','the',[0,50,30,60]),self.member('sup','2',[32,0,36,5])]
