@@ -2,7 +2,7 @@
 use crate::{dto::UiErrorDto, errors::request_error, state::{AppState, OperationKind}};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::{io::{BufRead, BufReader, Read, Write}, path::{Path, PathBuf}, process::{Command, Stdio}};
+use std::{io::{self, BufRead, BufReader, Read, Write}, path::{Path, PathBuf}, process::{Child, Command, ExitStatus, Stdio}, thread::JoinHandle};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 #[derive(Deserialize, Serialize)]
@@ -94,7 +94,7 @@ async fn bridge_call(request: Request, app: AppHandle, state: State<'_,AppState>
     let document_id=request.document_id.clone();
     tauri::async_runtime::spawn_blocking(move ||{
         let _lease=lease;
-        let (mut child,launcher_proof)=if let Some(root)=session_root {
+        let (child,launcher_proof)=if let Some(root)=session_root {
             let launch=crate::local_runtime::PackagedLaunch::prepare(&package_root,&root,Some(&std::env::temp_dir().join("museion-local-ocr-candidate/sessions")))
                 .map_err(|e|request_error("runtime_identity",e.to_string()))?;
             prepare_session_root(&root).map_err(|e|request_error("session_storage",e.to_string()))?;
@@ -108,20 +108,63 @@ async fn bridge_call(request: Request, app: AppHandle, state: State<'_,AppState>
                 .env("PYTHONDONTWRITEBYTECODE","1").env("MUSEION_MVP_RUNTIME_CONFIG",config_path);
             (command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(|e|request_error("runtime_failed",e.to_string()))?,None)
         };
-        child.stdin.take().unwrap().write_all(serde_json::to_string(&payload).unwrap().as_bytes()).map_err(|e|request_error("runtime_failed",e.to_string()))?;
-        let stderr=child.stderr.take().unwrap();
-        let progress=std::thread::spawn(move ||{
-            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                if let Ok(event)=serde_json::from_str::<Value>(&line) {let _=app.emit("mpdf://mvp-progress",json!({"documentId":document_id,"event":event}));}
-            }
-        });
-        let mut bytes=Vec::new();child.stdout.take().unwrap().take(32*1024*1024).read_to_end(&mut bytes).map_err(|e|request_error("runtime_failed",e.to_string()))?;
-        let status=child.wait().map_err(|e|request_error("runtime_failed",e.to_string()))?;let _=progress.join();
+        let (bytes,status)=exchange_bridge(child,&payload,32*1024*1024,move |event| {
+            let _=app.emit("mpdf://mvp-progress",json!({"documentId":document_id,"event":event}));
+        }).map_err(|e|request_error("runtime_failed",e.to_string()))?;
         let mut value:Value=serde_json::from_slice(&bytes).map_err(|_|request_error("runtime_protocol","Bridge did not return a bounded JSON result."))?;
         if !status.success(){return Err(request_error("mvp_failed",value["message"].as_str().unwrap_or("Local bridge failed.")));}
         if let Some(proof)=launcher_proof {value["launcher_runtime_proof"]=serde_json::to_value(proof).map_err(|e|request_error("runtime_protocol",e.to_string()))?;}
         Ok(value)
     }).await.map_err(|e|request_error("runtime_failed",e.to_string()))?
+}
+
+/// Own the direct bridge until it is reaped, including transport-error exits.
+/// This does not certify the independent OCR worker/cancellation lifecycle.
+struct BridgeProcess {
+    child: Child,
+    reaped: bool,
+    progress: Option<JoinHandle<()>>,
+}
+
+impl Drop for BridgeProcess {
+    fn drop(&mut self) {
+        if !self.reaped {
+            let _ = self.child.kill();
+            let _ = self.child.wait();
+        }
+        if let Some(progress) = self.progress.take() {
+            let _ = progress.join();
+        }
+    }
+}
+
+fn exchange_bridge(
+    child: Child,
+    payload: &Value,
+    result_limit: u64,
+    on_progress: impl Fn(Value) + Send + 'static,
+) -> io::Result<(Vec<u8>, ExitStatus)> {
+    let mut process = BridgeProcess { child, reaped: false, progress: None };
+    let missing_pipe = || io::Error::new(io::ErrorKind::InvalidInput, "Bridge requires piped standard streams.");
+    let mut stdin = process.child.stdin.take().ok_or_else(missing_pipe)?;
+    let stdout = process.child.stdout.take().ok_or_else(missing_pipe)?;
+    let stderr = process.child.stderr.take().ok_or_else(missing_pipe)?;
+    let encoded = serde_json::to_vec(payload).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    process.progress = Some(std::thread::spawn(move || {
+        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            if let Ok(event) = serde_json::from_str::<Value>(&line) { on_progress(event); }
+        }
+    }));
+    stdin.write_all(&encoded)?;
+    drop(stdin); // EOF completes the bridge's structured stdin request.
+    let mut bytes = Vec::new();
+    stdout.take(result_limit.saturating_add(1)).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > result_limit {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "Bridge result exceeds the bounded protocol size."));
+    }
+    let status = process.child.wait()?;
+    process.reaped = true;
+    Ok((bytes, status))
 }
 
 fn validate_start_pages(pages: Option<&[u32]>, page_count: u32) -> Result<(),UiErrorDto> {
@@ -165,6 +208,65 @@ fn prepare_session_root(path: &Path) -> std::io::Result<PathBuf> {
 #[cfg(test)]
 mod session_storage_tests {
     use super::*;
+    #[cfg(unix)]
+    fn fixture(script: &str) -> Child {
+        Command::new("/bin/sh").args(["-c",script]).stdin(Stdio::piped())
+            .stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap()
+    }
+    #[cfg(unix)]
+    fn assert_reaped(pid: u32) {
+        assert!(!Command::new("/bin/kill").args(["-0", &pid.to_string()])
+            .stdout(Stdio::null()).stderr(Stdio::null()).status().unwrap().success(),
+            "owned bridge {pid} remains after exchange");
+    }
+    #[cfg(unix)]
+    #[test]
+    fn bridge_exchange_preserves_request_result_and_progress() {
+        use std::sync::{Arc,Mutex};
+        let events=Arc::new(Mutex::new(Vec::new()));let captured=events.clone();
+        let child=fixture("IFS= read -r request || :; printf '%s' \"$request\"; printf '{\"stage\":\"fixture\"}\\n' >&2");
+        let pid=child.id();let payload=json!({"source":"synthetic-only","pages":[2,1]});
+        let (bytes,status)=exchange_bridge(child,&payload,1024,move |e|captured.lock().unwrap().push(e)).unwrap();
+        assert!(status.success());assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap(),payload);
+        assert_eq!(*events.lock().unwrap(),vec![json!({"stage":"fixture"})]);assert_reaped(pid);
+    }
+    #[cfg(unix)]
+    #[test]
+    fn bridge_exchange_keeps_nonzero_result_for_error_reporting() {
+        let child=fixture("IFS= read -r request || :; printf '{\"message\":\"fixture failure\"}'; exit 7");
+        let pid=child.id();let (bytes,status)=exchange_bridge(child,&json!({}),1024,|_|{}).unwrap();
+        assert_eq!(status.code(),Some(7));assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap()["message"],"fixture failure");
+        assert_reaped(pid);
+    }
+    #[cfg(unix)]
+    #[test]
+    fn bridge_exchange_reaps_child_after_closed_stdin() {
+        let temp=tempfile::tempdir().unwrap();let ready=temp.path().join("ready");
+        let child=Command::new("/bin/sh").args(["-c","exec 0<&-; printf ready > \"$1\"; exec /bin/sleep 30","fixture"])
+            .arg(&ready).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+        let pid=child.id();let deadline=std::time::Instant::now()+std::time::Duration::from_secs(3);
+        while !ready.exists() && std::time::Instant::now()<deadline {std::thread::sleep(std::time::Duration::from_millis(5));}
+        if !ready.exists() {let mut owned=child;let _=owned.kill();let _=owned.wait();panic!("fixture startup timed out");}
+        let error=exchange_bridge(child,&json!({"synthetic":true}),1024,|_|{}).unwrap_err();
+        assert_eq!(error.kind(),io::ErrorKind::BrokenPipe);assert_reaped(pid);
+    }
+    #[cfg(unix)]
+    #[test]
+    fn bridge_exchange_rejects_oversize_without_waiting_for_child() {
+        let child=fixture("IFS= read -r request || :; printf '01234567890123456789'; exec /bin/sleep 30");
+        let pid=child.id();let started=std::time::Instant::now();
+        let error=exchange_bridge(child,&json!({}),16,|_|{}).unwrap_err();
+        assert_eq!(error.kind(),io::ErrorKind::InvalidData);assert!(started.elapsed()<std::time::Duration::from_secs(3));
+        assert_reaped(pid);
+    }
+    #[cfg(unix)]
+    #[test]
+    fn bridge_exchange_reaps_child_if_required_pipe_missing() {
+        let child=Command::new("/bin/sleep").arg("30").stdin(Stdio::piped())
+            .stdout(Stdio::null()).stderr(Stdio::piped()).spawn().unwrap();let pid=child.id();
+        let error=exchange_bridge(child,&json!({}),16,|_|{}).unwrap_err();
+        assert_eq!(error.kind(),io::ErrorKind::InvalidInput);assert_reaped(pid);
+    }
     #[test]
     fn private_root_survives_and_never_replaces_history() {
         let temp=tempfile::tempdir().unwrap();

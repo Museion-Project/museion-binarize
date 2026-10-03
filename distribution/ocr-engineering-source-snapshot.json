@@ -22,7 +22,7 @@
     "apps/desktop/src-tauri/src/commands/local_pipeline.rs": "1eb08da580be429586f81b7db244abd87dbf30648cc4c702bd033b92ff478e97",
     "apps/desktop/src-tauri/src/commands/local_tools.rs": "dbf8363c3b0c6340d9f4f9bb3aef6e81f3e1879e8cf09749b5ed44946d58ef7b",
     "apps/desktop/src-tauri/src/commands/mod.rs": "d075ae5328550861e2c418b7697998ed8764238d562d541807f704cfa494c801",
-    "apps/desktop/src-tauri/src/commands/mvp.rs": "ab2280e46369ff07b9b86ab04a00e7fd9ecd33f5e80565526695656637f11480",
+    "apps/desktop/src-tauri/src/commands/mvp.rs": "b38a3207596225e76fa3411d4cdfac4bcad09c2719933538f69cad4233b82b55",
     "apps/desktop/src-tauri/src/commands/ocr.rs": "782b29f7a828828b2d35415114789ff02f5a5f30443eaa388f11956b86f122c8",
     "apps/desktop/src-tauri/src/commands/ocr_providers.rs": "326f5d17bc5993f59c9ad5c91fc953ee8048719a01ebf7ce74838fc67c3c9641",
     "apps/desktop/src-tauri/src/commands/preview.rs": "6581de7c5341a73ff9977181bd7e022342b265b20d24ef1a223be1c3a200556b",
