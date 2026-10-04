@@ -391,4 +391,172 @@ class PublishedDraftResumeTests(unittest.TestCase):
             self.assertEqual(state,'identity_unverified');self.assertEqual(result['status'],'completion_unverified')
 
 
+class SavedPageAdmissionTests(unittest.TestCase):
+    """Real native bytes and durable checkpoints; no recognizer/provider/GUI."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve()
+        self.source=self.root/'source.pdf';self.out=self.root/'operation';self.out.mkdir()
+        self.identity=self.root/'non-executable-identity';self.identity.write_bytes(b'native fixture identity')
+        with local.fitz.open() as doc:
+            for number in (1,2):
+                doc.new_page().insert_textbox(local.fitz.Rect(20,20,550,500),
+                    f'Native durable source page {number} 314159 preserve every word without recognition. '*10)
+            doc.save(self.source)
+        self.task=dict(operation_id='saved-page-admission',input_pdf=str(self.source),input_sha256=local.sha(self.source),
+                       page_numbers=[1],mode='local',output_directory=str(self.out),config_version=local.CONFIG_VERSION)
+        self.config=dict(apple_helper=str(self.identity),tesseract=str(self.identity),
+                         font=str(local.ROOT/'crates/mpdf-core/assets/fonts/NotoSans-Regular.ttf'))
+        self.normalized=local.runtime_config(self.config)
+        local.write(self.out/'job.json',dict(schema_version=1,task=self.task,config=self.normalized,
+                    identity=local.digest(dict(task=self.task,config=self.normalized))))
+        request=dict(input_pdf=str(self.source),input_sha256=self.task['input_sha256'],page=1,
+                     mode='local',output=str(self.out),config=self.config)
+        with patch.object(local,'invoke',side_effect=AssertionError('Native fixture cannot recognize')):
+            self.page=local.worker(request)
+        self.assertEqual(self.page['status'],'NATIVE_PRESERVED')
+        self.resultpath=self.out/'raw/page-0001/page-result.json';self.image=self.resultpath.parent/'source.png'
+        self.checkpoint(self.page)
+
+    def tearDown(self):self.temp.cleanup()
+
+    def checkpoint(self,page):
+        local.write(self.out/'progress.json',dict(schema_version=1,completed=1,total=len(self.task['page_numbers']),page_results=[page]))
+
+    def files(self):return {str(p.relative_to(self.out)):local.sha(p) for p in self.out.rglob('*') if p.is_file()}
+
+    def refuse(self,reason):
+        before=self.files()
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Refusal started a worker')) as spawn,\
+             patch.object(local,'publish',side_effect=AssertionError('Refusal published a draft')) as publish:
+            with self.assertRaisesRegex((ValueError,FileExistsError),reason):local.run_task(self.task,self.config)
+            spawn.assert_not_called();publish.assert_not_called()
+        self.assertEqual(before,self.files());self.assertEqual(local.sha(self.source),self.task['input_sha256'])
+        self.assertFalse((self.out/'CURRENT.json').exists());self.assertFalse((self.out/'completion.json').exists())
+
+    def test_actual_interruption_reuses_first_native_page_and_starts_only_remaining_page(self):
+        out=self.root/'actual-operation';task=dict(self.task,output_directory=str(out),page_numbers=[1,2])
+        owned=[];write=local.write
+        class StopAfterFirstCheckpoint(Exception):pass
+        def checkpoint(path,value):
+            write(path,value)
+            if Path(path)==out/'progress.json' and value['completed']==1:raise StopAfterFirstCheckpoint()
+        def spawn(*a,**kw):
+            proc=REAL_POPEN(*a,**kw);owned.append(proc);return proc
+        with patch.object(local,'write',side_effect=checkpoint),patch.object(local.subprocess,'Popen',side_effect=spawn):
+            with self.assertRaises(StopAfterFirstCheckpoint):local.run_task(task,self.config)
+        self.assertEqual(len(owned),1);self.assertEqual(owned[0].returncode,0)
+        self.assertTrue(owned[0].stdout.closed and owned[0].stderr.closed)
+        with self.assertRaises(ChildProcessError):os.waitpid(owned[0].pid,os.WNOHANG)
+        raw={str(p.relative_to(out)):local.sha(p) for p in (out/'raw/page-0001').rglob('*') if p.is_file()}
+        job=local.sha(out/'job.json')
+        with patch.object(local.subprocess,'Popen',side_effect=spawn):result=local.run_task(task,self.config)
+        self.assertEqual(len(owned),2);self.assertEqual([p['status'] for p in result['page_results']],['NATIVE_PRESERVED']*2)
+        self.assertEqual(raw,{str(p.relative_to(out)):local.sha(p) for p in (out/'raw/page-0001').rglob('*') if p.is_file()})
+        self.assertEqual(local.sha(out/'job.json'),job);local.load_snapshot(out)
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Completed task replayed')):
+            self.assertEqual(local.run_task(task,self.config),result)
+        self.assertFalse(list((out/'raw').glob('**/*.call.json')))
+
+    def test_changed_raw_refuses_before_any_state_write_or_publication(self):
+        self.image.write_bytes(self.image.read_bytes()+b'changed cached bytes')
+        self.refuse('SAVED_PAGE_RAW_CHANGED')
+
+    def test_page_identity_status_image_and_word_shape_refuse_without_repair(self):
+        original=self.resultpath.read_bytes()
+        variants=[dict(page=2),dict(source_sha256='0'*64),dict(status='success'),dict(route='ocr'),
+                  dict(image_sha256='0'*64),dict(native_text=1),
+                  dict(words=[dict(id='w',text='x',bbox=[0,0,float('nan'),2])])]
+        for changed in variants:
+            with self.subTest(changed=changed):
+                # Only this newly generated synthetic result is deliberately changed.
+                self.resultpath.write_text(json.dumps(dict(self.page,**changed)))
+                self.refuse('SAVED_PAGE_')
+        self.resultpath.write_bytes(original)
+
+    def test_checkpoint_mismatch_or_missing_parent_record_never_certifies_cached_text(self):
+        local.write(self.resultpath,dict(self.page,native_text='edited cached text'))
+        self.refuse('SAVED_PAGE_CHECKPOINT_MISMATCH')
+        local.write(self.resultpath,self.page);(self.out/'progress.json').unlink()
+        self.refuse('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+
+    def test_job_body_cannot_claim_another_task_using_the_expected_digest(self):
+        job=local.read(self.out/'job.json');job['task']=dict(self.task,page_numbers=[2])
+        local.write(self.out/'job.json',job);self.refuse('TASK_JOB_BINDING_MISMATCH')
+
+    def test_partial_and_later_invalid_page_refuse_before_an_earlier_missing_worker(self):
+        self.task=dict(self.task,page_numbers=[2,1])
+        local.write(self.out/'job.json',dict(schema_version=1,task=self.task,config=self.normalized,
+                    identity=local.digest(dict(task=self.task,config=self.normalized))))
+        self.image.write_bytes(self.image.read_bytes()+b'changed later page')
+        self.refuse('SAVED_PAGE_RAW_CHANGED')
+        self.resultpath.unlink();self.refuse('SAVED_PAGE_PARTIAL_UNVERIFIED')
+
+    def test_paths_inventory_and_symlinks_refuse_without_reading_external_bytes(self):
+        outside=self.root/'outside';outside.write_bytes(b'preserve outside')
+        for manifest in ({'../outside':local.sha(outside)},{str(outside):local.sha(outside)},
+                         {'raw/page-0002/foreign':local.sha(outside)}):
+            local.write(self.resultpath,dict(self.page,raw_files=manifest));self.refuse('SAVED_PAGE_PATH_ESCAPE')
+        local.write(self.resultpath,self.page)
+        extra=self.resultpath.parent/'unregistered';extra.write_bytes(b'keep this file')
+        self.refuse('SAVED_PAGE_RAW_INVENTORY_MISMATCH');extra.unlink()
+        self.resultpath.unlink();self.resultpath.symlink_to(outside)
+        self.refuse('SAVED_PAGE_PATH_ESCAPE');self.assertEqual(outside.read_bytes(),b'preserve outside')
+
+    def test_runtime_change_and_saved_config_mismatch_are_readonly_refusals(self):
+        self.identity.write_bytes(b'changed executable identity')
+        self.refuse('SAVED_PAGE_RUNTIME_MISMATCH')
+        self.identity.write_bytes(b'native fixture identity')
+        beforepath=self.resultpath.parent/'runtime-version.json';afterpath=self.resultpath.parent/'runtime-after.json'
+        before=local.read(beforepath);before['config']=dict(self.normalized,max_residual_regions=1)
+        local.write(beforepath,before);local.write(afterpath,dict(before_sha256=local.sha(beforepath),identity=before,unchanged=True))
+        raw=dict(self.page['raw_files']);raw.update({str(p.relative_to(self.out)):local.sha(p) for p in (beforepath,afterpath)})
+        local.write(self.resultpath,dict(self.page,raw_files=raw));self.refuse('SAVED_PAGE_CONFIG_MISMATCH')
+
+    def test_parent_failure_is_retained_and_never_replaced_by_worker_success(self):
+        failed=dict(page=1,source_sha256=self.task['input_sha256'],status='FAILED',route='failed',words=[],error='parent control failure')
+        local.parent_page_result(self.out,self.resultpath,failed);self.checkpoint(failed)
+        raw={str(p.relative_to(self.out)):local.sha(p) for p in self.resultpath.parent.rglob('*') if p.is_file()}
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Failed page replayed')):
+            result=local.run_task(self.task,self.config)
+        self.assertEqual(result['status'],'failed');self.assertEqual(result['page_results'][0]['error'],'parent control failure')
+        self.assertEqual(raw,{str(p.relative_to(self.out)):local.sha(p) for p in self.resultpath.parent.rglob('*') if p.is_file()})
+        local.load_snapshot(self.out)
+
+    def test_cancel_preserves_completed_cached_page_without_processing_missing_page(self):
+        self.task=dict(self.task,page_numbers=[1,2])
+        local.write(self.out/'job.json',dict(schema_version=1,task=self.task,config=self.normalized,
+                    identity=local.digest(dict(task=self.task,config=self.normalized))))
+        self.checkpoint(self.page);(self.out/'CANCEL').touch()
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Cancelled missing page started')):
+            result=local.run_task(self.task,self.config)
+        self.assertEqual(result['status'],'cancelled')
+        self.assertEqual([p['status'] for p in result['page_results']],['NATIVE_PRESERVED','CANCELLED'])
+        self.assertEqual(local.read(self.resultpath),self.page);local.load_snapshot(self.out)
+
+    def test_cached_raw_change_during_remaining_native_worker_refuses_before_publish(self):
+        self.task=dict(self.task,page_numbers=[1,2])
+        local.write(self.out/'job.json',dict(schema_version=1,task=self.task,config=self.normalized,
+                    identity=local.digest(dict(task=self.task,config=self.normalized))))
+        self.checkpoint(self.page);owned=[];changed=[]
+        def spawn(*a,**kw):
+            proc=REAL_POPEN(*a,**kw);owned.append(proc);communicate=proc.communicate
+            def collect(*args,**kwargs):
+                result=communicate(*args,**kwargs)
+                if proc.returncode==0 and not changed:
+                    self.image.write_bytes(self.image.read_bytes()+b'changed while next native page completed')
+                    changed.append(True)
+                return result
+            proc.communicate=collect;return proc
+        with patch.object(local.subprocess,'Popen',side_effect=spawn),\
+             patch.object(local,'publish',side_effect=AssertionError('Changed cached raw was published')) as publish:
+            with self.assertRaisesRegex(ValueError,'SAVED_PAGE_RAW_CHANGED'):local.run_task(self.task,self.config)
+            publish.assert_not_called()
+        self.assertEqual(len(owned),1);self.assertEqual(owned[0].returncode,0)
+        self.assertTrue(owned[0].stdout.closed and owned[0].stderr.closed)
+        with self.assertRaises(ChildProcessError):os.waitpid(owned[0].pid,os.WNOHANG)
+        self.assertEqual(local.read(self.out/'raw/page-0002/page-result.json')['status'],'NATIVE_PRESERVED')
+        self.assertFalse((self.out/'CURRENT.json').exists());self.assertFalse((self.out/'completion.json').exists())
+        self.assertEqual(local.sha(self.source),self.task['input_sha256'])
+
+
 if __name__=='__main__':unittest.main()

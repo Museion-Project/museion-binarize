@@ -3,6 +3,7 @@ import argparse
 from contextlib import contextmanager
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -13,7 +14,7 @@ import time
 import fitz
 from PIL import Image
 from scripts.ocr.free_local import pipeline as old
-from .core import CONFIG_VERSION, CONSUMER_POLICY, discover_residual, complete_residual_support, residual_member_in_target, compose, digest, sha, ownership
+from .core import CONFIG_VERSION, CONSUMER_POLICY, discover_residual, complete_residual_support, residual_member_in_target, compose, digest, sha, ownership, invariant
 from .store import write, read, publish, load_snapshot
 ROOT=Path(__file__).resolve().parents[3]
 
@@ -268,6 +269,72 @@ def load_task_completion(out,snapshot=None,folder=None):
                 **{key:snapshot[key] for key in ('source_page_count','exported_page_count','untouched_page_numbers','pdf_page_mapping')})
     return result,state
 
+def saved_page_result(out,number,task,config):
+    """Admit an unchanged cached page before work, never repair or overwrite it.
+
+    A parent failure takes precedence over worker bytes. Success requires the
+    actual saved source image, complete raw inventory and current runtime;
+    unresolved partial pages require an explicit recovery decision.
+    """
+    out=Path(out)
+    def check(ok,reason):
+        if not ok:raise ValueError('SAVED_PAGE_'+reason)
+    def confined(path):
+        check(path.is_relative_to(out),'PATH_ESCAPE')
+        check(not any(p.is_symlink() for p in (path,*path.parents) if p.is_relative_to(out)),'PATH_ESCAPE')
+        check(path.resolve().is_relative_to(out.resolve()),'PATH_ESCAPE')
+    directory=out/'raw'/f'page-{number:04}'
+    confined(directory)
+    if not directory.exists():return None
+    check(directory.is_dir(),'PARTIAL_UNVERIFIED')
+    parent=directory/'parent-result.json';worker=directory/'page-result.json'
+    selected=parent if parent.exists() or parent.is_symlink() else worker
+    confined(selected);check(selected.is_file(),'PARTIAL_UNVERIFIED')
+    original_hash=sha(selected)
+    try:p=read(selected)
+    except (ValueError,OSError) as exc:raise ValueError('SAVED_PAGE_RESULT_UNREADABLE') from exc
+    check(type(p) is dict and type(p.get('page')) is int and p['page']==number and p.get('source_sha256')==task['input_sha256'],'BINDING_MISMATCH')
+    routes=dict(NATIVE_PRESERVED='native',VISIBLE_TEXT_REPLACE_REVIEW='existing',EXISTING_TEXT_REVIEW='existing',OCR_DRAFT='ocr',EMPTY='ocr',FAILED='failed',TIMEOUT='failed',CANCELLED='failed')
+    check(type(p.get('status')) is str and p['status'] in routes and p.get('route')==routes[p['status']],'STATUS_INVALID')
+    words=p.get('words');raw=p.get('raw_files')
+    check(type(words) is list and type(raw) is dict,'RESULT_INVALID')
+    check(type(p.get('review_reasons',[])) is list and all(type(v) is str for v in p.get('review_reasons',[])) and type(p.get('native_text','')) is str,'RESULT_INVALID')
+    for w in words:
+        check(type(w) is dict and type(w.get('id')) is str and type(w.get('text')) is str and type(w.get('bbox')) is list and len(w['bbox'])==4 and all(type(v) in (int,float) and math.isfinite(v) for v in w['bbox']),'WORDS_INVALID')
+    check(len({w['id'] for w in words})==len(words),'WORDS_INVALID')
+    check(p['route']!='failed' or not words,'FAILED_PAGE_WORDS')
+    registered=set()
+    for name,h in raw.items():
+        check(type(name) is str and type(h) is str,'RAW_INVALID')
+        rel=Path(name);check(not rel.is_absolute() and '..' not in rel.parts,'PATH_ESCAPE')
+        path=out/rel;confined(path)
+        check(path.is_relative_to(directory) and path!=selected and path.is_file(),'PATH_ESCAPE')
+        check(sha(path)==h,'RAW_CHANGED');registered.add(path)
+    actual=set()
+    for path in directory.rglob('*'):
+        confined(path)
+        check(path.is_file() or path.is_dir(),'PATH_ESCAPE')
+        if path.is_file() and path!=selected:actual.add(path)
+    check(actual==registered,'RAW_INVENTORY_MISMATCH')
+    if p['route']!='failed':
+        image=p.get('image_path');check(type(image) is str,'IMAGE_BINDING')
+        image=Path(image);confined(image)
+        check(image.is_relative_to(directory) and image.is_file() and raw.get(str(image.relative_to(out)))==p.get('image_sha256')==sha(image),'IMAGE_BINDING')
+        beforepath=directory/'runtime-version.json';afterpath=directory/'runtime-after.json'
+        check(beforepath in registered and afterpath in registered,'RUNTIME_UNVERIFIED')
+        try:before=read(beforepath);after=read(afterpath)
+        except (ValueError,OSError) as exc:raise ValueError('SAVED_PAGE_RUNTIME_UNVERIFIED') from exc
+        check(type(before) is dict and type(after) is dict and type(before.get('tessdata')) is list,'RUNTIME_UNVERIFIED')
+        check(after.get('unchanged') is True and after.get('before_sha256')==sha(beforepath) and after.get('identity')==before,'RUNTIME_UNVERIFIED')
+        check(before.get('config')==config,'CONFIG_MISMATCH')
+        try:current=worker_runtime_identity(config,before['tessdata'])
+        except (OSError,ValueError,KeyError,TypeError) as exc:raise ValueError('SAVED_PAGE_RUNTIME_UNVERIFIED') from exc
+        check(before==current,'RUNTIME_MISMATCH')
+    try:invariant(dict(schema_version=1,pages=[p],pages_hash=digest([p])))
+    except (ValueError,KeyError,TypeError) as exc:raise ValueError('SAVED_PAGE_MEMBERS_INVALID') from exc
+    check(sha(selected)==original_hash,'RESULT_CHANGED')
+    return p
+
 def run_task(task,config=None):
     required=('operation_id','input_pdf','input_sha256','page_numbers','mode','output_directory','config_version')
     if any(k not in task for k in required):raise ValueError('MISSING_TASK_FIELDS')
@@ -283,6 +350,7 @@ def run_task(task,config=None):
                 load_snapshot(legacy)
                 return read(legacy/'completion.json')
         raise ValueError('CONFIG_VERSION_MISMATCH')
+    if Path(task['output_directory']).is_symlink():raise ValueError('TASK_OUTPUT_PATH_SYMLINK')
     source=Path(task['input_pdf']).resolve();out=Path(task['output_directory']).resolve();config=runtime_config(config)
     if config['text_layer_policy'] not in ('preserve','replace'):raise ValueError('EXPLICIT_TEXT_LAYER_POLICY')
     if type(config['residual_enabled']) is not bool:raise ValueError('EXPLICIT_RESIDUAL_POLICY')
@@ -295,9 +363,15 @@ def run_task(task,config=None):
     pages=task['page_numbers']
     if not pages or len(pages)!=len(set(pages)) or any(type(p) is not int or not 1<=p<=len(doc) for p in pages):raise ValueError('INVALID_PAGE_RANGE')
     doc.close();identity=digest(dict(task=task,config=config))
-    if out.exists():
-        if not (out/'job.json').exists() or read(out/'job.json')['identity']!=identity:raise FileExistsError('Use a new output directory or identical resumable task')
+    existing=out.exists();cached={}
+    if existing:
+        if (out/'job.json').is_symlink():raise ValueError('TASK_JOB_PATH_SYMLINK')
+        if not (out/'job.json').exists():raise FileExistsError('Use a new output directory or identical resumable task')
+        job=read(out/'job.json')
+        if type(job) is not dict or job.get('identity')!=identity:raise FileExistsError('Use a new output directory or identical resumable task')
+        if job.get('schema_version')!=1 or job.get('task')!=task or job.get('config')!=config:raise ValueError('TASK_JOB_BINDING_MISMATCH')
         if (out/'worker-cleanup-failure.json').exists():raise PageWorkerCleanupError('PAGE_WORKER_CLEANUP_UNVERIFIED')
+        if (out/'CURRENT.json').is_symlink():raise ValueError('TASK_CURRENT_PATH_SYMLINK')
         if (out/'CURRENT.json').exists():
             snapshot,folder=load_snapshot(out)
             if (snapshot['input_sha256']!=task['input_sha256'] or Path(snapshot['source_pdf']).resolve()!=source or
@@ -305,15 +379,37 @@ def run_task(task,config=None):
                 snapshot.get('config_version')!=task['config_version'] or [p['page'] for p in snapshot['pages']]!=pages):
                 raise ValueError('CURRENT_TASK_BINDING_MISMATCH')
             return load_task_completion(out,snapshot,folder)[0]
+        # Validate every existing selected page before mutating job/progress or
+        # starting even an earlier missing page. A partial raw directory is not
+        # permission to overwrite observations or silently retry recognition.
+        for number in pages:
+            p=saved_page_result(out,number,task,config)
+            if p is not None:cached[number]=p
+        if cached:
+            progresspath=out/'progress.json'
+            if progresspath.is_symlink() or not progresspath.is_file():raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+            try:progress=read(progresspath)
+            except (ValueError,OSError) as exc:raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED') from exc
+            if (type(progress) is not dict or progress.get('schema_version')!=1 or
+                type(progress.get('completed')) is not int or type(progress.get('page_results')) is not list or
+                progress.get('total')!=len(pages) or progress['completed']!=len(progress['page_results']) or
+                not 1<=progress['completed']<=len(pages)):
+                raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+            rows=progress['page_results']
+            if any(type(p) is not dict or type(p.get('page')) is not int for p in rows) or [p['page'] for p in rows]!=pages[:len(rows)]:
+                raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+            recorded={p['page']:p for p in rows}
+            if set(cached)!=set(recorded) or any(digest(p)!=digest(recorded[n]) for n,p in cached.items()):
+                raise ValueError('SAVED_PAGE_CHECKPOINT_MISMATCH')
     else:out.mkdir(parents=True)
-    write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config));(out/'raw').mkdir(exist_ok=True)
+    if not existing:write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config))
+    (out/'raw').mkdir(exist_ok=True)
     results=[];started=time.monotonic();cancelled=False
     for number in pages:
         if (out/'CANCEL').exists():cancelled=True;break
         resultpath=out/'raw'/f'page-{number:04}'/'page-result.json'
         parentpath=resultpath.with_name('parent-result.json')
-        if parentpath.exists():p=read(parentpath)
-        elif resultpath.exists():p=read(resultpath)
+        if number in cached:p=cached[number]
         else:
             request=dict(input_pdf=str(source),input_sha256=task['input_sha256'],page=number,mode=task['mode'],output=str(out),config=config)
             requestpath=out/'raw'/f'worker-{number}.json';write(requestpath,request)
@@ -367,7 +463,11 @@ def run_task(task,config=None):
         results.append(p);write(out/'progress.json',dict(schema_version=1,completed=len(results),total=len(pages),page_results=results));print(f'page {number}: {p["status"]}',file=sys.stderr,flush=True)
         if cancelled:break
     # Cancellation preserves unprocessed source pages in output and records their state.
-    for number in pages[len(results):]:results.append(dict(page=number,status='CANCELLED',route='failed',words=[]))
+    for number in pages[len(results):]:results.append(cached.get(number,dict(page=number,status='CANCELLED',route='failed',words=[])))
+    # A remaining page may take time. Revalidate cached bytes before producing
+    # a draft, without refreshing manifests or substituting a changed result.
+    for number,p in cached.items():
+        if digest(saved_page_result(out,number,task,config))!=digest(p):raise ValueError('SAVED_PAGE_RESULT_CHANGED')
     snapshot=dict(schema_version=1,operation_id=task['operation_id'],mode=task['mode'],source_pdf=str(source),input_sha256=task['input_sha256'],revision=0,pages=results,receipts=[],config_version=CONFIG_VERSION,consumer_policy=CONSUMER_POLICY,font_path=config['font'],fallback_font_paths=config['fallback_font_paths'])
     old.FONT=Path(config['font']);save_start=time.monotonic();folder=publish(out,snapshot)
     artifacts={k:str(folder/n) for k,n in [('searchable_pdf','searchable.pdf'),('text','text.txt'),('pages_json','pages.json'),('review_html','review.html')]};artifacts['raw_directory']=str(out/'raw');artifacts['page_mapping_json']=str(folder/'page-map.json')
