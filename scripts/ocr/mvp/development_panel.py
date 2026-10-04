@@ -53,6 +53,46 @@ def greek_source_word_ids(units, rows):
             and complete_greek_word(unit.get('source_literal'))]
 
 
+def completed_off_readers(page, job, operation, image):
+    """A saved array cannot stand in for successful full-page recognition.
+
+    Raw hashes are verified by the caller before these records are inspected.
+    EMPTY is a valid completed OFF observation; failed or native pages are not.
+    The Apple input must bind the full frozen page rather than a residual crop.
+    """
+    if job['task'].get('mode') != 'local':
+        return 'baseline did not use the full local OFF path'
+    calls = []
+    for name in page['raw_files']:
+        if name.endswith('.call.json'):
+            record = json.loads((operation / name).read_text())
+            if (not isinstance(record, dict) or record.get('status') != 'OK'
+                    or record.get('returncode') != 0):
+                return 'baseline reader did not complete successfully'
+            command = record.get('command')
+            if not isinstance(command, list) or not all(isinstance(x, str) for x in command):
+                return 'baseline reader command is unverified'
+            calls.append(command)
+    config = job['config']
+    apple = [c for c in calls if len(c) == 3 and c[0] == config['apple_helper']]
+    reader = [c for c in calls if len(c) == 10 and c[0] == config['tesseract']
+              and Path(c[1]).resolve() == image.resolve()
+              and c[2:] == ['stdout', '-l', 'grc+eng', '--oem', '1', '--psm', '3', 'tsv']]
+    if len(calls) != 2 or len(apple) != 1 or len(reader) != 1:
+        return 'complete Apple and full-page Tesseract receipts absent or repeated'
+    apple_input = Path(apple[0][1]).resolve()
+    apple_output = Path(apple[0][2]).resolve()
+    if (not apple_input.is_relative_to(operation) or not apple_output.is_relative_to(operation)
+            or str(apple_input.relative_to(operation)) not in page['raw_files']):
+        return 'Apple input/output is outside the frozen raw ledger'
+    records = json.loads(apple_input.read_text())
+    if (not isinstance(records, list) or len(records) != 1 or not isinstance(records[0], dict)
+            or not isinstance(records[0].get('image_path'), str)
+            or Path(records[0]['image_path']).resolve() != image.resolve()):
+        return 'Apple did not read the same complete source image'
+    return None
+
+
 def verify_reuse(units, subset, freeze):
     """Bind a qualified subset to real OFF snapshots and execution identities.
 
@@ -85,7 +125,13 @@ def verify_reuse(units, subset, freeze):
             raise ValueError('REUSE_SOURCE_PDF_MISMATCH')
         number=record['baseline_page'];pages=[p for p in snapshot['pages'] if p['page']==number]
         if len(pages)!=1 or number not in task['page_numbers']:raise ValueError('REUSE_PAGE_SCOPE_MISMATCH')
-        page=pages[0];image=frozen_file(record['source_image'])
+        page=pages[0]
+        if (page.get('status') not in ('OCR_DRAFT', 'EMPTY') or page.get('route') != 'ocr'
+                or page.get('error')):
+            reasons.append(unit['unit_id']+': OFF page recognition incomplete');continue
+        if any(not isinstance(page.get(key), list) for key in ('original_apple', 'independent_reader', 'words')):
+            reasons.append(unit['unit_id']+': complete OFF reader/member arrays absent');continue
+        image=frozen_file(record['source_image'])
         if page['image_sha256']!=sha(image) or Path(page['image_path']).resolve()!=image.resolve():raise ValueError('REUSE_SOURCE_IMAGE_MISMATCH')
         crop_box=record.get('crop_bbox')
         if not crop_box or len(crop_box)!=4 or any(type(v) is not int for v in crop_box):raise ValueError('REUSE_CROP_GEOMETRY_ABSENT')
@@ -101,6 +147,9 @@ def verify_reuse(units, subset, freeze):
         for name,h in raw.items():
             path=(operation/name).resolve()
             if not path.is_relative_to(operation) or sha(path)!=h:raise ValueError('REUSE_RAW_CHANGED')
+        incomplete=completed_off_readers(page,job,operation,image)
+        if incomplete:
+            reasons.append(unit['unit_id']+': '+incomplete);continue
         runtime_path=frozen_file(record['runtime_receipt'])
         if str(runtime_path.resolve().relative_to(operation)) not in raw:raise ValueError('UNBOUND_RUNTIME_RECEIPT')
         runtime=json.loads(runtime_path.read_text())
