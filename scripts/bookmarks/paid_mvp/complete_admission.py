@@ -22,7 +22,7 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
     if len(ids)!=len(set(ids)):raise ValueError('DUPLICATE_PREDICTION_ROW_IDENTITY')
     rows_by_id={r['raw_index']:r for r in rows}
     known={e['entry_id']:e for e in entries if e['state']=='OBSERVED' and e.get('printed_folio')}
-    matched={};unresolved=[];risks=[];observations=[];opaque_prediction=False;unknown_coverage=set()
+    matched={};claimed={};unresolved=[];risks=[];observations=[];opaque_prediction=False;unknown_coverage=set()
     for row in rows:
         binding=row.get('source_member_binding');entry=by_id.get((binding or {}).get('entry_id'))
         if not binding or not entry:
@@ -38,9 +38,14 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
         if row['source_page']!=entry['page']:
             risks.append(dict(code='source_page_ownership_conflict',severity='severe',raw_index=row['raw_index'],entry_id=entry['entry_id']))
             continue
-        if entry['entry_id'] in matched:
-            risks.append(dict(code='duplicate_source_coverage',severity='severe',raw_index=row['raw_index'],entry_id=entry['entry_id']))
+        # Ownership is independent of whether a title/folio later matches.
+        # Otherwise an invalid first title lets a second complete claim evade
+        # the severe duplicate gate, merely by changing prediction order.
+        if entry['entry_id'] in claimed:
+            risks.append(dict(code='duplicate_source_coverage',severity='severe',raw_index=row['raw_index'],
+                              previous_raw_index=claimed[entry['entry_id']],entry_id=entry['entry_id']))
             continue
+        claimed[entry['entry_id']]=row['raw_index']
         folio=entry.get('printed_folio');ratio=SequenceMatcher(None,norm(entry['title_literal']),norm(row['title'])).ratio()
         eligible=(entry['entry_id'] in known and ratio>=CONFIG['match_ratio']
                   and row.get('printed_page')==folio['literal'])
@@ -108,7 +113,7 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
         risks.append(dict(code='independent_complete_identity_unknown',severity='unknown'))
     severe=any(r['severity']=='severe' for r in risks)
     decision='abstain' if severe else 'review' if missing or any(r['severity']=='unknown' for r in risks) else 'accept-draft'
-    result=dict(schema='toc-complete-member-decision/1',candidate_version='complete-member-admission-v2',
+    result=dict(schema='toc-complete-member-decision/1',candidate_version='complete-member-admission-v3',
                 decision=decision,export_locked=True,export_authority='CANDIDATE_ONLY',
                 alert='SEVERE_TOC_EXTRACTION_RISK' if severe else 'TOC_COVERAGE_UNKNOWN' if decision=='review' else None,
                 source_sha256=source_sha256,
@@ -119,6 +124,7 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
                 unknown_source_entry_ids=unknown_source,unknown_source_members=unknown_members,
                 unknown_reader_alternatives=reader_alternatives,unknown_reader_members=reader_unresolved,
                 unresolved_predictions=unresolved,observations=observations,risks=risks,
+                source_entry_claims=[dict(entry_id=eid,raw_index=index) for eid,index in claimed.items()],
                 human_checked=False,admission_ready=False,quality_ready=False,natural_safety_verified=False,
                 limitation='Explicit source-member contract candidate; no formal engine/export integration or natural quality proof')
     result['decision_sha256']=hash_value(result)

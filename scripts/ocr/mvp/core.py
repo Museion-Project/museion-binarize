@@ -144,6 +144,22 @@ def residual_member_in_target(box,target):
     area=(box[2]-box[0])*(box[3]-box[1])
     return area>0 and old.intersection(box,target)/area>=.9 and same_row(box,target)
 
+def reader_support_conflicts(box, words):
+    """Expose the observed supports that trigger the existing overlap guard.
+
+    This records reader geometry, not source ink or a safe adoption decision.
+    Preserve the strict positive-intersection rule, including fractional edges.
+    """
+    conflicts=[]
+    for word in words:
+        intersect=old.intersection(box,word['bbox'])
+        if intersect>0:
+            conflicts.append(dict(member_id=word['id'],engine=word['engine'],
+                bbox=copy.deepcopy(word['bbox']),source_members=copy.deepcopy(word.get('source_members',[])),
+                intersection_area=intersect,overlap_fraction=old.overlap(box,word['bbox']),
+                same_row=same_row(box,word['bbox']),support_status='READER_OBSERVATION_UNVERIFIED'))
+    return conflicts
+
 def compose(apple, reader, residual):
     """All-or-nothing ownership transfer. Ambiguous broad words remain pending.
     A broad Apple row may be retired only if independent real words span its entire
@@ -228,11 +244,23 @@ def compose(apple, reader, residual):
             else:
                 decisions.append(dict(state='REVIEW',reader_id=t['id'],reason='ambiguous_overlap'))
         elif not hits and (isgreek or t['confidence']>=65) and old.base(t['text']):
-            if not any(old.intersection(t['bbox'],a['bbox'])>0 for a in list(active.values())+selected):
+            conflicts=reader_support_conflicts(t['bbox'],list(active.values())+selected)
+            if not conflicts:
                 selected.append(dict(t,review=True,source_members=[],reason='uncovered_independent_support'))
                 consumed.add(t['id']);decisions.append(dict(state='RESIDUAL_DRAFT',reader_id=t['id'],source_members=[]))
             else:
-                decisions.append(dict(state='REVIEW',reader_id=t['id'],reason='partial_overlap'))
+                decisions.append(dict(state='REVIEW',reader_id=t['id'],reason='partial_overlap',support_conflicts=conflicts))
+        else:
+            # These branches previously kept the reading only in raw evidence.
+            # Explain the existing policy without treating it as source truth,
+            # changing adoption, or calling a covered alternative a missing word.
+            decisions.append(dict(state='NOT_ADOPTED',reader_id=t['id'],
+                reason='covered_reader_policy_not_adopted' if hits else 'reader_admission_not_supported',
+                support_conflicts=reader_support_conflicts(t['bbox'],list(active.values())+selected),
+                admission_observation=dict(greek_admission_supported=isgreek,
+                    confidence=t['confidence'],greek_characters=g,latin_characters=latin,
+                    shared_row_greek_neighbor=neighbor,has_base_text=bool(old.base(t['text'])),
+                    support_status='READER_OBSERVATION_UNVERIFIED')))
     words=nfc_words(list(active.values())+selected)
     # Apple duplicate boxes are not certificates. Quarantine later overlapping copies.
     final=[]

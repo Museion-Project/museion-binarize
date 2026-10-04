@@ -1,8 +1,10 @@
 """Actual output geometry on source-first controlled print, no readers/quality panel."""
 import copy
+import re
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import fitz
 
@@ -11,7 +13,7 @@ from . import core, store, position_export_candidate as candidate
 
 
 class PositionExportCandidateTests(unittest.TestCase):
-    def fixture(self, root, *, rotated=False, observation_scale=1, script_majority=False):
+    def fixture(self, root, *, rotated=False, observation_scale=1, script_majority=False, literals=False):
         font = fitz.Font(fontfile=str(pipeline.FONT))
         members = [('body-a', 'Alpha', [30, 60, 80, 80]),
                    ('small-up', '7', [84, 58, 92, 68]),
@@ -25,6 +27,12 @@ class PositionExportCandidateTests(unittest.TestCase):
             members[2:3] = [('up-n', 'n', [96, 58, 104, 68]),
                             ('up-m', 'm', [108, 58, 116, 68]),
                             ('body-b', 'omega', [120, 60, 175, 80])]
+        if literals:
+            members = [('comma-1', 'Steel,', [30, 30, 70, 48]),
+                       ('multi', 'qualify the', [82, 30, 160, 48]),
+                       ('comma-2', 'Steel,', [30, 72, 70, 90]),
+                       ('quote', '‘quote’', [82, 72, 145, 90]),
+                       ('greek', 'α\u0313', [30, 114, 60, 132])]
         printed = fitz.open()
         page = printed.new_page(width=220, height=240)
         for _, text, box in members:
@@ -63,6 +71,22 @@ class PositionExportCandidateTests(unittest.TestCase):
         snapshot = dict(schema_version=1, revision=0, source_pdf=str(source), input_sha256=core.sha(source),
                         font_path=str(pipeline.FONT), fallback_font_paths=[], pages=[page], receipts=[])
         return source, snapshot, expected
+
+    def emitted(self, text='A'):
+        """Real local producer; mutations below test compatibility, not source truth."""
+        doc = fitz.open()
+        page = doc.new_page()
+        writer = fitz.TextWriter(page.rect)
+        writer.append((20, 40), text + ' ', font=fitz.Font(fontfile=str(pipeline.FONT)), fontsize=10)
+        writer.write_text(page, render_mode=3)
+        xref = page.get_contents()[-1]
+        fontxref = page.get_fonts()[0][0]
+        cmapxref = int(doc.xref_get_key(fontxref, 'ToUnicode')[1].split()[0])
+        return doc, page, xref, fontxref, cmapxref
+
+    def tiny_cmap(self, body=b'2 beginbfchar\n<0001> <0041>\n<0003> <0020>\nendbfchar'):
+        return (b'begincmap\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n' +
+                body + b'\nendcmap')
 
     def assert_geometry(self, output, expected):
         with fitz.open(output) as doc:
@@ -185,3 +209,164 @@ class PositionExportCandidateTests(unittest.TestCase):
                         candidate.export_candidate(invalid, output)
                     self.assertFalse(output.exists())
                     self.assertEqual(invalid, frozen)
+
+    def test_whole_actualtext_retains_multiword_repeats_quotes_and_combining_greek(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source, snapshot, _ = self.fixture(root, literals=True)
+            before = copy.deepcopy(snapshot)
+            output = root / 'candidate.pdf'
+            candidate.export_candidate(snapshot, output)
+            expected = [w['text'] for w in snapshot['pages'][0]['words']]
+            with fitz.open(output) as doc:
+                actuals = []
+                for xref in doc[0].get_contents():
+                    for value in re.findall(rb'/ActualText <([0-9a-f]+)>', doc.xref_stream(xref)):
+                        actuals.append(bytes.fromhex(value.decode()).decode('utf-16'))
+                self.assertEqual(actuals, [text + ' ' for text in expected])
+                self.assertEqual(doc[0].get_text().split(), ' '.join(expected).split())
+                self.assertEqual(doc[0].get_text().split().count('Steel,'), 2)
+                self.assertNotIn('=', doc[0].get_text())
+            self.assert_preserved(source, output)
+            self.assertEqual(snapshot, before)
+
+    def test_actual_generated_font_map_and_whitespace_TJ_are_supported(self):
+        doc, page, xref, _, _ = self.emitted('Steel,')
+        try:
+            original = doc.xref_stream(xref)
+            codes = re.search(rb'<([0-9a-f]+)>', original).group(1)
+            modified = original.replace(b'[<' + codes + b'>]TJ', b'[ <' + b' '.join(codes[i:i+4] for i in range(0, len(codes), 4)) + b'> ] TJ')
+            doc.update_stream(xref, modified)
+            candidate.mark_complete_text(page, xref, 'Steel,', {})
+            wrapped = doc.xref_stream(xref)
+            self.assertEqual(wrapped.count(b'/ActualText'), 1)
+            self.assertIn(modified[modified.index(b'['):modified.index(b'ET')].strip(), wrapped)
+        finally:
+            doc.close()
+
+    def test_bfchar_unicode_sequences_and_supplementary_character_supported(self):
+        doc, page, xref, _, cmapxref = self.emitted()
+        try:
+            stream = re.sub(rb'\[<[^>]+>\]TJ', b'[<000100020003>]TJ', doc.xref_stream(xref))
+            doc.update_stream(xref, stream)
+            doc.update_stream(cmapxref, self.tiny_cmap(b'3 beginbfchar\n<0001><00660069>\n<0002><D83DDE00>\n<0003><0020>\nendbfchar'))
+            candidate.mark_complete_text(page, xref, 'fi😀', {})
+            value = re.search(rb'/ActualText <([^>]+)>', doc.xref_stream(xref)).group(1)
+            self.assertEqual(bytes.fromhex(value.decode()).decode('utf-16'), 'fi😀 ')
+        finally:
+            doc.close()
+
+    def test_wrong_internal_mapping_and_changed_cached_map_refused_without_stream_write(self):
+        doc, page, xref, _, cmapxref = self.emitted()
+        try:
+            stream = re.sub(rb'\[<[^>]+>\]TJ', b'[<00010003>]TJ', doc.xref_stream(xref))
+            doc.update_stream(xref, stream)
+            doc.update_stream(cmapxref, self.tiny_cmap())
+            cache = {}
+            candidate.mark_complete_text(page, xref, 'A', cache)
+            doc.update_stream(xref, stream)
+            for broken in (self.tiny_cmap().replace(b'<0041>', b'<0042>'),
+                           self.tiny_cmap().replace(b'<0020>', b'<003d>'),
+                           self.tiny_cmap().replace(b'<0041>', b'<d800>')):
+                doc.update_stream(cmapxref, broken)
+                with self.assertRaisesRegex(ValueError, 'EXPORT_TEXT_CMAP_MISMATCH'):
+                    candidate.mark_complete_text(page, xref, 'A', cache)
+                self.assertEqual(doc.xref_stream(xref), stream)
+        finally:
+            doc.close()
+
+    def test_unsupported_or_ambiguous_cmap_shapes_fail_explicitly(self):
+        valid = self.tiny_cmap()
+        invalid = [valid.replace(b'2 beginbfchar', b'3 beginbfchar'),
+                   valid + b'\n1 beginbfchar',
+                   valid.replace(b'<0000> <FFFF>', b'<00> <FF>'),
+                   valid.replace(b'<0001> <0041>', b'<0003> <0041>'),
+                   valid.replace(b'endcmap', b'/Other usecmap\nendcmap'),
+                   valid.replace(b'endcmap', b'1 begincidchar\nendcidchar\nendcmap'),
+                   valid.replace(b'endcmap', b'1 usefont\nendcmap'),
+                   valid.replace(b'endbfchar', b'endbfrange'),
+                   self.tiny_cmap(b'1 beginbfrange\n<0001><0002>[<0041><0042>]\nendbfrange'),
+                   self.tiny_cmap(b'1 beginbfrange\n<0002><0001><0041>\nendbfrange'),
+                   self.tiny_cmap(b'1 beginbfrange\n<0001><0002><ffff>\nendbfrange'),
+                   self.tiny_cmap(b'1 beginbfrange\n<0001><0002><00660069>\nendbfrange')]
+        for index, cmap in enumerate(invalid):
+            with self.subTest(index=index), self.assertRaisesRegex(ValueError, 'EXPORT_FONT_CMAP_'):
+                candidate._cmap_mappings(cmap)
+
+    def test_selected_range_with_last_unicode_byte_rollover_is_refused(self):
+        doc, page, xref, _, cmapxref = self.emitted()
+        try:
+            stream = re.sub(rb'\[<[^>]+>\]TJ', b'[<00010003>]TJ', doc.xref_stream(xref))
+            doc.update_stream(xref, stream)
+            body = b'1 beginbfrange\n<0001><0002><00ff>\nendbfrange\n1 beginbfchar\n<0003><0020>\nendbfchar'
+            doc.update_stream(cmapxref, self.tiny_cmap(body))
+            with self.assertRaisesRegex(ValueError, 'EXPORT_FONT_CMAP_RANGE_UNSUPPORTED'):
+                candidate.mark_complete_text(page, xref, 'ÿ', {})
+            self.assertEqual(doc.xref_stream(xref), stream)
+            doc.update_stream(cmapxref, self.tiny_cmap(body.replace(b'<00ff>', b'<0041>')))
+            candidate.mark_complete_text(page, xref, 'A', {})
+            self.assertEqual(doc.xref_stream(xref).count(b'/ActualText'), 1)
+        finally:
+            doc.close()
+
+    def test_unsupported_text_operators_are_not_partially_wrapped(self):
+        doc, page, xref, _, _ = self.emitted()
+        try:
+            original = doc.xref_stream(xref)
+            operator = re.search(rb'\[<[^>]+>\]TJ', original).group()
+            invalid = [original.replace(operator, b'(A ) Tj'),
+                       original.replace(operator, b'[<0024> 10 <0003>]TJ'),
+                       original.replace(operator, operator + b'\n' + operator),
+                       original.replace(operator, b'[<0024000>]TJ'),
+                       original.replace(operator, b'[<>]TJ'),
+                       original.replace(b'/F0 10 Tf', b'/F0 10 Tf\n/F1 10 Tf'),
+                       original.replace(b'3 Tr', b'0 Tr')]
+            for index, stream in enumerate(invalid):
+                with self.subTest(index=index):
+                    doc.update_stream(xref, stream)
+                    with self.assertRaisesRegex(ValueError, 'EXPORT_'):
+                        candidate.mark_complete_text(page, xref, 'A', {})
+                    self.assertEqual(doc.xref_stream(xref), stream)
+        finally:
+            doc.close()
+
+    def test_inherited_or_wrong_encoding_and_missing_font_resource_are_refused(self):
+        mutations = [('encoding', 'Encoding', '/Identity-V'),
+                     ('subtype', 'Subtype', '/TrueType'),
+                     ('missing-map', 'ToUnicode', 'null'),
+                     ('inherited-map', 'UseCMap', '42 0 R')]
+        for name, key, value in mutations:
+            doc, page, xref, fontxref, cmapxref = self.emitted()
+            try:
+                original = doc.xref_stream(xref)
+                doc.xref_set_key(cmapxref if key == 'UseCMap' else fontxref, key, value)
+                with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'EXPORT_FONT_'):
+                    candidate.mark_complete_text(page, xref, 'A', {})
+                self.assertEqual(doc.xref_stream(xref), original)
+            finally:
+                doc.close()
+        doc, page, xref, _, _ = self.emitted()
+        try:
+            original = doc.xref_stream(xref)
+            doc.xref_set_key(page.xref, 'Resources/Font/F0', 'null')
+            with self.assertRaisesRegex(ValueError, 'EXPORT_FONT_RESOURCE_UNSUPPORTED'):
+                candidate.mark_complete_text(page, xref, 'A', {})
+            self.assertEqual(doc.xref_stream(xref), original)
+        finally:
+            doc.close()
+
+    def test_multiple_producer_streams_refuse_candidate_without_admission(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, snapshot, _ = self.fixture(root)
+            original = fitz.TextWriter.write_text
+            before = copy.deepcopy(snapshot)
+            def twice(writer, *args, **kwargs):
+                original(writer, *args, **kwargs)
+                return original(writer, *args, **kwargs)
+            output = root / 'failed-new-candidate.pdf'
+            with patch.object(fitz.TextWriter, 'write_text', twice):
+                with self.assertRaisesRegex(ValueError, 'EXPORT_TEXT_STREAM_UNSUPPORTED'):
+                    candidate.export_candidate(snapshot, output)
+            self.assertEqual(output.stat().st_size, 0)
+            self.assertEqual(snapshot, before)

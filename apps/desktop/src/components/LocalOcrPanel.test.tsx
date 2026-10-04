@@ -1,4 +1,4 @@
-import {render,screen,waitFor,fireEvent,act} from "@testing-library/react";
+import {render,screen,waitFor,fireEvent,act,within} from "@testing-library/react";
 import {describe,it,expect,vi,beforeEach} from "vitest";
 import {LocalOcrPanel} from "./LocalOcrPanel";
 import {setLocale} from "../lib/i18n";
@@ -119,7 +119,7 @@ it("discards a recovery result after the source document changes",async()=>{
 it("binds repeated member IDs to the selected physical page and preserves the backend ID",async()=>{
  const repeated={...result,pages:[{page:1,status:"OCR_DRAFT",words:[{id:"word",text:"alpha",bbox:[1,2,3,4],source_members:["raw-alpha"]}]},{page:2,status:"OCR_DRAFT",words:[{id:"word",text:"beta",bbox:[5,6,7,8],source_members:["raw-beta"]}]}]};
  ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:repeated));
- render(<LocalOcrPanel {...props} currentPage={2}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-result");
+ render(<LocalOcrPanel {...props} currentPage={2}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-start")).toBeEnabled());await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-result");
  const target=screen.getByRole("option",{name:"第 2 页 · beta · DRAFT"}) as HTMLOptionElement;fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:target.value}});fireEvent.click(screen.getByTestId("local-ocr-source"));
  expect(screen.getByLabelText("待审文字")).toHaveValue("beta");expect(props.onPage).toHaveBeenLastCalledWith(2);await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-accept"));
  await waitFor(()=>expect(ipc.mock.calls.some(c=>c[1]?.request.action==="review")).toBe(true));const request=ipc.mock.calls.find(c=>c[1]?.request.action==="review")?.[1].request;
@@ -168,4 +168,60 @@ it("discards recovery admission and pending cancel after the source document cha
  let resolve:(x:unknown)=>void=()=>{};let token="";ipc.mockImplementation((c:string,a?:{request:{action:string;clientOperationId?:string}})=>c==="local_ocr_capabilities"?Promise.resolve({enabled:true}):a?.request.action==="readiness"?Promise.resolve({local_runtime_ready:true,blockers:[]}):a?.request.action==="recover-processing"?new Promise(r=>{token=a.request.clientOperationId??"";resolve=r;}):Promise.resolve(processingRecovery));
  const view=render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-recover-processing");fireEvent.click(screen.getByTestId("local-ocr-recover-processing"));fireEvent.click(screen.getByTestId("local-ocr-cancel"));const handler=events.handler;view.rerender(<LocalOcrPanel {...props} documentId="replacement"/>);
  await act(async()=>handler?.({payload:{documentId:"source",event:{session_id:"b".repeat(32),previous_session_id:result.session_id,client_operation_id:token}}}));expect(ipc.mock.calls.some(c=>c[1]?.request.action==="cancel")).toBe(false);await act(async()=>resolve({...result,session_id:"b".repeat(32)}));expect(screen.queryByTestId("local-ocr-result")).toBeNull();
+});
+
+function ordinaryReadings(){
+ const row=(id:string,page:number)=>({alternative_id:id,text:page===1?"λόγος":"λόγοι",page,source_sha256:"hash",revision:0,raw_member_id:"tess-w1",identity_status:"UNIQUE",decision_status:"NOT_RECORDED",review_actions:[] as {revision:number;action:string}[],read_only:true});
+ return {...result,mode:"local",runtime_compatible:true,pages:[...result.pages,{page:2,status:"OCR_DRAFT",words:[]}],reader_alternatives:{schema:"saved-reader-alternatives/1",source_sha256:"hash",revision:0,read_only:true,rows:[row("reading-1",1),row("reading-2",2)],coverage:[{page:1,raw_records:2,adopted_records:1,alternative_records:1,unavailable_streams:[] as string[]},{page:2,raw_records:1,adopted_records:0,alternative_records:1,unavailable_streams:[] as string[]}]}};
+}
+function readingsIpc(r=ordinaryReadings()){
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:r));
+}
+async function resumeReadings(){
+ await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-reader-alternatives");
+}
+describe("saved unadopted readings in ordinary local review",()=>{
+ it("reads the existing bridge field on resume without a developer import or a new recognizer call",async()=>{
+  const r=ordinaryReadings(),original=JSON.stringify(r),onPage=vi.fn();readingsIpc(r);render(<LocalOcrPanel {...props} onPage={onPage}/>);await resumeReadings();
+  expect(screen.queryByLabelText("已有结果 JSON 路径")).toBeNull();expect(screen.getByTestId("local-ocr-alternative-denominator")).toHaveTextContent("保留 3 条读法，未采用 2 条。");
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-2"}});
+  const detail=screen.getByTestId("local-ocr-alternative-detail");expect(detail).toHaveAttribute("data-read-only","true");expect(within(detail).getByText("λόγοι")).toBeVisible();expect(within(detail).queryByRole("textbox")).toBeNull();expect(within(detail).getAllByRole("button")).toHaveLength(1);
+  fireEvent.click(screen.getByTestId("local-ocr-alternative-source"));expect(onPage).toHaveBeenLastCalledWith(2);
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-1"}});fireEvent.click(screen.getByTestId("local-ocr-alternative-source"));expect(onPage).toHaveBeenLastCalledWith(1);
+  expect(JSON.stringify(r)).toBe(original);expect(ipc.mock.calls.some(c=>["start","continue","recover-processing","review","save"].includes(c[1]?.request.action))).toBe(false);
+ });
+ it("clears final-word proof and acknowledgement, and cannot turn reading navigation into acceptance",async()=>{
+  readingsIpc();render(<LocalOcrPanel {...props}/>);await resumeReadings();
+  fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:JSON.stringify([1,"word"])}});fireEvent.click(screen.getByTestId("local-ocr-source"));await waitFor(()=>expect(screen.getByTestId("local-ocr-accept")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-partial"));expect(screen.getByTestId("local-ocr-save")).toBeEnabled();
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-1"}});expect(screen.queryByTestId("local-ocr-accept")).toBeNull();expect(screen.queryByLabelText("待审文字")).toBeNull();expect(screen.getByTestId("local-ocr-partial")).not.toBeChecked();expect(screen.getByTestId("local-ocr-save")).toBeDisabled();
+  fireEvent.click(screen.getByTestId("local-ocr-alternative-source"));fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:JSON.stringify([1,"word"])}});
+  expect(screen.queryByTestId("local-ocr-alternative-detail")).toBeNull();expect(screen.getByTestId("local-ocr-accept")).toBeDisabled();expect(screen.getByTestId("local-ocr-change")).toBeDisabled();
+  expect(ipc.mock.calls.some(c=>["review","save","start"].includes(c[1]?.request.action))).toBe(false);
+ });
+ it.each(["row-source","table-source","row-revision","table-revision","zero-page","outside-page","unselected-page","row-readonly","table-readonly","schema","duplicate-alternative"])("does not navigate with invalid %s evidence",async(kind)=>{
+  const r=ordinaryReadings(),a=r.reader_alternatives,row=a.rows[0];
+  if(kind==="row-source")row.source_sha256="other";else if(kind==="table-source")a.source_sha256="other";else if(kind==="row-revision")row.revision=1;else if(kind==="table-revision")a.revision=1;else if(kind==="zero-page")row.page=0;else if(kind==="outside-page")row.page=13;else if(kind==="unselected-page")row.page=3;else if(kind==="row-readonly")row.read_only=false;else if(kind==="table-readonly")a.read_only=false;else if(kind==="schema")a.schema="other";else a.rows[1].alternative_id=row.alternative_id;
+  const onPage=vi.fn();readingsIpc(r);render(<LocalOcrPanel {...props} onPage={onPage}/>);await resumeReadings();fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-1"}});
+  expect(screen.getByTestId("local-ocr-alternative-source")).toBeDisabled();fireEvent.click(screen.getByTestId("local-ocr-alternative-source"));expect(onPage).not.toHaveBeenCalled();expect(ipc.mock.calls.some(c=>["review","save","start"].includes(c[1]?.request.action))).toBe(false);
+ });
+ it("resets the same raw reading identity on reload/revision and document replacement",async()=>{
+  const r=ordinaryReadings();readingsIpc(r);const view=render(<LocalOcrPanel {...props}/>);await resumeReadings();fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-2"}});
+  const next={...r,revision:1,reader_alternatives:{...r.reader_alternatives,revision:1,rows:r.reader_alternatives.rows.map(row=>({...row,revision:1}))}};readingsIpc(next);fireEvent.click(screen.getByTestId("local-ocr-reload"));await waitFor(()=>expect(screen.queryByTestId("local-ocr-alternative-detail")).toBeNull());
+  expect(screen.getByLabelText("选择未采用的读法")).toHaveValue("");fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-2"}});view.rerender(<LocalOcrPanel {...props} documentId="replacement"/>);await waitFor(()=>expect(screen.queryByTestId("local-ocr-reader-alternatives")).toBeNull());
+ });
+ it("keeps rejected or identity-ambiguous historical readings readable without changing the runtime lock",async()=>{
+  const r=ordinaryReadings();r.runtime_compatible=false;r.reader_alternatives.rows[0].identity_status="AMBIGUOUS";r.reader_alternatives.rows[0].review_actions=[{revision:0,action:"reject"}];const onPage=vi.fn();readingsIpc(r);render(<LocalOcrPanel {...props} onPage={onPage}/>);await resumeReadings();
+  fireEvent.change(screen.getByLabelText("选择未采用的读法"),{target:{value:"reading-1"}});expect(screen.getByText("已记录拒绝，原始读法仍保留。")).toBeVisible();expect(screen.getByText("记录身份存在歧义，仅供查看。")).toBeVisible();fireEvent.click(screen.getByTestId("local-ocr-alternative-source"));expect(onPage).toHaveBeenLastCalledWith(1);
+  fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:JSON.stringify([1,"word"])}});fireEvent.click(screen.getByTestId("local-ocr-source"));await waitFor(()=>expect(screen.getByTestId("local-ocr-runtime-stale")).toBeVisible());expect(screen.getByTestId("local-ocr-accept")).toBeDisabled();expect(screen.getByTestId("local-ocr-save")).toBeDisabled();
+ });
+ it("reports unavailable streams without restarting recognition",async()=>{
+  const r=ordinaryReadings();r.reader_alternatives.rows=[];r.reader_alternatives.coverage[0].unavailable_streams=["independent_reader"];readingsIpc(r);render(<LocalOcrPanel {...props}/>);await resumeReadings();expect(screen.getByText("部分页面没有保留此类原始记录，不会自动重新识别。")).toBeVisible();expect(screen.getByTestId("local-ocr-alternative-denominator")).toHaveTextContent("未采用 0 条");expect(ipc.mock.calls.some(c=>["start","continue","recover-processing"].includes(c[1]?.request.action))).toBe(false);
+ });
+ it.each(["missing-field","different-mode"])("keeps %s results available without inventing readings",async(kind)=>{
+  const r=ordinaryReadings();if(kind==="different-mode")r.mode="paid";
+  ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:kind==="missing-field"?result:r));render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-result");expect(screen.queryByTestId("local-ocr-reader-alternatives")).toBeNull();expect(ipc.mock.calls.some(c=>c[1]?.request.action==="start")).toBe(false);
+ });
+ it("translates controls while retaining the exact original Greek reading",async()=>{
+  readingsIpc();setLocale("en");render(<LocalOcrPanel {...props}/>);await resumeReadings();expect(screen.getByText("Unadopted readings")).toBeVisible();fireEvent.change(screen.getByLabelText("Select an unadopted reading"),{target:{value:"reading-1"}});expect(within(screen.getByTestId("local-ocr-alternative-detail")).getByText("λόγος")).toBeVisible();
+ });
 });
