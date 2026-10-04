@@ -44,11 +44,11 @@ pub async fn local_ocr_call(request: Request, app: AppHandle, state: State<'_,Ap
     bridge_call(request,app,state,true).await
 }
 fn validate_local_request(request: &Request) -> Result<(),UiErrorDto> {
-    if request.mode!="local" || !["readiness","start","cancel","continue","resume","reload","review","save","search","recover-save"].contains(&request.action.as_str()) {
+    if request.mode!="local" || !["readiness","start","cancel","continue","recover-processing","resume","reload","review","save","search","recover-save"].contains(&request.action.as_str()) {
         return Err(request_error("invalid_request","Only the local OCR workflow is available."));
     }
-    if ["start","cancel","continue"].contains(&request.action.as_str()) && request.client_operation_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) {return Err(request_error("invalid_request","A bound local operation identity is required."));}
-    if request.action=="continue" && (request.session_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) || request.continuation_state_sha256.as_ref().is_none_or(|id|id.len()!=64||!id.bytes().all(|b|b.is_ascii_hexdigit())) || request.pages.is_some()) {
+    if ["start","cancel","continue","recover-processing"].contains(&request.action.as_str()) && request.client_operation_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) {return Err(request_error("invalid_request","A bound local operation identity is required."));}
+    if ["continue","recover-processing"].contains(&request.action.as_str()) && (request.session_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) || request.continuation_state_sha256.as_ref().is_none_or(|id|id.len()!=64||!id.bytes().all(|b|b.is_ascii_hexdigit())) || request.pages.is_some()) {
         return Err(request_error("invalid_request","Continue requires the observed original task and its unchanged page selection."));
     }
     Ok(())
@@ -59,14 +59,14 @@ pub async fn mvp_call(request: Request, app: AppHandle, state: State<'_,AppState
     bridge_call(request,app,state,false).await
 }
 async fn bridge_call(request: Request, app: AppHandle, state: State<'_,AppState>, packaged: bool) -> Result<Value,UiErrorDto> {
-    if !["local","critical-edition","paid","paid-contents"].contains(&request.mode.as_str()) || !["readiness","start","cancel","continue","import","resume","reload","review","save","search","preflight","recover-save"].contains(&request.action.as_str()) {
+    if !["local","critical-edition","paid","paid-contents"].contains(&request.mode.as_str()) || !["readiness","start","cancel","continue","recover-processing","import","resume","reload","review","save","search","preflight","recover-save"].contains(&request.action.as_str()) {
         return Err(request_error("invalid_request","Explicit mode/action required."));
     }
     if request.action=="start" && ["paid","paid-contents"].contains(&request.mode.as_str()) {
         return Err(request_error("cloud_disabled","Cloud sending is disabled. Import an existing result; a future send requires exact payload, endpoint, model and budget approval."));
     }
     let mut lease=None;
-    let document=if ["start","continue","import","review","save","recover-save"].contains(&request.action.as_str()) {
+    let document=if ["start","continue","recover-processing","import","review","save","recover-save"].contains(&request.action.as_str()) {
         let (bound,doc)=state.claim_document_operation(request.document_id.as_deref(),OperationKind::Processing)
             .map_err(|code|request_error(code,if code=="operation_active" {"Wait for the current document operation."} else {"Open the matching source PDF first."}))?;
         lease=Some(bound);
@@ -216,6 +216,17 @@ fn prepare_session_root(path: &Path) -> std::io::Result<PathBuf> {
 #[cfg(test)]
 mod session_storage_tests {
     use super::*;
+    #[test]
+    fn processing_recovery_requires_original_state_and_holds_the_same_local_contract() {
+        let value=json!({"documentId":"source","action":"recover-processing","mode":"local",
+            "sessionId":"a".repeat(32),"clientOperationId":"b".repeat(32),"continuationStateSha256":"c".repeat(64)});
+        assert!(validate_local_request(&serde_json::from_value(value.clone()).unwrap()).is_ok());
+        for (key,bad) in [("sessionId",Value::Null),("continuationStateSha256",Value::Null),
+                          ("clientOperationId",Value::Null),("pages",json!([1])),("mode",json!("paid"))] {
+            let mut input=value.clone();input[key]=bad;
+            assert!(validate_local_request(&serde_json::from_value(input).unwrap()).is_err());
+        }
+    }
     #[test]
     fn continuation_requires_original_session_state_and_new_operation() {
         let value=json!({"documentId":"open-source","action":"continue","mode":"local",

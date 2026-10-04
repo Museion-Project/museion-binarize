@@ -7,6 +7,9 @@ import fcntl
 import stat
 import time
 import tempfile
+import copy
+import shutil
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -218,3 +221,154 @@ def publish_attempt(folder, meta, task, request, cached):
             finally:os.close(fd)
         finally:
             if Path(temporary).exists():Path(temporary).unlink()
+
+
+def recovery_state(folder):
+    """Observed immutable history, not a claim that a process has stopped."""
+    folder = Path(folder)
+    check(not folder.is_symlink(), 'RECOVERY_PATH_UNSAFE')
+    files = {}
+    for path in folder.rglob('*'):
+        check(not path.is_symlink() and (path.is_file() or path.is_dir()), 'RECOVERY_PATH_UNSAFE')
+        if path.is_file():
+            files[str(path.relative_to(folder))] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
+
+
+def recovery_successor(folder, meta, config):
+    pointer = Path(folder) / 'PROCESSING_SUCCESSOR.json'
+    if not pointer.exists() and not pointer.is_symlink():
+        return None
+    value = safe_record(pointer)
+    check(type(value) is dict and value.get('schema') == 'local-processing-successor/1' and
+          value.get('previous_session_id') == Path(folder).name and value.get('source_sha256') == meta['source_sha256'],
+          'RECOVERY_SUCCESSOR_INVALID')
+    target = folder_for(value.get('session_id'), config)
+    child = safe_record(target / 'desktop-session.json')
+    sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+    check(child.get('source_sha256') == meta['source_sha256'] and
+          child.get('processing_recovery', {}).get('previous_session_id') == Path(folder).name and
+          value.get('metadata_sha256') == sha(target / 'desktop-session.json') and
+          value.get('job_sha256') == sha(target / 'operation/job.json'), 'RECOVERY_SUCCESSOR_CHANGED')
+    return target.name
+
+
+def processing_recovery_plan(folder, meta, config):
+    """Admit known failed/cancelled pages; never infer safe cleanup from a PID."""
+    from scripts.ocr.mvp import local
+    from scripts.ocr.mvp.core import digest
+    from scripts.ocr.mvp.store import load_snapshot
+    folder = Path(folder);op = folder / 'operation'
+    check(compatibility(meta, config) == 'verified', 'SESSION_RUNTIME_UNVERIFIED_OR_CHANGED')
+    check(recovery_successor(folder, meta, config) is None, 'RECOVERY_SUCCESSOR_EXISTS')
+    check(not op.is_symlink() and not (op / 'worker-cleanup-failure.json').exists(), 'RECOVERY_CLEANUP_UNVERIFIED')
+    job = safe_record(op / 'job.json');task = job.get('task');normalized = local.runtime_config(config['local'])
+    check(type(task) is dict and job.get('schema_version') == 1 and job.get('config') == normalized and
+          job.get('identity') == digest(dict(task=task, config=normalized)), 'RECOVERY_JOB_CHANGED')
+    reused, prior_review = local._reused_page_state(op, task, normalized, job)
+    check(task.get('operation_id') == folder.name and task.get('mode') == 'local' and
+          task.get('config_version') == local.CONFIG_VERSION and
+          Path(task.get('output_directory', '')).resolve() == op.resolve() and
+          task.get('input_sha256') == meta['source_sha256'] and Path(task.get('input_pdf', '')).resolve() == Path(meta['source']).resolve() and
+          hashlib.sha256(Path(meta['source']).read_bytes()).hexdigest() == meta['source_sha256'], 'RECOVERY_SOURCE_MISMATCH')
+    pages = task.get('page_numbers')
+    check(type(pages) is list and pages == meta.get('document_binding', {}).get('physical_pages'), 'RECOVERY_PAGES_CHANGED')
+    snapshot = None;revision = None
+    if (op / 'CURRENT.json').exists() or (op / 'CURRENT.json').is_symlink():
+        check(not (op / 'CURRENT.json').is_symlink(), 'RECOVERY_CURRENT_UNSAFE')
+        snapshot, revision = load_snapshot(op)
+        check(snapshot['input_sha256'] == meta['source_sha256'] and snapshot.get('operation_id') == folder.name and
+              [p['page'] for p in snapshot['pages']] == pages, 'RECOVERY_DRAFT_CHANGED')
+        local.load_task_completion(op, snapshot, revision)
+    current = {p['page']: p for p in snapshot['pages']} if snapshot else {}
+    complete = {};retry = [];failures = [];saved = {}
+    for number in pages:
+        p = local.saved_page_result(op, number, task, normalized)
+        if p is not None:saved[number] = p
+        if p is None:
+            check(not any((op / 'raw' / f'worker-{number}{suffix}').exists() or (op / 'raw' / f'worker-{number}{suffix}').is_symlink()
+                          for suffix in ('.json', '.stdout', '.stderr')), 'RECOVERY_PARTIAL_WORKER_UNVERIFIED')
+            if snapshot:
+                check(current[number].get('route') == 'failed' and not current[number].get('words'), 'RECOVERY_PAGE_RESULT_MISSING')
+            retry.append(number)
+        elif p['route'] == 'failed':
+            failures.append(number);retry.append(number)
+        else:
+            check(not (op / 'raw' / f'page-{number:04d}' / 'parent-result.json').exists(), 'RECOVERY_PARENT_SUCCESS_UNEXPECTED')
+            selected = copy.deepcopy(current.get(number, p))
+            check(selected.get('raw_files') == p['raw_files'] and selected.get('image_path') == p['image_path'] and
+                  selected.get('image_sha256') == p['image_sha256'] and selected.get('route') == p['route'], 'RECOVERY_REVIEW_SOURCE_CHANGED')
+            if selected.get('status') == 'EXPORT_REVIEW':
+                selected['status'] = selected.pop('pre_export_status', 'OCR_DRAFT')
+            complete[number] = selected
+    local._validate_saved_checkpoint(op, pages, saved, reused)
+    cancelled = any((op / name).exists() or (op / name).is_symlink() for name in ('CANCEL', 'cancel'))
+    check(bool(retry) and (cancelled or bool(failures) or bool(snapshot)), 'RECOVERY_NOT_NEEDED')
+    inherited = dict(source_session_id=folder.name, source_revision=snapshot['revision'] if snapshot else None,
+                     source_snapshot_sha256=hashlib.sha256((revision / 'snapshot.json').read_bytes()).hexdigest() if revision else None,
+                     receipts=copy.deepcopy(snapshot.get('receipts', [])) if snapshot else [],
+                     note='Original review history and edits retained; not new human approval or a successful old task')
+    if prior_review is not None:
+        inherited['previous'] = copy.deepcopy(prior_review)
+    return dict(task=task, config=normalized, completed=complete, retry_pages=retry,
+                inherited_review=inherited, original_job_sha256=hashlib.sha256((op / 'job.json').read_bytes()).hexdigest())
+
+
+@contextmanager
+def processing_recovery(folder, meta, request, config):
+    """Hold the original producer until the explicit successor attempt returns."""
+    from scripts.ocr.mvp import local
+    from scripts.ocr.mvp.core import digest
+    from .save_recovery import publish_json
+    folder = Path(folder);old_op = folder / 'operation'
+    with local.task_producer(old_op):
+        with session_control(folder):
+            check(safe_record(folder / 'desktop-session.json') == meta, 'SESSION_METADATA_CHANGED')
+            plan = processing_recovery_plan(folder, meta, config)
+            state = recovery_state(folder)
+            check(state == request.get('continuation_state_sha256'), 'RECOVERY_STATE_CHANGED')
+            check(request['client_operation_id'] not in (meta.get('client_operation_id'), current_attempt(folder, meta)), 'RECOVERY_TOKEN_REUSED')
+            child = roots(config, create=True)[0] / uuid.uuid4().hex
+            child.mkdir(mode=0o700)
+            task = dict(plan['task'], operation_id=child.name, output_directory=str(child / 'operation'))
+            updated = copy.deepcopy(meta)
+            updated.update(client_operation_id=request['client_operation_id'], provenance='explicit-local-processing-recovery',
+                           processing_recovery=dict(previous_session_id=folder.name, previous_state_sha256=state,
+                                                    previous_job_sha256=plan['original_job_sha256'], retry_pages=plan['retry_pages']))
+            updated['document_binding']['document_id'] = request.get('document_id')
+            local.write(child / 'desktop-session.json', updated)
+            local.write(child / 'task-request.json', request)
+            op = child / 'operation';op.mkdir()
+            results = {}
+            for number, page in plan['completed'].items():
+                old_directory = old_op / 'raw' / f'page-{number:04d}'
+                new_directory = op / 'raw' / old_directory.name
+                new_directory.mkdir(parents=True)
+                for name, expected in page['raw_files'].items():
+                    source = old_op / name;target = op / name
+                    check(source.is_relative_to(old_directory) and not source.is_symlink(), 'RECOVERY_RAW_SCOPE')
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, target)
+                    check(hashlib.sha256(target.read_bytes()).hexdigest() == expected, 'RECOVERY_RAW_COPY_CHANGED')
+                page = copy.deepcopy(page)
+                page['image_path'] = str(op / Path(page['image_path']).relative_to(old_op))
+                page['reused_result'] = dict(previous_session_id=folder.name, previous_state_sha256=state,
+                                             original_page_result_sha256=hashlib.sha256((old_directory / 'page-result.json').read_bytes()).hexdigest(),
+                                             note='Derivative reuse record; copied raw bytes unchanged; no new page worker')
+                local.write(new_directory / 'page-result.json', page)
+                results[str(number)] = digest(page)
+            reused = dict(schema='local-completed-page-reuse/1', task_identity=digest(dict(task=task, config=plan['config'])),
+                          source_sha256=meta['source_sha256'], page_results=results, inherited_review=plan['inherited_review'])
+            local.write(op / 'reused-pages.json', reused)
+            reuse_sha = hashlib.sha256((op / 'reused-pages.json').read_bytes()).hexdigest()
+            local.write(op / 'job.json', dict(schema_version=1, task=task, config=plan['config'],
+                        identity=reused['task_identity'], reuse_manifest_sha256=reuse_sha))
+            local.write(op / 'progress.json', dict(schema_version=1, completed=0, total=len(task['page_numbers']), page_results=[]))
+            local._reused_page_state(op, task, plan['config'], safe_record(op / 'job.json'))
+            check(recovery_state(folder) == state and compatibility(meta, config) == 'verified', 'RECOVERY_STATE_CHANGED')
+            publish_json(folder / 'PROCESSING_SUCCESSOR.json', dict(schema='local-processing-successor/1',
+                         previous_session_id=folder.name, session_id=child.name, source_sha256=meta['source_sha256'],
+                         metadata_sha256=hashlib.sha256((child / 'desktop-session.json').read_bytes()).hexdigest(),
+                         job_sha256=hashlib.sha256((op / 'job.json').read_bytes()).hexdigest(),
+                         observed_state_sha256=state, client_operation_id=request['client_operation_id']))
+        yield child, updated, task

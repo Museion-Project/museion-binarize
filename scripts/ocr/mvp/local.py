@@ -244,6 +244,15 @@ def load_task_completion(out,snapshot=None,folder=None):
     bound_identity=bool(type(snapshot.get('operation_id')) is str and snapshot['operation_id'] and
                         type(snapshot.get('mode')) is str and snapshot['mode'])
     if path.is_symlink():raise ValueError('COMPLETION_PATH_ESCAPE')
+    if bound_identity:
+        jobpath=out/'job.json'
+        if jobpath.is_symlink():raise ValueError('TASK_JOB_PATH_SYMLINK')
+        job=read(jobpath) if jobpath.is_file() else {}
+        if job.get('reuse_manifest_sha256') or (out/'reused-pages.json').exists() or (out/'reused-pages.json').is_symlink():
+            reused,inherited=_reused_page_state(out,job['task'],job['config'],job,validate_results=False)
+            if (job['task'].get('operation_id')!=snapshot['operation_id'] or
+                job['task'].get('input_sha256')!=snapshot['input_sha256'] or snapshot.get('inherited_review')!=inherited):
+                raise ValueError('REUSED_REVIEW_BINDING_MISMATCH')
     if not bound_identity:state='identity_unverified'
     elif path.exists():
         try:completion=read(path)
@@ -359,6 +368,54 @@ def task_producer(out):
         yield
     finally:os.close(fd)
 
+def _reused_page_state(out,task,config,job,*,validate_results=True):
+    """Bound derivative cache and inherited review history, never old raw edits."""
+    path=Path(out)/'reused-pages.json';expected=job.get('reuse_manifest_sha256')
+    if expected is None:
+        if path.exists() or path.is_symlink():raise ValueError('REUSED_PAGE_MANIFEST_UNBOUND')
+        return {},None
+    if path.is_symlink() or not path.is_file() or sha(path)!=expected:raise ValueError('REUSED_PAGE_MANIFEST_CHANGED')
+    value=read(path)
+    if (type(value) is not dict or value.get('schema')!='local-completed-page-reuse/1' or
+        value.get('task_identity')!=digest(dict(task=task,config=config)) or
+        value.get('source_sha256')!=task['input_sha256'] or type(value.get('page_results')) is not dict or
+        type(value.get('inherited_review')) is not dict):raise ValueError('REUSED_PAGE_BINDING_MISMATCH')
+    hashes={}
+    for name,h in value['page_results'].items():
+        if not name.isdecimal() or str(int(name))!=name or int(name) not in task['page_numbers'] or type(h) is not str:
+            raise ValueError('REUSED_PAGE_BINDING_MISMATCH')
+        number=int(name)
+        if validate_results:p=saved_page_result(out,number,task,config)
+        else:
+            # Historical viewing verifies the pinned derivative record; it
+            # never rebinds an old draft to the currently installed runtime.
+            resultpath=Path(out)/'raw'/f'page-{number:04d}'/'page-result.json'
+            if resultpath.is_symlink() or not resultpath.is_file():raise ValueError('REUSED_PAGE_RESULT_CHANGED')
+            p=read(resultpath)
+        if p is None or p['route']=='failed' or digest(p)!=h:raise ValueError('REUSED_PAGE_RESULT_CHANGED')
+        hashes[number]=h
+    return hashes,value['inherited_review']
+
+def _validate_saved_checkpoint(out,pages,cached,reused):
+    if not cached:return
+    path=Path(out)/'progress.json'
+    if path.is_symlink() or not path.is_file():raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+    try:progress=read(path)
+    except (ValueError,OSError) as exc:raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED') from exc
+    if (type(progress) is not dict or progress.get('schema_version')!=1 or
+        type(progress.get('completed')) is not int or type(progress.get('page_results')) is not list or
+        progress.get('total')!=len(pages) or progress['completed']!=len(progress['page_results']) or
+        not (0 if reused else 1)<=progress['completed']<=len(pages)):
+        raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+    rows=progress['page_results']
+    if any(type(p) is not dict or type(p.get('page')) is not int for p in rows) or [p['page'] for p in rows]!=pages[:len(rows)]:
+        raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
+    recorded={p['page']:p for p in rows}
+    if (set(cached)!=(set(recorded)|set(reused)) or
+        any(digest(cached[n])!=digest(p) for n,p in recorded.items()) or
+        any(digest(cached[n])!=h for n,h in reused.items())):
+        raise ValueError('SAVED_PAGE_CHECKPOINT_MISMATCH')
+
 def run_task(task,config=None,*,before_processing=None):
     required=('operation_id','input_pdf','input_sha256','page_numbers','mode','output_directory','config_version')
     if any(k not in task for k in required):raise ValueError('MISSING_TASK_FIELDS')
@@ -396,13 +453,14 @@ def run_task(task,config=None,*,before_processing=None):
 
 def _run_task_owned(task,config,source,out,identity,existing,*,before_processing=None):
     """Internal processing path; run_task holds exclusive job ownership."""
-    pages=task['page_numbers'];cached={}
+    pages=task['page_numbers'];cached={};reused={};inherited=None
     if existing:
         if (out/'job.json').is_symlink():raise ValueError('TASK_JOB_PATH_SYMLINK')
         if not (out/'job.json').exists():raise FileExistsError('Use a new output directory or identical resumable task')
         job=read(out/'job.json')
         if type(job) is not dict or job.get('identity')!=identity:raise FileExistsError('Use a new output directory or identical resumable task')
         if job.get('schema_version')!=1 or job.get('task')!=task or job.get('config')!=config:raise ValueError('TASK_JOB_BINDING_MISMATCH')
+        reused,inherited=_reused_page_state(out,task,config,job)
         if (out/'worker-cleanup-failure.json').exists():raise PageWorkerCleanupError('PAGE_WORKER_CLEANUP_UNVERIFIED')
         if (out/'CURRENT.json').is_symlink():raise ValueError('TASK_CURRENT_PATH_SYMLINK')
         if (out/'CURRENT.json').exists():
@@ -419,22 +477,7 @@ def _run_task_owned(task,config,source,out,identity,existing,*,before_processing
         for number in pages:
             p=saved_page_result(out,number,task,config)
             if p is not None:cached[number]=p
-        if cached:
-            progresspath=out/'progress.json'
-            if progresspath.is_symlink() or not progresspath.is_file():raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
-            try:progress=read(progresspath)
-            except (ValueError,OSError) as exc:raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED') from exc
-            if (type(progress) is not dict or progress.get('schema_version')!=1 or
-                type(progress.get('completed')) is not int or type(progress.get('page_results')) is not list or
-                progress.get('total')!=len(pages) or progress['completed']!=len(progress['page_results']) or
-                not 1<=progress['completed']<=len(pages)):
-                raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
-            rows=progress['page_results']
-            if any(type(p) is not dict or type(p.get('page')) is not int for p in rows) or [p['page'] for p in rows]!=pages[:len(rows)]:
-                raise ValueError('SAVED_PAGE_CHECKPOINT_UNVERIFIED')
-            recorded={p['page']:p for p in rows}
-            if set(cached)!=set(recorded) or any(digest(p)!=digest(recorded[n]) for n,p in cached.items()):
-                raise ValueError('SAVED_PAGE_CHECKPOINT_MISMATCH')
+        _validate_saved_checkpoint(out,pages,cached,reused)
     # An explicit desktop continuation may register a new client attempt only
     # after all saved evidence checks, while this process owns the job lease.
     if before_processing is not None:before_processing(dict(cached))
@@ -504,6 +547,7 @@ def _run_task_owned(task,config,source,out,identity,existing,*,before_processing
     for number,p in cached.items():
         if digest(saved_page_result(out,number,task,config))!=digest(p):raise ValueError('SAVED_PAGE_RESULT_CHANGED')
     snapshot=dict(schema_version=1,operation_id=task['operation_id'],mode=task['mode'],source_pdf=str(source),input_sha256=task['input_sha256'],revision=0,pages=results,receipts=[],config_version=CONFIG_VERSION,consumer_policy=CONSUMER_POLICY,font_path=config['font'],fallback_font_paths=config['fallback_font_paths'])
+    if inherited is not None:snapshot['inherited_review']=inherited
     old.FONT=Path(config['font']);save_start=time.monotonic();folder=publish(out,snapshot)
     artifacts={k:str(folder/n) for k,n in [('searchable_pdf','searchable.pdf'),('text','text.txt'),('pages_json','pages.json'),('review_html','review.html')]};artifacts['raw_directory']=str(out/'raw');artifacts['page_mapping_json']=str(folder/'page-map.json')
     status='cancelled' if cancelled else ('failed' if all(p['status']=='FAILED' for p in results) else 'review_required')

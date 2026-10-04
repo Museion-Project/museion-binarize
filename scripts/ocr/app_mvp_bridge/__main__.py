@@ -94,7 +94,7 @@ def context(request,config):
   folder=folder_for(sid,config);check(not (folder/'desktop-session.json').is_symlink(),'SESSION_METADATA_SYMLINK');meta=read(folder/'desktop-session.json')
   check(meta['mode']==request['mode'],'SESSION_MODE_MISMATCH')
   source_bound(meta['source'],meta['source_sha256'],request)
-  if meta['mode']=='local' and request.get('action') in ('review','save','recover-save','continue'):mutation_guard(meta,config)
+  if meta['mode']=='local' and request.get('action') in ('review','save','recover-save','continue','recover-processing'):mutation_guard(meta,config)
   return folder,meta
  return roots(config,create=True)[0],None
 
@@ -186,16 +186,32 @@ def incomplete_local_view(folder,meta,result,config):
   except (ValueError,OSError,TypeError,KeyError):pass
  return result
 
+def processing_recovery_view(result,folder,meta,config):
+ from .sessions import processing_recovery_plan,recovery_state,recovery_successor
+ result['processing_recovery_available']=False
+ try:
+  successor=recovery_successor(folder,meta,config or {})
+  if successor:
+   result['processing_recovery_next_session_id']=successor
+  else:
+   plan=processing_recovery_plan(folder,meta,config or {})
+   result.update(processing_recovery_available=True,processing_recovery_state_sha256=recovery_state(folder),
+                 processing_recovery_pages=plan['retry_pages'])
+ except (ValueError,OSError,KeyError,TypeError) as exc:
+  result['processing_recovery_blocker']=str(exc)
+ return result
+
 def view(folder,meta,config=None):
  mode=meta['mode'];result=dict(mode=mode,session_id=folder.name,provenance=meta['provenance'],source_sha256=meta['source_sha256'],ready=False,quality_ready=False,review_required=True,network_requests=0)
  if mode in ('local','critical-edition'):
   current=folder/'operation/CURRENT.json'
   if mode=='local':check(not current.is_symlink() and not (folder/'operation').is_symlink(),'LOCAL_DRAFT_PATH_SYMLINK')
   if mode=='local' and not current.exists() and not current.is_symlink():
-   return incomplete_local_view(folder,meta,result,config)
+   return processing_recovery_view(incomplete_local_view(folder,meta,result,config),folder,meta,config)
   from scripts.ocr.mvp.store import load_snapshot
   snap,revision=load_snapshot(folder/'operation')
   result.update(revision=snap['revision'],pages=snap['pages'],export_review=snap.get('export_review',[]),output_pdf=str(revision/'searchable.pdf'),receipts=snap.get('receipts',[]),document_binding=meta.get('document_binding'))
+  if snap.get('inherited_review') is not None:result['inherited_review']=snap['inherited_review']
   result['status']=read(folder/'operation/completion.json').get('status','review_required') if mode!='local' and (folder/'operation/completion.json').is_file() else 'review_required'
   if mode=='local':
    from scripts.ocr.mvp.store import reader_alternatives
@@ -222,6 +238,7 @@ def view(folder,meta,config=None):
   table=read(folder/meta['table']) if meta.get('table') else None
   completion=read(folder/'import-completion.json') if (folder/'import-completion.json').exists() else {}
   result.update(revision=table['revision'] if table else 0,table=table,completion=completion,status=completion.get('status','review_required'),output_pdf=completion.get('artifacts',{}).get('bookmarks_pdf'),error=completion.get('error') or completion.get('message') or completion.get('error_code'),diagnostic_only=meta.get('diagnostic_only',not bool(table)),directory_blocker=meta.get('directory_blocker'),decision=(table or {}).get('admission') or completion.get('decision'),export_locked=meta.get('diagnostic_only',not bool(table)) or ((table or {}).get('admission') or completion.get('decision') or {}).get('export_locked',False))
+ if mode=='local':processing_recovery_view(result,folder,meta,config)
  return result
 
 def register_directory_table(path,folder,table,meta):
@@ -254,8 +271,8 @@ def main(request,config):
  mode=request.get('mode');action=request.get('action')
  check(mode in ('local','critical-edition','paid','paid-contents'),'EXPLICIT_MODE_REQUIRED')
  if config.get('local_only'):check(mode=='local' and action not in ('import','preflight'),'LOCAL_CANDIDATE_ONLY')
- check(action in ('readiness','start','cancel','continue','import','resume','reload','review','save','search','preflight','recover-save'),'ACTION_NOT_ALLOWED')
- if action=='continue':
+ check(action in ('readiness','start','cancel','continue','recover-processing','import','resume','reload','review','save','search','preflight','recover-save'),'ACTION_NOT_ALLOWED')
+ if action in ('continue','recover-processing'):
   check(mode=='local' and type(request.get('session_id')) is str,'LOCAL_CONTINUATION_SESSION_REQUIRED')
   token=request.get('client_operation_id');challenge=request.get('continuation_state_sha256')
   check(type(token) is str and len(token)==32 and all(c in '0123456789abcdef' for c in token),'CONTINUATION_OPERATION_REQUIRED')
@@ -360,6 +377,17 @@ def main(request,config):
   if not (mode=='local' and action=='start'):write(folder/'desktop-session.json',meta)
   return view(folder,meta,config)
  folder=root
+ if action=='recover-processing':
+  from .sessions import mutation_guard,processing_recovery
+  from scripts.ocr.mvp.local import run_task
+  mutation_guard(meta,config)
+  if config.get('require_document_binding'):
+   check(type(request.get('document_id')) is str and bool(request['document_id']),'DOCUMENT_BINDING_REQUIRED')
+   check(type(request.get('document_page_count')) is int and request['document_page_count']==meta['document_binding']['source_page_count'],'DOCUMENT_PAGE_COUNT_CHANGED')
+  with processing_recovery(folder,meta,request,config) as (child,child_meta,task):
+   print(json.dumps(dict(event='session',session_id=child.name,previous_session_id=folder.name,client_operation_id=request['client_operation_id'])),file=sys.stderr,flush=True)
+   run_task(task,config['local'])
+   return view(child,child_meta,config)
  if action=='continue':
   from .sessions import compatibility,publish_attempt
   from scripts.ocr.mvp.local import run_task

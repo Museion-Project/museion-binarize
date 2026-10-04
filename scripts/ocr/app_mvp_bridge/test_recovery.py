@@ -276,6 +276,183 @@ class ContinuationTests(unittest.TestCase):
             with self.assertRaises(ChildProcessError): os.waitpid(proc.pid, os.WNOHANG)
 
 
+class ProcessingRecoveryTests(unittest.TestCase):
+    """Transparent synthetic cache, actual native retries, no recognition/GUI."""
+    setUp = ContinuationTests.setUp
+    tearDown = ContinuationTests.tearDown
+    files = ContinuationTests.files
+
+    def request_for_recovery(self):
+        result = main(dict(self.request, action='reload', session_id=self.folder.name), self.config)
+        self.assertTrue(result['processing_recovery_available'], result.get('processing_recovery_blocker'))
+        return dict(self.request, action='recover-processing', session_id=self.folder.name,
+                    client_operation_id='f' * 32, continuation_state_sha256=result['processing_recovery_state_sha256'])
+
+    def assert_old_preserved(self, before):
+        after = self.files()
+        self.assertEqual({n: after[n] for n in before}, before)
+        self.assertEqual(set(after) - set(before), {'PROCESSING_SUCCESSOR.json'})
+
+    def run_one_native_retry(self, request):
+        from unittest.mock import patch
+        real = subprocess.Popen;owned = []
+        def spawn(*a, **kw):
+            proc = real(*a, **kw)
+            if '--worker' in a[0]:owned.append(proc)
+            return proc
+        with patch.object(self.local.subprocess, 'Popen', side_effect=spawn):
+            result = main(request, self.config)
+        self.assertEqual(len(owned), 1)
+        for proc in owned:
+            self.assertEqual(proc.returncode, 0)
+            self.assertTrue(proc.stdout.closed and proc.stderr.closed)
+            with self.assertRaises(ChildProcessError):os.waitpid(proc.pid, os.WNOHANG)
+        if os.environ.get('MUSEION_RECOVERY_TEST_EVIDENCE'):
+            path = Path(os.environ['MUSEION_RECOVERY_TEST_EVIDENCE'])
+            with path.open('a') as out:
+                out.write(json.dumps(dict(test=self.id(), worker_pid=owned[0].pid, returncode=0,
+                    stdout_closed=True, stderr_closed=True, reaped=True, recognition=0)) + '\n')
+        return result
+
+    def test_cancelled_unpublished_recovery_preserves_original_and_only_runs_missing_page(self):
+        (self.op / 'CANCEL').touch()
+        request = self.request_for_recovery();before = self.files()
+        result = self.run_one_native_retry(request)
+        self.assertEqual([p['status'] for p in result['pages']], ['NATIVE_PRESERVED'] * 2)
+        self.assertNotEqual(result['session_id'], self.folder.name)
+        self.assert_old_preserved(before)
+        child = self.folder.parent / result['session_id']
+        self.assertTrue((self.op / 'CANCEL').is_file())
+        self.assertFalse((child / 'operation/CANCEL').exists())
+        self.assertEqual([p.name for p in (child / 'operation/raw').glob('worker-*.json')], ['worker-2.json'])
+        self.assertEqual(result['inherited_review']['source_session_id'], self.folder.name)
+        self.assertEqual(result['completion_record_state'], 'recorded')
+        self.assertFalse(list((child / 'operation/raw').glob('**/*.call.json')))
+
+    def test_failed_first_page_reuses_sparse_reviewed_second_page_and_keeps_receipts(self):
+        from scripts.ocr.mvp.store import publish, review_save
+        from scripts.ocr.mvp.core import CONSUMER_POLICY
+        import shutil
+        directory = self.op / 'raw/page-0002';directory.mkdir()
+        for p in (self.op / 'raw/page-0001').iterdir():
+            if p.name != 'page-result.json':shutil.copyfile(p, directory / p.name)
+        with fitz.open(self.source) as doc:doc[1].get_pixmap().save(directory / 'source.png')
+        good = dict(self.page, page=2, route='ocr', status='OCR_DRAFT', width=1000, height=1000,
+                    image_path=str(directory / 'source.png'), image_sha256=sha(directory / 'source.png'),
+                    native_text='', words=[dict(id='manual-word', text='before', bbox=[1, 1, 30, 20],
+                    engine='synthetic-test-seed', source_members=[], review=True)],
+                    raw_files={str(p.relative_to(self.op)):sha(p) for p in directory.iterdir()},
+                    fixture_provenance='Handmade word fixture, not OCR or source-quality evidence')
+        self.local.write(directory / 'page-result.json', good)
+        bad = dict(page=1, status='FAILED', route='failed', words=[], source_sha256=sha(self.source),
+                   error='synthetic known failure', review_reasons=[])
+        self.local.parent_page_result(self.op, self.op / 'raw/page-0001/page-result.json', bad)
+        bad = self.local.saved_page_result(self.op, 1, self.task, self.local.runtime_config(self.config['local']))
+        self.local.write(self.op / 'progress.json', dict(schema_version=1, completed=2, total=2, page_results=[bad, good]))
+        snapshot = dict(schema_version=1, operation_id=self.folder.name, mode='local', source_pdf=str(self.source),
+                        input_sha256=sha(self.source), revision=0, pages=[bad, good], receipts=[],
+                        config_version=self.local.CONFIG_VERSION, consumer_policy=CONSUMER_POLICY,
+                        font_path=self.config['local']['font'], fallback_font_paths=[])
+        revision = publish(self.op, snapshot)
+        self.local.write(self.op / 'completion.json', dict(operation_id=self.folder.name, mode='local',
+            input_sha256=sha(self.source), revision=0, status='failed', page_results=snapshot['pages'],
+            artifacts=dict(searchable_pdf=str(revision / 'searchable.pdf'))))
+        review_save(self.op, dict(expected_revision=0, input_sha256=sha(self.source),
+            actions=[dict(page=2, member_id='manual-word', action='change', text='corrected')]))
+        request = self.request_for_recovery();before = self.files()
+        result = self.run_one_native_retry(request)
+        self.assert_old_preserved(before)
+        self.assertEqual(result['pages'][1]['words'][0]['text'], 'corrected')
+        self.assertEqual(result['pages'][1]['words'][0]['review_status'], 'user_action_recorded')
+        self.assertEqual(result['inherited_review']['source_revision'], 1)
+        self.assertEqual(result['inherited_review']['receipts'][0]['actions'][0]['text'], 'corrected')
+        child = self.folder.parent / result['session_id']
+        self.assertEqual([p.name for p in (child / 'operation/raw').glob('worker-*.json')], ['worker-1.json'])
+        self.assertEqual(result['pages'][1]['reused_result']['previous_session_id'], self.folder.name)
+
+    def test_readonly_cancelled_view_does_not_create_attempt(self):
+        (self.op / 'CANCEL').touch();before = self.files()
+        self.request_for_recovery()
+        self.assertEqual(before, self.files())
+        self.assertEqual(len(list(self.folder.parent.iterdir())), 1)
+
+    def refuse_recovery(self, request, reason):
+        from unittest.mock import patch
+        before = self.files();sessions = set(self.folder.parent.iterdir())
+        with patch.object(self.local.subprocess, 'Popen', side_effect=AssertionError('Refusal started a worker')):
+            with self.assertRaisesRegex((ValueError, FileExistsError), reason):main(request, self.config)
+        self.assertEqual(self.files(), before)
+        self.assertEqual(set(self.folder.parent.iterdir()), sessions)
+
+    def test_stale_state_original_producer_and_reused_token_refuse_before_new_session(self):
+        (self.op / 'CANCEL').touch();request = self.request_for_recovery()
+        self.refuse_recovery(dict(request, client_operation_id='c' * 32), 'TOKEN_REUSED')
+        with self.local.task_producer(self.op):self.refuse_recovery(request, 'PRODUCER_BUSY')
+        (self.op / 'extra-preserved-note').write_text('new prior evidence')
+        self.refuse_recovery(request, 'STATE_CHANGED')
+
+    def test_partial_worker_and_cleanup_failure_remain_unverified(self):
+        (self.op / 'CANCEL').touch()
+        request = self.request_for_recovery()
+        (self.op / 'raw/worker-2.json').write_text('{}')
+        self.refuse_recovery(request, 'PARTIAL_WORKER_UNVERIFIED')
+        (self.op / 'worker-cleanup-failure.json').write_text('{}')
+        self.refuse_recovery(request, 'CLEANUP_UNVERIFIED')
+
+    def test_explicit_new_attempt_can_be_cancelled_only_with_its_new_identity(self):
+        from unittest.mock import patch
+        (self.op / 'CANCEL').touch();request = self.request_for_recovery();before = self.files()
+        outer = self;admitted = []
+        class CancelOnAdmission:
+            def write(self, text):
+                if text.strip():
+                    event = json.loads(text);admitted.append(event)
+                    outer.assertEqual(event['previous_session_id'], outer.folder.name)
+                    wrong = dict(outer.request, action='cancel', session_id=event['session_id'], client_operation_id='c' * 32)
+                    with outer.assertRaisesRegex(ValueError, 'CANCEL_OPERATION_MISMATCH'):main(wrong, outer.config)
+                    main(dict(wrong, client_operation_id=request['client_operation_id']), outer.config)
+                return len(text)
+            def flush(self):pass
+        with patch.object(sys, 'stderr', CancelOnAdmission()), patch.object(self.local.subprocess, 'Popen', side_effect=AssertionError('Pending cancellation launched a worker')):
+            result = main(request, self.config)
+        self.assertEqual(result['status'], 'cancelled');self.assertEqual(len(admitted), 1)
+        self.assert_old_preserved(before)
+        self.refuse_recovery(dict(request, client_operation_id='d' * 32), 'SUCCESSOR_EXISTS')
+        old_view = main(dict(self.request, action='reload', session_id=self.folder.name), self.config)
+        self.assertFalse(old_view['processing_recovery_available'])
+        self.assertEqual(old_view['processing_recovery_next_session_id'], result['session_id'])
+        from .sessions import processing_recovery_plan
+        child = self.folder.parent / result['session_id']
+        plan = processing_recovery_plan(child, json.loads((child / 'desktop-session.json').read_text()), self.config)
+        self.assertEqual(plan['inherited_review']['previous'], result['inherited_review'])
+        self.assertEqual(plan['inherited_review']['previous']['source_session_id'], self.folder.name)
+        stale = dict(self.config, local=dict(self.config['local'], max_residual_regions=1))
+        viewed = main(dict(self.request, action='reload', session_id=child.name), stale)
+        self.assertFalse(viewed['runtime_compatible'])
+        self.assertEqual(viewed['inherited_review'], result['inherited_review'])
+        self.assertFalse(viewed['processing_recovery_available'])
+
+    def test_tampered_reuse_manifest_refuses_without_reprocessing(self):
+        from unittest.mock import patch
+        (self.op / 'CANCEL').touch();request = self.request_for_recovery()
+        class BeforeWorker(Exception):pass
+        with patch.object(self.local, 'run_task', side_effect=BeforeWorker):
+            with self.assertRaises(BeforeWorker):main(request, self.config)
+        successor = json.loads((self.folder / 'PROCESSING_SUCCESSOR.json').read_text())['session_id']
+        child = self.folder.parent / successor
+        path = child / 'operation/reused-pages.json';path.write_bytes(path.read_bytes() + b' ')
+        with patch.object(self.local.subprocess, 'Popen', side_effect=AssertionError('Tampered cache reprocessed')):
+            with self.assertRaisesRegex(ValueError, 'MANIFEST_CHANGED'):
+                self.local.run_task(json.loads((child / 'operation/job.json').read_text())['task'], self.config['local'])
+
+    def test_changed_completed_checkpoint_preserves_old_records_and_refuses_recovery(self):
+        (self.op / 'CANCEL').touch();request = self.request_for_recovery()
+        checkpoint = json.loads((self.op / 'progress.json').read_text())
+        checkpoint['page_results'][0]['native_text'] += ' changed checkpoint'
+        self.local.write(self.op / 'progress.json', checkpoint)
+        self.refuse_recovery(request, 'CHECKPOINT_MISMATCH')
+
+
 class RecoveryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
