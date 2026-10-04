@@ -326,6 +326,66 @@ class ConsumerAuditTests(unittest.TestCase):
             self.assertEqual([m['source_cell_id']for m in result['members']],['cell-a','cell-b'])
             self.assertFalse(result['recognition_quality_verified']);self.assertFalse(result['human_checked'])
 
+    def overlapping_multipart_source_fixture(self, root, page):
+        """The same independent source regions as the separate-parent control."""
+        page.insert_text((10,22),'word');page.insert_text((50,22),'word')
+        ledger,review,path=self.source_review_fixture(root,page)
+        source=[self.member('parent','word word',[0,0,100,60])]
+        leaves=project_members(source)
+        proofs=[dict(token_id=t['id'],offset=t['literal_offset'],text=t['text'],
+                     state='SOURCE_POSITION_REVIEWED',bbox=box,source_cell_id=cell,
+                     position_basis='source-pixels',note='independently placed synthetic word')
+                for t,box,cell in zip(leaves,[[10,10,51,25],[50,10,85,25]],['cell-a','cell-b'])]
+        review['schema']='source-member-geometry-review/2'
+        review['members']=[dict(member_id='parent',export_literal='word word',
+                                state='SOURCE_POSITION_REVIEWED',tokens=proofs)]
+        return ledger,review,path,source
+
+    def test_independent_source_region_acceptance_is_invariant_to_parent_grouping(self):
+        with tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+            root=Path(directory);page=doc.new_page(width=100,height=60)
+            ledger,review,path,source=self.overlapping_multipart_source_fixture(root,page)
+            multipart=copy.deepcopy(review)
+            review['schema']='source-member-geometry-review/1'
+            review['members']=[dict(p,member_id=mid,export_literal='word')
+                               for p,mid in zip(multipart['members'][0]['tokens'],['a','b'])]
+            path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            separate=source_geometry_check(ledger,[self.member(mid,'word',[0,0,100,60]) for mid in ['a','b']],
+                                           dict(input_sha256='s'),'p',1,page)
+            self.assertEqual(separate['state'],'PASS')
+            path.write_text(json.dumps(multipart));ledger['member_review']['sha256']=sha(path)
+            before=copy.deepcopy(source)
+            grouped=source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+            self.assertEqual(grouped['state'],'PASS');self.assertEqual(source,before)
+            self.assertEqual([m['bbox'] for m in grouped['members']],[m['bbox'] for m in separate['members']])
+            self.assertEqual([m['source_cell_id'] for m in grouped['members']],['cell-a','cell-b'])
+            self.assertEqual([m['literal_offset'] for m in grouped['members']],[[0,4],[5,9]])
+            self.assertFalse(grouped['recognition_quality_verified']);self.assertFalse(grouped['human_checked'])
+
+    def test_overlapping_multipart_regions_cannot_reuse_pixels_or_source_cells(self):
+        for collision,error in [('pixels','SOURCE_TOKEN_GEOMETRY_REUSED'),
+                                ('cell','SOURCE_TOKEN_SOURCE_CELL_REUSED')]:
+            with self.subTest(collision=collision),tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+                root=Path(directory);page=doc.new_page(width=100,height=60)
+                ledger,review,path,source=self.overlapping_multipart_source_fixture(root,page)
+                first,second=review['members'][0]['tokens']
+                if collision=='pixels':second['bbox']=[10.01,10.01,50.99,24.99]
+                else:second['source_cell_id']=first['source_cell_id']
+                path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+                with self.assertRaisesRegex(ValueError,error):
+                    source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+
+    def test_overlapping_multipart_regions_keep_unreviewed_child_pending(self):
+        with tempfile.TemporaryDirectory() as directory,fitz.open() as doc:
+            root=Path(directory);page=doc.new_page(width=100,height=60)
+            ledger,review,path,source=self.overlapping_multipart_source_fixture(root,page)
+            review['members'][0]['tokens'][1]['state']='UNKNOWN'
+            path.write_text(json.dumps(review));ledger['member_review']['sha256']=sha(path)
+            result=source_geometry_check(ledger,source,dict(input_sha256='s'),'p',1,page)
+            self.assertEqual(result['state'],'INSUFFICIENT');self.assertEqual(len(result['members']),1)
+            self.assertEqual(result['unresolved_member_ids'],['parent'])
+            self.assertEqual(result['unresolved_token_ids'],[project_members(source)[1]['id']])
+
     def test_cross_line_column_and_small_member_do_not_borrow_hit(self):
         source=[self.member('body','the',[0,0,30,10]),self.member('margin','the',[100,0,130,10]),
                 self.member('foot','the',[0,50,30,60]),self.member('sup','2',[32,0,36,5])]

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import fitz
 
-VERSION = 'pdf-consumer-audit-v5'
+VERSION = 'pdf-consumer-audit-v6'
 
 
 def sha(path):
@@ -287,8 +287,11 @@ def source_geometry_check(ledger, source, snapshot, pdf_hash, number, original):
             if proof.get('state')!='SOURCE_POSITION_REVIEWED':
                 token_gaps.append(token['id']);pending=True;continue
             box,ink,pixel_box=checked_box(proof)
+            # Independent word bounds may overlap even within one multipart
+            # parent (e.g. italic extents). Parent grouping does not change the
+            # source support. Exact boxes/pixels/cells still cannot be reused.
             if len(tokens)>1 and (box==list(member['bbox'])
-                or any((fitz.Rect(box)&fitz.Rect(other)).get_area()>0 for other in boxes)):
+                or any(box==other for other in boxes)):
                 raise ValueError('SOURCE_TOKEN_GEOMETRY_OVERLAP_OR_AGGREGATE')
             boxes.append(box)
             if not ink:
