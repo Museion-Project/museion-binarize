@@ -1,5 +1,6 @@
 import {render,screen,waitFor,fireEvent,act,within} from "@testing-library/react";
 import {describe,it,expect,vi,beforeEach} from "vitest";
+import {useLayoutEffect} from "react";
 import {LocalOcrPanel} from "./LocalOcrPanel";
 import {setLocale} from "../lib/i18n";
 const ipc=vi.hoisted(()=>vi.fn());
@@ -180,6 +181,22 @@ function readingsIpc(r=ordinaryReadings()){
 async function resumeReadings(){
  await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-reader-alternatives");
 }
+it("loads the saved draft when resume is clicked on the first enabled render",async()=>{
+ let resolveCapabilities:(value:{enabled:boolean})=>void=()=>{};
+ const capabilities=new Promise<{enabled:boolean}>(resolve=>{resolveCapabilities=resolve;});
+ const r=ordinaryReadings();
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>command==="local_ocr_capabilities"?capabilities:Promise.resolve(args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:r));
+ function FirstRenderResume({click}:{click:boolean}){
+  useLayoutEffect(()=>{if(click)screen.getByTestId("local-ocr-resume").click();},[click]);
+  return <LocalOcrPanel {...props}/>;
+ }
+ const view=render(<FirstRenderResume click={false}/>);
+ await act(async()=>{resolveCapabilities({enabled:true});await capabilities;view.rerender(<FirstRenderResume click={true}/>);});
+ await screen.findByTestId("local-ocr-reader-alternatives");
+ expect(screen.getByTestId("local-ocr-alternative-denominator")).toHaveTextContent("保留 3 条读法，未采用 2 条。");
+ expect(ipc.mock.calls.filter(c=>c[1]?.request.action==="resume")).toHaveLength(1);
+ expect(ipc.mock.calls.some(c=>["start","continue","recover-processing","review","save"].includes(c[1]?.request.action))).toBe(false);
+});
 describe("saved unadopted readings in ordinary local review",()=>{
  it("reads the existing bridge field on resume without a developer import or a new recognizer call",async()=>{
   const r=ordinaryReadings(),original=JSON.stringify(r),onPage=vi.fn();readingsIpc(r);render(<LocalOcrPanel {...props} onPage={onPage}/>);await resumeReadings();
