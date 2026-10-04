@@ -2,9 +2,11 @@ import tempfile
 import unittest
 import copy
 import json
+import subprocess
+from unittest.mock import patch
 from pathlib import Path
 import fitz
-from .pdf_consumer_audit import correspondence, poppler_nodes, glyph_tokens, source_order_check, source_geometry_check, project_members, sha, audit
+from .pdf_consumer_audit import correspondence, poppler_nodes, glyph_tokens, source_order_check, source_geometry_check, project_members, sha, audit, extract_poppler, consumer_provenance_check
 
 
 def multipart_review_fixture(root):
@@ -129,7 +131,11 @@ class ConsumerAuditTests(unittest.TestCase):
             self.assertEqual(geometry['state'],'PASS')
             self.assertTrue(correspondence(geometry['members'],list(reversed(f['actual'])))['complete_positions'])
             result=audit(f['folder']/'snapshot.json',f['folder']/'searchable.pdf',f['xml'],f['raw_text'],{'1':f['ledger']})
-            self.assertEqual(result['state'],'PASS');self.assertTrue(result['pages'][0]['pixels_equal'])
+            # The synthetic XML still exercises correspondence; it does not
+            # establish that a real Poppler process consumed this PDF.
+            self.assertEqual(result['state'],'INSUFFICIENT');self.assertTrue(result['pages'][0]['pixels_equal'])
+            self.assertFalse(result['poppler_path_verified'])
+            self.assertEqual(result['consumer_provenance']['state'],'INSUFFICIENT')
             self.assertEqual(result['pages'][0]['supported_parent_members'],1)
             self.assertEqual(result['pages'][0]['supported_words'],2)
             self.assertFalse(result['pages'][0]['mupdf']['complete_positions'])
@@ -140,6 +146,121 @@ class ConsumerAuditTests(unittest.TestCase):
             result=audit(f['folder']/'snapshot.json',f['folder']/'searchable.pdf',f['xml'],f['raw_text'],{'1':f['ledger']})
             self.assertEqual(result['state'],'INSUFFICIENT')
             self.assertFalse(result['pages'][0]['independent_poppler_positions']['complete_positions'])
+
+    def captured_fixture(self, root):
+        """Mocked process contracts only; not a real Poppler or product probe."""
+        f=multipart_review_fixture(root)
+        executable=root/'pdftotext';executable.write_bytes(b'controlled mocked executable')
+        xml,raw=f['xml'].read_bytes(),f['raw_text'].read_bytes()
+        def run(command,**kwargs):
+            self.assertFalse(kwargs['check']);self.assertTrue(kwargs['capture_output'])
+            mode=command[1]
+            output={'-v':b'', '-bbox-layout':xml, '-raw':raw}[mode]
+            stderr=b'pdftotext version controlled-mocked-contract\n' if mode=='-v' else b''
+            return subprocess.CompletedProcess(command,0,output,stderr)
+        with patch('scripts.ocr.mvp.pdf_consumer_audit.shutil.which',return_value=str(executable)), \
+             patch('scripts.ocr.mvp.pdf_consumer_audit.subprocess.run',side_effect=run) as calls:
+            f['consumer_receipt']=extract_poppler(f['folder']/'searchable.pdf',root/'captured')
+            self.assertEqual(calls.call_count,3)
+        receipt=json.loads(f['consumer_receipt'].read_text())
+        f['xml']=Path(receipt['calls'][1]['stdout']['path'])
+        f['raw_text']=Path(receipt['calls'][2]['stdout']['path'])
+        f['executable']=executable
+        return f
+
+    def check_consumer_fixture(self,f):
+        return consumer_provenance_check(f['consumer_receipt'],f['folder']/'searchable.pdf',f['xml'],f['raw_text'])
+
+    def test_bound_capture_contract_replays_without_process_or_source_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=self.captured_fixture(Path(directory))
+            with patch('scripts.ocr.mvp.pdf_consumer_audit.subprocess.run') as process:
+                checked=self.check_consumer_fixture(f)
+                result=audit(f['folder']/'snapshot.json',f['folder']/'searchable.pdf',f['xml'],f['raw_text'],
+                             {'1':f['ledger']},f['consumer_receipt'])
+                process.assert_not_called()
+            self.assertEqual(checked['state'],'PASS');self.assertEqual(result['state'],'PASS')
+            self.assertTrue(result['poppler_path_verified'])
+            self.assertEqual(checked['cached_extraction_calls'],2)
+            self.assertEqual(checked['new_extraction_calls'],0)
+            self.assertFalse(checked['quality_or_source_review_proven'])
+            self.assertTrue(all(sha(p)==h for p,h in f['protected'].items()))
+
+    def test_receipt_cannot_certify_other_PDF_or_same_bytes_at_another_output_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);f=self.captured_fixture(root)
+            other=root/'other.pdf';other.write_bytes((f['folder']/'searchable.pdf').read_bytes())
+            with self.assertRaisesRegex(ValueError,'CONSUMER_PDF_IDENTITY'):
+                consumer_provenance_check(f['consumer_receipt'],other,f['xml'],f['raw_text'])
+            for name in ('xml','raw_text'):
+                copy_path=root/(name+'.copy');copy_path.write_bytes(f[name].read_bytes())
+                arguments={name:copy_path}
+                with self.assertRaisesRegex(ValueError,'CONSUMER_SUPPLIED_OUTPUT_IDENTITY'):
+                    consumer_provenance_check(f['consumer_receipt'],f['folder']/'searchable.pdf',
+                        arguments.get('xml',f['xml']),arguments.get('raw_text',f['raw_text']))
+
+    def test_consumer_receipt_rejects_changed_stdout_stderr_tool_and_pdf(self):
+        for changed,error in [('xml','CONSUMER_OUTPUT_CHANGED'),('raw_text','CONSUMER_OUTPUT_CHANGED'),
+                              ('stderr','CONSUMER_OUTPUT_CHANGED'),('executable','CONSUMER_EXECUTABLE_CHANGED'),
+                              ('pdf','CONSUMER_PDF_IDENTITY')]:
+            with self.subTest(changed=changed),tempfile.TemporaryDirectory() as directory:
+                f=self.captured_fixture(Path(directory));receipt=json.loads(f['consumer_receipt'].read_text())
+                artifact=(Path(receipt['calls'][1]['stderr']['path']) if changed=='stderr' else
+                          f['folder']/'searchable.pdf' if changed=='pdf' else f[changed])
+                artifact.write_bytes(artifact.read_bytes()+b'changed')
+                with self.assertRaisesRegex(ValueError,error):self.check_consumer_fixture(f)
+
+    def test_consumer_call_identity_and_completion_cannot_be_relabeled(self):
+        mutations=[('CONSUMER_RECEIPT_SCHEMA',lambda r:r.update(schema='unbound')),
+                   ('CONSUMER_PRODUCER_CHANGED',lambda r:r.update(producer_sha256='wrong')),
+                   ('CONSUMER_PDF_IDENTITY',lambda r:r.update(pdf_sha256_after='wrong')),
+                   ('CONSUMER_EXECUTABLE_CHANGED',lambda r:r.update(executable_sha256_after='wrong')),
+                   ('CONSUMER_CALL_COVERAGE',lambda r:r['calls'].pop()),
+                   ('CONSUMER_CALL_COVERAGE',lambda r:r['calls'][1].update(mode='-layout')),
+                   ('CONSUMER_CALL_COVERAGE',lambda r:r.update(retries=1)),
+                   ('CONSUMER_CALL_COVERAGE',lambda r:r.update(new_OCR=1)),
+                   ('CONSUMER_CALL_NOT_COMPLETED_OR_BOUND',lambda r:r['calls'][1].update(returncode=1)),
+                   ('CONSUMER_CALL_NOT_COMPLETED_OR_BOUND',lambda r:r['calls'][1].update(returncode=False)),
+                   ('CONSUMER_CALL_NOT_COMPLETED_OR_BOUND',lambda r:r['calls'][1].update(state='TIMED_OUT')),
+                   ('CONSUMER_CALL_NOT_COMPLETED_OR_BOUND',lambda r:r['calls'][1]['command'].__setitem__(2,'other.pdf'))]
+        with tempfile.TemporaryDirectory() as directory:
+            f=self.captured_fixture(Path(directory));original=json.loads(f['consumer_receipt'].read_text())
+            for error,mutate in mutations:
+                with self.subTest(error=error):
+                    receipt=copy.deepcopy(original);mutate(receipt);f['consumer_receipt'].write_text(json.dumps(receipt))
+                    with self.assertRaisesRegex(ValueError,error):self.check_consumer_fixture(f)
+
+    def test_failed_or_timed_out_capture_is_retained_and_not_retried(self):
+        failures=[subprocess.CompletedProcess([],3,b'partial',b'failed'),
+                  subprocess.TimeoutExpired([],1,output=b'partial',stderr=b'timeout'),
+                  OSError('controlled launch failure')]
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);pdf=root/'input.pdf';pdf.write_bytes(b'controlled input')
+                executable=root/'pdftotext';executable.write_bytes(b'mocked executable')
+                version=subprocess.CompletedProcess([],0,b'',b'pdftotext version mocked\n')
+                with patch('scripts.ocr.mvp.pdf_consumer_audit.shutil.which',return_value=str(executable)), \
+                     patch('scripts.ocr.mvp.pdf_consumer_audit.subprocess.run',side_effect=[version,failure]) as calls:
+                    receipt_path=extract_poppler(pdf,root/'capture')
+                    self.assertEqual(calls.call_count,2)
+                receipt=json.loads(receipt_path.read_text());self.assertEqual(receipt['status'],'FAILED')
+                self.assertEqual(receipt['retries'],0);self.assertEqual(len(receipt['calls']),2)
+                self.assertTrue(Path(receipt['calls'][1]['stderr']['path']).exists())
+                self.assertEqual(consumer_provenance_check(receipt_path,pdf,root/'absent.xml',root/'absent.raw')['state'],'FAIL')
+
+    def test_capture_cannot_overwrite_existing_directory_or_accept_unbounded_timeout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);pdf=root/'input.pdf';pdf.write_bytes(b'controlled input')
+            executable=root/'pdftotext';executable.write_bytes(b'mocked executable')
+            out=root/'protected';out.mkdir();sentinel=out/'saved.txt';sentinel.write_bytes(b'preserve')
+            with patch('scripts.ocr.mvp.pdf_consumer_audit.shutil.which',return_value=str(executable)), \
+                 patch('scripts.ocr.mvp.pdf_consumer_audit.subprocess.run') as calls:
+                with self.assertRaises(FileExistsError):extract_poppler(pdf,out)
+                for seconds in (0,61,True,1.5):
+                    with self.assertRaisesRegex(ValueError,'CONSUMER_TIMEOUT_RANGE'):
+                        extract_poppler(pdf,root/'invalid',timeout_seconds=seconds)
+                calls.assert_not_called()
+            self.assertEqual(sentinel.read_bytes(),b'preserve');self.assertFalse((root/'invalid').exists())
 
     def test_multipart_proof_cannot_use_v1_parent_box_or_partial_token_review(self):
         with tempfile.TemporaryDirectory() as temp:

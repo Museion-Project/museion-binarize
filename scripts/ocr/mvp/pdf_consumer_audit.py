@@ -11,16 +11,127 @@ import hashlib
 import json
 import math
 import re
+import shutil
+import subprocess
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import fitz
 
-VERSION = 'pdf-consumer-audit-v6'
+VERSION = 'pdf-consumer-audit-v7'
 
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def extract_poppler(pdf_path, output_directory, *, timeout_seconds=30):
+    """Capture two bounded local PDF consumers in a new, non-overwriting folder.
+
+    This explicitly invoked helper performs no OCR. A caller must separately
+    authorize its input and evaluation scope; an extraction receipt is not a
+    quality, source-review or full-panel admission. Failed output is retained.
+    """
+    if type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 60:
+        raise ValueError('CONSUMER_TIMEOUT_RANGE')
+    pdf = Path(pdf_path).resolve()
+    pdf_hash = sha(pdf)
+    executable = shutil.which('pdftotext')
+    if not executable:
+        raise ValueError('POPPLER_EXECUTABLE_MISSING')
+    executable = Path(executable).resolve()
+    tool_hash = sha(executable)
+    root = Path(output_directory).resolve()
+    root.mkdir()  # Reserve a fresh folder before any process is launched.
+    receipt = dict(schema='pdf-poppler-extraction/1', producer_version=VERSION,
+                   producer_path=str(Path(__file__).resolve()), producer_sha256=sha(__file__),
+                   pdf_path=str(pdf), pdf_sha256=pdf_hash,
+                   executable=str(executable), executable_sha256=tool_hash,
+                   status='COMPLETE', calls=[], new_OCR=0, retries=0)
+    for mode, name in [('-v', 'version'), ('-bbox-layout', 'bbox-layout'), ('-raw', 'raw')]:
+        command = [str(executable), mode] + ([] if mode == '-v' else [str(pdf), '-'])
+        start = time.monotonic()
+        try:
+            result = subprocess.run(command, capture_output=True, timeout=timeout_seconds,
+                                    check=False)
+            stdout, stderr, code = result.stdout, result.stderr, result.returncode
+            state = 'COMPLETED' if code == 0 else 'FAILED'
+        except subprocess.TimeoutExpired as error:
+            stdout, stderr, code, state = error.stdout or b'', error.stderr or b'', None, 'TIMED_OUT'
+        except OSError as error:
+            stdout, stderr, code, state = b'', str(error).encode(), None, 'FAILED'
+        outputs = {}
+        for kind, data in [('stdout', stdout), ('stderr', stderr)]:
+            data = data.encode() if isinstance(data, str) else data
+            path = root / f'{name}.{kind}'
+            with path.open('xb') as out:
+                out.write(data)
+            outputs[kind] = dict(path=str(path), sha256=sha(path))
+        receipt['calls'].append(dict(mode=mode, command=command, returncode=code,
+                                    state=state, timeout_seconds=timeout_seconds,
+                                    wall_seconds=time.monotonic()-start, **outputs))
+        if state != 'COMPLETED':
+            receipt['status'] = 'FAILED'
+            break
+    receipt['pdf_sha256_after'] = sha(pdf)
+    receipt['executable_sha256_after'] = sha(executable)
+    if pdf_hash != receipt['pdf_sha256_after'] or tool_hash != receipt['executable_sha256_after']:
+        receipt['status'] = 'FAILED'
+    path = root / 'receipt.json'
+    with path.open('x') as out:
+        json.dump(receipt, out, ensure_ascii=False, indent=2)
+    return path
+
+
+def consumer_provenance_check(receipt_path, pdf_path, xml_path, raw_path):
+    """Bind saved stdout to completed calls on this exact PDF and executable.
+
+    Bytes supplied without a receipt remain useful diagnostics but cannot prove
+    that Poppler exercised the PDF. A receipt is execution evidence, not an
+    independent source oracle or a guarantee against fabricated evidence.
+    """
+    if receipt_path is None:
+        return dict(state='INSUFFICIENT', reason='completed source-bound Poppler receipt missing')
+    path = Path(receipt_path).resolve()
+    receipt = json.loads(path.read_text())
+    if receipt.get('schema') != 'pdf-poppler-extraction/1' or receipt.get('producer_version') != VERSION:
+        raise ValueError('CONSUMER_RECEIPT_SCHEMA')
+    if receipt.get('producer_path') != str(Path(__file__).resolve()) or receipt.get('producer_sha256') != sha(__file__):
+        raise ValueError('CONSUMER_PRODUCER_CHANGED')
+    pdf = Path(pdf_path).resolve()
+    if (receipt.get('pdf_path') != str(pdf) or receipt.get('pdf_sha256') != sha(pdf)
+        or receipt.get('pdf_sha256_after') != receipt['pdf_sha256']):
+        raise ValueError('CONSUMER_PDF_IDENTITY')
+    if receipt.get('status') != 'COMPLETE':
+        return dict(state='FAIL', reason='consumer extraction failed or timed out', receipt_sha256=sha(path))
+    executable = Path(receipt['executable']).resolve()
+    if (str(executable) != receipt['executable'] or sha(executable) != receipt['executable_sha256']
+        or receipt.get('executable_sha256_after') != receipt['executable_sha256']):
+        raise ValueError('CONSUMER_EXECUTABLE_CHANGED')
+    calls = receipt.get('calls', [])
+    if [c.get('mode') for c in calls] != ['-v', '-bbox-layout', '-raw'] or receipt.get('retries') != 0 or receipt.get('new_OCR') != 0:
+        raise ValueError('CONSUMER_CALL_COVERAGE')
+    for call, name in zip(calls, ['version', 'bbox-layout', 'raw']):
+        expected = [str(executable), call['mode']] + ([] if call['mode']=='-v' else [str(pdf), '-'])
+        if (call.get('command') != expected or type(call.get('returncode')) is not int
+            or call['returncode'] != 0 or call.get('state') != 'COMPLETED'):
+            raise ValueError('CONSUMER_CALL_NOT_COMPLETED_OR_BOUND')
+        for kind in ('stdout', 'stderr'):
+            artifact = Path(call[kind]['path'])
+            if (artifact.is_symlink() or artifact != path.parent/f'{name}.{kind}'
+                or sha(artifact) != call[kind]['sha256']):
+                raise ValueError('CONSUMER_OUTPUT_CHANGED')
+    version = Path(calls[0]['stdout']['path']).read_bytes() + Path(calls[0]['stderr']['path']).read_bytes()
+    if b'pdftotext version ' not in version:
+        raise ValueError('CONSUMER_VERSION_UNVERIFIED')
+    for call, supplied in zip(calls[1:], [xml_path, raw_path]):
+        if Path(supplied).resolve() != Path(call['stdout']['path']) or sha(supplied) != call['stdout']['sha256']:
+            raise ValueError('CONSUMER_SUPPLIED_OUTPUT_IDENTITY')
+    return dict(state='PASS', basis='completed same-PDF local Poppler calls and exact captured stdout',
+                receipt_path=str(path), receipt_sha256=sha(path), executable_sha256=receipt['executable_sha256'],
+                version=version.decode('utf-8', errors='replace').strip(), cached_extraction_calls=2,
+                new_extraction_calls=0, new_OCR=0, quality_or_source_review_proven=False)
 
 
 def tokenize(text):
@@ -388,7 +499,8 @@ def physical_row_relations(source, nodes, ledger):
                 limitation='aggregate row bounds cannot establish individual word positions')
 
 
-def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
+def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None, consumer_receipt=None):
+    provenance = consumer_provenance_check(consumer_receipt, pdf_path, xml_path, raw_path)
     snapshot = json.loads(Path(snapshot_path).read_text())
     folder=Path(snapshot_path).resolve().parent
     manifest=json.loads((folder/'manifest.json').read_text())
@@ -464,6 +576,8 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
             return [[a,b,c,{k:str(v) for k,v in d.items() if k != 'xref'}] for a,b,c,d in doc.get_toc(False)]
         bookmarks = toc(pdf) == toc(original)
     failures, gaps = [], []
+    if provenance['state'] != 'PASS':
+        (failures if provenance['state']=='FAIL' else gaps).append('Poppler execution provenance unverified')
     if not bookmarks:
         failures.append('bookmarks changed')
     for p in pages:
@@ -498,6 +612,8 @@ def audit(snapshot_path, pdf_path, xml_path, raw_path, ledger=None):
     return dict(schema=VERSION, state='FAIL' if failures else ('INSUFFICIENT' if gaps else 'PASS'),
                 inputs={str(p):sha(p) for p in (snapshot_path,pdf_path,xml_path,raw_path)},
                 failures=failures, gaps=gaps, bookmarks_equal=bookmarks, pages=pages,
+                consumer_provenance=provenance,
+                poppler_path_verified=provenance['state']=='PASS',
                 new_ocr_calls=0, new_reader_calls=0, cached_exposed_regression=True,
                 position_authority='complete independent source-token review; reader frames are diagnostics',
                 recognition_quality_verified=False, human_approval_claimed=False)
@@ -508,10 +624,12 @@ def main():
     for name in ('snapshot','pdf','xml','raw','output'):
         parser.add_argument('--'+name, type=Path, required=True)
     parser.add_argument('--source-ledger',type=Path)
+    parser.add_argument('--consumer-receipt',type=Path)
     args = parser.parse_args()
     ledger=json.loads(args.source_ledger.read_text()) if args.source_ledger else None
-    result = audit(args.snapshot,args.pdf,args.xml,args.raw,ledger)
+    result = audit(args.snapshot,args.pdf,args.xml,args.raw,ledger,args.consumer_receipt)
     if args.source_ledger:result['inputs'][str(args.source_ledger)]=sha(args.source_ledger)
+    if args.consumer_receipt:result['inputs'][str(args.consumer_receipt)]=sha(args.consumer_receipt)
     with args.output.open('x') as out:
         json.dump(result,out,ensure_ascii=False,indent=2)
     print(json.dumps({k:result[k] for k in ('state','failures','gaps')}))
