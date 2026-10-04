@@ -39,6 +39,17 @@ it("does not deliver an old document's pending cancellation after a document epo
 });
 
 const pendingSave={journal_id:`save-pending-${"b".repeat(32)}.json`,journal_sha256:"c".repeat(64),status:"complete_copy_pending_receipt",recoverable:true,output_pdf:"/existing-complete.pdf",reason:null};
+it.each([true,false])("keeps unpublished partial results read-only with runtime compatibility %s",async(compatible)=>{
+ const pending={...result,output_pdf:undefined,revision:null,status:"processing_unverified",draft_published:false,runtime_compatible:compatible,completion_record_state:"not_published",pages:[...result.pages,{page:2,status:"NATIVE_PRESERVED",native_text:"saved native text"},{page:3,status:"NOT_PROCESSED"}]};
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:pending));
+ render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-incomplete");
+ expect(screen.getByText(/部分结果（仅查看）/)).toBeVisible();expect(screen.queryByText(/修订 null/)).toBeNull();expect(screen.getByText("saved native text")).toBeInTheDocument();
+ fireEvent.change(screen.getByLabelText("选择文字核对"),{target:{value:"word"}});fireEvent.click(screen.getByTestId("local-ocr-source"));fireEvent.click(screen.getByTestId("local-ocr-partial"));
+ expect(screen.getByTestId("local-ocr-accept")).toBeDisabled();expect(screen.getByTestId("local-ocr-reject")).toBeDisabled();expect(screen.getByTestId("local-ocr-change")).toBeDisabled();expect(screen.getByTestId("local-ocr-save")).toBeDisabled();expect(screen.queryByTestId("local-ocr-search")).toBeNull();
+ expect(Boolean(screen.queryByTestId("local-ocr-runtime-stale"))).toBe(!compatible);
+ fireEvent.click(screen.getByTestId("local-ocr-reload"));await screen.findByTestId("local-ocr-incomplete");
+ expect(ipc.mock.calls.some(c=>["start","review","save","recover-save"].includes(c[1]?.request.action))).toBe(false);
+});
 it.each(["missing","unreadable"])("shows a %s completion record on resume without starting recognition",async(completionState)=>{
  const pending={...result,status:"completion_unverified",completion_record_state:completionState,runtime_compatible:true};
  ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:pending));

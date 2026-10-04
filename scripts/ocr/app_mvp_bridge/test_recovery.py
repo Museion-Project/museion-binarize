@@ -344,5 +344,142 @@ raise AssertionError('crash not reached')
         self.assertEqual(before,{str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()})
 
 
+class PrepublicationTests(unittest.TestCase):
+    setUp=RecoveryTests.setUp
+    tearDown=RecoveryTests.tearDown
+
+    def incomplete(self):
+        """Synthetic raw page for refusal probes; not a recognition result."""
+        from .__main__ import register_local_operation, write
+        from .sessions import runtime_binding
+        from scripts.ocr.mvp.core import CONFIG_VERSION
+        root=roots(self.config,create=True)[0];folder=root/('d'*32);folder.mkdir(mode=0o700)
+        op=folder/'operation'
+        task=dict(operation_id=folder.name,input_pdf=str(self.source),input_sha256=sha(self.source),
+                  page_numbers=[1,2],mode='local',output_directory=str(op),config_version=CONFIG_VERSION)
+        register_local_operation(folder,task,self.config['local'])
+        meta=dict(mode='local',source=str(self.source),source_sha256=sha(self.source),provenance='synthetic-contract-fixture',
+                  runtime_binding=runtime_binding(self.config),session_storage='persistent-private')
+        write(folder/'desktop-session.json',meta)
+        raw=op/'raw/page-0001';raw.mkdir(parents=True)
+        with fitz.open(self.source) as doc:doc[0].get_pixmap().save(raw/'source.png')
+        page=dict(page=1,status='OCR_DRAFT',source_sha256=sha(self.source),words=[dict(id='synthetic',text='alpha',bbox=[20,20,50,40])],
+                  image_path=str(raw/'source.png'),image_sha256=sha(raw/'source.png'),review_reasons=[],raw_files={'raw/page-0001/source.png':sha(raw/'source.png')})
+        write(raw/'page-result.json',page)
+        return folder,page
+
+    def inspect(self,folder):
+        from unittest.mock import patch
+        from scripts.ocr.mvp import local
+        before={str(p.relative_to(folder)):sha(p) for p in folder.rglob('*') if p.is_file() and not p.is_symlink()}
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Read-only inspection started a worker')):
+            result=main(dict(self.request,action='reload',session_id=folder.name),self.config)
+        self.assertEqual(before,{str(p.relative_to(folder)):sha(p) for p in folder.rglob('*') if p.is_file() and not p.is_symlink()})
+        self.assertFalse(result['draft_published']);self.assertIsNone(result['revision']);self.assertNotIn('output_pdf',result)
+        self.assertEqual(result['status'],'processing_unverified')
+        self.assertFalse((folder/'operation/CURRENT.json').exists());self.assertFalse((folder/'operation/completion.json').exists())
+        return result
+
+    def test_actual_first_native_worker_reaped_then_parent_exit_retains_partial_task(self):
+        payload=self.root/'prepublication-crash.json';payload.write_text(json.dumps(dict(request=self.request,config=self.config)))
+        script='''import json,os,sys
+from pathlib import Path
+from scripts.ocr.app_mvp_bridge.__main__ import main
+from scripts.ocr.mvp import local
+p=json.load(open(sys.argv[1]));children=[];launch=local.subprocess.Popen;write=local.write
+def observed(*a,**k):
+ proc=launch(*a,**k);children.append(proc);return proc
+def abrupt(path,value):
+ write(path,value)
+ if Path(path).name=='progress.json' and value['completed']==1:
+  assert len(children)==1 and children[0].returncode==0
+  assert children[0].stdout.closed and children[0].stderr.closed
+  assert value['page_results'][0]['status']=='NATIVE_PRESERVED'
+  assert not (Path(path).parent/'CURRENT.json').exists()
+  os._exit(88)
+local.subprocess.Popen=observed;local.write=abrupt
+main(dict(p['request'],action='start',pages=[1,2],client_operation_id='9'*32),p['config'])
+raise AssertionError('controlled exit not reached')
+'''
+        proc=subprocess.run([sys.executable,'-B','-c',script,str(payload)],capture_output=True,text=True,timeout=20)
+        self.assertEqual(proc.returncode,88,proc.stderr+proc.stdout)
+        folder=next(Path(self.config['session_root']).glob('*/desktop-session.json')).parent
+        from unittest.mock import patch
+        from scripts.ocr.mvp import local
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Resume started a worker')):
+            resumed=main(dict(self.request,action='resume'),self.config)
+        self.assertEqual(self.inspect(folder),resumed);self.assertTrue(resumed['runtime_compatible'])
+        self.assertEqual([p['status'] for p in resumed['pages']],['NATIVE_PRESERVED','NOT_PROCESSED'])
+        self.assertIn('314159',resumed['pages'][0]['native_text'])
+        self.assertFalse(list((folder/'operation/raw').glob('**/*.call.json')))
+        self.assertEqual(sha(self.source),self.request['input_sha256'])
+
+    def test_registered_task_without_results_is_inspectable_not_declared_dead(self):
+        folder,_=self.incomplete();raw=folder/'operation/raw/page-0001'
+        (raw/'page-result.json').unlink()
+        observed=self.inspect(folder)
+        self.assertEqual([p['status'] for p in observed['pages']],['UNVERIFIED','NOT_PROCESSED'])
+        self.assertEqual(observed['completion_record_state'],'not_published')
+
+    def test_unpublished_draft_rejects_mutation_even_with_matching_runtime(self):
+        folder,_=self.incomplete();self.assertTrue(self.inspect(folder)['runtime_compatible'])
+        for action in ('review','save','recover-save'):
+            with self.subTest(action=action),self.assertRaisesRegex(ValueError,'DRAFT_NOT_PUBLISHED'):
+                main(dict(self.request,action=action,session_id=folder.name,expected_revision=None,actions=[],output_path=str(self.dest)),self.config)
+        self.assertFalse(self.dest.exists())
+
+    def test_wrong_source_page_raw_hash_and_word_shape_are_unverified(self):
+        folder,page=self.incomplete();path=folder/'operation/raw/page-0001/page-result.json'
+        cases=[dict(source_sha256='0'*64),dict(page=2),dict(raw_files={'raw/page-0001/source.png':'0'*64}),dict(image_sha256=None,raw_files={},words=[]),dict(words=[dict(id='bad',text='x',bbox=[0,0,float('nan'),1])]),dict(review_reasons='bad')]
+        for change in cases:
+            with self.subTest(change=str(change)):
+                path.write_text(json.dumps(dict(page,**change)))
+                observed=self.inspect(folder)['pages'][0]
+                self.assertEqual(observed['status'],'UNVERIFIED');self.assertEqual(observed['words'],[])
+
+    def test_raw_paths_and_symlinks_are_rejected_without_reading_targets(self):
+        folder,page=self.incomplete();path=folder/'operation/raw/page-0001/page-result.json';outside=self.root/'outside';outside.write_bytes(b'preserve')
+        cases=[{'../outside':sha(outside)},{str(outside):sha(outside)},{'raw/page-0002/foreign':sha(outside)}]
+        for raw in cases:
+            with self.subTest(raw=raw):
+                path.write_text(json.dumps(dict(page,raw_files=raw)))
+                self.assertEqual(self.inspect(folder)['pages'][0]['status'],'UNVERIFIED')
+        link=path.parent/'link';link.symlink_to(outside)
+        path.write_text(json.dumps(dict(page,raw_files={'raw/page-0001/link':sha(outside)})))
+        self.assertEqual(self.inspect(folder)['pages'][0]['status'],'UNVERIFIED')
+        path.unlink();path.symlink_to(outside)
+        self.assertEqual(self.inspect(folder)['pages'][0]['status'],'UNVERIFIED')
+        self.assertEqual(outside.read_bytes(),b'preserve')
+        current=folder/'operation/CURRENT.json';current.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError,'LOCAL_DRAFT_PATH_SYMLINK'):
+            main(dict(self.request,action='reload',session_id=folder.name),self.config)
+
+    def test_parent_failure_precedes_worker_result_and_preserves_both(self):
+        from scripts.ocr.mvp.local import parent_page_result
+        folder,_=self.incomplete();op=folder/'operation';worker=op/'raw/page-0001/page-result.json'
+        original=worker.read_bytes()
+        parent_page_result(op,worker,dict(page=1,status='FAILED',source_sha256=sha(self.source),words=[],error='synthetic cleanup failure',review_reasons=[]))
+        self.assertEqual(self.inspect(folder)['pages'][0]['status'],'FAILED');self.assertEqual(worker.read_bytes(),original)
+        (worker.parent/'parent-result.json').write_bytes(b'{"partial":')
+        self.assertEqual(self.inspect(folder)['pages'][0]['status'],'UNVERIFIED')
+
+    def test_foreign_job_or_document_binding_refuses_entire_partial_view(self):
+        from scripts.ocr.mvp.core import digest
+        folder,_=self.incomplete();path=folder/'operation/job.json';original=json.loads(path.read_text())
+        for field,value in [('operation_id','e'*32),('input_sha256','0'*64),('output_directory',str(self.root)),('page_numbers',[1,3])]:
+            with self.subTest(field=field):
+                job=copy.deepcopy(original);job['task'][field]=value;job['identity']=digest(dict(task=job['task'],config=job['config']));path.write_text(json.dumps(job))
+                with self.assertRaises(ValueError):self.inspect(folder)
+        path.write_text(json.dumps(original));meta_path=folder/'desktop-session.json';meta=json.loads(meta_path.read_text());meta['document_binding']=dict(source_sha256=sha(self.source),source_pdf=str(self.source),source_page_count=2,physical_pages=[2,1]);meta_path.write_text(json.dumps(meta))
+        with self.assertRaisesRegex(ValueError,'INCOMPLETE_DOCUMENT_BINDING'):self.inspect(folder)
+
+    def test_changed_or_missing_runtime_is_not_rebound_and_corrupt_current_never_falls_back(self):
+        folder,_=self.incomplete();meta_path=folder/'desktop-session.json';meta=json.loads(meta_path.read_text());meta.pop('runtime_binding');meta_path.write_text(json.dumps(meta))
+        self.assertFalse(self.inspect(folder)['runtime_compatible'])
+        current=folder/'operation/CURRENT.json';current.write_bytes(b'{"partial":')
+        with self.assertRaises(ValueError):main(dict(self.request,action='reload',session_id=folder.name),self.config)
+        self.assertEqual(current.read_bytes(),b'{"partial":')
+
+
 if __name__ == '__main__':
     unittest.main()

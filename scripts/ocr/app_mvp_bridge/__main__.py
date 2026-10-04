@@ -91,7 +91,7 @@ def context(request,config):
  from .sessions import roots,folder_for,mutation_guard
  sid=request.get('session_id')
  if sid:
-  folder=folder_for(sid,config);meta=read(folder/'desktop-session.json')
+  folder=folder_for(sid,config);check(not (folder/'desktop-session.json').is_symlink(),'SESSION_METADATA_SYMLINK');meta=read(folder/'desktop-session.json')
   check(meta['mode']==request['mode'],'SESSION_MODE_MISMATCH')
   source_bound(meta['source'],meta['source_sha256'],request)
   if meta['mode']=='local' and request.get('action') in ('review','save','recover-save'):mutation_guard(meta,config)
@@ -105,9 +105,84 @@ def paid_receipt(folder):
   return json.loads(row[1]) if row else dict(revision=0,adopted={})
  finally:db.close()
 
+def incomplete_local_view(folder,meta,result,config):
+ """Inspect durable pages before publication. Never infer worker liveness or resume work."""
+ import fitz
+ import math
+ from scripts.ocr.mvp.core import digest
+ from .sessions import compatibility
+ op=folder/'operation'
+ def confined(path):
+  check(path.is_relative_to(op) and not any(p.is_symlink() for p in (path,*path.parents) if p.is_relative_to(op)), 'INCOMPLETE_PATH_ESCAPE')
+  check(path.resolve().is_relative_to(op.resolve()),'INCOMPLETE_PATH_ESCAPE')
+ confined(op);confined(op/'job.json')
+ job=read(op/'job.json');check(type(job) is dict,'INCOMPLETE_JOB_INVALID')
+ task=job.get('task');stored=job.get('config')
+ check(type(task) is dict and type(stored) is dict and job.get('schema_version')==1 and job.get('identity')==digest(dict(task=task,config=stored)), 'INCOMPLETE_JOB_IDENTITY')
+ check(task.get('mode')=='local' and task.get('operation_id')==folder.name and Path(task.get('output_directory','')).resolve()==op.resolve(), 'INCOMPLETE_TASK_SCOPE')
+ check(task.get('input_sha256')==meta['source_sha256'] and Path(task.get('input_pdf','')).resolve()==Path(meta['source']).resolve(), 'INCOMPLETE_SOURCE_MISMATCH')
+ check(sha(meta['source'])==meta['source_sha256'],'SOURCE_HASH_MISMATCH')
+ pages=task.get('page_numbers')
+ check(type(pages) is list and 1<=len(pages)<=40 and all(type(n) is int for n in pages) and len(set(pages))==len(pages),'INCOMPLETE_PHYSICAL_PAGES')
+ with fitz.open(meta['source']) as doc:
+  check(not doc.needs_pass and all(1<=n<=len(doc) for n in pages),'INCOMPLETE_PHYSICAL_PAGES')
+  binding=meta.get('document_binding')
+  if binding:
+   check(binding.get('source_sha256')==meta['source_sha256'] and Path(binding.get('source_pdf','')).resolve()==Path(meta['source']).resolve() and binding.get('source_page_count')==len(doc) and binding.get('physical_pages')==pages,'INCOMPLETE_DOCUMENT_BINDING')
+ runtime=meta.get('runtime_binding')
+ if runtime:check(runtime.get('local_config')==stored and runtime.get('config_version')==task.get('config_version'),'INCOMPLETE_CONFIG_MISMATCH')
+ observed=[]
+ for number in pages:
+  directory=op/'raw'/f'page-{number:04d}'
+  placeholder=dict(page=number,status='NOT_PROCESSED',source_sha256=meta['source_sha256'],words=[],review_reasons=['No saved page result; processing state is unverified'])
+  try:
+   confined(directory)
+   parent=directory/'parent-result.json';worker=directory/'page-result.json'
+   # An incomplete/malformed parent failure is not replaced by worker success.
+   selected=parent if parent.exists() or parent.is_symlink() else worker
+   confined(selected)
+   if selected.exists():
+    page=read(selected)
+    check(type(page) is dict and type(page.get('page')) is int and page['page']==number and page.get('source_sha256')==meta['source_sha256'],'INCOMPLETE_PAGE_BINDING')
+    check(page.get('status') in ('NATIVE_PRESERVED','VISIBLE_TEXT_REPLACE_REVIEW','EXISTING_TEXT_REVIEW','OCR_DRAFT','EMPTY','FAILED','TIMEOUT','CANCELLED'),'INCOMPLETE_PAGE_STATUS')
+    words=page.get('words');raw=page.get('raw_files')
+    check(type(words) is list and type(raw) is dict,'INCOMPLETE_PAGE_INVALID')
+    check(type(page.get('review_reasons',[])) is list and all(type(v) is str for v in page.get('review_reasons',[])) and type(page.get('native_text','')) is str,'INCOMPLETE_PAGE_INVALID')
+    for word in words:
+     check(type(word) is dict and type(word.get('id')) is str and type(word.get('text')) is str and type(word.get('bbox')) is list and len(word['bbox'])==4 and all(type(v) in (int,float) and math.isfinite(v) for v in word['bbox']),'INCOMPLETE_WORD_INVALID')
+    check(len({w['id'] for w in words})==len(words),'INCOMPLETE_WORD_INVALID')
+    for name,h in raw.items():
+     check(type(name) is str and type(h) is str,'INCOMPLETE_RAW_INVALID')
+     relative=Path(name);check(not relative.is_absolute() and '..' not in relative.parts,'INCOMPLETE_RAW_SCOPE')
+     path=op/relative;confined(path)
+     check(path.is_relative_to(directory) and path!=selected and path.is_file() and sha(path)==h,'INCOMPLETE_RAW_CHANGED')
+    if page.get('image_path'):
+     image=Path(page['image_path']);confined(image)
+     check(image.is_relative_to(directory) and type(page.get('image_sha256')) is str and image.is_file() and raw.get(str(image.relative_to(op)))==page['image_sha256']==sha(image),'INCOMPLETE_IMAGE_BINDING')
+    elif page['status'] not in ('FAILED','TIMEOUT','CANCELLED'):
+     raise ValueError('INCOMPLETE_IMAGE_MISSING')
+    check(not words or bool(raw),'INCOMPLETE_RAW_MISSING')
+    placeholder=page
+   elif directory.exists():
+    placeholder.update(status='UNVERIFIED',review_reasons=['Page files exist without a validated result'])
+  except (ValueError,OSError,KeyError,TypeError) as exc:
+   placeholder.update(status='UNVERIFIED',review_reasons=['Saved page result is unverified: '+str(exc)])
+  observed.append(placeholder)
+ check(sha(meta['source'])==meta['source_sha256'],'SOURCE_HASH_MISMATCH')
+ state=compatibility(meta,config or {})
+ result.update(status='processing_unverified',draft_published=False,revision=None,pages=observed,
+               completion_record_state='not_published',export_review=[],receipts=[],pending_saves=[],
+               document_binding=meta.get('document_binding'),runtime_compatible=state=='verified',
+               runtime_binding_status=state,session_storage=meta.get('session_storage','legacy-temporary'))
+ return result
+
 def view(folder,meta,config=None):
  mode=meta['mode'];result=dict(mode=mode,session_id=folder.name,provenance=meta['provenance'],source_sha256=meta['source_sha256'],ready=False,quality_ready=False,review_required=True,network_requests=0)
  if mode in ('local','critical-edition'):
+  current=folder/'operation/CURRENT.json'
+  if mode=='local':check(not current.is_symlink() and not (folder/'operation').is_symlink(),'LOCAL_DRAFT_PATH_SYMLINK')
+  if mode=='local' and not current.exists() and not current.is_symlink():
+   return incomplete_local_view(folder,meta,result,config)
   from scripts.ocr.mvp.store import load_snapshot
   snap,revision=load_snapshot(folder/'operation')
   result.update(revision=snap['revision'],pages=snap['pages'],export_review=snap.get('export_review',[]),output_pdf=str(revision/'searchable.pdf'),receipts=snap.get('receipts',[]),document_binding=meta.get('document_binding'))
@@ -117,7 +192,7 @@ def view(folder,meta,config=None):
    check(snap['input_sha256']==meta['source_sha256'] and Path(snap['source_pdf']).resolve()==Path(meta['source']).resolve() and all(page.get('source_sha256',snap['input_sha256'])==snap['input_sha256'] for page in snap['pages']),'SNAPSHOT_SOURCE_MISMATCH')
    from scripts.ocr.mvp.local import load_task_completion
    completion,completion_state=load_task_completion(folder/'operation',snap,revision)
-   result.update(status=completion['status'],completion_record_state=completion_state)
+   result.update(status=completion['status'],completion_record_state=completion_state,draft_published=True)
    result['reader_alternatives']=reader_alternatives(snap)
    from .sessions import compatibility
    from .save_recovery import inspect
@@ -212,7 +287,8 @@ def main(request,config):
      try:
       if candidate.parent.is_symlink() or candidate.is_symlink():continue
       existing=read(candidate)
-      if existing.get('mode')=='local' and existing.get('source_sha256')==request['input_sha256'] and Path(existing['source']).resolve()==Path(request['input_pdf']).resolve() and (candidate.parent/'operation/CURRENT.json').is_file():matches.append(candidate)
+      op=candidate.parent/'operation'
+      if existing.get('mode')=='local' and existing.get('source_sha256')==request['input_sha256'] and Path(existing['source']).resolve()==Path(request['input_pdf']).resolve() and not op.is_symlink() and ((op/'CURRENT.json').is_file() or (op/'job.json').is_file()):matches.append(candidate)
      except (ValueError,OSError,KeyError):continue
   check(bool(matches),'NO_LOCAL_DRAFT: no matching previous draft for this original PDF')
   latest=max(matches,key=lambda p:p.stat().st_mtime_ns);request=dict(request,session_id=latest.parent.name)
@@ -289,6 +365,7 @@ def main(request,config):
  if action=='reload':return view(folder,meta,config)
  if action in ('review','save') and mode=='paid-contents':check(not meta.get('diagnostic_only',True),'DIRECTORY_DIAGNOSTIC_ONLY: persisted guard required')
  if action=='review':
+  if mode=='local':check(view(folder,meta,config).get('draft_published') is not False,'DRAFT_NOT_PUBLISHED: incomplete results are read-only')
   expected=request['expected_revision'];actions=request['actions'];check(isinstance(actions,list) and 0<len(actions)<=100,'BOUNDED_REVIEW_REQUIRED')
   if mode in ('local','critical-edition'):
    from scripts.ocr.mvp.store import review_save
@@ -302,7 +379,7 @@ def main(request,config):
   return view(folder,meta,config)
  if action=='recover-save':
   check(mode=='local','LOCAL_RECOVERY_ONLY')
-  current=view(folder,meta,config);check(current['revision']==request['expected_revision'],'STALE_REVISION')
+  current=view(folder,meta,config);check(current.get('draft_published') is not False,'DRAFT_NOT_PUBLISHED: incomplete results are read-only');check(current['revision']==request['expected_revision'],'STALE_REVISION')
   from .save_recovery import recover
   from .sessions import mutation_guard
   def validate_recovery():
@@ -311,7 +388,9 @@ def main(request,config):
   recovered=recover(folder,meta,current,request,validate_recovery)
   return dict(**view(folder,meta,config),saved=recovered,save_recovered=True)
  if action=='save':
-  current=view(folder,meta,config);check(current['revision']==request['expected_revision'],'STALE_REVISION')
+  current=view(folder,meta,config)
+  if mode=='local':check(current.get('draft_published') is not False,'DRAFT_NOT_PUBLISHED: incomplete results are read-only')
+  check(current['revision']==request['expected_revision'],'STALE_REVISION')
   selected_path=Path(request['output_path']);check(not selected_path.is_symlink(),'NEW_PDF_REQUIRED')
   dest=selected_path.resolve();check(dest.suffix.lower()=='.pdf' and not dest.exists() and dest!=Path(meta['source']).resolve(),'NEW_PDF_REQUIRED')
   receipt_path=folder/f'save-{uuid.uuid4().hex}.json'
