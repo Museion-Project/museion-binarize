@@ -359,7 +359,7 @@ def task_producer(out):
         yield
     finally:os.close(fd)
 
-def run_task(task,config=None):
+def run_task(task,config=None,*,before_processing=None):
     required=('operation_id','input_pdf','input_sha256','page_numbers','mode','output_directory','config_version')
     if any(k not in task for k in required):raise ValueError('MISSING_TASK_FIELDS')
     if task['mode'] not in ('local','apple-residual'):raise ValueError('EXPLICIT_MODE_REQUIRED')
@@ -392,9 +392,9 @@ def run_task(task,config=None):
         out.mkdir(parents=True)
         write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config))
     with task_producer(out):
-        return _run_task_owned(task,config,source,out,identity,existing)
+        return _run_task_owned(task,config,source,out,identity,existing,before_processing=before_processing)
 
-def _run_task_owned(task,config,source,out,identity,existing):
+def _run_task_owned(task,config,source,out,identity,existing,*,before_processing=None):
     """Internal processing path; run_task holds exclusive job ownership."""
     pages=task['page_numbers'];cached={}
     if existing:
@@ -406,6 +406,7 @@ def _run_task_owned(task,config,source,out,identity,existing):
         if (out/'worker-cleanup-failure.json').exists():raise PageWorkerCleanupError('PAGE_WORKER_CLEANUP_UNVERIFIED')
         if (out/'CURRENT.json').is_symlink():raise ValueError('TASK_CURRENT_PATH_SYMLINK')
         if (out/'CURRENT.json').exists():
+            if before_processing is not None:raise ValueError('TASK_ALREADY_PUBLISHED')
             snapshot,folder=load_snapshot(out)
             if (snapshot['input_sha256']!=task['input_sha256'] or Path(snapshot['source_pdf']).resolve()!=source or
                 snapshot.get('operation_id')!=task['operation_id'] or snapshot.get('mode')!=task['mode'] or
@@ -434,6 +435,9 @@ def _run_task_owned(task,config,source,out,identity,existing):
             recorded={p['page']:p for p in rows}
             if set(cached)!=set(recorded) or any(digest(p)!=digest(recorded[n]) for n,p in cached.items()):
                 raise ValueError('SAVED_PAGE_CHECKPOINT_MISMATCH')
+    # An explicit desktop continuation may register a new client attempt only
+    # after all saved evidence checks, while this process owns the job lease.
+    if before_processing is not None:before_processing(dict(cached))
     (out/'raw').mkdir(exist_ok=True)
     results=[];started=time.monotonic();cancelled=False
     for number in pages:

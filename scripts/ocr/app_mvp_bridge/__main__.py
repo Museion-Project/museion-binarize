@@ -94,7 +94,7 @@ def context(request,config):
   folder=folder_for(sid,config);check(not (folder/'desktop-session.json').is_symlink(),'SESSION_METADATA_SYMLINK');meta=read(folder/'desktop-session.json')
   check(meta['mode']==request['mode'],'SESSION_MODE_MISMATCH')
   source_bound(meta['source'],meta['source_sha256'],request)
-  if meta['mode']=='local' and request.get('action') in ('review','save','recover-save'):mutation_guard(meta,config)
+  if meta['mode']=='local' and request.get('action') in ('review','save','recover-save','continue'):mutation_guard(meta,config)
   return folder,meta
  return roots(config,create=True)[0],None
 
@@ -174,6 +174,16 @@ def incomplete_local_view(folder,meta,result,config):
                completion_record_state='not_published',export_review=[],receipts=[],pending_saves=[],
                document_binding=meta.get('document_binding'),runtime_compatible=state=='verified',
                runtime_binding_status=state,session_storage=meta.get('session_storage','legacy-temporary'))
+ from .sessions import continuation_state,current_attempt
+ available=(state=='verified' and any(p['status']=='NOT_PROCESSED' for p in observed) and
+            all(p['status'] not in ('UNVERIFIED','FAILED','TIMEOUT','CANCELLED') for p in observed) and
+            not any((op/name).exists() or (op/name).is_symlink() for name in ('CANCEL','cancel','worker-cleanup-failure.json','completion.json')))
+ result['continuation_available']=False
+ if available:
+  try:
+   current_attempt(folder,meta)
+   result.update(continuation_available=True,continuation_state_sha256=continuation_state(folder))
+  except (ValueError,OSError,TypeError,KeyError):pass
  return result
 
 def view(folder,meta,config=None):
@@ -244,7 +254,13 @@ def main(request,config):
  mode=request.get('mode');action=request.get('action')
  check(mode in ('local','critical-edition','paid','paid-contents'),'EXPLICIT_MODE_REQUIRED')
  if config.get('local_only'):check(mode=='local' and action not in ('import','preflight'),'LOCAL_CANDIDATE_ONLY')
- check(action in ('readiness','start','cancel','import','resume','reload','review','save','search','preflight','recover-save'),'ACTION_NOT_ALLOWED')
+ check(action in ('readiness','start','cancel','continue','import','resume','reload','review','save','search','preflight','recover-save'),'ACTION_NOT_ALLOWED')
+ if action=='continue':
+  check(mode=='local' and type(request.get('session_id')) is str,'LOCAL_CONTINUATION_SESSION_REQUIRED')
+  token=request.get('client_operation_id');challenge=request.get('continuation_state_sha256')
+  check(type(token) is str and len(token)==32 and all(c in '0123456789abcdef' for c in token),'CONTINUATION_OPERATION_REQUIRED')
+  check(type(challenge) is str and len(challenge)==64 and all(c in '0123456789abcdef' for c in challenge),'CONTINUATION_STATE_REQUIRED')
+  check('pages' not in request,'CONTINUATION_PAGES_FIXED')
  if action=='start' and mode=='local':
   # Validate the actual PDF before creating session/task state or any worker.
   # Rust holds the shared document lease; hash revalidation also catches edits
@@ -341,15 +357,45 @@ def main(request,config):
     if draft:
      table=read(draft);source_bound(table['source'],table['source_sha256'],request);register_directory_table(draft,folder,table,meta)
     write(folder/'import-completion.json',completion)
-  write(folder/'desktop-session.json',meta)
+  if not (mode=='local' and action=='start'):write(folder/'desktop-session.json',meta)
   return view(folder,meta,config)
  folder=root
+ if action=='continue':
+  from .sessions import compatibility,publish_attempt
+  from scripts.ocr.mvp.local import run_task
+  check(compatibility(meta,config)=='verified','SESSION_RUNTIME_UNVERIFIED_OR_CHANGED')
+  op=folder/'operation'
+  check(not any((op/name).exists() or (op/name).is_symlink() for name in ('CURRENT.json','completion.json')),'TASK_ALREADY_PUBLISHED')
+  observed=view(folder,meta,config)
+  check(observed.get('continuation_available') is True,'CONTINUATION_NOT_AVAILABLE')
+  task=read(op/'job.json')['task']
+  if config.get('require_document_binding'):
+   check(type(request.get('document_id')) is str and bool(request['document_id']),'DOCUMENT_BINDING_REQUIRED')
+   check(type(request.get('document_page_count')) is int and request['document_page_count']==meta['document_binding']['source_page_count'],'DOCUMENT_PAGE_COUNT_CHANGED')
+  def admitted(cached):
+   check(all(p['status'] not in ('FAILED','TIMEOUT','CANCELLED') for p in cached.values()),'CONTINUATION_SAVED_FAILURE')
+   remaining=[n for n in task['page_numbers'] if n not in cached]
+   check(bool(remaining),'CONTINUATION_NO_REMAINING_PAGES')
+   # A worker request/log without a result is still prior attempt evidence.
+   # Preserve it and refuse, rather than silently overwrite or rerun the page.
+   check(not any((op/'raw'/f'worker-{n}{suffix}').exists() or (op/'raw'/f'worker-{n}{suffix}').is_symlink()
+                 for n in remaining for suffix in ('.json','.stdout','.stderr')),'CONTINUATION_PARTIAL_WORKER_EVIDENCE')
+   check(compatibility(meta,config)=='verified','SESSION_RUNTIME_UNVERIFIED_OR_CHANGED')
+   publish_attempt(folder,meta,task,request,cached)
+   print(json.dumps(dict(event='session',session_id=folder.name,client_operation_id=request['client_operation_id'])),file=sys.stderr,flush=True)
+  run_task(task,config['local'],before_processing=admitted)
+  return view(folder,meta,config)
  if action=='cancel':
-  if request.get('client_operation_id'):check(request['client_operation_id']==meta.get('client_operation_id'),'CANCEL_OPERATION_MISMATCH')
   if mode=='local':
+   from .sessions import session_control,current_attempt,safe_record
    from scripts.ocr.mvp.local import cancel_task
-   cancel_task(folder/'operation')
+   with session_control(folder):
+    check(safe_record(folder/'desktop-session.json')==meta,'SESSION_METADATA_CHANGED')
+    token=current_attempt(folder,meta)
+    if request.get('client_operation_id') or (folder/'active-processing.json').exists():check(request.get('client_operation_id')==token,'CANCEL_OPERATION_MISMATCH')
+    cancel_task(folder/'operation')
   else:
+   if request.get('client_operation_id'):check(request['client_operation_id']==meta.get('client_operation_id'),'CANCEL_OPERATION_MISMATCH')
    check((folder/'operation').is_dir(),'UNKNOWN_OPERATION');(folder/'operation/cancel').touch();(folder/'operation/CANCEL').touch()
   return dict(status='cancel_requested',session_id=folder.name)
  if action=='preflight':

@@ -3,6 +3,11 @@ import hashlib
 import json
 import os
 import sys
+import fcntl
+import stat
+import time
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -89,3 +94,127 @@ def mutation_guard(meta, config):
     # component contract. The packaged App never enables that compatibility.
     if meta.get('runtime_binding') or config.get('require_runtime_binding'):
         check(compatibility(meta, config) == 'verified', 'SESSION_RUNTIME_UNVERIFIED_OR_CHANGED')
+
+
+@contextmanager
+def session_control(folder):
+    """Short control lease, independent of the whole-task producer lease.
+
+    The immutable original metadata inode is shared by attempt publication and
+    cancellation, so an old cancellation cannot race past a new client token.
+    No PID marker is inferred or removed; the descriptor is not inherited.
+    """
+    path = Path(folder) / 'desktop-session.json'
+    check(not path.is_symlink(), 'SESSION_METADATA_SYMLINK')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(fd)
+        check(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.getuid(),
+              'SESSION_CONTROL_FILE_UNSAFE')
+        deadline = time.monotonic() + 2
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                check(time.monotonic() < deadline, 'SESSION_CONTROL_BUSY')
+                time.sleep(.02)
+        current = path.lstat()
+        check((current.st_dev, current.st_ino) == (info.st_dev, info.st_ino) and current.st_nlink == 1,
+              'SESSION_CONTROL_FILE_CHANGED')
+        yield
+    finally:
+        os.close(fd)
+
+
+def safe_record(path):
+    path = Path(path)
+    check(not path.is_symlink(), 'PROCESSING_RECORD_UNSAFE')
+    info = path.stat()
+    check(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.getuid(),
+          'PROCESSING_RECORD_UNSAFE')
+    return json.loads(path.read_text())
+
+
+def current_attempt(folder, meta):
+    folder = Path(folder)
+    pointer = folder / 'active-processing.json'
+    if not pointer.exists() and not pointer.is_symlink():
+        return meta.get('client_operation_id')
+    active = safe_record(pointer)
+    token = active.get('client_operation_id') if type(active) is dict else None
+    check(type(token) is str and len(token) == 32 and all(c in '0123456789abcdef' for c in token),
+          'PROCESSING_RECORD_INVALID')
+    name = 'processing-attempt-' + token + '.json'
+    check(active.get('schema') == 'desktop-active-processing/1' and active.get('record') == name,
+          'PROCESSING_RECORD_INVALID')
+    record = safe_record(folder / name)
+    sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+    check(type(record) is dict and record.get('schema') == 'desktop-processing-attempt/1' and
+          record.get('session_id') == folder.name and record.get('client_operation_id') == token and
+          active.get('record_sha256') == sha(folder / name) and
+          record.get('original_metadata_sha256') == sha(folder / 'desktop-session.json') and
+          record.get('job_sha256') == sha(folder / 'operation/job.json'), 'PROCESSING_RECORD_CHANGED')
+    return token
+
+
+def continuation_state(folder):
+    """Bind the displayed disk state; never treat it as proof of worker liveness."""
+    folder = Path(folder)
+    values = {}
+    paths = [folder / name for name in ('desktop-session.json', 'operation/job.json',
+                                       'operation/progress.json', 'active-processing.json')]
+    raw = folder / 'operation/raw'
+    check(not raw.is_symlink(), 'CONTINUATION_PATH_UNSAFE')
+    if raw.exists():
+        for path in raw.rglob('*'):
+            check(not path.is_symlink(), 'CONTINUATION_PATH_UNSAFE')
+            check(path.is_file() or path.is_dir(), 'CONTINUATION_PATH_UNSAFE')
+            if path.is_file():
+                paths.append(path)
+    for path in paths:
+        check(not path.is_symlink(), 'CONTINUATION_PATH_UNSAFE')
+        values[str(path.relative_to(folder))] = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+    return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
+
+
+def publish_attempt(folder, meta, task, request, cached):
+    """Called inside task_producer. Preserve originals and every previous token."""
+    from scripts.ocr.mvp.core import digest
+    folder = Path(folder)
+    token = request['client_operation_id']
+    with session_control(folder):
+        check(safe_record(folder / 'desktop-session.json') == meta, 'SESSION_METADATA_CHANGED')
+        check(not any((folder / 'operation' / name).exists() or (folder / 'operation' / name).is_symlink()
+                      for name in ('CANCEL', 'cancel')), 'CONTINUATION_CANCELLED')
+        check(continuation_state(folder) == request.get('continuation_state_sha256'),
+              'CONTINUATION_STATE_CHANGED')
+        previous = current_attempt(folder, meta)
+        check(token != previous and token != meta.get('client_operation_id'), 'CONTINUATION_TOKEN_REUSED')
+        pointer = folder / 'active-processing.json'
+        prior = safe_record(pointer) if pointer.exists() else None
+        record = dict(schema='desktop-processing-attempt/1', session_id=folder.name,
+                      client_operation_id=token, previous_client_operation_id=previous,
+                      previous_active_record=prior, original_metadata_sha256=hashlib.sha256((folder / 'desktop-session.json').read_bytes()).hexdigest(),
+                      previous_checkpoint=safe_record(folder / 'operation/progress.json') if (folder / 'operation/progress.json').is_file() else None,
+                      job_sha256=hashlib.sha256((folder / 'operation/job.json').read_bytes()).hexdigest(),
+                      source_sha256=meta['source_sha256'], runtime_binding_sha256=meta['runtime_binding']['sha256'],
+                      physical_pages=task['page_numbers'], retained_pages={str(n): digest(p) for n, p in cached.items()},
+                      remaining_pages=[n for n in task['page_numbers'] if n not in cached],
+                      document_id=request.get('document_id'), document_page_count=request.get('document_page_count'),
+                      observed_state_sha256=request['continuation_state_sha256'], note='Explicit processing attempt; not completion or worker-liveness evidence')
+        name = 'processing-attempt-' + token + '.json'
+        with (folder / name).open('x', encoding='utf-8') as out:
+            json.dump(record, out, ensure_ascii=False, indent=2);out.flush();os.fsync(out.fileno())
+        active = dict(schema='desktop-active-processing/1', client_operation_id=token, record=name,
+                      record_sha256=hashlib.sha256((folder / name).read_bytes()).hexdigest())
+        fd, temporary = tempfile.mkstemp(prefix='.active-processing-', dir=folder)
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as out:
+                json.dump(active, out, ensure_ascii=False, indent=2);out.flush();os.fsync(out.fileno())
+            os.replace(temporary, pointer)
+            fd = os.open(folder, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+        finally:
+            if Path(temporary).exists():Path(temporary).unlink()

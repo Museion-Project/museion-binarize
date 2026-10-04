@@ -12,6 +12,270 @@ from .__main__ import main, sha
 from .sessions import roots
 
 
+class ContinuationTests(unittest.TestCase):
+    """Explicit continuation and cancellation with preserved synthetic evidence.
+
+    Negative fixtures render native pages and construct transparent saved
+    evidence, without invoking a worker. Two positive cases use real native
+    subprocesses. None of these fixtures exercises recognition or ordinary GUI.
+    """
+    def setUp(self):
+        from scripts.ocr.mvp import local
+        from .sessions import runtime_binding
+        self.local = local
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name).resolve()
+        self.source = self.root / 'source.pdf'
+        with fitz.open() as doc:
+            for number in (1, 2, 3):
+                doc.new_page().insert_textbox(fitz.Rect(20, 20, 550, 500),
+                    f'Native continuation page {number} 314159 ' + 'preserve every source word without recognition ' * 8)
+            doc.save(self.source)
+        self.config = dict(session_root=str(self.root / 'sessions'), require_runtime_binding=True,
+                           require_document_binding=True, local=dict(apple_helper=str(self.source), tesseract=str(self.source),
+                           font=str(local.ROOT / 'crates/mpdf-core/assets/fonts/NotoSans-Regular.ttf')))
+        self.request = dict(mode='local', input_pdf=str(self.source), input_sha256=sha(self.source),
+                            document_id='reopened-source', document_page_count=3)
+        self.folder = self.root / 'sessions' / ('a' * 32)
+        self.folder.mkdir(parents=True)
+        self.op = self.folder / 'operation'
+        self.task = dict(operation_id=self.folder.name, input_pdf=str(self.source), input_sha256=sha(self.source),
+                         page_numbers=[1, 2], mode='local', output_directory=str(self.op), config_version=local.CONFIG_VERSION)
+        self.meta = dict(mode='local', source=str(self.source), source_sha256=sha(self.source),
+                         client_operation_id='c' * 32, provenance='transparent-synthetic-evidence',
+                         runtime_binding=runtime_binding(self.config), document_binding=dict(source_sha256=sha(self.source),
+                         source_pdf=str(self.source), source_page_count=3, physical_pages=[1, 2]))
+        from .__main__ import register_local_operation
+        local.write(self.folder / 'desktop-session.json', self.meta)
+        register_local_operation(self.folder, self.task, self.config['local'])
+        directory = self.op / 'raw/page-0001'
+        directory.mkdir(parents=True)
+        with fitz.open(self.source) as doc:
+            doc[0].get_pixmap().save(directory / 'source.png')
+            text = doc[0].get_text()
+        normalized = local.runtime_config(self.config['local'])
+        runtime = local.worker_runtime_identity(normalized)
+        local.write(directory / 'runtime-version.json', runtime)
+        local.write(directory / 'runtime-after.json', dict(unchanged=True, identity=runtime,
+                    before_sha256=sha(directory / 'runtime-version.json')))
+        self.page = dict(page=1, status='NATIVE_PRESERVED', route='native', words=[], native_text=text,
+                         source_sha256=sha(self.source), image_path=str(directory / 'source.png'),
+                         image_sha256=sha(directory / 'source.png'), raw_files={str(p.relative_to(self.op)): sha(p) for p in directory.iterdir()})
+        local.write(directory / 'page-result.json', self.page)
+        local.write(self.op / 'progress.json', dict(schema_version=1, completed=1, total=2, page_results=[self.page]))
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def files(self):
+        return {str(p.relative_to(self.folder)): sha(p) for p in self.folder.rglob('*') if p.is_file()}
+
+    def request_for(self, token='d' * 32):
+        observed = main(dict(self.request, action='reload', session_id=self.folder.name), self.config)
+        self.assertTrue(observed['continuation_available'])
+        return dict(self.request, action='continue', session_id=self.folder.name,
+                    client_operation_id=token, continuation_state_sha256=observed['continuation_state_sha256'])
+
+    def refuse(self, request, reason, config=None):
+        from unittest.mock import patch
+        before = self.files()
+        with patch.object(self.local.subprocess, 'Popen', side_effect=AssertionError('Refusal started a worker')) as spawn:
+            with self.assertRaisesRegex((ValueError, FileExistsError), reason):
+                main(request, config or self.config)
+            spawn.assert_not_called()
+        self.assertEqual(before, self.files())
+
+    def test_readonly_resume_has_no_processing_side_effects(self):
+        from unittest.mock import patch
+        before = self.files()
+        with patch.object(self.local, 'run_task', side_effect=AssertionError('Read-only resume processed')):
+            result = main(dict(self.request, action='resume'), self.config)
+        self.assertTrue(result['continuation_available'])
+        self.assertFalse(result['draft_published'])
+        self.assertEqual([p['status'] for p in result['pages']], ['NATIVE_PRESERVED', 'NOT_PROCESSED'])
+        self.assertEqual(before, self.files())
+
+    def test_fresh_local_metadata_is_written_once_even_after_processing_returns(self):
+        from unittest.mock import patch
+        from . import __main__ as bridge
+        write = bridge.write;writes = []
+        def preserve_original(path, value):
+            if Path(path).name == 'desktop-session.json':
+                self.assertFalse(Path(path).exists(), 'Original metadata was rewritten after processing')
+                writes.append(Path(path))
+            write(path, value)
+        with patch.object(bridge, 'write', side_effect=preserve_original), patch.object(self.local, 'run_task', return_value={}), patch.object(bridge, 'view', return_value={}):
+            main(dict(self.request, action='start', pages=[1, 2], client_operation_id='b' * 32), self.config)
+        self.assertEqual(len(writes), 1)
+
+    def test_actual_parent_interruption_continues_only_remaining_native_page(self):
+        from unittest.mock import patch
+        write = self.local.write
+        owned = []
+        real_popen = subprocess.Popen
+        class Interrupted(Exception): pass
+        def checkpoint(path, value):
+            write(path, value)
+            if Path(path).name == 'progress.json' and value['completed'] == 1:
+                raise Interrupted()
+        def spawn(*a, **kw):
+            proc = real_popen(*a, **kw);owned.append(proc);return proc
+        with patch.object(self.local, 'write', side_effect=checkpoint), patch.object(self.local.subprocess, 'Popen', side_effect=spawn):
+            with self.assertRaises(Interrupted):
+                main(dict(self.request, action='start', pages=[1, 2], client_operation_id='b' * 32), self.config)
+        self.folder = next(p.parent for p in (self.root / 'sessions').glob('*/desktop-session.json') if p.parent.name != 'a' * 32)
+        self.op = self.folder / 'operation'
+        originals = {n: sha(self.folder / n) for n in ('desktop-session.json', 'task-request.json', 'operation/job.json')}
+        first = {str(p.relative_to(self.folder)): sha(p) for p in (self.op / 'raw/page-0001').iterdir()}
+        with patch.object(self.local.subprocess, 'Popen', side_effect=spawn):
+            result = main(self.request_for(), self.config)
+        self.assertEqual(len(owned), 2)
+        self.assertEqual([p['status'] for p in result['pages']], ['NATIVE_PRESERVED'] * 2)
+        for n, h in {**originals, **first}.items(): self.assertEqual(sha(self.folder / n), h)
+        for proc in owned:
+            self.assertEqual(proc.returncode, 0)
+            self.assertTrue(proc.stdout.closed and proc.stderr.closed)
+            with self.assertRaises(ChildProcessError): os.waitpid(proc.pid, os.WNOHANG)
+        self.assertFalse(list((self.op / 'raw').glob('**/*.call.json')))
+        record = json.loads((self.folder / ('processing-attempt-' + 'd' * 32 + '.json')).read_text())
+        self.assertEqual(record['remaining_pages'], [2])
+        self.assertEqual(list(record['retained_pages']), ['1'])
+        self.assertEqual(record['document_id'], 'reopened-source')
+        self.refuse(dict(self.request, action='continue', session_id=self.folder.name,
+                         client_operation_id='e' * 32, continuation_state_sha256='0' * 64), 'TASK_ALREADY_PUBLISHED')
+
+    def test_changed_binding_and_missing_identity_are_rejected_without_writes(self):
+        request = self.request_for()
+        for extra, reason in ((dict(pages=[2]), 'PAGES_FIXED'), (dict(document_page_count=2), 'PAGE_COUNT_CHANGED'),
+                              (dict(document_id=''), 'DOCUMENT_BINDING_REQUIRED'),
+                              (dict(client_operation_id=None), 'OPERATION_REQUIRED'),
+                              (dict(continuation_state_sha256=None), 'STATE_REQUIRED')):
+            with self.subTest(extra=extra): self.refuse(dict(request, **extra), reason)
+        changed = copy.deepcopy(self.config);changed['local']['max_residual_regions'] = 1
+        self.refuse(request, 'RUNTIME_UNVERIFIED_OR_CHANGED', changed)
+        self.source.write_bytes(self.source.read_bytes() + b'changed')
+        self.refuse(request, 'HASH')
+
+    def test_partial_corrupt_cancelled_and_stale_checkpoint_refuse_before_attempt(self):
+        request = self.request_for()
+        image = self.op / 'raw/page-0001/source.png';original = image.read_bytes()
+        image.write_bytes(original + b'changed');self.refuse(request, 'NOT_AVAILABLE');image.write_bytes(original)
+        worker = self.op / 'raw/worker-2.json';worker.write_text('{"prior":"preserve"}')
+        self.refuse(self.request_for(), 'PARTIAL_WORKER_EVIDENCE');worker.unlink()
+        checkpoint = self.op / 'progress.json';original = checkpoint.read_bytes()
+        checkpoint.write_text('{"malformed":"preserve"}')
+        self.refuse(self.request_for(), 'CHECKPOINT_UNVERIFIED');checkpoint.write_bytes(original)
+        cancel = self.op / 'CANCEL';cancel.touch();self.refuse(request, 'NOT_AVAILABLE')
+        self.assertFalse((self.folder / 'active-processing.json').exists())
+
+    def test_whole_job_lease_rejects_duplicate_producer_before_attempt(self):
+        request = self.request_for()
+        with self.local.task_producer(self.op): self.refuse(request, 'TASK_PRODUCER_BUSY')
+        self.assertFalse((self.folder / 'active-processing.json').exists())
+
+    def test_old_token_cannot_cancel_new_attempt_and_new_pending_cancel_starts_no_worker(self):
+        from unittest.mock import patch
+        import io
+        request = self.request_for();outer = self
+        class CancelOnAdmission(io.StringIO):
+            def write(self, value):
+                if value.startswith('{'):
+                    event = json.loads(value)
+                    if event.get('event') == 'session':
+                        outer.refuse(dict(outer.request, action='cancel', session_id=outer.folder.name,
+                                         client_operation_id='c' * 32), 'CANCEL_OPERATION_MISMATCH')
+                        main(dict(outer.request, action='cancel', session_id=outer.folder.name,
+                                  client_operation_id=event['client_operation_id']), outer.config)
+                return super().write(value)
+        original = sha(self.folder / 'desktop-session.json')
+        with patch.object(sys, 'stderr', CancelOnAdmission()), patch.object(self.local.subprocess, 'Popen', side_effect=AssertionError('Pending cancel started worker')) as spawn:
+            result = main(request, self.config)
+            spawn.assert_not_called()
+        self.assertEqual(result['status'], 'cancelled')
+        self.assertEqual(sha(self.folder / 'desktop-session.json'), original)
+        self.assertTrue((self.op / 'CANCEL').exists())
+        self.assertFalse(list((self.op / 'raw').glob('worker-2*')))
+
+    def test_stale_display_and_reused_attempt_token_preserve_records(self):
+        from unittest.mock import patch
+        request = self.request_for()
+        (self.op / 'raw/new-evidence.txt').write_text('preserve prior evidence')
+        self.refuse(request, 'STATE_CHANGED')
+        request = self.request_for()
+        class AfterAdmission(Exception): pass
+        def interrupted(*a, **kw):
+            if kw.get('file') is sys.stderr: raise AfterAdmission()
+        with patch('builtins.print', side_effect=interrupted):
+            with self.assertRaises(AfterAdmission): main(request, self.config)
+        self.assertTrue((self.folder / 'active-processing.json').exists())
+        self.refuse(self.request_for(), 'TOKEN_REUSED')
+        self.refuse(dict(self.request, action='cancel', session_id=self.folder.name), 'CANCEL_OPERATION_MISMATCH')
+
+    def test_cancel_waiting_on_control_lock_cannot_apply_old_token_after_publication(self):
+        from unittest.mock import patch
+        from . import sessions
+        import threading
+        blocked = threading.Event();errors = []
+        replace = os.replace;flock = sessions.fcntl.flock
+        class AfterAdmission(Exception): pass
+        def cancel():
+            try:main(dict(self.request, action='cancel', session_id=self.folder.name, client_operation_id='c' * 32), self.config)
+            except BaseException as exc:errors.append(str(exc))
+        contender = threading.Thread(target=cancel, name='old-cancel-contender')
+        def observe_flock(*a):
+            try:return flock(*a)
+            except BlockingIOError:
+                if threading.current_thread() is contender:blocked.set()
+                raise
+        def publish(a, b):
+            if Path(b) == self.folder / 'active-processing.json':
+                contender.start();self.assertTrue(blocked.wait(1), 'Old cancellation did not contend on the real lock')
+            return replace(a, b)
+        def stop_before_worker(*a, **kw):
+            if kw.get('file') is sys.stderr:raise AfterAdmission()
+        try:
+            with patch.object(sessions.fcntl, 'flock', side_effect=observe_flock), patch.object(os, 'replace', side_effect=publish), patch('builtins.print', side_effect=stop_before_worker):
+                with self.assertRaises(AfterAdmission):main(self.request_for(), self.config)
+                contender.join(2)
+            self.assertFalse(contender.is_alive());self.assertEqual(errors, ['CANCEL_OPERATION_MISMATCH'])
+            self.assertFalse((self.op / 'CANCEL').exists())
+        finally:
+            if contender.ident is not None:contender.join(3)
+
+    def test_two_explicit_attempts_keep_prior_record_and_completed_page(self):
+        from unittest.mock import patch
+        self.task['page_numbers'] = [1, 2, 3]
+        self.meta['document_binding']['physical_pages'] = [1, 2, 3]
+        self.local.write(self.folder / 'desktop-session.json', self.meta)
+        self.local.write(self.op / 'job.json', dict(schema_version=1, task=self.task,
+                         config=self.local.runtime_config(self.config['local']), identity=self.local.digest(dict(task=self.task, config=self.local.runtime_config(self.config['local'])))))
+        self.local.write(self.op / 'progress.json', dict(schema_version=1, completed=1, total=3, page_results=[self.page]))
+        write = self.local.write;owned = [];real_popen = subprocess.Popen
+        class Interrupted(Exception): pass
+        def checkpoint(path, value):
+            write(path, value)
+            if Path(path) == self.op / 'progress.json' and value['completed'] == 2: raise Interrupted()
+        def spawn(*a, **kw):
+            proc = real_popen(*a, **kw);owned.append(proc);return proc
+        with patch.object(self.local, 'write', side_effect=checkpoint), patch.object(self.local.subprocess, 'Popen', side_effect=spawn):
+            with self.assertRaises(Interrupted): main(self.request_for(), self.config)
+        first_record = self.folder / ('processing-attempt-' + 'd' * 32 + '.json');first_sha = sha(first_record)
+        page2 = {str(p.relative_to(self.folder)): sha(p) for p in (self.op / 'raw/page-0002').iterdir()}
+        with patch.object(self.local.subprocess, 'Popen', side_effect=spawn): result = main(self.request_for('e' * 32), self.config)
+        self.assertEqual(len(owned), 2)
+        self.assertEqual(sha(first_record), first_sha)
+        for n, h in page2.items(): self.assertEqual(sha(self.folder / n), h)
+        self.assertEqual([p['status'] for p in result['pages']], ['NATIVE_PRESERVED'] * 3)
+        active = json.loads((self.folder / 'active-processing.json').read_text())
+        record = json.loads((self.folder / active['record']).read_text())
+        self.assertEqual(record['previous_active_record']['record_sha256'], first_sha)
+        self.assertEqual(record['remaining_pages'], [3])
+        self.assertEqual(record['previous_checkpoint']['completed'], 2)
+        for proc in owned:
+            self.assertEqual(proc.returncode, 0);self.assertTrue(proc.stdout.closed and proc.stderr.closed)
+            with self.assertRaises(ChildProcessError): os.waitpid(proc.pid, os.WNOHANG)
+
+
 class RecoveryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

@@ -13,6 +13,7 @@ pub struct Request {
     pub mode: String,
     pub session_id: Option<String>,
     pub client_operation_id: Option<String>,
+    pub continuation_state_sha256: Option<String>,
     pub pages: Option<Vec<u32>>,
     pub import_path: Option<String>,
     pub expected_revision: Option<u64>,
@@ -39,11 +40,18 @@ pub fn local_ocr_capabilities() -> Value {
 #[tauri::command]
 pub async fn local_ocr_call(request: Request, app: AppHandle, state: State<'_,AppState>) -> Result<Value,UiErrorDto> {
     if !cfg!(feature="local-ocr-candidate") {return Err(request_error("candidate_disabled","Local OCR candidate is disabled."));}
-    if request.mode!="local" || !["readiness","start","cancel","resume","reload","review","save","search","recover-save"].contains(&request.action.as_str()) {
+    validate_local_request(&request)?;
+    bridge_call(request,app,state,true).await
+}
+fn validate_local_request(request: &Request) -> Result<(),UiErrorDto> {
+    if request.mode!="local" || !["readiness","start","cancel","continue","resume","reload","review","save","search","recover-save"].contains(&request.action.as_str()) {
         return Err(request_error("invalid_request","Only the local OCR workflow is available."));
     }
-    if ["start","cancel"].contains(&request.action.as_str()) && request.client_operation_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) {return Err(request_error("invalid_request","A bound local operation identity is required."));}
-    bridge_call(request,app,state,true).await
+    if ["start","cancel","continue"].contains(&request.action.as_str()) && request.client_operation_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) {return Err(request_error("invalid_request","A bound local operation identity is required."));}
+    if request.action=="continue" && (request.session_id.as_ref().is_none_or(|id|id.len()!=32||!id.bytes().all(|b|b.is_ascii_hexdigit())) || request.continuation_state_sha256.as_ref().is_none_or(|id|id.len()!=64||!id.bytes().all(|b|b.is_ascii_hexdigit())) || request.pages.is_some()) {
+        return Err(request_error("invalid_request","Continue requires the observed original task and its unchanged page selection."));
+    }
+    Ok(())
 }
 #[tauri::command]
 pub async fn mvp_call(request: Request, app: AppHandle, state: State<'_,AppState>) -> Result<Value,UiErrorDto> {
@@ -51,14 +59,14 @@ pub async fn mvp_call(request: Request, app: AppHandle, state: State<'_,AppState
     bridge_call(request,app,state,false).await
 }
 async fn bridge_call(request: Request, app: AppHandle, state: State<'_,AppState>, packaged: bool) -> Result<Value,UiErrorDto> {
-    if !["local","critical-edition","paid","paid-contents"].contains(&request.mode.as_str()) || !["readiness","start","cancel","import","resume","reload","review","save","search","preflight","recover-save"].contains(&request.action.as_str()) {
+    if !["local","critical-edition","paid","paid-contents"].contains(&request.mode.as_str()) || !["readiness","start","cancel","continue","import","resume","reload","review","save","search","preflight","recover-save"].contains(&request.action.as_str()) {
         return Err(request_error("invalid_request","Explicit mode/action required."));
     }
     if request.action=="start" && ["paid","paid-contents"].contains(&request.mode.as_str()) {
         return Err(request_error("cloud_disabled","Cloud sending is disabled. Import an existing result; a future send requires exact payload, endpoint, model and budget approval."));
     }
     let mut lease=None;
-    let document=if ["start","import","review","save","recover-save"].contains(&request.action.as_str()) {
+    let document=if ["start","continue","import","review","save","recover-save"].contains(&request.action.as_str()) {
         let (bound,doc)=state.claim_document_operation(request.document_id.as_deref(),OperationKind::Processing)
             .map_err(|code|request_error(code,if code=="operation_active" {"Wait for the current document operation."} else {"Open the matching source PDF first."}))?;
         lease=Some(bound);
@@ -85,7 +93,7 @@ async fn bridge_call(request: Request, app: AppHandle, state: State<'_,AppState>
     };
     if !python.is_absolute()||!python.is_file()||!package_root.is_absolute()||!package_root.join("scripts/ocr/app_mvp_bridge/__main__.py").is_file() {return Err(request_error("runtime_missing","Local OCR components are incomplete."));}
     let mut payload=json!({"action":request.action,"mode":request.mode});
-    let fields=[("session_id",json!(request.session_id)),("client_operation_id",json!(request.client_operation_id)),("pages",json!(request.pages)),("import_path",json!(request.import_path)),("expected_revision",json!(request.expected_revision)),("actions",json!(request.actions)),("output_path",json!(request.output_path)),("selected_ids",json!(request.selected_ids)),("partial_confirmed",json!(request.partial_confirmed)),("query",json!(request.query)),("saved_pdf",json!(request.saved_pdf)),("save_journal_id",json!(request.save_journal_id)),("save_journal_sha256",json!(request.save_journal_sha256))];
+    let fields=[("session_id",json!(request.session_id)),("client_operation_id",json!(request.client_operation_id)),("continuation_state_sha256",json!(request.continuation_state_sha256)),("pages",json!(request.pages)),("import_path",json!(request.import_path)),("expected_revision",json!(request.expected_revision)),("actions",json!(request.actions)),("output_path",json!(request.output_path)),("selected_ids",json!(request.selected_ids)),("partial_confirmed",json!(request.partial_confirmed)),("query",json!(request.query)),("saved_pdf",json!(request.saved_pdf)),("save_journal_id",json!(request.save_journal_id)),("save_journal_sha256",json!(request.save_journal_sha256))];
     for (key,value) in fields {if !value.is_null(){payload[key]=value;}}
     if let Some(doc)=document {
         payload["input_pdf"]=json!(doc.input_path);payload["input_sha256"]=json!(doc.source_sha256);
@@ -208,6 +216,21 @@ fn prepare_session_root(path: &Path) -> std::io::Result<PathBuf> {
 #[cfg(test)]
 mod session_storage_tests {
     use super::*;
+    #[test]
+    fn continuation_requires_original_session_state_and_new_operation() {
+        let value=json!({"documentId":"open-source","action":"continue","mode":"local",
+            "sessionId":"a".repeat(32),"clientOperationId":"b".repeat(32),"continuationStateSha256":"c".repeat(64)});
+        let valid:Request=serde_json::from_value(value.clone()).unwrap();
+        assert!(validate_local_request(&valid).is_ok());
+        assert_eq!(serde_json::to_value(valid).unwrap()["continuationStateSha256"],value["continuationStateSha256"]);
+        for (field,invalid) in [("mode",json!("paid")),("action",json!("import")),
+            ("sessionId",Value::Null),("clientOperationId",Value::Null),("continuationStateSha256",Value::Null),
+            ("sessionId",json!("../outside")),("continuationStateSha256",json!("stale")),("pages",json!([2,3]))] {
+            let mut request=value.clone();request[field]=invalid;
+            let request:Request=serde_json::from_value(request).unwrap();
+            assert!(validate_local_request(&request).is_err(),"{field}");
+        }
+    }
     #[cfg(unix)]
     fn fixture(script: &str) -> Child {
         Command::new("/bin/sh").args(["-c",script]).stdin(Stdio::piped())
