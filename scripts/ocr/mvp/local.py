@@ -1,6 +1,7 @@
 """Fresh input -> Apple -> pixel residual crops -> optional independent reader -> PDF."""
 import argparse
 from contextlib import contextmanager
+import fcntl
 import importlib.util
 import json
 import math
@@ -8,6 +9,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -335,6 +337,28 @@ def saved_page_result(out,number,task,config):
     check(sha(selected)==original_hash,'RESULT_CHANGED')
     return p
 
+@contextmanager
+def task_producer(out):
+    """One producer for the entire task, including validation and publication.
+
+    Lock the immutable job inode without changing saved bytes or creating a
+    stale PID marker. The OS releases ownership on exit. Workers do not inherit
+    the descriptor; a second producer must fail before touching progress/raw.
+    """
+    path=Path(out)/'job.json'
+    if path.is_symlink():raise ValueError('TASK_JOB_PATH_SYMLINK')
+    if not path.exists():raise FileExistsError('Use a new output directory or identical resumable task')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        info=os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=os.getuid():raise ValueError('TASK_JOB_FILE_UNSAFE')
+        try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError as exc:raise ValueError('TASK_PRODUCER_BUSY') from exc
+        current=path.lstat()
+        if (current.st_dev,current.st_ino)!=(info.st_dev,info.st_ino) or current.st_nlink!=1:raise ValueError('TASK_JOB_FILE_CHANGED')
+        yield
+    finally:os.close(fd)
+
 def run_task(task,config=None):
     required=('operation_id','input_pdf','input_sha256','page_numbers','mode','output_directory','config_version')
     if any(k not in task for k in required):raise ValueError('MISSING_TASK_FIELDS')
@@ -363,7 +387,16 @@ def run_task(task,config=None):
     pages=task['page_numbers']
     if not pages or len(pages)!=len(set(pages)) or any(type(p) is not int or not 1<=p<=len(doc) for p in pages):raise ValueError('INVALID_PAGE_RANGE')
     doc.close();identity=digest(dict(task=task,config=config))
-    existing=out.exists();cached={}
+    existing=out.exists()
+    if not existing:
+        out.mkdir(parents=True)
+        write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config))
+    with task_producer(out):
+        return _run_task_owned(task,config,source,out,identity,existing)
+
+def _run_task_owned(task,config,source,out,identity,existing):
+    """Internal processing path; run_task holds exclusive job ownership."""
+    pages=task['page_numbers'];cached={}
     if existing:
         if (out/'job.json').is_symlink():raise ValueError('TASK_JOB_PATH_SYMLINK')
         if not (out/'job.json').exists():raise FileExistsError('Use a new output directory or identical resumable task')
@@ -401,8 +434,6 @@ def run_task(task,config=None):
             recorded={p['page']:p for p in rows}
             if set(cached)!=set(recorded) or any(digest(p)!=digest(recorded[n]) for n,p in cached.items()):
                 raise ValueError('SAVED_PAGE_CHECKPOINT_MISMATCH')
-    else:out.mkdir(parents=True)
-    if not existing:write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config))
     (out/'raw').mkdir(exist_ok=True)
     results=[];started=time.monotonic();cancelled=False
     for number in pages:

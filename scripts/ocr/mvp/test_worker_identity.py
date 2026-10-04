@@ -1,5 +1,6 @@
 """Real receipt structure and source mutation refusal, without recognition."""
 import json
+import fcntl
 import os
 import signal
 import subprocess
@@ -44,6 +45,129 @@ class WorkerIdentityTests(unittest.TestCase):
             self.assertEqual(result['words'],[])
             persisted=json.loads((root/'out/raw/page-0001/page-result.json').read_text())
             self.assertIn('WORKER_SOURCE_CHANGED',persisted['error'])
+
+
+class TaskProducerOwnershipTests(unittest.TestCase):
+    """Real process locks and synthetic native PDF; no recognition or PID guesses."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+        self.source=self.root/'source.pdf';self.out=self.root/'operation';self.out.mkdir()
+        with local.fitz.open() as doc:
+            page=doc.new_page()
+            for row in range(4):page.insert_text((30,40+20*row),f'Synthetic native producer ownership control row {row} preserves source bytes 314159.')
+            doc.save(self.source)
+        self.task=dict(operation_id='producer-ownership-control',input_pdf=str(self.source),
+                       input_sha256=local.sha(self.source),page_numbers=[1],mode='local',
+                       output_directory=str(self.out),config_version=local.CONFIG_VERSION)
+        self.config=dict(apple_helper=str(self.source),tesseract=str(self.source),
+                         font=str(local.ROOT/'crates/mpdf-core/assets/fonts/NotoSans-Regular.ttf'))
+        normalized=local.runtime_config(self.config)
+        local.write(self.out/'job.json',dict(schema_version=1,identity=local.digest(dict(task=self.task,config=normalized)),
+                                            task=self.task,config=normalized))
+
+    def tearDown(self):self.temp.cleanup()
+
+    def files(self):return {str(p.relative_to(self.out)):local.sha(p) for p in self.out.rglob('*') if p.is_file()}
+
+    def test_another_process_cannot_start_same_task_or_change_saved_bytes(self):
+        code='''import sys
+from scripts.ocr.mvp import local
+with local.task_producer(sys.argv[1]):
+ print('OWNED',flush=True)
+ sys.stdin.readline()
+'''
+        proc=REAL_POPEN([sys.executable,'-c',code,str(self.out)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=local.ROOT)
+        try:
+            import selectors
+            with selectors.DefaultSelector() as selector:
+                selector.register(proc.stdout,selectors.EVENT_READ);self.assertTrue(selector.select(8))
+            self.assertEqual(proc.stdout.readline().strip(),'OWNED');self.assertIsNone(proc.poll())
+            before=self.files()
+            with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Second producer spawned a worker')) as worker:
+                with self.assertRaisesRegex(ValueError,'TASK_PRODUCER_BUSY'):local.run_task(self.task,self.config)
+                worker.assert_not_called()
+            self.assertEqual(self.files(),before)
+        finally:
+            proc.communicate('release\n',timeout=8)
+            self.assertEqual(proc.returncode,0)
+            self.assertTrue(all(p.closed for p in (proc.stdin,proc.stdout,proc.stderr)))
+            with self.assertRaises(ChildProcessError):os.waitpid(proc.pid,os.WNOHANG)
+
+    def test_owner_exception_releases_lock_then_native_task_can_finish(self):
+        class InterruptedBeforeWorker(BaseException):pass
+        with patch.object(local.subprocess,'Popen',side_effect=InterruptedBeforeWorker):
+            with self.assertRaises(InterruptedBeforeWorker):local.run_task(self.task,self.config)
+        self.assertFalse((self.out/'CURRENT.json').exists())
+        result=local.run_task(self.task,self.config)
+        self.assertEqual(result['page_results'][0]['status'],'NATIVE_PRESERVED')
+        before=self.files()
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Completed native page restarted')):
+            self.assertEqual(local.run_task(self.task,self.config),result)
+        self.assertEqual(self.files(),before)
+
+    def test_crashed_owner_releases_lock_without_stale_marker_repair(self):
+        code='''import os,sys
+from scripts.ocr.mvp import local
+with local.task_producer(sys.argv[1]):os._exit(88)
+'''
+        before=self.files()
+        proc=REAL_POPEN([sys.executable,'-c',code,str(self.out)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=local.ROOT)
+        stdout,stderr=proc.communicate(timeout=8)
+        self.assertEqual(proc.returncode,88);self.assertEqual((stdout,stderr),('',''))
+        self.assertEqual(self.files(),before)
+        self.assertTrue(proc.stdout.closed and proc.stderr.closed)
+        with self.assertRaises(ChildProcessError):os.waitpid(proc.pid,os.WNOHANG)
+        with local.task_producer(self.out):self.assertEqual(self.files(),before)
+
+    def test_lock_descriptor_is_readonly_noninheritable_and_closed_on_error(self):
+        opened=[];real_open=local.os.open
+        def capture(*a,**k):
+            fd=real_open(*a,**k);opened.append(fd);return fd
+        with patch.object(local.os,'open',side_effect=capture):
+            with self.assertRaisesRegex(RuntimeError,'synthetic owner error'):
+                with local.task_producer(self.out):
+                    self.assertEqual(len(opened),1);fd=opened[0]
+                    self.assertFalse(os.get_inheritable(fd))
+                    self.assertEqual(fcntl.fcntl(fd,fcntl.F_GETFL)&os.O_ACCMODE,os.O_RDONLY)
+                    raise RuntimeError('synthetic owner error')
+        with self.assertRaises(OSError):os.fstat(opened[0])
+
+    def test_different_output_task_is_independent_of_held_task(self):
+        second=self.root/'second';task=dict(self.task,operation_id='independent-producer',output_directory=str(second))
+        class StoppedAtWorker(BaseException):pass
+        with local.task_producer(self.out):
+            with patch.object(local.subprocess,'Popen',side_effect=StoppedAtWorker) as worker:
+                with self.assertRaises(StoppedAtWorker):local.run_task(task,self.config)
+                self.assertEqual(worker.call_count,1)
+        self.assertTrue((second/'job.json').is_file());self.assertFalse((second/'CURRENT.json').exists())
+
+    def test_linked_or_nonregular_job_is_refused_before_worker(self):
+        job=self.out/'job.json';original=job.read_bytes()
+        for kind,reason in (('symlink','TASK_JOB_PATH_SYMLINK'),('hardlink','TASK_JOB_FILE_UNSAFE'),('directory','TASK_JOB_FILE_UNSAFE'),('fifo','TASK_JOB_FILE_UNSAFE')):
+            with self.subTest(kind=kind):
+                job.unlink();other=self.root/('other-'+kind);other.write_bytes(original)
+                if kind=='symlink':job.symlink_to(other)
+                elif kind=='hardlink':os.link(other,job)
+                elif kind=='directory':job.mkdir()
+                else:os.mkfifo(job)
+                with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Unsafe job started worker')) as worker:
+                    with self.assertRaisesRegex(ValueError,reason):local.run_task(self.task,self.config)
+                    worker.assert_not_called()
+                self.assertEqual(other.read_bytes(),original)
+                if job.is_dir():job.rmdir()
+                else:job.unlink()
+                job.write_bytes(original)
+
+    def test_job_replacement_while_acquiring_ownership_is_refused(self):
+        job=self.out/'job.json';original=job.read_bytes();real_flock=local.fcntl.flock
+        def replace(fd,flags):
+            real_flock(fd,flags);job.rename(self.out/'original-job.json');job.write_bytes(original)
+        with patch.object(local.fcntl,'flock',side_effect=replace),patch.object(local.subprocess,'Popen',side_effect=AssertionError('Changed job started worker')) as worker:
+            with self.assertRaisesRegex(ValueError,'TASK_JOB_FILE_CHANGED'):local.run_task(self.task,self.config)
+            worker.assert_not_called()
+        self.assertEqual((self.out/'original-job.json').read_bytes(),original)
+        self.assertEqual(job.read_bytes(),original)
+        self.assertFalse((self.out/'raw').exists())
 
 
 class ParentWorkerLifecycleTests(unittest.TestCase):
