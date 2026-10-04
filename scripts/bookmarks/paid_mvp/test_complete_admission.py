@@ -81,3 +81,33 @@ class CompleteAdmissionTests(unittest.TestCase):
         rows[0]['continuation_of']=1000;rows[1]['parent_index']=2000
         result=decide_complete(rows,source,'s','r')
         self.assertEqual(result['decision'],'review');self.assertEqual(len(result['unresolved_predictions']),2)
+
+    def test_reader_unknown_blocks_even_with_stale_complete_flag(self):
+        for field,value in [('reader_alternatives',dict(line_id='extra',page=1,text='Other 30')),
+                            ('reader_unresolved_members',dict(word_id='extra-word',page=1,reason='region unresolved'))]:
+            with self.subTest(field=field):
+                source=self.source(2);source['document'][field]=[value]
+                result=decide_complete(self.rows(source),source,'s','r')
+                self.assertEqual(result['decision'],'review');self.assertTrue(result['export_locked'])
+                self.assertEqual(result['known_units'],2);self.assertEqual(result['known_valid'],2)
+                self.assertEqual(result['known_missing'],0)
+                self.assertIn('independent_reader_coverage_unknown',[r['code'] for r in result['risks']])
+
+    def test_persisted_page_alternatives_survive_missing_old_document_aggregate(self):
+        source=self.source(2);extra=dict(line_id='extra',page=1,text='Other 30')
+        source['pages'][0]['reader_comparison']=dict(alternative_only=[extra],unresolved=[])
+        result=decide_complete(self.rows(source),source,'s','r')
+        self.assertEqual(result['decision'],'review');self.assertEqual(result['unknown_reader_alternatives'],[extra])
+        source['document']['reader_alternatives']=[copy.deepcopy(extra)]
+        result=decide_complete(self.rows(source),source,'s','r')
+        self.assertEqual(result['unknown_reader_alternatives'],[extra])
+        source['pages'][0]['reader_comparison']['unresolved']=[dict(word_id='u',reason='region missing')]
+        self.assertEqual(len(decide_complete(self.rows(source),source,'s','r')['unknown_reader_members']),1)
+
+    def test_reader_unknown_never_dilutes_six_of_28_severe_missing(self):
+        source=self.source();rows=self.rows(source)[6:]
+        source['document']['reader_alternatives']=[dict(line_id=f'u{n}',page=1,text='unverified') for n in range(100)]
+        result=decide_complete(rows,source,'s','r')
+        self.assertEqual(result['known_units'],28);self.assertEqual(result['known_missing'],6)
+        self.assertAlmostEqual(result['known_missing_fraction'],6/28)
+        self.assertEqual(result['decision'],'abstain');self.assertEqual(len(result['unknown_reader_alternatives']),100)

@@ -15,7 +15,7 @@ from PIL import Image
 from .source_identity import bind_words, physical_lines, compare_readers, ownership, identity, entry_identity
 from .source_coverage import digest
 
-VERSION = 'toc-complete-source-v2'
+VERSION = 'toc-complete-source-v3'
 TSV_FIELDS = ('level','page_num','block_num','par_num','line_num','word_num','left','top','width','height','conf','text')
 ROMAN = re.compile(r'M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$',re.I)
 
@@ -93,6 +93,9 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
     by_id={l['line_id']:l for l in lines}
     parent={lid:lid for lid in by_id};incoming={};outgoing={};rejected=[];accepted=[]
     agreement={r['line_id']:r['state'] for r in (reader_comparison or {}).get('primary',[])}
+    reader_alternatives=list((reader_comparison or {}).get('alternative_only',[]))
+    reader_unresolved=list((reader_comparison or {}).get('unresolved',[]))
+    reader_coverage_ready=not reader_alternatives and not reader_unresolved
     def root(lid):
         while parent[lid]!=lid:lid=parent[lid]
         return lid
@@ -178,8 +181,11 @@ def complete_entries(line_result,zones,relations=(),reader_comparison=None,line_
     group_audit=ownership([e['entry_id'] for e in entries],[g['entry_ids'] for g in groups])
     return dict(entries=entries,groups=groups,ownership=member_audit,group_ownership=group_audit,
                 unresolved=line_result['unresolved'],rejected_relations=rejected,rejected_line_roles=role_rejections,
+                reader_alternatives=reader_alternatives,reader_unresolved_members=reader_unresolved,
+                reader_coverage_state='UNKNOWN' if not reader_coverage_ready else 'NO_REPORTED_ALTERNATIVES',
                 complete_identity_ready=bool(entries) and line_result['identity_ready'] and member_audit['state']=='PASS'
-                    and group_audit['state']=='PASS' and not rejected and not role_rejections and all(e['state']=='OBSERVED' for e in entries),
+                    and group_audit['state']=='PASS' and not rejected and not role_rejections and reader_coverage_ready
+                    and all(e['state']=='OBSERVED' for e in entries),
                 human_checked=False,admission_ready=False)
 
 
@@ -222,6 +228,7 @@ def observe_complete(request,*,layouts,cached_pages=(),document_relations=()):
     numbers=[im['page_number'] for im in request['images']]
     if len(numbers)!=len(set(numbers)):raise ValueError('DUPLICATE_REQUEST_PAGE')
     pages=[];document_lines=[];document_unresolved=[];document_zones=[];document_roles=[];document_links=[];comparisons=[]
+    document_alternatives=[];document_reader_unresolved=[]
     with fitz.open(source) as doc:
         for raw_image in request['images']:
             image=dict(raw_image,source_sha256=source_sha);number=image['page_number'];page=doc[number-1]
@@ -256,11 +263,17 @@ def observe_complete(request,*,layouts,cached_pages=(),document_relations=()):
                 alt_words,alt_proof=cached_words(alternate,page,image,clip,dpi)
                 alt_bound=bind_words(alt_words,source_sha256=source_sha,image_sha256=image['sha256'],page=number,reader='tsv:'+alternate['stdout_sha256'])
                 alt_lines=physical_lines(alt_bound,zones);comparison=compare_readers(line_result['lines'],alt_lines['lines'])
-                comparison.update(provenance=alt_proof,unresolved=alt_lines['unresolved'])
+                alt_by_id={w['word_id']:w for w in alt_bound}
+                comparison.update(provenance=alt_proof,
+                    unresolved=[dict(u,page=number,source_sha256=source_sha,image_sha256=image['sha256'],
+                                     word=alt_by_id[u['word_id']]) for u in alt_lines['unresolved']])
             result=complete_entries(line_result,zones,relations,comparison,(layout or {}).get('line_roles',[]))
             document_lines.extend(line_result['lines']);document_unresolved.extend(line_result['unresolved'])
             document_zones.extend(zones);document_roles.extend((layout or {}).get('line_roles',[]));document_links.extend(relations)
-            if comparison:comparisons.extend(comparison['primary'])
+            if comparison:
+                comparisons.extend(comparison['primary'])
+                document_alternatives.extend(comparison['alternative_only'])
+                document_reader_unresolved.extend(comparison['unresolved'])
             pages.append(dict(page_number=number,source_sha256=source_sha,image_sha256=image['sha256'],method=method,
                               words=bound,lines=line_result['lines'],line_ownership=line_result['ownership'],
                               reader_provenance=provenance,reader_comparison=comparison,layout=layout,**result))
@@ -270,7 +283,8 @@ def observe_complete(request,*,layouts,cached_pages=(),document_relations=()):
     document=complete_entries(dict(lines=document_lines,unresolved=document_unresolved,
                                   identity_ready=not document_unresolved and document_line_audit['state']=='PASS'),
                               document_zones,document_links+list(document_relations),
-                              dict(primary=comparisons),document_roles)
+                              dict(primary=comparisons,alternative_only=document_alternatives,
+                                   unresolved=document_reader_unresolved),document_roles)
     return dict(schema='toc-complete-source/1',observer_version=VERSION,source_sha256=source_sha,pages=pages,
                 document=document,document_line_ownership=document_line_audit,
                 new_reader_calls=0,network_sent=False,admission_ready=False,

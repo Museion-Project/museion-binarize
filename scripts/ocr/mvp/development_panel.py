@@ -10,10 +10,47 @@ import ast
 import hashlib
 import json
 import re
+import unicodedata
 from pathlib import Path
 from PIL import Image
 
-RULES = 'source-complete-unit-v1'
+RULES = 'source-complete-unit-v2'
+
+
+def complete_greek_word(text):
+    """Recognize one audited Greek word without normalizing source bytes.
+
+    Completeness still comes from the source audit. Unicode alone cannot prove
+    it. Mixed words, numerals, hyphen fragments and orphan marks do not count.
+    """
+    if not isinstance(text, str) or len(text.split()) != 1:
+        return False
+    word = text.strip('\"\'“”‘’.,;:!?()[]{}«»··')
+    letters = 0
+    for char in word:
+        category = unicodedata.category(char)
+        if category in ('Ll', 'Lu', 'Lt') and 'GREEK' in unicodedata.name(char, ''):
+            letters += 1
+        elif category.startswith('M') and 0x0300 <= ord(char) <= 0x036f and letters:
+            continue
+        else:
+            return False
+    return letters > 0
+
+
+def greek_source_word_ids(units, rows):
+    """Count individually confirmed physical occurrences, including repeats.
+
+    Legacy compound transcriptions lack individual complete-word evidence and
+    remain outside this denominator until source-audited; they are not split.
+    """
+    known = {row['unit_id'] for row in rows
+             if row['state'] in ('SOURCE_AUDITED_GAP', 'BASELINE_COMPLETE', 'PROJECTION_ONLY')}
+    return [unit['unit_id'] for unit in units
+            if unit['unit_id'] in known and unit.get('bbox')
+            and unit.get('complete_printed_word') is True
+            and unit.get('source_literal') == unit.get('source_visual_transcription')
+            and complete_greek_word(unit.get('source_literal'))]
 
 
 def verify_reuse(units, subset, freeze):
@@ -134,7 +171,7 @@ def qualify(units, *, max_pages=24, max_opportunities=120, subset=None, reuse_fr
     ids = [u['unit_id'] for u in units]
     if len(ids) != len(set(ids)):
         raise ValueError('DUPLICATE_SOURCE_UNIT')
-    physical=[(u['book'],u.get('source_id') or u.get('source_page') or u['page'],tuple(u['bbox']),u['crop_sha256']) for u in units if 'bbox' in u]
+    physical=[(u['book'],u.get('source_id') or u.get('source_page') or u['page'],tuple(u['bbox'])) for u in units if 'bbox' in u]
     if len(physical)!=len(set(physical)):raise ValueError('DUPLICATE_PHYSICAL_SOURCE_UNIT')
     pages = {(u['book'],u.get('source_id') or u.get('source_page') or u['page']) for u in units}
     if len(units)>max_opportunities or len(pages)>max_pages:
@@ -148,6 +185,7 @@ def qualify(units, *, max_pages=24, max_opportunities=120, subset=None, reuse_fr
             raise ValueError('P3_SUBSET_PAGE_LIMIT')
         checked = [r for r in rows if r['unit_id'] in subset]
     else:
+        selected = units
         checked = rows
     gaps = [r for r in checked if r['state']=='SOURCE_AUDITED_GAP']
     books, structures = sorted({r['book'] for r in gaps}), sorted({r['structure'] for r in gaps})
@@ -160,12 +198,18 @@ def qualify(units, *, max_pages=24, max_opportunities=120, subset=None, reuse_fr
         reasons.append(f'gap structures {len(structures)} < 2')
     if subset is None:
         reasons.append('P3 execution subset not frozen')
+    greek_ids = greek_source_word_ids(selected, checked)
+    if len(greek_ids) < 100:
+        reasons.append(f'complete Greek source words {len(greek_ids)} < 100')
     data_eligible=not reasons
     reuse=verify_reuse(units,subset,reuse_freeze)
     execution_reasons=reasons+reuse['reasons']
     return dict(schema='development-panel/2',rules=RULES,state='INSUFFICIENT' if execution_reasons else 'ELIGIBLE',
                 data_eligible=data_eligible,reuse=reuse,residual_on_allowed=data_eligible and reuse['state']=='VERIFIED',total_opportunities=len(units),source_pages=len(pages),
                 qualified_gaps=len(gaps),books=books,structures=structures,rows=rows,reasons=execution_reasons,
+                Greek_complete_word_count=len(greek_ids),Greek_complete_word_minimum=100,
+                Greek_complete_word_unit_ids=greek_ids,
+                Greek_word_count_source='Individual source-confirmed complete words in the frozen subset; legacy compound and UNKNOWN references excluded',
                 new_ocr_calls=0,reference_fed_runtime=False,exposed_regression=True)
 
 

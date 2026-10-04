@@ -61,6 +61,22 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
     # UNKNOWN source and unbound model rows can never enlarge this denominator.
     unknown_source=[e['entry_id'] for e in entries if e['entry_id'] not in known]
     unknown_members=list(document.get('unresolved',[]))
+    # Page evidence also protects persisted pre-v3 candidate results whose
+    # document aggregate dropped alternate-only rows or unresolved members.
+    reader_alternatives=[];reader_unresolved=[];seen_alternatives=set();seen_members=set()
+    def retain(records,target,seen):
+        for record in records:
+            key=hash_value(record)
+            if key not in seen:
+                target.append(copy.deepcopy(record));seen.add(key)
+    retain(document.get('reader_alternatives',[]),reader_alternatives,seen_alternatives)
+    retain(document.get('reader_unresolved_members',[]),reader_unresolved,seen_members)
+    for page in source['pages']:
+        comparison=page.get('reader_comparison') or {}
+        retain(comparison.get('alternative_only',[]),reader_alternatives,seen_alternatives)
+        retain(comparison.get('unresolved',[]),reader_unresolved,seen_members)
+    if reader_alternatives or reader_unresolved:
+        risks.append(dict(code='independent_reader_coverage_unknown',severity='unknown'))
     if fraction is not None and fraction>=CONFIG['severe_missing_fraction']:
         risks.append(dict(code='large_source_region_gap',severity='severe',fraction=fraction))
     for page in source['pages']:
@@ -92,7 +108,7 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
         risks.append(dict(code='independent_complete_identity_unknown',severity='unknown'))
     severe=any(r['severity']=='severe' for r in risks)
     decision='abstain' if severe else 'review' if missing or any(r['severity']=='unknown' for r in risks) else 'accept-draft'
-    result=dict(schema='toc-complete-member-decision/1',candidate_version='complete-member-admission-v1',
+    result=dict(schema='toc-complete-member-decision/1',candidate_version='complete-member-admission-v2',
                 decision=decision,export_locked=True,export_authority='CANDIDATE_ONLY',
                 alert='SEVERE_TOC_EXTRACTION_RISK' if severe else 'TOC_COVERAGE_UNKNOWN' if decision=='review' else None,
                 source_sha256=source_sha256,
@@ -101,6 +117,7 @@ def decide_complete(rows,source,source_sha256,raw_sha256,revision=0):
                 known_missing=len(missing),known_missing_entry_ids=missing,known_missing_fraction=fraction,
                 known_coverage_unknown=len(unknown_coverage),unknown_coverage_entry_ids=sorted(unknown_coverage),
                 unknown_source_entry_ids=unknown_source,unknown_source_members=unknown_members,
+                unknown_reader_alternatives=reader_alternatives,unknown_reader_members=reader_unresolved,
                 unresolved_predictions=unresolved,observations=observations,risks=risks,
                 human_checked=False,admission_ready=False,quality_ready=False,natural_safety_verified=False,
                 limitation='Explicit source-member contract candidate; no formal engine/export integration or natural quality proof')

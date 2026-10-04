@@ -43,6 +43,29 @@ class CompleteSourceTests(unittest.TestCase):
  def test_reader_disagreement_and_alternatives_never_inflate_entry_count(self):
   result,zones=self.layout([('Topics',[5,10,40,18]),('28',[85,10,96,18])]);lines=result['lines'];comparison=compare_readers(lines,[dict(lines[0],text='Other 29')])
   out=complete_entries(result,zones,reader_comparison=comparison);self.assertEqual(len(out['entries']),1);self.assertFalse(out['complete_identity_ready']);self.assertEqual(out['group_ownership']['state'],'PASS')
+ def test_agreeing_primary_with_alternative_only_line_is_not_complete(self):
+  result,zones=self.layout([('Topics',[5,10,40,18]),('28',[85,10,96,18])])
+  extra,_=self.layout([('Other',[5,30,40,38]),('30',[85,30,96,38])])
+  comparison=compare_readers(result['lines'],result['lines']+extra['lines'])
+  self.assertEqual(comparison['primary'][0]['state'],'AGREEMENT')
+  out=complete_entries(result,zones,reader_comparison=comparison)
+  self.assertFalse(out['complete_identity_ready']);self.assertEqual(out['reader_coverage_state'],'UNKNOWN')
+  self.assertEqual(len(out['entries']),1);self.assertEqual(out['ownership']['state'],'PASS')
+  self.assertEqual(out['reader_alternatives'],extra['lines'])
+ def test_unresolved_alternate_member_stays_separate_from_primary_ownership(self):
+  result,zones=self.layout([('Topics',[5,10,40,18]),('28',[85,10,96,18])])
+  comparison=compare_readers(result['lines'],result['lines'])
+  comparison['unresolved']=[dict(word_id='secondary-unresolved',reason='source region missing')]
+  out=complete_entries(result,zones,reader_comparison=comparison)
+  self.assertFalse(out['complete_identity_ready']);self.assertEqual(len(out['entries']),1)
+  self.assertEqual(out['reader_unresolved_members'],comparison['unresolved'])
+  self.assertEqual(out['unresolved'],[]);self.assertEqual(out['ownership']['state'],'PASS')
+ def test_exact_reader_agreement_remains_a_structural_positive_control(self):
+  result,zones=self.layout([('Topics',[5,10,40,18]),('28',[85,10,96,18])])
+  comparison=compare_readers(result['lines'],result['lines'])
+  out=complete_entries(result,zones,reader_comparison=comparison)
+  self.assertTrue(out['complete_identity_ready']);self.assertFalse(out['admission_ready'])
+  self.assertEqual(out['reader_alternatives'],[]);self.assertEqual(out['reader_unresolved_members'],[])
  def test_native_observer_verifies_source_pixels_and_tamper_fails(self):
   with tempfile.TemporaryDirectory() as directory:
    root=Path(directory);source=root/'source.pdf';doc=fitz.open();doc.new_page(width=200,height=200).insert_text((15,30),'Logic');doc.save(source);doc.close()
@@ -154,6 +177,46 @@ class CompleteSourceTests(unittest.TestCase):
    self.assertTrue(result['document']['complete_identity_ready'])
    self.assertEqual(result['document']['entries'][0]['text'],'Long continued 28')
    self.assertEqual(result['document_line_ownership']['state'],'PASS');self.assertFalse(result['admission_ready'])
+
+ def test_observer_carries_cached_alternatives_and_unresolved_words_to_document(self):
+  for outside in (False,True):
+   with self.subTest(outside=outside),tempfile.TemporaryDirectory() as directory:
+    root=Path(directory);source=root/'source.pdf';doc=fitz.open();page=doc.new_page(width=200,height=200)
+    page.insert_text((15,30),'Topics');page.insert_text((170,30),'28');doc.save(source);doc.close()
+    sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();image=root/'source.png'
+    with fitz.open(source) as doc:
+     page=doc[0];page.get_pixmap(dpi=144,alpha=False).save(image)
+     raw_words=[dict(text=w[4],bbox=list(w[:4]),line=1) for w in page.get_text('words')]
+    extra=[dict(text='Extra',bbox=[192,60,197,68] if outside else [15,60,50,68],line=2)]
+    if not outside:extra.append(dict(text='30',bbox=[170,60,182,68],line=2))
+    tsv=['\t'.join(TSV_FIELDS)]
+    for i,w in enumerate(raw_words+extra,1):
+     x,y,right,bottom=[round(v*2) for v in w['bbox']]
+     tsv.append('\t'.join(map(str,[5,1,1,1,w['line'],i,x,y,right-x,bottom-y,99,w['text']])))
+    raw='\n'.join(tsv)+'\n'
+    receipt=dict(source_sha256=sha(source),page_number=1,image_sha256=sha(image),returncode=0,
+                 raw_tsv=raw,stdout_sha256=hashlib.sha256(raw.encode()).hexdigest(),reader_render_dpi=144)
+    request=dict(input_pdf=str(source),input_sha256=sha(source),
+                 images=[dict(page_number=1,path=str(image),sha256=sha(image),kind='page',dpi=144)])
+    layout=dict(page=1,source_sha256=sha(source),image_sha256=sha(image),basis='source-pixels',
+                evidence_path=str(image),evidence_sha256=sha(image),
+                regions=[dict(id='one',bbox=[0,0,190,200],folio_bbox=[165,0,190,200])])
+    cache=dict(page_number=1,source_sha256=sha(source),image_sha256=sha(image),
+               method='native-source-text',alternate_reader_receipt=receipt)
+    with patch('subprocess.run',side_effect=AssertionError('no reader invocation')):
+     out=observe_complete(request,layouts=[layout],cached_pages=[cache])
+    page_result=out['pages'][0];document=out['document']
+    self.assertEqual(len(document['entries']),1);self.assertFalse(document['complete_identity_ready'])
+    self.assertFalse(page_result['complete_identity_ready']);self.assertEqual(out['new_reader_calls'],0)
+    self.assertEqual(document['ownership']['state'],'PASS');self.assertEqual(document['group_ownership']['state'],'PASS')
+    if outside:
+     self.assertEqual(len(document['reader_unresolved_members']),1)
+     word=document['reader_unresolved_members'][0]['word']
+     self.assertEqual(word['text'],'Extra');self.assertEqual(word['identity']['source_sha256'],sha(source))
+     self.assertEqual(word['identity']['image_sha256'],sha(image));self.assertEqual(word['identity']['page'],1)
+    else:
+     self.assertEqual(document['reader_alternatives'],page_result['reader_comparison']['alternative_only'])
+     self.assertEqual(len(document['reader_alternatives']),1)
 
 
 if __name__=='__main__':unittest.main()
