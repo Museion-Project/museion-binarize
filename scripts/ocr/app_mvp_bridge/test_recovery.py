@@ -268,5 +268,81 @@ raise AssertionError('crash did not fire')
                       saved_pdf=saved['saved']['output_pdf'], query='different'), self.config)
 
 
+class CompletionGapTests(unittest.TestCase):
+    setUp=RecoveryTests.setUp
+    tearDown=RecoveryTests.tearDown
+    start=RecoveryTests.start
+    def test_actual_publish_before_receipt_exit_is_visible_and_read_only(self):
+        from unittest.mock import patch
+        from scripts.ocr.mvp import local
+        payload=self.root/'completion-crash-input.json'
+        payload.write_text(json.dumps(dict(request=self.request,config=self.config)))
+        script='''import json,os,sys
+from pathlib import Path
+from scripts.ocr.app_mvp_bridge.__main__ import main
+from scripts.ocr.mvp import local
+p=json.load(open(sys.argv[1]));original=local.write
+def exit_at_completion(path,value):
+ if Path(path).name=='completion.json':
+  assert (Path(path).parent/'CURRENT.json').is_file()
+  assert all(page['status']=='NATIVE_PRESERVED' for page in value['page_results'])
+  os._exit(88)
+ return original(path,value)
+local.write=exit_at_completion
+main(dict(p['request'],action='start',pages=[1,2],client_operation_id='8'*32),p['config'])
+raise AssertionError('crash not reached')
+'''
+        proc=subprocess.run([sys.executable,'-B','-c',script,str(payload)],capture_output=True,text=True,timeout=20)
+        self.assertEqual(proc.returncode,88,proc.stderr+proc.stdout)
+        folder=next(Path(self.config['session_root']).glob('*/desktop-session.json')).parent;op=folder/'operation'
+        before={str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()}
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Resume started a worker')):
+            resumed=main(dict(self.request,action='resume'),self.config)
+            reloaded=main(dict(self.request,action='reload',session_id=folder.name),self.config)
+        self.assertEqual(resumed['status'],'completion_unverified');self.assertEqual(resumed['completion_record_state'],'missing')
+        self.assertEqual(reloaded['status'],'completion_unverified');self.assertTrue(resumed['runtime_compatible'])
+        self.assertFalse((op/'completion.json').exists());self.assertFalse(list((op/'raw').glob('**/*.call.json')))
+        self.assertEqual(before,{str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()})
+
+    def test_unreadable_completion_survives_resume_without_becoming_success(self):
+        from unittest.mock import patch
+        from scripts.ocr.mvp import local
+        started=self.start();folder=Path(self.config['session_root'])/started['session_id'];op=folder/'operation'
+        completion=op/'completion.json';original=b'{"partial":';completion.write_bytes(original)
+        before={str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()}
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Resume started a worker')):
+            resumed=main(dict(self.request,action='resume'),self.config)
+        self.assertEqual(resumed['status'],'completion_unverified');self.assertEqual(resumed['completion_record_state'],'unreadable')
+        self.assertEqual(original,completion.read_bytes());self.assertEqual(before,{str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()})
+
+    def test_unreadable_completion_review_advances_bound_draft_and_keeps_failure_bytes(self):
+        from unittest.mock import patch
+        from scripts.ocr.mvp import local
+        from scripts.ocr.mvp.store import review_save
+        started=self.start();folder=Path(self.config['session_root'])/started['session_id'];op=folder/'operation'
+        completion=op/'completion.json';original=b'{"partial":';completion.write_bytes(original)
+        raw={str(p.relative_to(op)):sha(p) for p in (op/'raw').rglob('*') if p.is_file()}
+        current,_=local.load_snapshot(op)
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Review started a worker')):
+            receipt=review_save(op,dict(expected_revision=current['revision'],input_sha256=self.request['input_sha256'],actions=[]))
+            latest=main(dict(self.request,action='reload',session_id=folder.name),self.config)
+        self.assertEqual(receipt['revision'],current['revision']+1)
+        self.assertFalse(receipt['receipt']['human_approval_claimed'])
+        self.assertEqual(latest['revision'],receipt['revision']);self.assertEqual(latest['status'],'completion_unverified')
+        self.assertEqual(completion.read_bytes(),original)
+        self.assertEqual(raw,{str(p.relative_to(op)):sha(p) for p in (op/'raw').rglob('*') if p.is_file()})
+
+    def test_foreign_completion_refuses_review_before_new_revision(self):
+        from scripts.ocr.mvp import local
+        from scripts.ocr.mvp.store import review_save
+        started=self.start();folder=Path(self.config['session_root'])/started['session_id'];op=folder/'operation'
+        completion=op/'completion.json';data=json.loads(completion.read_text());data['input_sha256']='0'*64;completion.write_text(json.dumps(data))
+        before={str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()}
+        with self.assertRaisesRegex(ValueError,'COMPLETION_BINDING_MISMATCH'):
+            review_save(op,dict(expected_revision=started['revision'],input_sha256=self.request['input_sha256'],actions=[]))
+        self.assertEqual(local.load_snapshot(op)[0]['revision'],started['revision'])
+        self.assertEqual(before,{str(p.relative_to(op)):sha(p) for p in op.rglob('*') if p.is_file()})
+
+
 if __name__ == '__main__':
     unittest.main()

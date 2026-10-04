@@ -39,6 +39,16 @@ it("does not deliver an old document's pending cancellation after a document epo
 });
 
 const pendingSave={journal_id:`save-pending-${"b".repeat(32)}.json`,journal_sha256:"c".repeat(64),status:"complete_copy_pending_receipt",recoverable:true,output_pdf:"/existing-complete.pdf",reason:null};
+it.each(["missing","unreadable"])("shows a %s completion record on resume without starting recognition",async(completionState)=>{
+ const pending={...result,status:"completion_unverified",completion_record_state:completionState,runtime_compatible:true};
+ ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:pending));
+ render(<LocalOcrPanel {...props}/>);await waitFor(()=>expect(screen.getByTestId("local-ocr-resume")).toBeEnabled());
+ fireEvent.click(screen.getByTestId("local-ocr-resume"));await screen.findByTestId("local-ocr-completion-unverified");
+ expect(screen.getByText(/处理完成情况待确认/)).toBeVisible();expect(screen.queryByText(/completion_unverified/)).toBeNull();
+ expect(screen.getByText("草稿已保留，但处理完成记录缺失或无法读取。请先核对结果；不会自动重跑。")).toBeVisible();
+ expect(screen.getByTestId("local-ocr-save")).toBeDisabled();expect(screen.getByTestId("local-ocr-reload")).toBeEnabled();
+ expect(ipc.mock.calls.some(c=>c[1]?.request.action==="start")).toBe(false);
+});
 it("requires draft acknowledgement and sends the exact journal/revision for receipt recovery",async()=>{
  const pending={...result,runtime_compatible:true,session_storage:"persistent-private",pending_saves:[pendingSave]};
  ipc.mockImplementation((command:string,args?:{request:{action:string}})=>Promise.resolve(command==="local_ocr_capabilities"?{enabled:true}:args?.request.action==="readiness"?{local_runtime_ready:true,blockers:[]}:args?.request.action==="recover-save"?{...pending,saved:{output_pdf:pendingSave.output_pdf},pending_saves:[{...pendingSave,status:"recovered",recoverable:false}]}:pending));

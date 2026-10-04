@@ -216,9 +216,17 @@ def review_save(root,patch):
     Reject retires contribution and restores its original members only when safe.
     Text changes retain actual word support; geometry and ownership cannot be edited.
     """
-    current,_=load_snapshot(root)
+    current,current_folder=load_snapshot(root)
     if patch['expected_revision']!=current['revision']:raise ValueError('STALE_REVISION')
     if patch['input_sha256']!=current['input_sha256'] or sha(current['source_pdf'])!=current['input_sha256']:raise ValueError('SOURCE_CHANGED')
+    completion_path=Path(root)/'completion.json';completion=None
+    if current.get('mode')=='local':
+        # Validate before publishing. A damaged completion remains evidence;
+        # reviewing a valid immutable draft must not fabricate task success.
+        from .local import load_task_completion
+        recorded,state=load_task_completion(root,current,current_folder)
+        if state=='recorded':completion=recorded
+    elif completion_path.exists():completion=read(completion_path)
     updated=copy.deepcopy(current);seen=set()
     for action in patch['actions']:
         key=(action['page'],action['member_id'])
@@ -245,9 +253,8 @@ def review_save(root,patch):
     updated['receipts'].append(dict(receipt_id=uuid.uuid4().hex,revision=updated['revision'],source_hash=updated['input_sha256'],patch_hash=digest(patch),actions=patch['actions'],human_approval_claimed=False))
     folder=publish(root,updated,current['revision'])
     receipt=dict(schema_version=1,revision=updated['revision'],artifacts={n:str(folder/n) for n in ('searchable.pdf','text.txt','pages.json','review.html','receipts.json','page-map.json')},receipt=updated['receipts'][-1])
-    completion_path=Path(root)/'completion.json'
-    if completion_path.exists():
-        completion=read(completion_path);completion['revision']=updated['revision'];completion['page_results']=updated['pages'];completion['export_review']=updated['export_review']
+    if completion is not None:
+        completion['revision']=updated['revision'];completion['page_results']=updated['pages'];completion['export_review']=updated['export_review']
         for key in ('source_page_count','exported_page_count','untouched_page_numbers','pdf_page_mapping'):completion[key]=updated[key]
         completion['artifacts']['page_mapping_json']=str(folder/'page-map.json')
         for key,name in [('searchable_pdf','searchable.pdf'),('text','text.txt'),('pages_json','pages.json'),('review_html','review.html')]:completion['artifacts'][key]=str(folder/name)

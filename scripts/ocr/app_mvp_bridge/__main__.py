@@ -111,10 +111,13 @@ def view(folder,meta,config=None):
   from scripts.ocr.mvp.store import load_snapshot
   snap,revision=load_snapshot(folder/'operation')
   result.update(revision=snap['revision'],pages=snap['pages'],export_review=snap.get('export_review',[]),output_pdf=str(revision/'searchable.pdf'),receipts=snap.get('receipts',[]),document_binding=meta.get('document_binding'))
-  result['status']=read(folder/'operation/completion.json').get('status','review_required') if (folder/'operation/completion.json').is_file() else 'review_required'
+  result['status']=read(folder/'operation/completion.json').get('status','review_required') if mode!='local' and (folder/'operation/completion.json').is_file() else 'review_required'
   if mode=='local':
    from scripts.ocr.mvp.store import reader_alternatives
    check(snap['input_sha256']==meta['source_sha256'] and Path(snap['source_pdf']).resolve()==Path(meta['source']).resolve() and all(page.get('source_sha256',snap['input_sha256'])==snap['input_sha256'] for page in snap['pages']),'SNAPSHOT_SOURCE_MISMATCH')
+   from scripts.ocr.mvp.local import load_task_completion
+   completion,completion_state=load_task_completion(folder/'operation',snap,revision)
+   result.update(status=completion['status'],completion_record_state=completion_state)
    result['reader_alternatives']=reader_alternatives(snap)
    from .sessions import compatibility
    from .save_recovery import inspect

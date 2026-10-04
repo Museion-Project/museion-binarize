@@ -1,5 +1,7 @@
 // UI messages only. Document text and bookmark titles are never translated.
 export const english: Record<string, string> = {
+  "处理完成情况待确认": "Processing completion is unverified",
+  "草稿已保留，但处理完成记录缺失或无法读取。请先核对结果；不会自动重跑。": "The draft is preserved, but its completion record is missing or unreadable. Review the results first; processing will not restart automatically.",
   "未采用的识别读法": "Unadopted readings",
   "这些是保留的原始读法，可能对应已经识别的文字。它们不代表漏词或正确答案，仅供对照原页。": "These saved readings may refer to text already recognized. They do not establish missing words or correct answers; compare them with the original page.",
   "保留 {0} 条读法，未采用 {1} 条。": "{0} saved readings, {1} unadopted.",

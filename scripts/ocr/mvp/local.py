@@ -1,5 +1,6 @@
 """Fresh input -> Apple -> pixel residual crops -> optional independent reader -> PDF."""
 import argparse
+from contextlib import contextmanager
 import importlib.util
 import json
 import os
@@ -195,6 +196,78 @@ def parent_page_result(out,resultpath,page):
 def pipe_text(value):
     return value.decode('utf-8',errors='replace') if isinstance(value,bytes) else (value or '')
 
+@contextmanager
+def worker_parent_lifeline(fd):
+    """A parent-owned pipe, never an unrelated PID or process-group target."""
+    import fcntl
+    import select
+    import stat
+    import threading
+    if type(fd) is not int or fd<3:raise ValueError('WORKER_PARENT_LIFELINE_REQUIRED')
+    if not stat.S_ISFIFO(os.fstat(fd).st_mode):raise ValueError('WORKER_LIFELINE_PIPE_REQUIRED')
+    if fcntl.fcntl(fd,fcntl.F_GETFL)&os.O_ACCMODE!=os.O_RDONLY:raise ValueError('WORKER_LIFELINE_READ_END_REQUIRED')
+    if os.getpgrp()!=os.getpid():raise ValueError('WORKER_ISOLATED_GROUP_REQUIRED')
+    finished=threading.Event()
+    def stop_owned_group():
+        if os.getpgrp()!=os.getpid():os._exit(125)
+        os.killpg(os.getpid(),signal.SIGKILL)
+        # Do not resume the body or race the requested signal with exit(125).
+        while True:signal.pause()
+    def monitor():
+        while True:
+            try:os.read(fd,1);break
+            except InterruptedError:continue
+            except OSError:break
+        if not finished.is_set():stop_owned_group()
+    try:
+        # Reader subprocesses must not inherit this private descriptor.
+        os.set_inheritable(fd,False)
+        if select.select([fd],[],[],0)[0]:stop_owned_group()
+        threading.Thread(target=monitor,name='worker-parent-lifeline',daemon=True).start()
+        yield
+    finally:
+        finished.set();os.close(fd)
+
+def load_task_completion(out,snapshot=None,folder=None):
+    """Read a bound completion, or expose a verified draft with no success claim.
+
+    Publishing CURRENT and writing completion are separate durable operations.
+    A missing or partially written completion does not authorize worker replay
+    or fabrication of a successful receipt. Existing bytes remain untouched.
+    """
+    out=Path(out).resolve()
+    if snapshot is None or folder is None:snapshot,folder=load_snapshot(out)
+    path=out/'completion.json';state='missing'
+    bound_identity=bool(type(snapshot.get('operation_id')) is str and snapshot['operation_id'] and
+                        type(snapshot.get('mode')) is str and snapshot['mode'])
+    if path.is_symlink():raise ValueError('COMPLETION_PATH_ESCAPE')
+    if not bound_identity:state='identity_unverified'
+    elif path.exists():
+        try:completion=read(path)
+        except (OSError,ValueError,UnicodeError):state='unreadable'
+        else:
+            if not isinstance(completion,dict):state='unreadable'
+            else:
+                if (completion.get('input_sha256')!=snapshot['input_sha256'] or
+                    completion.get('operation_id')!=snapshot['operation_id'] or
+                    completion.get('mode')!=snapshot['mode'] or
+                    type(completion.get('revision')) is not int or completion.get('revision')!=snapshot['revision'] or
+                    digest(completion.get('page_results'))!=snapshot['pages_hash'] or
+                    completion.get('status') not in ('review_required','failed','cancelled') or
+                    not isinstance(completion.get('artifacts'),dict)):
+                    raise ValueError('COMPLETION_BINDING_MISMATCH')
+                return completion,'recorded'
+    artifacts={key:str(folder/name) for key,name in
+               [('searchable_pdf','searchable.pdf'),('text','text.txt'),('pages_json','pages.json'),('review_html','review.html')]}
+    artifacts.update(raw_directory=str(out/'raw'),page_mapping_json=str(folder/'page-map.json'))
+    result=dict(schema_version=1,operation_id=snapshot.get('operation_id'),mode=snapshot.get('mode'),
+                status='completion_unverified',input_sha256=snapshot['input_sha256'],output_directory=str(out),
+                artifacts=artifacts,page_results=snapshot['pages'],review_required=True,revision=snapshot['revision'],
+                export_review=snapshot.get('export_review',[]),completion_record_state=state,
+                evidence=[str(out/'CURRENT.json'),str(folder/'manifest.json')],
+                **{key:snapshot[key] for key in ('source_page_count','exported_page_count','untouched_page_numbers','pdf_page_mapping')})
+    return result,state
+
 def run_task(task,config=None):
     required=('operation_id','input_pdf','input_sha256','page_numbers','mode','output_directory','config_version')
     if any(k not in task for k in required):raise ValueError('MISSING_TASK_FIELDS')
@@ -225,7 +298,13 @@ def run_task(task,config=None):
     if out.exists():
         if not (out/'job.json').exists() or read(out/'job.json')['identity']!=identity:raise FileExistsError('Use a new output directory or identical resumable task')
         if (out/'worker-cleanup-failure.json').exists():raise PageWorkerCleanupError('PAGE_WORKER_CLEANUP_UNVERIFIED')
-        if (out/'CURRENT.json').exists():return read(out/'completion.json')
+        if (out/'CURRENT.json').exists():
+            snapshot,folder=load_snapshot(out)
+            if (snapshot['input_sha256']!=task['input_sha256'] or Path(snapshot['source_pdf']).resolve()!=source or
+                snapshot.get('operation_id')!=task['operation_id'] or snapshot.get('mode')!=task['mode'] or
+                snapshot.get('config_version')!=task['config_version'] or [p['page'] for p in snapshot['pages']]!=pages):
+                raise ValueError('CURRENT_TASK_BINDING_MISMATCH')
+            return load_task_completion(out,snapshot,folder)[0]
     else:out.mkdir(parents=True)
     write(out/'job.json',dict(schema_version=1,identity=identity,task=task,config=config));(out/'raw').mkdir(exist_ok=True)
     results=[];started=time.monotonic();cancelled=False
@@ -238,10 +317,12 @@ def run_task(task,config=None):
         else:
             request=dict(input_pdf=str(source),input_sha256=task['input_sha256'],page=number,mode=task['mode'],output=str(out),config=config)
             requestpath=out/'raw'/f'worker-{number}.json';write(requestpath,request)
-            proc=None;stdout=stderr=''
+            proc=None;stdout=stderr='';lifeline_read=lifeline_write=None
             try:
                 try:
-                    proc=subprocess.Popen([sys.executable,'-m','scripts.ocr.mvp.local','--worker',str(requestpath)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=ROOT,start_new_session=True)
+                    lifeline_read,lifeline_write=os.pipe()
+                    proc=subprocess.Popen([sys.executable,'-m','scripts.ocr.mvp.local','--parent-lifeline-fd',str(lifeline_read),'--worker',str(requestpath)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=ROOT,start_new_session=True,pass_fds=(lifeline_read,))
+                    os.close(lifeline_read);lifeline_read=None
                     deadline=time.monotonic()+config['page_timeout_seconds']
                     while True:
                         if (out/'CANCEL').exists():
@@ -257,7 +338,11 @@ def run_task(task,config=None):
                         except subprocess.TimeoutExpired as exc:
                             stdout=pipe_text(exc.output);stderr=pipe_text(exc.stderr)
                 finally:
-                    if proc is not None:reap_page_worker(proc)
+                    try:
+                        if proc is not None:reap_page_worker(proc)
+                    finally:
+                        for fd in (lifeline_read,lifeline_write):
+                            if fd is not None:os.close(fd)
                 (out/'raw'/f'worker-{number}.stdout').write_text(stdout);(out/'raw'/f'worker-{number}.stderr').write_text(stderr)
                 if cancelled:
                     p=dict(page=number,status='CANCELLED',route='failed',error='USER_CANCELLED',words=[],source_sha256=task['input_sha256'])
@@ -293,8 +378,9 @@ def run_task(task,config=None):
     return envelope
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--worker');args=parser.parse_args()
-    if args.worker:worker(read(args.worker))
+    parser=argparse.ArgumentParser();parser.add_argument('--worker');parser.add_argument('--parent-lifeline-fd',type=int);args=parser.parse_args()
+    if args.worker:
+        with worker_parent_lifeline(args.parent_lifeline_fd):worker(read(args.worker))
 if __name__=='__main__':main()
 
 def cancel_task(output_directory):

@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -171,6 +172,223 @@ class ParentWorkerLifecycleTests(unittest.TestCase):
         self.assertFalse((self.out/'raw/worker-2.json').exists());self.assertFalse((self.out/'completion.json').exists())
         with self.assertRaisesRegex(local.PageWorkerCleanupError,'PAGE_WORKER_CLEANUP_UNVERIFIED'):
             self.execute(lambda *a,**k:self.fail('Resume ignored unconfirmed cleanup'),page_timeout_seconds=1)
+
+
+class WorkerParentLifelineTests(unittest.TestCase):
+    """Actual private worker main, synthetic body, bounded inherited-group child."""
+    program='''import json,os,subprocess,sys,time
+from pathlib import Path
+from scripts.ocr.mvp import local
+def fixture(request):
+ root=Path(request['output'])
+ (root/'partial.raw').write_bytes(b'synthetic partial raw preserved\\n')
+ helper=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']) if request.get('helper') else None
+ (root/'ready.json').write_text(json.dumps(dict(pid=os.getpid(),group=os.getpgrp(),helper_pid=helper.pid if helper else None)))
+ if request.get('finish'):
+  (root/'completed.raw').write_bytes(b'synthetic completed result preserved\\n');print('completed',flush=True)
+ else:time.sleep(30)
+local.worker=fixture
+local.main()
+'''
+
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name);self.proc=None;self.isolated=True
+        self.fds=[];self.request=self.root/'request.json'
+
+    def tearDown(self):
+        if self.proc is not None:
+            if self.proc.returncode is None:
+                if self.isolated:
+                    try:os.killpg(self.proc.pid,signal.SIGKILL)
+                    except ProcessLookupError:pass
+                else:self.proc.kill()
+            self.proc.wait(timeout=5)
+            for stream in (self.proc.stdout,self.proc.stderr):
+                if stream is not None:stream.close()
+        for fd in self.fds:
+            try:os.close(fd)
+            except OSError:pass
+        self.temp.cleanup()
+
+    def pipe(self):
+        read_fd,write_fd=os.pipe();self.fds.extend((read_fd,write_fd));return read_fd,write_fd
+
+    def close_fd(self,fd):os.close(fd);self.fds.remove(fd)
+
+    def spawn(self,fd=None,*,helper=False,finish=False,isolated=True):
+        local.write(self.request,dict(output=str(self.root),helper=helper,finish=finish))
+        args=[sys.executable,'-c',self.program]
+        if fd is not None:args.extend(['--parent-lifeline-fd',str(fd)])
+        args.extend(['--worker',str(self.request)]);self.isolated=isolated
+        self.proc=REAL_POPEN(args,cwd=local.ROOT,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,
+                             start_new_session=isolated,pass_fds=() if fd is None else (fd,))
+        return self.proc
+
+    def wait_ready(self):
+        deadline=time.monotonic()+5;path=self.root/'ready.json'
+        while time.monotonic()<deadline:
+            if path.exists():
+                try:return local.read(path)
+                except json.JSONDecodeError:pass
+            if self.proc.poll() is not None:
+                self.fail('Worker exited before its synthetic body: '+self.proc.stderr.read())
+            time.sleep(.01)
+        self.fail('Bounded synthetic worker did not signal readiness')
+
+    def test_parent_pipe_loss_stops_worker_and_inherited_child_output(self):
+        read_fd,write_fd=self.pipe();proc=self.spawn(read_fd,helper=True);self.close_fd(read_fd)
+        ready=self.wait_ready();self.assertEqual(ready['group'],proc.pid);self.assertIsNotNone(ready['helper_pid'])
+        raw=(self.root/'partial.raw').read_bytes();started=time.monotonic();self.close_fd(write_fd)
+        # The sleeping child holds inherited stdout/stderr open for 30s.
+        # Bounded EOF proves that it no longer holds these live connections.
+        proc.communicate(timeout=5)
+        self.assertEqual(proc.returncode,-signal.SIGKILL);self.assertLess(time.monotonic()-started,5)
+        self.assertEqual((self.root/'partial.raw').read_bytes(),raw)
+        with self.assertRaises(ChildProcessError):os.waitpid(proc.pid,os.WNOHANG)
+
+    def test_connected_normal_worker_completes_without_being_killed(self):
+        read_fd,write_fd=self.pipe();proc=self.spawn(read_fd,finish=True);self.close_fd(read_fd)
+        stdout,stderr=proc.communicate(timeout=5)
+        self.assertEqual(proc.returncode,0);self.assertEqual(stdout,'completed\n');self.assertEqual(stderr,'')
+        self.assertEqual((self.root/'completed.raw').read_bytes(),b'synthetic completed result preserved\n')
+        self.close_fd(write_fd)
+
+    def test_already_disconnected_parent_refuses_worker_body(self):
+        read_fd,write_fd=self.pipe();self.close_fd(write_fd);proc=self.spawn(read_fd);self.close_fd(read_fd)
+        proc.communicate(timeout=5)
+        self.assertEqual(proc.returncode,-signal.SIGKILL);self.assertFalse((self.root/'ready.json').exists())
+        self.assertFalse((self.root/'partial.raw').exists())
+
+    def test_missing_lifeline_refuses_unmanaged_worker(self):
+        proc=self.spawn();_,stderr=proc.communicate(timeout=5)
+        self.assertNotEqual(proc.returncode,0);self.assertIn('WORKER_PARENT_LIFELINE_REQUIRED',stderr)
+        self.assertFalse((self.root/'ready.json').exists())
+
+    def test_regular_file_descriptor_is_refused_before_body(self):
+        path=self.root/'regular';path.write_bytes(b'not a pipe');fd=os.open(path,os.O_RDONLY);self.fds.append(fd)
+        proc=self.spawn(fd);_,stderr=proc.communicate(timeout=5)
+        self.assertNotEqual(proc.returncode,0);self.assertIn('WORKER_LIFELINE_PIPE_REQUIRED',stderr)
+        self.assertFalse((self.root/'ready.json').exists())
+
+    def test_write_end_is_refused_before_body(self):
+        _,write_fd=self.pipe();proc=self.spawn(write_fd);_,stderr=proc.communicate(timeout=5)
+        self.assertNotEqual(proc.returncode,0);self.assertIn('WORKER_LIFELINE_READ_END_REQUIRED',stderr)
+        self.assertFalse((self.root/'ready.json').exists())
+
+    def test_shared_process_group_is_refused_before_body(self):
+        read_fd,_=self.pipe();proc=self.spawn(read_fd,isolated=False);_,stderr=proc.communicate(timeout=5)
+        self.assertNotEqual(proc.returncode,0);self.assertIn('WORKER_ISOLATED_GROUP_REQUIRED',stderr)
+        self.assertFalse((self.root/'ready.json').exists())
+
+    def test_parent_dispatch_closes_pipe_when_starting_worker_fails(self):
+        source=self.root/'source.pdf'
+        with local.fitz.open() as doc:doc.new_page().insert_text((72,72),'Synthetic failed launch source');doc.save(source)
+        task=dict(operation_id='synthetic-pipe-cleanup',input_pdf=str(source),input_sha256=local.sha(source),page_numbers=[1],
+                  mode='local',output_directory=str(self.root/'operation'),config_version=local.CONFIG_VERSION)
+        created=[];real_pipe=os.pipe
+        def pipe():
+            fds=real_pipe();created.extend(fds);return fds
+        with patch.object(local.os,'pipe',side_effect=pipe),patch.object(local.subprocess,'Popen',side_effect=OSError('SYNTHETIC_START_FAILURE')),patch.object(local,'invoke') as reader:
+            result=local.run_task(task,dict(apple_helper=str(source),tesseract=str(source)));reader.assert_not_called()
+        self.assertEqual(result['page_results'][0]['status'],'FAILED');self.assertEqual(len(created),2)
+        for fd in created:
+            with self.assertRaises(OSError):os.fstat(fd)
+
+
+class PublishedDraftResumeTests(unittest.TestCase):
+    """Real immutable publication with synthetic native pages; no worker replay."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+        self.source=self.root/'source.pdf';self.out=self.root/'operation';self.out.mkdir()
+        with local.fitz.open() as doc:
+            for number in (1,2):doc.new_page().insert_text((20,30),f'Synthetic published source page {number} 314159')
+            doc.save(self.source)
+        self.task=dict(operation_id='published-draft-recovery',input_pdf=str(self.source),input_sha256=local.sha(self.source),
+                       page_numbers=[1,2],mode='local',output_directory=str(self.out),config_version=local.CONFIG_VERSION)
+        self.config=dict(apple_helper=str(self.source),tesseract=str(self.source),
+                         font=str(local.ROOT/'crates/mpdf-core/assets/fonts/NotoSans-Regular.ttf'))
+        self.normalized=local.runtime_config(self.config)
+        local.write(self.out/'job.json',dict(schema_version=1,identity=local.digest(dict(task=self.task,config=self.normalized)),
+                                            task=self.task,config=self.normalized))
+        raw=self.out/'raw/page-0001/native.raw';raw.parent.mkdir(parents=True);raw.write_bytes(b'synthetic saved raw evidence\n')
+        self.raw=raw
+        pages=[dict(page=number,status='NATIVE_PRESERVED',route='native',words=[],source_sha256=self.task['input_sha256'],
+                    raw_files={str(raw.relative_to(self.out)):local.sha(raw)} if number==1 else {}) for number in (1,2)]
+        snapshot=dict(schema_version=1,operation_id=self.task['operation_id'],mode='local',source_pdf=str(self.source),
+                      input_sha256=self.task['input_sha256'],revision=0,pages=pages,receipts=[],config_version=local.CONFIG_VERSION,
+                      consumer_policy=local.CONSUMER_POLICY,font_path=self.config['font'],fallback_font_paths=[])
+        self.folder=local.publish(self.out,snapshot)
+
+    def tearDown(self):self.temp.cleanup()
+
+    def files(self):return {str(p.relative_to(self.out)):local.sha(p) for p in self.out.rglob('*') if p.is_file()}
+
+    def resume_without_worker(self):
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Completed pages must not restart')),patch.object(local,'invoke') as reader:
+            result=local.run_task(self.task,self.config);reader.assert_not_called()
+        return result
+
+    def completion(self):
+        result=local.load_task_completion(self.out)[0]
+        result=dict(result,status='review_required');result.pop('completion_record_state',None)
+        return result
+
+    def test_missing_completion_restores_verified_draft_without_writing_a_receipt(self):
+        before=self.files();result=self.resume_without_worker()
+        self.assertEqual(result['status'],'completion_unverified');self.assertEqual(result['completion_record_state'],'missing')
+        self.assertEqual(before,self.files());self.assertFalse((self.out/'completion.json').exists())
+        self.assertEqual(result['page_results'],local.load_snapshot(self.out)[0]['pages'])
+        with local.fitz.open(result['artifacts']['searchable_pdf']) as saved:
+            self.assertEqual(len(saved),2);self.assertTrue(all('314159' in page.get_text() for page in saved))
+
+    def test_partial_or_non_object_completion_bytes_are_preserved(self):
+        for data in (b'{"partial":',b'[]',b'\xff'):
+            with self.subTest(data=data):
+                path=self.out/'completion.json';path.write_bytes(data);before=self.files()
+                result=self.resume_without_worker()
+                self.assertEqual(result['status'],'completion_unverified');self.assertEqual(result['completion_record_state'],'unreadable')
+                self.assertEqual(path.read_bytes(),data);self.assertEqual(before,self.files())
+
+    def test_recorded_completion_is_returned_unchanged_and_foreign_bindings_refuse(self):
+        completion=self.completion();path=self.out/'completion.json';local.write(path,completion)
+        self.assertEqual(self.resume_without_worker(),completion)
+        for changed in (dict(input_sha256='0'*64),dict(operation_id='other'),dict(mode='paid'),dict(revision=False),dict(page_results=[]),dict(status='success')):
+            with self.subTest(changed=changed):
+                local.write(path,dict(completion,**changed));before=self.files()
+                with self.assertRaisesRegex(ValueError,'COMPLETION_BINDING_MISMATCH'):self.resume_without_worker()
+                self.assertEqual(before,self.files())
+
+    def test_changed_source_config_and_task_pages_do_not_authorize_replay(self):
+        with patch.object(local.subprocess,'Popen',side_effect=AssertionError('Refusal must precede worker spawn')):
+            with self.assertRaises(FileExistsError):local.run_task(self.task,dict(self.config,max_residual_regions=1))
+            changed=dict(self.task,page_numbers=[2,1])
+            local.write(self.out/'job.json',dict(schema_version=1,identity=local.digest(dict(task=changed,config=self.normalized)),task=changed,config=self.normalized))
+            with self.assertRaisesRegex(ValueError,'CURRENT_TASK_BINDING_MISMATCH'):local.run_task(changed,self.config)
+            self.source.write_bytes(b'changed source')
+            with self.assertRaisesRegex(ValueError,'SOURCE_HASH_MISMATCH'):local.run_task(changed,self.config)
+
+    def test_corrupt_published_artifact_or_raw_evidence_refuses_without_repair(self):
+        for path,reason in ((self.folder/'text.txt','ARTIFACT_CORRUPT'),(self.raw,'RAW_EVIDENCE_CORRUPT')):
+            original=path.read_bytes();path.write_bytes(b'tampered bytes remain visible')
+            with self.assertRaisesRegex(ValueError,reason):self.resume_without_worker()
+            self.assertEqual(path.read_bytes(),b'tampered bytes remain visible');path.write_bytes(original)
+
+    def test_completion_symlink_never_reads_an_external_file(self):
+        external=self.root/'outside.json';external.write_bytes(b'{"private":"never read"}')
+        (self.out/'completion.json').symlink_to(external)
+        with patch.object(local,'read',side_effect=AssertionError('Symlink contents must not be read')):
+            snapshot,folder=local.load_snapshot(self.out)
+            with self.assertRaisesRegex(ValueError,'COMPLETION_PATH_ESCAPE'):local.load_task_completion(self.out,snapshot,folder)
+        self.assertEqual(external.read_bytes(),b'{"private":"never read"}')
+
+    def test_legacy_identity_gaps_remain_unverified_and_never_use_a_success_record(self):
+        snapshot,folder=local.load_snapshot(self.out)
+        local.write(self.out/'completion.json',self.completion())
+        for name in ('operation_id','mode'):
+            legacy=dict(snapshot);legacy.pop(name)
+            with patch.object(local,'read',side_effect=AssertionError('An unbound snapshot cannot establish a recorded success')):
+                result,state=local.load_task_completion(self.out,legacy,folder)
+            self.assertEqual(state,'identity_unverified');self.assertEqual(result['status'],'completion_unverified')
 
 
 if __name__=='__main__':unittest.main()
