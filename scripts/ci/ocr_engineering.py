@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TEST_MODULES = (
     'scripts.ocr.mvp.test_mvp',
     'scripts.ocr.mvp.test_support_conflicts',
+    'scripts.ocr.mvp.test_reader_merge_candidate',
     'scripts.ocr.mvp.test_reader_alternatives',
     'scripts.ocr.mvp.test_position_export_candidate',
     'scripts.ocr.mvp.test_pdf_consumer_audit',
